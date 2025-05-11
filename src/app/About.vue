@@ -55,7 +55,7 @@
     computed: {
       build: () => import.meta.env.VITE_BUILD,
       buildDate: () => import.meta.env.VITE_BUILD_DATE,
-      url: () => 'https://github.com/tamland/airsonic-refix'
+      url: () => 'https://github.com/JPGuillemin/Airdrome'
     },
   })
 </script>
