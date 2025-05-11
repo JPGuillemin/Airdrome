@@ -9,7 +9,7 @@ A modern responsive web frontend for [navidrome](https://github.com/navidrome/na
 
 ## Features
 - Responsive UI for desktop and mobile
-- Browse library for albums, artist, generes
+- Browse library for albums, artist, genres
 - Playback with persistent queue, repeat & shuffle
 - MediaSession integration
 - View, create, and edit playlists with drag and drop
