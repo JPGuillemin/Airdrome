@@ -1,8 +1,8 @@
-# Airsonic (refix) UI
+# Airdrome Web UI
 
 Airdrome is a fork of Airsonic (refix) UI (https://github.com/tamland/airsonic-refix)
 
-Modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
+A modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
 [gonic](https://github.com/sentriz/gonic) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
 ## Features
@@ -56,7 +56,15 @@ Bundle can be found in the `dist` folder.
 Build docker image:
 
 ```
-$ docker build -f docker/Dockerfile .
+$ docker build -f docker/Dockerfile -t local/airdrome .
+
+$ docker run -d \
+	--name=airdrome \
+	--restart on-failure \
+	--network=bridge \
+	-p 8080:80 \
+	local/airdrome:latest
+
 ```
 
 ## OpenSubsonic support
