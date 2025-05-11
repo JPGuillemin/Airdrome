@@ -48,8 +48,8 @@
   @use 'vue-slider-component/theme/material.css';
 
   .vue-slider {
-    height: 4px !important;
-    padding: 5px 0 !important;
+    height: 10px !important;
+    padding: 10px 0 !important;
     cursor: pointer;
   }
   ::v-deep .vue-slider-rail {

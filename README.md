@@ -1,9 +1,8 @@
 # Airsonic (refix) UI
 
-[![Build](https://img.shields.io/github/actions/workflow/status/tamland/airsonic-refix/ci.yml?style=flat-square)](https://github.com/tamland/airsonic-refix/actions)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tamland/airsonic-refix?branch=master&style=flat-square)](https://hub.docker.com/r/tamland/airsonic-refix)
+Airdrome is a fork of Airsonic (refix) UI (https://github.com/tamland/airsonic-refix)
 
-Modern responsive web frontend for [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), [navidrome](https://github.com/navidrome/navidrome),
+Modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
 [gonic](https://github.com/sentriz/gonic) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
 ## Features
@@ -18,7 +17,7 @@ Modern responsive web frontend for [airsonic-advanced](https://github.com/airson
 - Internet radio
 - Podcasts
 
-## [Live demo](https://airsonic.netlify.app)
+## [Live demo](https://darkstar.zenwalk.org)
 
 Enter the URL and credentials for your subsonic compatible server, or use one of the following public demo servers:
 
@@ -47,25 +46,6 @@ Enter the URL and credentials for your subsonic compatible server, or use one of
 
 ## Install
 
-### Docker
-
-```
-$ docker run -d -p 8080:80 tamland/airsonic-refix:latest
-```
-
-You can now access the application at http://localhost:8080/
-
-Environment variables:
-- `SERVER_URL` (Optional): The backend server URL. When set the server input on the login page will not be displayed.
-
-
-### Pre-built bundle
-
-Pre-built bundles can be found in the [Actions](https://github.com/tamland/airsonic-refix/actions)
-tab. Download/extract artifact and serve with any web server such as nginx or apache.
-
-### Build from source
-
 ```
 $ yarn install
 $ yarn build
@@ -77,13 +57,6 @@ Build docker image:
 
 ```
 $ docker build -f docker/Dockerfile .
-```
-
-## Develop
-
-```
-$ yarn install
-$ yarn dev
 ```
 
 ## OpenSubsonic support
