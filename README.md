@@ -1,5 +1,7 @@
 # Airdrome Web UI
 
+![Screenshot](public/icon.svg)
+
 Airdrome is a fork of Airsonic (refix) UI (https://github.com/tamland/airsonic-refix)
 
 A modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
