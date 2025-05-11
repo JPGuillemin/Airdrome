@@ -17,7 +17,7 @@ Modern responsive web frontend for [navidrome](https://github.com/navidrome/navi
 - Internet radio
 - Podcasts
 
-## [Live demo](https://darkstar.zenwalk.org)
+## [Live demo](`https://darkstar.zenwalk.org`)
 
 Enter the URL and credentials for your subsonic compatible server, or use one of the following public demo servers:
 
