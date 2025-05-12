@@ -1,6 +1,6 @@
 # Airdrome Web UI
 
-![Screenshot](public/icon.svg)
+![Screenshot](public/icon.png)
 
 Airdrome is a fork of Airsonic (refix) UI (https://github.com/tamland/airsonic-refix)
 
@@ -18,23 +18,6 @@ A modern responsive web frontend for [navidrome](https://github.com/navidrome/na
 - Favourites
 - Internet radio
 - Podcasts
-
-## [Live demo](https://darkstar.zenwalk.org)
-
-Enter the URL and credentials for your subsonic compatible server, or use one of the following public demo servers:
-
-**Subsonic**  
-  Server: `https://airsonic.netlify.app/api`  
-  Username: `guest4`, `guest5`, `guest6` etc.  
-  Password:`guest`
-
-**Navidrome**  
-  Server: `https://demo.navidrome.org`  
-  Username: `demo`  
-  Password:`demo`
-
-
-**Note**: if the server is using http only you must allow mixed content in your browser otherwise login will not work.
 
 ## Screenshots
 
