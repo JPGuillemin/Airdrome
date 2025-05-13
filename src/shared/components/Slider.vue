@@ -68,6 +68,6 @@
   ::v-deep .vue-slider-dot-tooltip-text {
     width: 44px;
     height: 44px;
-    font-size: inherit;
+    font-size: 80%;
   }
 </style>
