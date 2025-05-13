@@ -51,15 +51,14 @@
       }
     },
     created() {
-      const size = 18
-      this.$api.getAlbums('recently-added', size).then(result => {
+      this.$api.getAlbums('recently-added', 30).then(result => {
         this.result['recently-added'] = result
         this.loading = false
       })
-      this.$api.getAlbums('recently-played', size).then(result => {
+      this.$api.getAlbums('recently-played', 15).then(result => {
         this.result['recently-played'] = result
       })
-      this.$api.getAlbums('most-played', size).then(result => {
+      this.$api.getAlbums('most-played', 20).then(result => {
         this.result['most-played'] = result
       })
       this.$api.getAlbums('random', 50).then(result => {

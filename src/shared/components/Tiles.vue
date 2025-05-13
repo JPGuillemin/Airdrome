@@ -31,7 +31,7 @@
     .tiles-hs {
       grid-template-columns: none;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(min(100% / 2 - 1em, 200px), 1fr);
+      grid-auto-columns: minmax(min(100% / 2 - 1em, 100px), 1fr);
       overflow-x: auto;
     }
   }
