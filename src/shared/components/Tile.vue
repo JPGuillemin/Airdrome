@@ -10,14 +10,14 @@
       </template>
     </ContextMenu>
     <div class="card-body">
-      <div class="text-truncate fw-bold">
+      <div class="small-font text-truncate fw-bold">
         <slot name="title">
           <router-link :to="props.to">
             {{ props.title }}
           </router-link>
         </slot>
       </div>
-      <div class="text-truncate text-muted">
+      <div class="small-font text-truncate text-muted">
         <slot name="text">
           {{ props.text }}
         </slot>
@@ -36,5 +36,8 @@
       height: 100%;
       object-fit: cover;
     }
+  }
+  .small-font {
+    font-size: 0.65em;
   }
 </style>
