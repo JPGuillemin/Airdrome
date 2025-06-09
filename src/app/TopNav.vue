@@ -5,10 +5,10 @@
         <Icon icon="nav" />
       </button>
 
-      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" exact>
+      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
         <Icon icon="home" />
       </router-link>
-      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}">
+      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}" title="Playing queue">
         <Icon icon="playing" />
       </router-link>
     </div>

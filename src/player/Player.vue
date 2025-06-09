@@ -7,7 +7,7 @@
         <!-- Track info --->
         <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start" style="width: 0; min-width: 0">
           <template v-if="track.albumId">
-            <router-link :to="{name: 'album', params: { id: track.albumId }}" style="padding: 12px">
+            <router-link :to="{name: 'album', params: { id: track.albumId }}" style="padding: 12px" title="Album">
               <img v-if="track.image" width="52" height="52" :src="track.image">
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
             </router-link>
