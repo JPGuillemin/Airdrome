@@ -7,32 +7,24 @@
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{name: 'home'}" exact>
-      <Icon icon="discover" class="" /> Discover
-    </router-link>
-
-    <router-link class="nav-link" :to="{name: 'queue'}">
-      <Icon icon="playlist" /> Playing
-    </router-link>
-
     <small class="sidebar-heading text-muted">
       Library
     </small>
 
     <router-link class="nav-link" :to="{name: 'albums-default'}">
-      <Icon icon="library" /> Albums
+      <Icon icon="albums" /> Albums
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'artists'}">
-      <Icon icon="library" /> Artists
+      <Icon icon="artists" /> Artists
     </router-link>
 
     <router-link class="nav-item nav-link" :to="{name: 'genres'}">
-      <Icon icon="library" /> Genres
+      <Icon icon="genres" /> Genres
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'playlists'}">
-      <Icon icon="list" /> Playlists
+      <Icon icon="playlist" /> Playlists
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'favourites'}">

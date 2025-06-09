@@ -1,38 +1,47 @@
 <template>
-  <div class="d-flex align-items-center mb-2">
-    <button class="btn navbar-toggler text-white d-md-none me-2" @click="store.showMenu">
-      <Icon icon="nav" />
-    </button>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center">
+      <button class="btn navbar-toggler text-white d-md-none me-2" @click="store.showMenu">
+        <Icon icon="nav" />
+      </button>
 
-    <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
-
-    <template v-if="store.username">
-      <b-dropdown variant="link" right no-caret toggle-class="px-0">
-        <template #button-content>
-          <Avatar>
-            <Icon icon="person" />
-          </Avatar>
-        </template>
-        <div class="px-3 py-1">
-          {{ store.username }}
-        </div>
-        <b-dropdown-divider />
-        <b-dropdown-item :href="store.server" target="_blank" rel="noopener noreferrer">
-          Server <Icon icon="link" />
-        </b-dropdown-item>
-        <b-dropdown-item-button @click="scan">
-          Scan media folders
-        </b-dropdown-item-button>
-        <b-dropdown-item-button @click="showAboutModal = true">
-          About
-        </b-dropdown-item-button>
-        <b-dropdown-divider />
-        <b-dropdown-item-button @click="logout">
-          Log out
-        </b-dropdown-item-button>
-      </b-dropdown>
-    </template>
-    <About :visible="showAboutModal" @close="showAboutModal = false" />
+      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" exact>
+        <Icon icon="home" />
+      </router-link>
+      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}">
+        <Icon icon="playing" />
+      </router-link>
+    </div>
+    <div class="d-flex align-items-center">
+      <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
+      <template v-if="store.username">
+        <b-dropdown variant="link" right no-caret toggle-class="px-0">
+          <template #button-content>
+            <Avatar>
+              <Icon icon="person" />
+            </Avatar>
+          </template>
+          <div class="px-3 py-1">
+            {{ store.username }}
+          </div>
+          <b-dropdown-divider />
+          <b-dropdown-item :href="store.server" target="_blank" rel="noopener noreferrer">
+            Server <Icon icon="link" />
+          </b-dropdown-item>
+          <b-dropdown-item-button @click="scan">
+            Scan media folders
+          </b-dropdown-item-button>
+          <b-dropdown-item-button @click="showAboutModal = true">
+            About
+          </b-dropdown-item-button>
+          <b-dropdown-divider />
+          <b-dropdown-item-button @click="logout">
+            Log out
+          </b-dropdown-item-button>
+        </b-dropdown>
+      </template>
+      <About :visible="showAboutModal" @close="showAboutModal = false" />
+    </div>
   </div>
 </template>
 <script lang="ts">
@@ -69,3 +78,15 @@
     }
   })
 </script>
+<style lang="scss" scoped>
+  .icon-home-wrapper {
+    display: flex;
+    align-items: center;     /* Vertical centering */
+    height: 60%;            /* Stretch to parent's height */
+  }
+
+  .icon-home-wrapper :deep(svg) {
+    height: 2.5rem;          /* Match SearchForm height (adjust if needed) */
+    width: auto;             /* Preserve aspect ratio */
+  }
+</style>

@@ -17,16 +17,19 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
+  import iconAlbum from '@iconify-icons/bi/vinyl'
   import iconArrowUpDown from '@iconify-icons/bi/arrow-up-down'
+  import iconArtist from '@iconify-icons/bi/incognito'
   import iconCheck from '@iconify-icons/bi/check'
   import iconChevronRight from '@iconify-icons/bi/chevron-compact-right'
-  import iconDiscover from '@iconify-icons/bi/card-text'
   import iconDownload from '@iconify-icons/bi/download'
   import iconEdit from '@iconify-icons/bi/pencil-square'
   import iconFiles from '@iconify-icons/bi/files'
   import iconFolder from '@iconify-icons/bi/folder'
+  import iconGenre from '@iconify-icons/bi/palette'
   import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
+  import iconHome from '@iconify-icons/bi/house'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
   import iconList from '@iconify-icons/bi/list-ul'
@@ -35,6 +38,7 @@
   import iconPause from '@iconify-icons/bi/pause-fill'
   import iconPerson from '@iconify-icons/bi/person-fill'
   import iconPlay from '@iconify-icons/bi/play-fill'
+  import iconPlaying from '@iconify-icons/bi/soundwave'
   import iconPlaylist from '@iconify-icons/bi/music-note-list'
   import iconPlus from '@iconify-icons/bi/plus'
   import iconPodcast from '@iconify-icons/bi/rss'
@@ -50,16 +54,20 @@
   import iconX from '@iconify-icons/bi/x'
 
   const icons = {
+    albums: iconAlbum.body,
     'arrow-up-down': iconArrowUpDown.body,
+    artists: iconArtist.body,
     check: iconCheck.body,
     'chevron-right': iconChevronRight.body,
-    discover: iconDiscover.body,
+    discover: iconHome.body,
     download: iconDownload.body,
     edit: iconEdit.body,
     files: iconFiles.body,
     folder: iconFolder.body,
+    genres: iconGenre.body,
     heart: iconHeart.body,
     'heart-fill': iconHeartFill.body,
+    home: iconHome.body,
     library: iconLibrary.body,
     link: iconLink.body,
     list: iconList.body,
@@ -68,6 +76,7 @@
     pause: iconPause.body,
     person: iconPerson.body,
     play: iconPlay.body,
+    playing: iconPlaying.body,
     playlist: iconPlaylist.body,
     plus: iconPlus.body,
     podcast: iconPodcast.body,
