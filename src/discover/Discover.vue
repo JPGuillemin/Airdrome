@@ -139,17 +139,16 @@
 
   /* Pills style (common) */
   .pill {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background-color: #6c757d;
+    border-radius: 50px;
+    flex: 0 0 auto;
+    padding: 0.5rem 1rem;
     height: 36px;
-    padding: 0 12px;
     font-size: 0.8rem;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    border-radius: 9999px;
-    background-color: #6c757d;
   }
   .pill-link {
     color: white;
@@ -173,7 +172,7 @@
     }
 
     .pill {
-    flex: unset; /* cancel the flex item behavior */
+    flex: unset;
     }
   }
 </style>
