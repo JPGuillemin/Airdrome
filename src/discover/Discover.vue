@@ -2,18 +2,30 @@
   <ContentLoader :loading="loading">
     <div v-if="result.added.length > 0" class="mb-4">
       <h3>
-        Recently Added
-        <router-link :to="{name: 'albums', params: {sort: 'added'}}" class="text-muted">
-          <Icon icon="chevron-right" />
+        <router-link :to="{name: 'albums', params: {sort: 'recently-added'}}" class="text-muted">
+          Recently Added
         </router-link>
       </h3>
       <AlbumList :items="result.added" allow-h-scroll />
     </div>
     <div v-if="result.genres.length > 0" class="mb-4">
-      <h3>Genres</h3>
-      <div class="d-flex flex-wrap gap-2">
-        <span v-for="item in result.genres" :key="item.id" class="text-bg-secondary rounded-pill py-2 px-3 +mb-2 +me-2">
-          <router-link :to="{name: 'genre', params: { id: item.id } }">
+      <h3>
+        <router-link :to="{name: 'genres'}" class="text-muted">
+          Genres
+        </router-link>
+      </h3>
+      <div class="d-flex flex-wrap justify-content-center gap-1 gap-sm-2 gap-md-3">
+        <span
+          v-for="item in result.genres"
+          :key="item.id"
+          class="d-flex align-items-center justify-content-center text-bg-secondary rounded-pill"
+          style="width: 105px; height: 36px; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+        >
+          <router-link
+            :to="{name: 'genre', params: { id: item.id } }"
+            class="text-decoration-none text-white d-block text-truncate"
+            style="white-space: nowrap;"
+          >
             {{ item.name }}
           </router-link>
         </span>
@@ -21,27 +33,24 @@
     </div>
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
-        Random
         <router-link :to="{name: 'albums', params: {sort: 'random'}}" class="text-muted">
-          <Icon icon="chevron-right" />
+          Random
         </router-link>
       </h3>
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
     <div v-if="result.played.length > 0" class="mb-4">
       <h3>
-        Recently Played
-        <router-link :to="{name: 'albums', params: {sort: 'played'}}" class="text-muted">
-          <Icon icon="chevron-right" />
+        <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
+          Recently Played
         </router-link>
       </h3>
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
     <div v-if="result.most.length > 0" class="mb-4">
       <h3>
-        Most Played
-        <router-link :to="{name: 'albums', params: {sort: 'most'}}" class="text-muted">
-          <Icon icon="chevron-right" />
+        <router-link :to="{name: 'albums', params: {sort: 'most-played'}}" class="text-muted">
+          Most Played
         </router-link>
       </h3>
       <AlbumList :items="result.most" allow-h-scroll />
