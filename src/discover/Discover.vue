@@ -14,17 +14,15 @@
           Genres
         </router-link>
       </h3>
-      <div class="d-flex flex-wrap justify-content-center gap-1 gap-sm-2 gap-md-3">
+      <div class="pill-container">
         <span
           v-for="item in result.genres"
           :key="item.id"
-          class="d-flex align-items-center justify-content-center text-bg-secondary rounded-pill"
-          style="width: 105px; height: 36px; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+          class="pill"
         >
           <router-link
-            :to="{name: 'genre', params: { id: item.id } }"
-            class="text-decoration-none text-white d-block text-truncate"
-            style="white-space: nowrap;"
+            :to="{ name: 'genre', params: { id: item.id } }"
+            class="pill-link"
           >
             {{ item.name }}
           </router-link>
@@ -105,3 +103,76 @@
     }
   })
 </script>
+
+.pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  justify-content: center;
+  gap: 6px; /* slightly larger minimum gap */
+  padding: 1rem;
+}
+
+@media (min-width: 600px) {
+  .pill-grid {
+    gap: 12px;
+  }
+}
+
+@media (min-width: 992px) {
+  .pill-grid {
+    gap: 18px;
+  }
+}
+<style lang="scss" scoped>
+  /* Base: mobile-first scrollable line */
+  .pill-container {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 8px;
+    padding: 0.5rem 1rem;
+    scrollbar-width: none; /* Firefox */
+  }
+  .pill-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
+  /* Pills style (common) */
+  .pill {
+    background-color: #6c757d;
+    border-radius: 50px;
+    flex: 0 0 auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pill-link {
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Switch to grid on larger screens */
+  @media (min-width: 768px) {
+    .pill-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, auto));
+    gap: 12px;
+    justify-content: center;
+    overflow: visible;
+    white-space: normal;
+    }
+
+    .pill {
+    flex: unset; /* cancel the flex item behavior */
+    }
+  }
+</style>
