@@ -21,13 +21,7 @@ A modern responsive web frontend for [navidrome](https://github.com/navidrome/na
 
 ## Screenshots
 
-![Screenshot](screenshots/album.png)
-
-![Screenshot](screenshots/album-list.png)
-
-![Screenshot](screenshots/artist.png)
-
-![Screenshot](screenshots/artist-list.png)
+![Screenshot](screenshots/album.png) ![Screenshot](screenshots/album-list.png) ![Screenshot](screenshots/artist.png) ![Screenshot](screenshots/genre.png)
 
 ## Install
 
