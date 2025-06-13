@@ -36,19 +36,35 @@
 
         <!-- Controls--->
         <div class="col-auto p-0">
-          <b-button variant="transparent" class="m-2 d-none d-sm-inline-block" @click="previous">
+          <b-button
+            title="Shuffle"
+            variant="transparent"
+            class="d-none d-md-inline-block"
+            :class="{ 'text-primary': shuffleActive } "
+            @click="toggleShuffle">
+            <Icon icon="shuffle" />
+          </b-button>
+          <b-button variant="transparent" class="m-2 d-none d-md-inline-block" @click="previous">
             <Icon icon="skip-start" />
           </b-button>
-          <b-button variant="transparent" size="lg" class="m-2" @click="playPause">
+          <b-button variant="transparent" size="lg" class="btn-play m-2" @click="playPause">
             <Icon :icon="isPlaying ? 'pause' : 'play'" />
           </b-button>
           <b-button variant="transparent" class="m-2" @click="next">
             <Icon icon="skip-end" />
           </b-button>
+          <b-button
+            title="Repeat"
+            variant="transparent"
+            class="d-none d-md-inline-block"
+            :class="{ 'text-primary': repeatActive }"
+            @click="toggleRepeat">
+            <Icon icon="repeat" />
+          </b-button>
         </div>
 
         <!-- Controls right --->
-        <div class="col-auto col-sm p-0">
+        <div class="col-auto col-md p-0">
           <div class="d-flex flex-nowrap justify-content-end pe-3">
             <div class="m-0 d-none d-md-inline-flex align-items-center">
               <template v-if="track && track.isPodcast">
@@ -85,20 +101,6 @@
                 <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                 <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
               </b-button>
-
-              <b-button id="player-volume-btn" variant="transparent" title="Volume">
-                <Icon :icon="isMuted ? 'mute' : 'volume'" />
-              </b-button>
-              <b-popover target="player-volume-btn" placement="top" triggers="click blur" no-fade>
-                <Slider class="pt-2" style="height: 120px;" direction="btt"
-                        :min="0" :max="1" :step="0.01" percent
-                        :value="volume" @input="setVolume"
-                />
-              </b-popover>
-
-              <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
-                <Icon icon="list" />
-              </router-link>
             </div>
             <OverflowMenu class="d-md-none">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
@@ -262,5 +264,8 @@
   .icon {
     display: flex;
     align-items: center;
+  }
+  .btn-play {
+    --bs-btn-font-size: 1.5rem;
   }
 </style>
