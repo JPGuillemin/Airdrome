@@ -101,6 +101,20 @@
                 <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                 <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
               </b-button>
+
+              <b-button id="player-volume-btn" variant="transparent" title="Volume">
+                <Icon :icon="isMuted ? 'mute' : 'volume'" />
+              </b-button>
+              <b-popover target="player-volume-btn" placement="top" triggers="click blur" no-fade>
+                <Slider class="pt-2" style="height: 120px;" direction="btt"
+                        :min="0" :max="1" :step="0.01" percent
+                        :value="volume" @input="setVolume"
+                />
+              </b-popover>
+
+              <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
+                <Icon icon="list" />
+              </router-link>
             </div>
             <OverflowMenu class="d-md-none">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
