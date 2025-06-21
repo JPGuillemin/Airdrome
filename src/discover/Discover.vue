@@ -53,18 +53,6 @@
       </h3>
       <AlbumList :items="result.most" allow-h-scroll />
     </div>
-
-    <div v-if="result.genres.length > 0" class="mb-4">
-      <h3>Genres</h3>
-      <div class="d-flex flex-wrap gap-3">
-        <span v-for="item in result.genres" :key="item.id" class="text-bg-secondary rounded-pill py-2 px-3 +mb-2 +me-2">
-          <router-link :to="{name: 'genre', params: { id: item.id } }">
-            {{ item.name }}
-          </router-link>
-        </span>
-      </div>
-    </div>
-
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
         Random

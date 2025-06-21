@@ -115,5 +115,6 @@
   .nav-link .icon.bi {
     font-size: 125%;
     vertical-align: text-bottom;
+    pointer-events: none;
   }
 </style>
