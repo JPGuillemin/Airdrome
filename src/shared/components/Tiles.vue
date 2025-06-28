@@ -27,7 +27,7 @@
   }
 
   /* Enable horizontal scrolling before breaking to 2 columns */
-  @media(max-width: 654px) { /* 15px padding + 200px tile + 12px gap + 100px tile + 12px gap + 100px tile + 15px padding */
+  @media(max-width: 654px) { /* 15px padding + 100px tile + 12px gap + 200px tile + 12px gap + 100px tile + 15px padding */
     .tiles-hs {
       grid-template-columns: none;
       grid-auto-flow: column;
