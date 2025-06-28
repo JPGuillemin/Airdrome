@@ -2,7 +2,9 @@
   <div class="d-flex align-items-end logo-container"
        :class="$data.staticClass || ''"
        v-bind="$data.attrs">
-    <img width="52" height="52" src="@/shared/assets/logo.svg">
+    <router-link class="flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
+      <img width="52" height="52" src="@/shared/assets/logo.svg">
+    </router-link>
     <span class="text-body ms-2 text-nowrap">
       <span>Airdrome</span>
     </span>
