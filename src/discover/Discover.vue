@@ -15,15 +15,8 @@
         </router-link>
       </h3>
       <div class="pill-container">
-        <span
-          v-for="item in result.genres"
-          :key="item.id"
-          class="pill"
-        >
-          <router-link
-            :to="{ name: 'genre', params: { id: item.id } }"
-            class="pill-link"
-          >
+        <span v-for="item in result.genres" :key="item.id" class="pill">
+          <router-link :to="{ name: 'genre', params: { id: item.id } }" class="pill-link">
             {{ item.name }}
           </router-link>
         </span>
@@ -55,9 +48,8 @@
     </div>
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
-        Random
         <router-link :to="{name: 'albums', params: {sort: 'random'}}" class="text-muted">
-          <Icon icon="chevron-right" />
+          Random
         </router-link>
       </h3>
       <AlbumList :items="result.random" allow-h-scroll />
@@ -94,17 +86,17 @@
       }
     },
     created() {
-      this.$api.getAlbums('recently-added', 15).then(result => {
+      this.$api.getAlbums('recently-added', 18).then(result => {
         this.result.added = result
         this.loading = false
       })
-      this.$api.getAlbums('recently-played', 15).then(result => {
+      this.$api.getAlbums('recently-played', 18).then(result => {
         this.result.played = result
       })
-      this.$api.getAlbums('most-played', 20).then(result => {
+      this.$api.getAlbums('most-played', 23).then(result => {
         this.result.most = result
       })
-      this.$api.getAlbums('random', 25).then(result => {
+      this.$api.getAlbums('random', 28).then(result => {
         this.result.random = result
       })
       this.$api.getGenres().then(result => {
