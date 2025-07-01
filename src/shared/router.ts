@@ -24,6 +24,17 @@ export function setupRouter(auth: AuthService) {
     mode: 'history',
     linkExactActiveClass: 'active',
     base: import.meta.env.BASE_URL,
+    scrollBehavior(to, from, savedPosition) {
+      if (savedPosition) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(savedPosition)
+          }, 50)
+        })
+      } else {
+        return { x: 0, y: 0 }
+      }
+    },
     routes: [
       {
         path: '/',

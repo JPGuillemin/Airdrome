@@ -1,7 +1,9 @@
 <template>
   <div>
     <component :is="layout">
-      <router-view :key="$route.fullPath" />
+      <keep-alive>
+        <router-view :key="$route.fullPath" />
+      </keep-alive>
     </component>
     <ErrorToast />
   </div>
