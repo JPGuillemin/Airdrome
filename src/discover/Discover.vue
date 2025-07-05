@@ -1,12 +1,12 @@
 <template>
   <ContentLoader :loading="loading">
-    <div v-if="result.added.length > 0" class="mb-4">
+    <div v-if="result.played.length > 0" class="mb-4">
       <h3>
-        <router-link :to="{name: 'albums', params: {sort: 'recently-added'}}" class="text-muted">
-          Recently Added
+        <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
+          Recently Played
         </router-link>
       </h3>
-      <AlbumList :items="result.added" allow-h-scroll />
+      <AlbumList :items="result.played" allow-h-scroll />
     </div>
     <div v-if="result.genres.length > 0" class="mb-4">
       <h3>
@@ -22,6 +22,28 @@
         </span>
       </div>
     </div>
+    <div v-if="result.added.length > 0" class="mb-4">
+      <h3>
+        <router-link :to="{name: 'albums', params: {sort: 'recently-added'}}" class="text-muted">
+          Recently Added
+        </router-link>
+      </h3>
+      <AlbumList :items="result.added" allow-h-scroll />
+    </div>
+    <div v-if="result.playlists.length > 0" class="mb-4">
+      <h3>
+        <router-link :to="{name: 'playlists'}" class="text-muted">
+          Playlists
+        </router-link>
+      </h3>
+      <div class="pill-container">
+        <span v-for="item in result.playlists" :key="item.id" class="pill">
+          <router-link :to="{ name: 'playlist', params: { id: item.id } }" class="pill-link">
+            {{ item.name }}
+          </router-link>
+        </span>
+      </div>
+    </div>
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
         <router-link :to="{name: 'albums', params: {sort: 'random'}}" class="text-muted">
@@ -29,14 +51,6 @@
         </router-link>
       </h3>
       <AlbumList :items="result.random" allow-h-scroll />
-    </div>
-    <div v-if="result.played.length > 0" class="mb-4">
-      <h3>
-        <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
-          Recently Played
-        </router-link>
-      </h3>
-      <AlbumList :items="result.played" allow-h-scroll />
     </div>
     <div v-if="result.most.length > 0" class="mb-4">
       <h3>
@@ -46,14 +60,6 @@
       </h3>
       <AlbumList :items="result.most" allow-h-scroll />
     </div>
-    <div v-if="result.random.length > 0" class="mb-4">
-      <h3>
-        <router-link :to="{name: 'albums', params: {sort: 'random'}}" class="text-muted">
-          Random
-        </router-link>
-      </h3>
-      <AlbumList :items="result.random" allow-h-scroll />
-    </div>
 
     <EmptyIndicator v-if="empty" />
   </ContentLoader>
@@ -61,7 +67,7 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
-  import { Album, Genre } from '@/shared/api'
+  import { Album, Genre, Playlist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
 
   export default defineComponent({
@@ -77,6 +83,7 @@
           most: [] as Album[],
           random: [] as Album[],
           genres: [] as Genre[],
+          playlists: [] as Playlist[],
         }
       }
     },
@@ -101,6 +108,9 @@
       })
       this.$api.getGenres().then(result => {
         this.result.genres = orderBy(result, 'name', 'asc')
+      })
+      this.$api.getPlaylists().then(result => {
+        this.result.playlists = orderBy(result, 'name', 'asc')
       })
     }
   })
@@ -141,7 +151,7 @@
 
   /* Pills style (common) */
   .pill {
-    background-color: #6c757d;
+    background-color: #2f7bd9;
     border-radius: 50px;
     flex: 0 0 auto;
     padding: 0.5rem 1rem;
