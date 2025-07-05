@@ -7,9 +7,9 @@
       </button>
     </div>
 
-    <small class="sidebar-heading text-muted">
-      Library
-    </small>
+    <router-link class="nav-link" :to="{ name: 'queue' }">
+      <Icon icon="playing" /> Queue
+    </router-link>
 
     <router-link class="nav-link" :to="{name: 'albums-default'}">
       <Icon icon="albums" /> Albums
@@ -43,19 +43,16 @@
       <Icon icon="files" /> Files
     </router-link>
 
-    <PlaylistNav />
   </nav>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
   import Logo from './Logo.vue'
-  import PlaylistNav from '@/library/playlist/PlaylistNav.vue'
   import { useMainStore } from '@/shared/store'
 
   export default defineComponent({
     components: {
-      Logo,
-      PlaylistNav,
+      Logo
     },
     setup() {
       return {

@@ -4,10 +4,10 @@
       <button class="btn navbar-toggler text-white d-md-none me-2" @click="store.showMenu">
         <Icon icon="nav" />
       </button>
-      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
+      <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
         <Icon icon="home" />
       </router-link>
-      <router-link class="btn flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}" title="Home panel" exact>
+      <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}" title="Home panel" exact>
         <Icon icon="playing" />
       </router-link>
     </div>

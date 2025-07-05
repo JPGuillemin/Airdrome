@@ -115,9 +115,6 @@
                 />
               </Dropdown>
 
-              <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
-                <Icon icon="list" />
-              </router-link>
             </div>
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
