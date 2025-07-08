@@ -2,7 +2,7 @@
   <div class="tile card" v-bind="data.attrs" v-on="data.on">
     <ContextMenu class="tile-img" :enabled="!!$slots['context-menu']">
       <router-link :to="props.to">
-        <img v-if="props.image" :src="props.image">
+        <img v-if="props.image" :src="props.image" :class="['tile-image', { 'circle': props.circle }]">
         <img v-else src="@/shared/assets/fallback.svg">
       </router-link>
       <template #context-menu>
@@ -25,6 +25,7 @@
     </div>
   </div>
 </template>
+
 <style>
   .tile-img {
     position: relative;
@@ -39,5 +40,8 @@
   }
   .small-font {
     font-size: 0.65em;
+  }
+  .tile-image.circle {
+    border-radius: 50%;
   }
 </style>

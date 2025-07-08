@@ -42,7 +42,6 @@
     <router-link class="nav-link" :to="{name: 'files'}">
       <Icon icon="files" /> Files
     </router-link>
-
   </nav>
 </template>
 <script lang="ts">

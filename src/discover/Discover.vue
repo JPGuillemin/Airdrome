@@ -44,6 +44,22 @@
         </span>
       </div>
     </div>
+    <div v-if="result.favartists.length > 0" class="mb-4">
+      <h3>
+        <router-link :to="{name: 'favourites', params: { section: 'artists' }}" class="text-muted">
+          Favourites Artists
+        </router-link>
+      </h3>
+      <ArtistList :items="result.favartists" allow-h-scroll />
+    </div>
+    <div v-if="result.favalbums.length > 0" class="mb-4">
+      <h3>
+        <router-link :to="{name: 'favourites', params: { }}" class="text-muted">
+          Favourites Albums
+        </router-link>
+      </h3>
+      <AlbumList :items="result.favalbums" allow-h-scroll />
+    </div>
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
         <router-link :to="{name: 'albums', params: {sort: 'random'}}" class="text-muted">
@@ -67,12 +83,14 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
-  import { Album, Genre, Playlist } from '@/shared/api'
+  import ArtistList from '@/library/artist/ArtistList.vue'
+  import { Album, Genre, Artist, Playlist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
 
   export default defineComponent({
     components: {
       AlbumList,
+      ArtistList,
     },
     data() {
       return {
@@ -84,6 +102,8 @@
           random: [] as Album[],
           genres: [] as Genre[],
           playlists: [] as Playlist[],
+          favalbums: [] as Album[],
+          favartists: [] as Artist[],
         }
       }
     },
@@ -105,6 +125,12 @@
       })
       this.$api.getAlbums('random', 28).then(result => {
         this.result.random = result
+      })
+      this.$api.getFavourites().then(result => {
+        this.result.favartists = result.artists.slice(0, 18)
+      })
+      this.$api.getFavourites().then(result => {
+        this.result.favalbums = result.albums.slice(0, 18)
       })
       this.$api.getGenres().then(result => {
         this.result.genres = orderBy(result, 'name', 'asc')
@@ -151,7 +177,7 @@
 
   /* Pills style (common) */
   .pill {
-    background-color: #2f7bd9;
+    background-color: #3A3A3A;
     border-radius: 50px;
     flex: 0 0 auto;
     padding: 0.5rem 1rem;
