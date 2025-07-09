@@ -44,21 +44,21 @@
         </span>
       </div>
     </div>
-    <div v-if="result.favartists.length > 0" class="mb-4">
+    <div v-if="fav.artists.length > 0" class="mb-4">
       <h3>
         <router-link :to="{name: 'favourites', params: { section: 'artists' }}" class="text-muted">
           Favourites Artists
         </router-link>
       </h3>
-      <ArtistList :items="result.favartists" allow-h-scroll />
+      <ArtistList :items="fav.artists" allow-h-scroll />
     </div>
-    <div v-if="result.favalbums.length > 0" class="mb-4">
+    <div v-if="fav.albums.length > 0" class="mb-4">
       <h3>
         <router-link :to="{name: 'favourites', params: { }}" class="text-muted">
           Favourites Albums
         </router-link>
       </h3>
-      <AlbumList :items="result.favalbums" allow-h-scroll />
+      <AlbumList :items="fav.albums" allow-h-scroll />
     </div>
     <div v-if="result.random.length > 0" class="mb-4">
       <h3>
@@ -81,16 +81,40 @@
   </ContentLoader>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, watch } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
-  import { Album, Genre, Artist, Playlist } from '@/shared/api'
+  import { Album, Genre, Playlist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
+  import { useFavouriteStore } from '@/library/favourite/store'
+  import { useApi } from '@/shared'
 
   export default defineComponent({
     components: {
       AlbumList,
       ArtistList,
+    },
+    setup() {
+      const api = useApi()
+      const favouriteStore = useFavouriteStore()
+      const fav = ref({
+        albums: [],
+        artists: []
+      })
+      watch(
+        () => [favouriteStore],
+        async() => {
+          const result = await api.getFavourites()
+          fav.value = {
+            albums: result.albums.filter((item: any) => favouriteStore.albums[item.id]).slice(0, 18),
+            artists: result.artists.filter((item: any) => favouriteStore.artists[item.id]).slice(0, 18),
+          }
+        },
+        { deep: true, immediate: true }
+      )
+      return {
+        fav
+      }
     },
     data() {
       return {
@@ -102,8 +126,6 @@
           random: [] as Album[],
           genres: [] as Genre[],
           playlists: [] as Playlist[],
-          favalbums: [] as Album[],
-          favartists: [] as Artist[],
         }
       }
     },
@@ -125,12 +147,6 @@
       })
       this.$api.getAlbums('random', 28).then(result => {
         this.result.random = result
-      })
-      this.$api.getFavourites().then(result => {
-        this.result.favartists = result.artists.slice(0, 18)
-      })
-      this.$api.getFavourites().then(result => {
-        this.result.favalbums = result.albums.slice(0, 18)
       })
       this.$api.getGenres().then(result => {
         this.result.genres = orderBy(result, 'name', 'asc')
