@@ -18,7 +18,7 @@ export class AudioController {
   private audio = new Audio()
   private handle = -1
   private volume = 1.0
-  private fadeDuration = 200
+  private fadeDuration = 10
   private buffer = new Audio()
   private statsListener : any = null
   private replayGainMode = ReplayGainMode.None
