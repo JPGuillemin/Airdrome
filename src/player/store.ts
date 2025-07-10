@@ -228,8 +228,12 @@ export const usePlayerStore = defineStore('player', {
       this.scrobbled = false
       const track = this.queue[index]
       this.duration = track.duration
-      const next = (index + 1) % this.queue.length
-      audio.setBuffer(this.queue[next].url!)
+      for (let i = 1; i <= 3; i++) {
+        const nextTrack = this.queue[(index + i) % this.queue.length]
+        if (nextTrack?.url) {
+          audio.setBuffer(nextTrack.url)
+        }
+      }
       if (mediaSession) {
         mediaSession.metadata = new MediaMetadata({
           title: track.title,
