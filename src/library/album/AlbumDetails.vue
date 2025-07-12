@@ -1,5 +1,5 @@
 <template>
-  <div v-if="album">
+  <div v-if="album" class="main-content">
     <Hero :image="album.image">
       <small>Album</small>
       <h1 class="display-5 fw-bold">

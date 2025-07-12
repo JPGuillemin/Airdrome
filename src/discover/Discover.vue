@@ -1,6 +1,6 @@
 <template>
   <ContentLoader :loading="loading">
-    <div v-if="result.played.length > 0" class="mb-4">
+    <div v-if="result.played.length > 0" class="mb-4 main-content">
       <h3>
         <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
           Recently Played

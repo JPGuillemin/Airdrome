@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main-content">
     <div v-if="result.albums.length > 0" class="mb-5">
       <h3 v-if="!type">
         Albums

@@ -1,5 +1,5 @@
 <template>
-  <BaseTable>
+  <BaseTable class="main-content">
     <BaseTableHead>
       <th v-if="!noArtist" class="text-start d-none d-lg-table-cell">
         Artist

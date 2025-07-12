@@ -1,14 +1,11 @@
 <template>
-  <div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="top-nav elevated d-flex justify-content-between align-items-center mb-2">
     <div class="d-flex align-items-center">
-      <button class="btn navbar-toggler text-white d-md-none me-2" @click="store.showMenu">
-        <Icon icon="nav" />
+      <button class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" @click="store.showMenu">
+        <img width="32" height="32" src="@/shared/assets/logo.svg">
       </button>
       <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
         <Icon icon="home" />
-      </router-link>
-      <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'queue'}" title="Home panel" exact>
-        <Icon icon="playing" />
       </router-link>
     </div>
     <div class="d-flex align-items-center">
@@ -80,12 +77,27 @@
 <style lang="scss" scoped>
   .icon-home-wrapper {
     display: flex;
-    align-items: center;     /* Vertical centering */
-    height: 60%;            /* Stretch to parent's height */
+    align-items: center;
+    height: 60%;
   }
 
   .icon-home-wrapper :deep(svg) {
-    height: 2.5rem;          /* Match SearchForm height (adjust if needed) */
-    width: auto;             /* Preserve aspect ratio */
+    height: 2.5rem;
+    width: auto;
+  }
+  .top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+    height: 46px;
+    /* background-color: #000000; */
+  }
+  svg {
+    fill: var(--bs-primary);
+    height: 32px;
+    margin-bottom: 2px;
   }
 </style>

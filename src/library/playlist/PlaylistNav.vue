@@ -1,5 +1,5 @@
 <template>
-  <div class="mw-100">
+  <div class="main-content mw-100">
     <small class="sidebar-heading text-muted">
       Playlists
       <button type="button" class="btn btn-link btn-sm p-0 float-end" @click="showAddModal = true">

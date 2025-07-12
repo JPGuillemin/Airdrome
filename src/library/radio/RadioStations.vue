@@ -1,6 +1,6 @@
 <template>
   <ContentLoader v-slot :loading="items === null">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="main-content d-flex justify-content-between align-items-center mb-2">
       <h1 class="mb-0 me-2 text-truncate">
         Radio
       </h1>

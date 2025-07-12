@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main-content">
     <ul class="nav-underlined mb-3">
       <li v-for="{ value, text } in options" :key="value">
         <router-link :to="{... $route, params: {... $route.params, sort: value }}">

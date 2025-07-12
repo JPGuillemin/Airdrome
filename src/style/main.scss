@@ -136,6 +136,10 @@ a.active {
   box-shadow: none !important;
 }
 
+.main-content {
+  padding-top: 46px;
+}
+
 @import './nav-underlined';
 @import 'bootstrap/scss/bootstrap';
 @import 'vue-slider-component/lib/theme/material';
