@@ -2,10 +2,12 @@
   <div class="top-nav elevated d-flex justify-content-between align-items-center mb-2">
     <div class="d-flex align-items-center">
       <button class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" @click="store.showMenu">
-        <img width="32" height="32" src="@/shared/assets/logo.svg">
+        <img width="36" height="36" src="@/shared/assets/logo.svg">
       </button>
       <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
-        <Icon icon="home" />
+        <Avatar>
+          <Icon icon="home" color="#4c4c4c" />
+        </Avatar>
       </router-link>
     </div>
     <div class="d-flex align-items-center">
@@ -14,7 +16,7 @@
         <Dropdown variant="link" align="end" no-caret toggle-class="px-0">
           <template #button-content>
             <Avatar>
-              <Icon icon="person" />
+              <Icon icon="gear" color="#4c4c4c" />
             </Avatar>
           </template>
           <div class="px-3 py-1">

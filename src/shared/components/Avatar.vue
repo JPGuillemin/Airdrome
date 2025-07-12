@@ -10,8 +10,8 @@
     justify-content: center;
     vertical-align: middle;
     flex-shrink: 0;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 36px;
+    height: 36px;
     font-size: inherit;
     font-weight: 400;
     line-height: 1;

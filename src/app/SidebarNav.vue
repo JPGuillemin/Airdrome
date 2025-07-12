@@ -6,15 +6,15 @@
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{ name: 'queue' }">
+    <router-link class="nav-item nav-link" :to="{ name: 'queue' }">
       <Icon icon="playing" /> Queue
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'albums-default'}">
+    <router-link class="nav-item nav-link" :to="{name: 'albums-default'}">
       <Icon icon="albums" /> Albums
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'artists'}">
+    <router-link class="nav-item nav-link" :to="{name: 'artists'}">
       <Icon icon="artists" /> Artists
     </router-link>
 
@@ -26,19 +26,19 @@
       <Icon icon="playlist" /> Playlists
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'favourites'}">
+    <router-link class="nav-item nav-link" :to="{name: 'favourites'}">
       <Icon icon="heart" /> Favourites
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'podcasts'}">
+    <router-link class="nav-item nav-link" :to="{name: 'podcasts'}">
       <Icon icon="podcast" /> Podcasts
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'radio'}">
+    <router-link class="nav-item nav-link" :to="{name: 'radio'}">
       <Icon icon="radio" /> Radio
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'files'}">
+    <router-link class="nav-item nav-link" :to="{name: 'files'}">
       <Icon icon="files" /> Files
     </router-link>
   </nav>
