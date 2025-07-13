@@ -268,6 +268,7 @@
     right: 0;
     height: 0;
     max-height: 0;
+    z-index: 2000;
     transition: max-height 0.5s;
   }
   .visible {
