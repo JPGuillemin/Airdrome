@@ -6,17 +6,17 @@
       </button>
       <router-link class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
         <Avatar>
-          <Icon icon="home" class="nav-icon" />
+          <Icon icon="home" class="nav-icon nav-link" />
         </Avatar>
       </router-link>
     </div>
-    <div class="d-flex align-items-center nav-link">
+    <div class="d-flex align-items-center">
       <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
       <template v-if="store.username">
         <Dropdown variant="link" align="end" no-caret toggle-class="px-0">
           <template #button-content>
             <Avatar>
-              <Icon icon="gear" class="nav-icon" />
+              <Icon icon="gear" color="#4c4c4c" />
             </Avatar>
           </template>
           <div class="px-3 py-1">
@@ -95,10 +95,9 @@
     width: 100%;
     z-index: 1000;
     height: 46px;
-    /* background-color: #000000; */
   }
   .nav-link .nav-icon {
-    color: #4c4c4c !important;
+    color: #4c4c4c;
   }
   .nav-link.router-link-active .nav-icon {
     color: var(--bs-primary);
