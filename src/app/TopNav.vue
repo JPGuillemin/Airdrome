@@ -4,19 +4,19 @@
       <button class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" @click="store.showMenu">
         <img width="36" height="36" src="@/shared/assets/logo.svg">
       </button>
-      <router-link class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
+      <router-link class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2" :to="{name: 'home'}" title="Home panel" exact>
         <Avatar>
-          <Icon icon="home" color="#4c4c4c" />
+          <Icon icon="home" class="nav-icon" />
         </Avatar>
       </router-link>
     </div>
-    <div class="d-flex align-items-center">
+    <div class="d-flex align-items-center nav-link">
       <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
       <template v-if="store.username">
         <Dropdown variant="link" align="end" no-caret toggle-class="px-0">
           <template #button-content>
             <Avatar>
-              <Icon icon="gear" color="#4c4c4c" />
+              <Icon icon="gear" class="nav-icon" />
             </Avatar>
           </template>
           <div class="px-3 py-1">
@@ -97,9 +97,10 @@
     height: 46px;
     /* background-color: #000000; */
   }
-  svg {
-    fill: var(--bs-primary);
-    height: 32px;
-    margin-bottom: 2px;
+  .nav-link .nav-icon {
+    color: #4c4c4c !important;
+  }
+  .nav-link.router-link-active .nav-icon {
+    color: var(--bs-primary);
   }
 </style>

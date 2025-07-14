@@ -1,20 +1,25 @@
 <template>
   <nav class="nav flex-column">
     <div class="sidebar-brand d-flex justify-content-between align-items-end">
-      <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
-        <Icon icon="x" />
+      <button class="btn btn-transparent p-0 m-0 d-md-none" @click="store.hideMenu">
+        <Avatar>
+          <Icon icon="x" />
+        </Avatar>
       </button>
     </div>
-
-    <router-link class="nav-item nav-link" :to="{ name: 'queue' }">
-      <Icon icon="playing" /> Queue
+    <router-link class="nav-link" :to="{ name: 'home' }" exact>
+      <Icon icon="home" /> Discover
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'albums-default'}">
+    <router-link class="nav-link" :to="{ name: 'queue' }">
+      <Icon icon="playing" /> PLaying
+    </router-link>
+
+    <router-link class="nav-link" :to="{name: 'albums-default'}">
       <Icon icon="albums" /> Albums
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'artists'}">
+    <router-link class="nav-link" :to="{name: 'artists'}">
       <Icon icon="artists" /> Artists
     </router-link>
 
@@ -26,19 +31,19 @@
       <Icon icon="playlist" /> Playlists
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'favourites'}">
+    <router-link class="nav-link" :to="{name: 'favourites'}">
       <Icon icon="heart" /> Favourites
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'podcasts'}">
+    <router-link class="nav-link" :to="{name: 'podcasts'}">
       <Icon icon="podcast" /> Podcasts
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'radio'}">
+    <router-link class="nav-link" :to="{name: 'radio'}">
       <Icon icon="radio" /> Radio
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'files'}">
+    <router-link class="nav-link" :to="{name: 'files'}">
       <Icon icon="files" /> Files
     </router-link>
   </nav>
