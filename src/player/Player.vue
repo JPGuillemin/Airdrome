@@ -1,5 +1,5 @@
 <template>
-  <div :class="{'visible': track}" class="player elevated d-flex" style="margin-top: 2px; margin-bottom: 5px">
+  <div :class="{'visible': track}" class="player elevated d-flex" style="margin-top: 2px">
     <div class="flex-fill">
       <ProgressBar v-if="track" style="padding-top: 8px" />
 
@@ -10,7 +10,7 @@
             <component
               :is="track.albumId ? 'router-link': 'div'"
               :to="{ name: 'album', params: { id: track.albumId } }"
-              style="padding: 12px"
+              style="padding-left: 12px; padding-right: 12px; padding-bottom: 12px"
             >
               <img v-if="track.image" width="52" height="52" :src="track.image">
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
