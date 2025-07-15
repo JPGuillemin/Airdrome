@@ -46,8 +46,7 @@
 </script>
 <style scoped>
   .vue-slider {
-    height: 10px !important;
-    padding: 10px 0 !important;
+    height: 8px !important;
     cursor: pointer;
 
     /* rail */
