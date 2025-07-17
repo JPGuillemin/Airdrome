@@ -11,8 +11,8 @@
       <Icon icon="home" /> Discover
     </router-link>
 
-    <router-link class="nav-link" :to="{ name: 'queue' }">
-      <Icon icon="playing" /> PLaying
+    <router-link class="nav-link" :to="{name: 'queue'}">
+      <Icon icon="soundwave" /> Playing
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'albums-default'}">
