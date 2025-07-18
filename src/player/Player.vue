@@ -16,7 +16,7 @@
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
             </component>
             <div style="min-width: 0">
-              <div class="text-truncate">
+              <div class="text-truncate" :class="{ 'small-text-mobile': true }">
                 {{ streamTitle || track.title }}
               </div>
               <div class="text-truncate text-muted">
@@ -294,5 +294,10 @@
   }
   .btn-play {
     --bs-btn-font-size: 1.5rem;
+  }
+  @media (max-width: 576px) {
+    .small-text-mobile {
+      font-size: 0.8rem;
+    }
   }
 </style>
