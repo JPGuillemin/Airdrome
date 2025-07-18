@@ -39,24 +39,24 @@
           <b-button
             title="Shuffle"
             variant="transparent"
-            class="d-none d-md-inline-block"
+            class="d-none d-md-inline-block mx-1"
             :class="{ 'text-primary': shuffleActive } "
             @click="toggleShuffle">
             <Icon icon="shuffle" />
           </b-button>
-          <b-button variant="transparent" class="m-2 d-none d-md-inline-block" @click="previous">
+          <b-button variant="transparent" size="sm" class="mx-0" @click="previous">
             <Icon icon="skip-start" />
           </b-button>
-          <b-button variant="transparent" size="lg" class="btn-play m-2" @click="playPause">
+          <b-button variant="transparent" size="lg" class="btn-play px-1" @click="playPause">
             <Icon :icon="isPlaying ? 'pause' : 'play'" />
           </b-button>
-          <b-button variant="transparent" class="m-2" @click="next">
+          <b-button variant="transparent" size="sm" class="mx-0" @click="next">
             <Icon icon="skip-end" />
           </b-button>
           <b-button
             title="Repeat"
             variant="transparent"
-            class="d-none d-md-inline-block"
+            class="d-none d-md-inline-block mx-1"
             :class="{ 'text-primary': repeatActive }"
             @click="toggleRepeat">
             <Icon icon="repeat" />
@@ -91,7 +91,6 @@
               </b-button>
 
               <b-button
-                v-if="track && track.replayGain"
                 title="ReplayGain"
                 variant="transparent"
                 class="m-0"
@@ -144,6 +143,20 @@
                 <span>Favourite</span>
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+                </b-button>
+              </div>
+              <div class="d-flex justify-content-between px-3 py-1">
+                <span>Replay Gain</span>
+                <b-button
+                  title="ReplayGain"
+                  variant="transparent"
+                  class="m-0 px-2 py-0"
+                  :class="{ 'text-primary': replayGainMode !== ReplayGainMode.None }"
+                  @click.stop="toggleReplayGain"
+                >
+                  <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
+                  <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
+                  <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
                 </b-button>
               </div>
             </OverflowMenu>
