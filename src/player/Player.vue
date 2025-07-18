@@ -48,7 +48,9 @@
             <Icon icon="skip-start" />
           </b-button>
           <b-button variant="transparent" size="lg" class="btn-play px-1" @click="playPause">
-            <Icon :icon="isPlaying ? 'pause' : 'play'" />
+            <Avatar>
+              <Icon :icon="isPlaying ? 'pause' : 'play'" />
+            </Avatar>
           </b-button>
           <b-button variant="transparent" size="sm" class="mx-0" @click="next">
             <Icon icon="skip-end" />
