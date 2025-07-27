@@ -39,7 +39,6 @@
   import iconPause from '@iconify-icons/bi/pause-fill'
   import iconPerson from '@iconify-icons/bi/person-fill'
   import iconPlay from '@iconify-icons/bi/play-fill'
-  import iconPlaying from '@iconify-icons/bi/soundwave'
   import iconPlaylist from '@iconify-icons/bi/music-note-list'
   import iconPlus from '@iconify-icons/bi/plus'
   import iconPodcast from '@iconify-icons/bi/rss'
@@ -79,7 +78,6 @@
     pause: iconPause.body,
     person: iconPerson.body,
     play: iconPlay.body,
-    playing: iconPlaying.body,
     playlist: iconPlaylist.body,
     plus: iconPlus.body,
     podcast: iconPodcast.body,
