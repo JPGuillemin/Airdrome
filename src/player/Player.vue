@@ -114,6 +114,7 @@
                 />
               </Dropdown>
             </div>
+
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
                 <span>Volume</span>
@@ -145,7 +146,8 @@
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                 </b-button>
               </div>
-              <div class="d-flex justify-content-between px-3 py-1">
+
+              <div v-if="track && track.replayGain" class="d-flex justify-content-between px-3 py-1">
                 <span>Replay Gain</span>
                 <b-button
                   title="ReplayGain"
@@ -154,7 +156,9 @@
                   :class="{ 'text-primary': replayGainMode !== ReplayGainMode.None }"
                   @click.stop="toggleReplayGain"
                 >
-                  <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
+                  <small v-if="replayGainMode === ReplayGainMode.None" class="d-flex align-items-center">
+                    Off
+                  </small>
                   <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                   <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
                 </b-button>
