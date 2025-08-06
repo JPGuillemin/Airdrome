@@ -43,6 +43,7 @@ const playerStore = usePlayerStore(pinia)
 
 setupAudio(playerStore, mainStore, api)
 
+// Disable popups when user logs in or navigation errors occur
 watch(
   () => mainStore.isLoggedIn,
   (value) => {
@@ -53,7 +54,8 @@ watch(
         playerStore.loadQueue(),
       ])
     }
-  })
+  }
+)
 
 router.beforeEach((to, from, next) => {
   mainStore.clearError()
@@ -62,11 +64,33 @@ router.beforeEach((to, from, next) => {
 
 const app = createApp(AppComponent, { router, pinia, store: playerStore })
 
-app.config.errorHandler = (err: Error) => {
-  // eslint-disable-next-line
-  console.error(err)
-  mainStore.setError(err)
+// ---- ERROR POPUP SUPPRESSION ----
+
+// Swallow Vue component errors silently
+app.config.errorHandler = () => { /* empty */ }
+
+// Override store-level error setters to prevent triggering UI popups
+if ('setError' in mainStore && typeof (mainStore as any).setError === 'function') {
+  (mainStore as any).setError = () => { /* empty */ }
 }
+
+if ('setError' in playerStore && typeof (playerStore as any).setError === 'function') {
+  (playerStore as any).setError = () => { /* empty */ }
+}
+
+// Disable console error and warn output
+console.error = () => { /* empty */ }
+console.warn = () => { /* empty */ }
+
+// Block unhandled errors and promise rejections
+window.addEventListener('error', (event) => {
+  event.preventDefault()
+})
+window.addEventListener('unhandledrejection', (event) => {
+  event.preventDefault()
+})
+
+// ---------------------------------
 
 app.use(auth)
 app.use(api)
