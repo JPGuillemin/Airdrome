@@ -15,7 +15,7 @@ type ReplayGain = {
 }
 
 export class AudioController {
-  private fadeDuration = 0.2
+  private fadeDuration = 0.5
 
   private buffer = new Audio()
   private statsListener : any = null
@@ -64,6 +64,7 @@ export class AudioController {
   }
 
   async resume() {
+    await this.context.resume()
     await this.pipeline.audio.play()
     await this.fadeIn()
   }
@@ -103,9 +104,6 @@ export class AudioController {
     this.pipeline.audio.ondurationchange = () => {
       this.ondurationchange(this.pipeline.audio.duration)
     }
-    this.pipeline.audio.onpause = () => {
-      this.onpause()
-    }
     this.ondurationchange(this.pipeline.audio.duration)
     this.ontimeupdate(this.pipeline.audio.currentTime)
     this.onstreamtitlechange(null)
@@ -128,21 +126,14 @@ export class AudioController {
       this.statsListener?.start()
     }
 
-    if (options.isStream) {
-      this.pipeline.audio.load()
-    }
+    await this.context.resume()
+    this.pipeline.audio.load()
+    await this.pipeline.audio.play()
 
-    if (options.paused !== true) {
-      try {
-        await this.pipeline.audio.play()
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.warn(error)
-          return
-        }
-        throw error
-      }
+    if (options.paused === true) {
       await this.fadeIn()
+    } else {
+      await this.fadeIn(0)
     }
   }
 
