@@ -1,6 +1,6 @@
 <template>
   <ContentLoader :loading="loading">
-    <div v-for="section in sections" :key="section.key" class="mb-4">
+    <div v-for="section in sections" :key="section.key" class="mb-4 main-content">
       <template v-if="result[section.key].length > 0">
         <h3>
           {{ section.name }}

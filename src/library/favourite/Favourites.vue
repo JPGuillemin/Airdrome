@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main-content">
     <ul class="nav-underlined mb-3">
       <li>
         <router-link :to="{... $route, params: { }}">

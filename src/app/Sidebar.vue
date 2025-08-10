@@ -39,14 +39,18 @@
 
   .sidebar-container .sidebar-fixed {
     padding-bottom: 100px;
-    width: 250px;
+    width: 180px;
     position: sticky;
-    top: 0;
+    top: 46px;
     max-height: 100vh;
     overflow-y: scroll;
     scrollbar-width: none;
+    z-index: 999;
   }
 
+  .offcanvas {
+    z-index: 1100;
+  }
   .sidebar-container .sidebar-fixed::-webkit-scrollbar {
     display: none;
   }

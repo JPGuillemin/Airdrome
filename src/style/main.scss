@@ -1,11 +1,11 @@
-$theme-elevation-0: hsl(0, 0%, 0%);
-$theme-elevation-1: hsl(0, 0%, 8%);
-$theme-elevation-2: hsl(0, 0%, 18%);
-$theme-text: #ccc;
-$theme-text-muted: #999;
+$theme-elevation-0: #000000;
+$theme-elevation-1: #151515;
+$theme-elevation-2: #2e2e2e;
+$theme-text: #cccccc;
+$theme-text-muted: #999999;
 
 // Bootstrap overrides
-$primary: #09f;
+$primary: #ff8c00;
 $danger: #ff4141;
 $secondary: $theme-elevation-2;
 
@@ -14,7 +14,7 @@ $body-color: $theme-text;
 
 $grid-gutter-width: 2rem;
 
-$headings-color: #fff;
+$headings-color: #ffffff;
 
 $link-color: $theme-text;
 $link-decoration: none;
@@ -25,10 +25,10 @@ $border-color: $theme-elevation-2;
 
 // Button
 .btn-primary {
-  --bs-btn-color: #fff !important;
-  --bs-btn-disabled-color: #fff !important;
-  --bs-btn-active-color: #fff !important;
-  --bs-btn-hover-color: #fff !important;
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-disabled-color: #ffffff !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-hover-color: #ffffff !important;
 }
 
 .btn-transparent {
@@ -36,13 +36,13 @@ $border-color: $theme-elevation-2;
   --bs-btn-bg: transparent;
   --bs-btn-border-width: 0;
 
-  --bs-btn-active-color: #fff;
+  --bs-btn-active-color: #ffffff;
   --bs-btn-active-border-color: transparent;
 
-  --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #{rgba(#fff, .12)};
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: #ffffff1f;
 
-  --bs-btn-focus-shadow-rgb: 125, 125, 125;
+  --bs-btn-focus-shadow-rgb: #7d7d7d;
 
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
@@ -96,24 +96,24 @@ $input-color: $theme-text;
 $custom-range-track-height: 0.1rem;
 $custom-range-thumb-bg: $theme-text;
 $custom-range-track-bg: $theme-text-muted;
-$form-switch-color-dark: rgba(#fff, .25);
+$form-switch-color-dark: #ffffff40;
 $form-switch-bg-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='3' fill='#{$form-switch-color-dark}'/></svg>");
 
 // List group
-$list-group-bg: rgba(#fff, 0);
-$list-group-hover-bg: rgba(#fff, .1);
+$list-group-bg: rgba(#ffffff, 0);
+$list-group-hover-bg: #ffffff1a;
 $list-group-color: $theme-text;
 $list-group-action-hover-color: $theme-text;
 $list-group-border-color: $theme-elevation-2;
-$list-group-action-active-bg: rgba(#fff, .1);
+$list-group-action-active-bg: #ffffff1a;
 
 // Offcanvas
 $offcanvas-bg-color:$theme-elevation-1;
 
 // Table
 $table-color: $theme-text;
-$table-bg: rgba(#fff, 0);
-$table-hover-bg: rgba(#fff, .1);
+$table-bg: #ffffff00;
+$table-hover-bg: #ffffff1a;
 
 $table-cell-padding-y: 0.75rem;
 $table-cell-padding-x: 0.75rem;
@@ -134,6 +134,10 @@ a.active {
 
 .btn-link:focus {
   box-shadow: none !important;
+}
+
+.main-content {
+  padding-top: 46px;
 }
 
 @import './nav-underlined';

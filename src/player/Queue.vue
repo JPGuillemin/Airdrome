@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h1 class="mb-0">
         Playing

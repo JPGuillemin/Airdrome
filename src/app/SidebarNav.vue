@@ -1,7 +1,6 @@
 <template>
   <nav class="nav flex-column">
     <div class="sidebar-brand d-flex justify-content-between align-items-end">
-      <Logo />
       <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
         <Icon icon="x" />
       </button>
@@ -20,15 +19,15 @@
     </small>
 
     <router-link class="nav-link" :to="{name: 'albums-default'}">
-      <Icon icon="library" /> Albums
+      <Icon icon="albums" /> Albums
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'artists'}">
-      <Icon icon="library" /> Artists
+      <Icon icon="artists" /> Artists
     </router-link>
 
     <router-link class="nav-item nav-link" :to="{name: 'genres'}">
-      <Icon icon="library" /> Genres
+      <Icon icon="genres" /> Genres
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'playlists'}">
@@ -56,13 +55,11 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import Logo from './Logo.vue'
   import PlaylistNav from '@/library/playlist/PlaylistNav.vue'
   import { useMainStore } from '@/shared/store'
 
   export default defineComponent({
     components: {
-      Logo,
       PlaylistNav,
     },
     setup() {
