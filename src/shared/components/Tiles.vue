@@ -17,7 +17,7 @@
   .tiles {
     display: grid;
     grid-gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(min(100% / 3, 200px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100% / 3, 100px), 1fr));
   }
 
   @media(max-width: 442px) { /* 15px padding + 200px tile + 12px gap + 200px tile + 15px padding */
@@ -31,7 +31,7 @@
     .tiles-hs {
       grid-template-columns: none;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(min(100% / 2 - 1em, 200px), 1fr);
+      grid-auto-columns: minmax(min(100% / 2 - 1em, 100px), 1fr);
       overflow-x: auto;
     }
   }
