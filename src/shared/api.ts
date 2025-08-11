@@ -48,6 +48,8 @@ export interface Album {
   lastFmUrl?: string
   musicBrainzUrl?: string
   tracks?: Track[]
+  isCompilation?: boolean
+  releaseTypes?: string
 }
 
 export interface Artist {
