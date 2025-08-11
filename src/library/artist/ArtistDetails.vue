@@ -132,8 +132,18 @@
       isFavourite(): boolean {
         return !!this.favouriteStore.artists[this.id]
       },
-      albums(): Album[] {
-        return orderBy(this.item?.albums ?? [], 'year', this.mainStore.artistAlbumSortOrder)
+      albums(): { releaseType: string, albums: Album[] }[] {
+        const sorted: Album[] = (orderBy(this.item?.albums ?? [], 'year', this.mainStore.artistAlbumSortOrder) || [])
+        const grouped = Object.groupBy(sorted, ({ releaseTypes }) => (releaseTypes[0] || 'Album')) || {}
+        const groupOrder = ['Album', 'EP', 'Single']
+        const groups = Object.entries(grouped).sort(([aType], [bType]) => {
+          const [a, b] = [groupOrder.indexOf(aType), groupOrder.indexOf(bType)]
+          if (a === -1 && b === -1) return 0
+          if (a === -1) return 1
+          if (b === -1) return -1
+          return a - b
+        })
+        return groups.map(([releaseType, albums]) => ({ releaseType, albums: albums || [] }))
       },
     },
     watch: {
