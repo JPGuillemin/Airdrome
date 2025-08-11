@@ -591,7 +591,9 @@ export class API {
       musicBrainzUrl: item.musicBrainzId
         ? `https://musicbrainz.org/release/${item.musicBrainzId}`
         : undefined,
-      tracks: (item.song || []).map(this.normalizeTrack, this)
+      tracks: (item.song || []).map(this.normalizeTrack, this),
+      isCompilation: !!item.isCompilation,
+      releaseTypes: item.releaseTypes?.length ? item.releaseTypes : [],
     }
   }
 
