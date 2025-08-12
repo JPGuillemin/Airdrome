@@ -64,16 +64,9 @@ export class AudioController {
   }
 
   async resume() {
-    if (this.context.state === 'suspended') {
-      await this.context.resume()
-    }
-    try {
-      await this.pipeline.audio.play()
-    } catch (err) {
-      console.warn('Playback failed in resume()', err)
-      return
-    }
-    this.fadeIn().catch(console.warn)
+    await this.context.resume()
+    await this.pipeline.audio.play()
+    await this.fadeIn()
   }
 
   async seek(value: number) {
@@ -136,10 +129,9 @@ export class AudioController {
       this.statsListener?.start()
     }
 
-    if (!options.paused) {
-      if (this.context.state === 'suspended') {
-        await this.context.resume()
-      }
+    this.pipeline.audio.load()
+
+    if (options.paused !== true) {
       try {
         await this.pipeline.audio.play()
       } catch (error) {
@@ -147,11 +139,9 @@ export class AudioController {
           console.warn(error)
           return
         }
-        console.error('Playback failed in changeTrack()', error)
-        return
+        throw error
       }
-
-      this.fadeIn().catch(console.warn)
+      await this.fadeIn()
     }
   }
 
