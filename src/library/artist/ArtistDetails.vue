@@ -66,8 +66,8 @@
       <TrackList :tracks="item.topTracks" no-artist />
     </template>
 
-    <template v-if="albums.length > 0">
-      <div class="d-flex justify-content-between mt-5 mb-2">
+    <template v-for="({ releaseType, albums: releaseTypeAlbums }) in albums">
+      <div :key="`${releaseType}-h`" class="d-flex justify-content-between mt-5 mb-2">
         <h3 class="my-0">
           {{ formatReleaseType(releaseType) }}
         </h3>
@@ -75,7 +75,7 @@
           <Icon icon="arrow-up-down" />
         </b-button>
       </div>
-      <AlbumList :items="albums">
+      <AlbumList :key="`${releaseType}-body`" :items="releaseTypeAlbums">
         <template #text="{ year }">
           {{ year || 'Unknown' }}
         </template>
