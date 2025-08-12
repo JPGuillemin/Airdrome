@@ -64,7 +64,6 @@ export class AudioController {
   }
 
   async resume() {
-    await this.context.resume()
     await this.pipeline.audio.play()
     await this.fadeIn()
   }
@@ -129,7 +128,9 @@ export class AudioController {
       this.statsListener?.start()
     }
 
-    this.pipeline.audio.load()
+    if (options.isStream) {
+      this.pipeline.audio.load()
+    }
 
     if (options.paused !== true) {
       try {
