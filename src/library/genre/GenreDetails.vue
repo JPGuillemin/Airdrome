@@ -9,13 +9,13 @@
       </li>
       <li>
         <router-link :to="{... $route, params: { section: 'tracks' }}">
-          Tracks (A-Z)
+          Tracks
         </router-link>
       </li>
       <li>
-        <router-link :to="{... $route, params: { section: 'shuffle' }}">
-          Tracks (shuffle)
-        </router-link>
+        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
+          <Icon icon="shuffle" />
+        </b-button>
       </li>
     </ul>
     <template v-if="section === 'tracks'">
@@ -37,10 +37,11 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import { orderBy, shuffle } from 'lodash-es'
+  import { orderBy } from 'lodash-es'
   import AlbumList from '@/library/album/AlbumList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
+  import { usePlayerStore } from '@/player/store'
 
   export default defineComponent({
     components: {
@@ -52,9 +53,9 @@
       id: { type: String, required: true },
       section: { type: String, default: 'albums' },
     },
-    data() {
+    setup() {
       return {
-        shuffledTracks: [] as any[], // cache for shuffled tracks
+        playerStore: usePlayerStore(),
       }
     },
     methods: {
@@ -65,13 +66,9 @@
         const tracks = await this.$api.getTracksByGenre(this.id, 200, offset)
         return orderBy(tracks, t => t.title?.toLowerCase(), 'asc')
       },
-      async loadShuffle(offset: number) {
-        // only fetch + shuffle once
-        if (this.shuffledTracks.length === 0) {
-          const all = await this.$api.getTracksByGenre(this.id, 10000, 0)
-          this.shuffledTracks = shuffle(all)
-        }
-        return this.shuffledTracks.slice(offset, offset + 200)
+      async shuffleNow() {
+        const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
+        return this.playerStore.shuffleNow(tracks)
       },
     }
   })

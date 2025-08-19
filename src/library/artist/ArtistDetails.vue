@@ -42,10 +42,7 @@
       </OverflowFade>
 
       <div class="text-nowrap mt-3">
-        <b-button variant="light" :disabled="item.topTracks.length === 0" class="me-2" @click="playNow">
-          <Icon icon="play" /> Play
-        </b-button>
-        <b-button variant="transparent" :disabled="item.topTracks.length === 0" class="me-2" title="Shuffle" @click="shuffleNow">
+        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
           <Icon icon="shuffle" />
         </b-button>
         <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
@@ -103,7 +100,7 @@
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { usePlayerStore } from '@/player/store'
-
+  import type { Track } from '@/shared/api'
   export default defineComponent({
     components: {
       IconMusicBrainz,
@@ -169,11 +166,12 @@
         default: return value
         }
       },
-      playNow() {
-        return this.playerStore.playNow(this.item.topTracks)
-      },
-      shuffleNow() {
-        return this.playerStore.shuffleNow(this.item.topTracks)
+      async shuffleNow() {
+        const tracks: Track[] = []
+        for await (const batch of this.$api.getTracksByArtist(this.id)) {
+          tracks.push(...batch)
+        }
+        return this.playerStore.shuffleNow(tracks)
       },
       toggleFavourite() {
         return this.favouriteStore.toggle('artist', this.id)
