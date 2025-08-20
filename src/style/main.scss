@@ -5,7 +5,7 @@ $theme-text: #cccccc;
 $theme-text-muted: #999999;
 
 // Bootstrap overrides
-$primary: #ff8c00;
+$primary: #999999;
 $danger: #ff4141;
 $secondary: $theme-elevation-2;
 
@@ -22,6 +22,47 @@ $link-hover-decoration: underline;
 
 $text-muted: $theme-text-muted;
 $border-color: $theme-elevation-2;
+
+.theme-primary {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--bs-primary) !important;
+}
+
+.theme-primary:hover,
+.theme-primary:focus {
+  color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+}
+
+.theme-primary:active {
+  color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+}
+
+.btn-theme-primary {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:hover,
+.btn-theme-primary:focus {
+  background-color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+  border-color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:active {
+  background-color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+  border-color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:disabled {
+  background-color: var(--bs-secondary) !important;
+  border-color: var(--bs-secondary) !important;
+  opacity: 0.65;
+  color: #fff !important;
+}
 
 // Button
 .btn-primary {

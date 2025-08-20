@@ -26,8 +26,8 @@
         </OverflowFade>
 
         <div class="text-nowrap mt-3">
-          <b-button variant="light" :disabled="playlist.tracks.length === 0" class="me-2" @click="playNow">
-            <Icon icon="play" /> Play
+          <b-button variant="transparent" :disabled="playlist.tracks.length === 0" title="Play" class="me-2" @click="playNow">
+            <Icon icon="play" />
           </b-button>
           <b-button variant="transparent" class="me-2" :disabled="playlist.tracks.length === 0" title="Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />

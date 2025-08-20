@@ -10,8 +10,13 @@
       <label class="form-label">Name</label>
       <input v-model="name" class="form-control" type="text">
     </div>
-    <template #modal-ok>
-      Create
+    <template #modal-footer>
+      <b-button variant="secondary" class="btn-theme-primary" @click="change">
+        Cancel
+      </b-button>
+      <b-button variant="primary" class="btn-theme-primary" @click="confirm">
+        Create
+      </b-button>
     </template>
   </b-modal>
 </template>

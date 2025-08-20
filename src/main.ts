@@ -14,6 +14,16 @@ import { createPinia, PiniaVuePlugin } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
 
+function setTheme(color: string) {
+  document.documentElement.style.setProperty('--bs-primary', color)
+  localStorage.setItem('themeColor', color)
+}
+
+const savedColor = localStorage.getItem('themeColor')
+if (savedColor) {
+  setTheme(savedColor)
+}
+
 declare module 'vue/types/vue' {
   interface Vue {
     $api: API

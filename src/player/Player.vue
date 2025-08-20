@@ -40,7 +40,7 @@
             title="Shuffle"
             variant="transparent"
             class="d-none d-md-inline-block"
-            :class="{ 'text-primary': shuffleActive } "
+            :class="{ 'theme-primary': shuffleActive }"
             @click="toggleShuffle">
             <Icon icon="shuffle" />
           </b-button>
@@ -57,7 +57,7 @@
             title="Repeat"
             variant="transparent"
             class="d-none d-md-inline-block"
-            :class="{ 'text-primary': repeatActive }"
+            :class="{ 'theme-primary': repeatActive }"
             @click="toggleRepeat">
             <Icon icon="repeat" />
           </b-button>
@@ -95,7 +95,7 @@
                 title="ReplayGain"
                 variant="transparent"
                 class="m-0"
-                :class="{ 'text-primary': replayGainMode !== ReplayGainMode.None }"
+                :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
                 @click="toggleReplayGain"
               >
                 <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
@@ -139,11 +139,25 @@
               </template>
               <div class="d-flex justify-content-between px-3 py-1">
                 <span>Repeat</span>
-                <SwitchInput :value="repeatActive" @input="toggleRepeat" />
+                <b-button
+                  title="Repeat"
+                  variant="transparent"
+                  class="m-0 px-2 py-0"
+                  :class="{ 'theme-primary': repeatActive }"
+                  @click.stop="toggleRepeat">
+                  <Icon icon="repeat" />
+                </b-button>
               </div>
               <div class="d-flex justify-content-between px-3 py-1">
                 <span>Shuffle</span>
-                <SwitchInput :value="shuffleActive" @input="toggleShuffle" />
+                <b-button
+                  title="Shuffle"
+                  variant="transparent"
+                  class="m-0 px-2 py-0"
+                  :class="{ 'theme-primary': shuffleActive }"
+                  @click.stop="toggleShuffle">
+                  <Icon icon="shuffle" />
+                </b-button>
               </div>
               <div class="d-flex justify-content-between px-3 py-1">
                 <span>Favourite</span>
@@ -158,9 +172,8 @@
                   title="ReplayGain"
                   variant="transparent"
                   class="m-0 px-2 py-0"
-                  :class="{ 'text-primary': replayGainMode !== ReplayGainMode.None }"
-                  @click.stop="toggleReplayGain"
-                >
+                  :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
+                  @click.stop="toggleReplayGain">
                   <small v-if="replayGainMode === ReplayGainMode.None" class="d-flex align-items-center">
                     Off
                   </small>

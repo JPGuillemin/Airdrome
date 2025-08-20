@@ -1,7 +1,7 @@
 <template>
   <b-modal size="lg" hide-header hide-footer :visible="visible" @change="$emit('close')">
-    <div style="width: 200px" class="mx-auto mb-3">
-      <Logo />
+    <div class="d-flex justify-content-center mb-3">
+      <img width="100" height="100" src="@/shared/assets/logo.svg">
     </div>
     <div class="text-center">
       <ExternalLink :href="url">
@@ -37,13 +37,9 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import Logo from './Logo.vue'
   import { useAuth } from '@/auth/service'
 
   export default defineComponent({
-    components: {
-      Logo,
-    },
     props: {
       visible: { type: Boolean, required: true },
     },
@@ -56,7 +52,7 @@
     computed: {
       build: () => import.meta.env.VITE_BUILD,
       buildDate: () => import.meta.env.VITE_BUILD_DATE,
-      url: () => 'https://github.com/tamland/airsonic-refix'
+      url: () => 'https://github.com/JPGuillemin/Airdrome'
     },
   })
 </script>

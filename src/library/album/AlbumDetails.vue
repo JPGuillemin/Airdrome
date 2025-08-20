@@ -48,8 +48,8 @@
       </OverflowFade>
 
       <div class="text-nowrap mt-3">
-        <b-button variant="light" class="me-2" @click="playNow">
-          <Icon icon="play" /> Play
+        <b-button variant="transparent" class="me-2" title="Play" @click="playNow">
+          <Icon icon="play" />
         </b-button>
         <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
           <Icon icon="shuffle" />

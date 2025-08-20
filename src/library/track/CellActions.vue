@@ -35,6 +35,14 @@
           {{ item.name }}
         </button>
       </div>
+      <template #modal-footer>
+        <b-button
+          variant="transparent"
+          class="btn-theme-primary"
+          @click="showPlaylistSelect = false">
+          Cancel
+        </b-button>
+      </template>
     </b-modal>
   </td>
 </template>
