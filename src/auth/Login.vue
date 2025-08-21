@@ -7,8 +7,8 @@
       <fieldset :disabled="busy">
         <div class="card-body">
           <form @submit.prevent="login">
-            <div class="d-flex mb-2">
-              <Logo class="mx-auto" />
+            <div class="d-flex justify-content-center mb-3">
+              <img width="100" height="100" src="@/shared/assets/logo.svg">
             </div>
             <div v-if="!config.serverUrl" class="mb-3">
               <label class="form-label">Server</label>
@@ -40,14 +40,10 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { config } from '@/shared/config'
-  import Logo from '@/app/Logo.vue'
   import { useMainStore } from '@/shared/store'
   import { useAuth } from '@/auth/service'
 
   export default defineComponent({
-    components: {
-      Logo,
-    },
     props: {
       returnTo: { type: String, required: true },
     },

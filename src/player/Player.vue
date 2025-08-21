@@ -252,7 +252,7 @@
         return [
           this.streamTitle || this.track?.title,
           formatArtists(this.track?.artists || []) || this.track?.album,
-          'Airsonic (refix)'
+          'Airdrome'
         ].filter(x => !!x).join(' • ')
       }
     },
