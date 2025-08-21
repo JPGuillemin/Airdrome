@@ -42,10 +42,20 @@
       </OverflowFade>
 
       <div class="text-nowrap mt-3">
-        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
+        <b-button
+          v-if="item.trackCount > 0"
+          variant="transparent"
+          class="me-2"
+          title="Shuffle"
+          @click="shuffleNow">
           <Icon icon="shuffle" />
         </b-button>
-        <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
+        <b-button
+          v-if="item.trackCount > 0"
+          variant="transparent"
+          class="me-2"
+          title="Favourite"
+          @click="toggleFavourite">
           <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
         </b-button>
       </div>
