@@ -209,6 +209,22 @@ export class API {
     return (response.songsByGenre?.song || []).map(this.normalizeTrack, this)
   }
 
+  async getSimilarTracksByArtist(
+    id: string,
+    maxTracks: number,
+    offset = 0
+  ): Promise<Track[]> {
+    const params = {
+      id,
+      count: maxTracks,
+      offset,
+    }
+
+    // getSimilarSongs2 returns normalized song objects (with artist/album info)
+    const response = await this.fetch('rest/getSimilarSongs2', params)
+    return (response.similarSongs2?.song || []).map(this.normalizeTrack, this)
+  }
+
   async getArtists(): Promise<Artist[]> {
     const response = await this.fetch('rest/getArtists')
     return (response.artists?.index || [])

@@ -58,6 +58,16 @@
           @click="toggleFavourite">
           <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
         </b-button>
+        <template v-if="item.similarArtist.length > 0">
+          <b-button
+            v-if="item.trackCount > 0"
+            variant="transparent"
+            class="me-2"
+            title="Radio"
+            @click="ArtistRadioNow">
+            <Icon icon="radio" />
+          </b-button>
+        </template>
       </div>
     </Hero>
 
@@ -181,6 +191,10 @@
         for await (const batch of this.$api.getTracksByArtist(this.id)) {
           tracks.push(...batch)
         }
+        return this.playerStore.shuffleNow(tracks)
+      },
+      async ArtistRadioNow() {
+        const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
         return this.playerStore.shuffleNow(tracks)
       },
       toggleFavourite() {
