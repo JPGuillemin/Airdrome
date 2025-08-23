@@ -359,7 +359,7 @@ export class API {
     const params = {
       id: tracksIds,
       current: !currentTrack?.isStream ? currentTrack?.id : undefined,
-      position: currentTime != null ? Math.round(currentTime * 1000) : undefined,
+      position: currentTime != null ? parseInt(String(Math.round(currentTime * 1000)), 10) : undefined,
     }
     try {
       await this.fetch('rest/savePlayQueue', params)
