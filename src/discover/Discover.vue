@@ -27,7 +27,8 @@
           style="width: 100px;">
           <router-link
             :to="{name: 'genre', params: { id: item.id } }"
-            class="text-white text-decoration-none">
+            class="text-decoration-none"
+            style="color: var(--bs-primary) !important;">
             {{ item.name }}
           </router-link>
         </span>
