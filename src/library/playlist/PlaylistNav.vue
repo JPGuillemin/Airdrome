@@ -8,59 +8,61 @@
       <CreatePlaylistModal :visible.sync="showAddModal" />
     </small>
 
-    <!-- Random playlist -->
-    <div class="nav-link" style="cursor: pointer;" @click="navigateToPlaylist('random')">
+    <router-link class="nav-link" :to="{name: 'playlist', params: { id: 'random' }}">
       <Icon icon="playlist" class="me-2" /> Random
-    </div>
+    </router-link>
 
-    <!-- User playlists -->
     <template v-if="playlists">
-      <div
-        v-for="item in playlists"
-        :key="item.id"
+      <router-link
+        v-for="item in playlists" :key="item.id"
+        :to="{name: 'playlist', params: { id: item.id }}"
         class="nav-link"
-        style="cursor: pointer;"
-        @click="navigateToPlaylist(item.id)"
       >
         <span @dragover="onDragover" @drop="onDrop(item.id, $event)">
           <Icon icon="playlist" class="me-2" /> {{ item.name }}
         </span>
-      </div>
+      </router-link>
     </template>
   </div>
 </template>
-
 <script lang="ts">
   import { computed, defineComponent } from 'vue'
-  import { useUiStore } from '@/shared/ui'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
   import { usePlaylistStore } from '@/library/playlist/store'
 
   export default defineComponent({
-    components: { CreatePlaylistModal },
+    components: {
+      CreatePlaylistModal
+    },
     setup() {
       const store = usePlaylistStore()
-      const playlists = computed(() => store.playlists?.slice(0, 20))
-      return { playlists, addTracks: store.addTracks }
+      const playlists = computed(() => {
+        return store.playlists?.slice(0, 10)
+      })
+      return {
+        playlists,
+        addTracks: store.addTracks
+      }
     },
     data() {
-      return { showAddModal: false }
+      return {
+        playlistName: '',
+        showAddModal: false,
+      }
     },
     methods: {
-      navigateToPlaylist(id: string) {
-        const ui = useUiStore()
-        ui.showLoading()
-        this.$router.push({ name: 'playlist', params: { id } })
-      },
       async onDrop(playlistId: string, event: any) {
         event.preventDefault()
         const trackId = event.dataTransfer.getData('application/x-track-id')
-        if (trackId) return this.addTracks(playlistId, [trackId])
-
+        if (trackId) {
+          return this.addTracks(playlistId, [trackId])
+        }
         const albumId = event.dataTransfer.getData('application/x-album-id')
         if (albumId) {
           const album = await this.$api.getAlbumDetails(albumId)
-          return this.addTracks(playlistId, album.tracks!.map(t => t.id))
+          return this.addTracks(
+            playlistId, album.tracks!.map(item => item.id)
+          )
         }
       },
       onDragover(event: DragEvent) {
