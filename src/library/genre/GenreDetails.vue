@@ -42,6 +42,7 @@
   import TrackList from '@/library/track/TrackList.vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useUiStore } from '@/shared/ui'
 
   export default defineComponent({
     components: {
@@ -59,16 +60,36 @@
       }
     },
     methods: {
-      loadAlbums(offset: number) {
-        return this.$api.getAlbumsByGenre(this.id, 100, offset)
+      async loadAlbums(offset: number) {
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          return await this.$api.getAlbumsByGenre(this.id, 100, offset)
+        } finally {
+          ui.hideLoading()
+        }
       },
+
       async loadTracks(offset: number) {
-        const tracks = await this.$api.getTracksByGenre(this.id, 200, offset)
-        return orderBy(tracks, t => t.title?.toLowerCase(), 'asc')
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          const tracks = await this.$api.getTracksByGenre(this.id, 200, offset)
+          return orderBy(tracks, t => t.title?.toLowerCase(), 'asc')
+        } finally {
+          ui.hideLoading()
+        }
       },
+
       async shuffleNow() {
-        const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
-        return this.playerStore.shuffleNow(tracks)
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
+          return this.playerStore.shuffleNow(tracks)
+        } finally {
+          ui.hideLoading()
+        }
       },
     }
   })

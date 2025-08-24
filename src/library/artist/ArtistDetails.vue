@@ -121,6 +121,7 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { usePlayerStore } from '@/player/store'
   import type { Track } from '@/shared/api'
+  import { useUiStore } from '@/shared/ui'
   export default defineComponent({
     components: {
       IconMusicBrainz,
@@ -187,15 +188,27 @@
         }
       },
       async shuffleNow() {
-        const tracks: Track[] = []
-        for await (const batch of this.$api.getTracksByArtist(this.id)) {
-          tracks.push(...batch)
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          const tracks: Track[] = []
+          for await (const batch of this.$api.getTracksByArtist(this.id)) {
+            tracks.push(...batch)
+          }
+          return this.playerStore.shuffleNow(tracks)
+        } finally {
+          ui.hideLoading()
         }
-        return this.playerStore.shuffleNow(tracks)
       },
       async ArtistRadioNow() {
-        const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
-        return this.playerStore.shuffleNow(tracks)
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
+          return this.playerStore.shuffleNow(tracks)
+        } finally {
+          ui.hideLoading()
+        }
       },
       toggleFavourite() {
         return this.favouriteStore.toggle('artist', this.id)

@@ -84,6 +84,7 @@
   import { formatDuration } from '@/shared/utils'
   import { usePlayerStore } from '@/player/store'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
+  import { useUiStore } from '@/shared/ui'
 
   export default defineComponent({
     components: {
@@ -111,11 +112,15 @@
     watch: {
       id: {
         immediate: true,
-        handler(value: string) {
-          this.playlist = null
-          this.$api.getPlaylist(value).then(playlist => {
-            this.playlist = playlist
-          })
+        async handler(value: string) {
+          const ui = useUiStore()
+          ui.showLoading()
+          try {
+            this.playlist = null
+            this.playlist = await this.$api.getPlaylist(value)
+          } finally {
+            ui.hideLoading()
+          }
         }
       }
     },
@@ -130,9 +135,15 @@
         this.playlist.tracks.splice(index, 1)
         return this.playlistStore.removeTrack(this.id, index)
       },
-      updatePlaylist(value: any) {
-        this.playlist = value
-        return this.playlistStore.update(this.playlist)
+      async updatePlaylist(value: any) {
+        const ui = useUiStore()
+        ui.showLoading()
+        try {
+          this.playlist = value
+          return await this.playlistStore.update(this.playlist)
+        } finally {
+          ui.hideLoading()
+        }
       },
       deletePlaylist() {
         return this.playlistStore.delete(this.id).then(() => {
