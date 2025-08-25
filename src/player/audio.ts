@@ -51,6 +51,17 @@ export class AudioController {
   setReplayGainMode(value: ReplayGainMode) {
     this.replayGainMode = value
     this.pipeline.replayGainNode.gain.value = this.replayGainFactor()
+
+    if (value === ReplayGainMode.None) {
+      this.pipeline.normalizerNode.threshold.value = 0
+    } else {
+      this.pipeline.normalizerNode.threshold.value = -6.0
+      this.pipeline.normalizerNode.knee.value = 12.0
+      this.pipeline.normalizerNode.ratio.value = 4.0
+      this.pipeline.normalizerNode.attack.value = 0.01
+      this.pipeline.normalizerNode.release.value = 0.25
+    }
+
     console.log('Set replay gain: ' + this.replayGainFactor())
   }
 
@@ -91,6 +102,8 @@ export class AudioController {
       volume: this.pipeline.volumeNode.gain.value,
       replayGain: this.replayGainFactor(),
     })
+
+    this.setReplayGainMode(this.replayGainMode)
 
     this.pipeline.audio.onerror = () => {
       this.onerror(this.pipeline.audio.error)
@@ -168,6 +181,7 @@ export class AudioController {
     if (this.replayGainMode === ReplayGainMode.None || !this.replayGain) {
       return 1.0
     }
+
     const gain = this.replayGainMode === ReplayGainMode.Track
       ? this.replayGain.trackGain
       : this.replayGain.albumGain
@@ -181,9 +195,7 @@ export class AudioController {
       return 1.0
     }
 
-    // Implementing min(10^((RG + Gpre-amp)/20), 1/peakamplitude)
-    // https://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification
-    const preAmp = 0.0
+    const preAmp = 6.0
     const gainFactor = Math.pow(10, (gain + preAmp) / 20)
     const peakFactor = 1 / peak
     const factor = Math.min(gainFactor, peakFactor)
@@ -206,10 +218,14 @@ function creatPipeline(context: AudioContext, options: { url?: string, volume?: 
   const fadeNode = context.createGain()
   fadeNode.gain.value = 0
 
+  const normalizerNode = context.createDynamicsCompressor()
+  normalizerNode.threshold.value = 0
+
   sourceNode
     .connect(volumeNode)
     .connect(replayGainNode)
     .connect(fadeNode)
+    .connect(normalizerNode)
     .connect(context.destination)
 
   function disconnect() {
@@ -218,9 +234,10 @@ function creatPipeline(context: AudioContext, options: { url?: string, volume?: 
     volumeNode.disconnect()
     replayGainNode.disconnect()
     fadeNode.disconnect()
+    normalizerNode.disconnect()
   }
 
-  return { audio, volumeNode, replayGainNode, fadeNode, disconnect }
+  return { audio, volumeNode, replayGainNode, fadeNode, normalizerNode, disconnect }
 }
 
 function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>, duration: number) {
