@@ -54,12 +54,14 @@ export class AudioController {
 
     if (value === ReplayGainMode.None) {
       this.pipeline.normalizerNode.threshold.value = 0
+      this.pipeline.normalizerNode.knee.value = 0
+      this.pipeline.normalizerNode.ratio.value = 1.0
     } else {
-      this.pipeline.normalizerNode.threshold.value = -6.0
-      this.pipeline.normalizerNode.knee.value = 12.0
-      this.pipeline.normalizerNode.ratio.value = 4.0
+      this.pipeline.normalizerNode.threshold.value = -3.0
+      this.pipeline.normalizerNode.knee.value = 3.0
+      this.pipeline.normalizerNode.ratio.value = 2.0
       this.pipeline.normalizerNode.attack.value = 0.01
-      this.pipeline.normalizerNode.release.value = 0.25
+      this.pipeline.normalizerNode.release.value = 0.1
     }
 
     console.log('Set replay gain: ' + this.replayGainFactor())
@@ -148,8 +150,9 @@ export class AudioController {
 
     if (options.paused !== true) {
       try {
-        await this.context.resume()
-        await this.pipeline.audio.play()
+        this.context.resume()
+        this.pipeline.audio.play()
+        this.pipeline.fadeNode.gain.setValueAtTime(1, this.context.currentTime)
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           console.warn(error)
@@ -157,7 +160,6 @@ export class AudioController {
         }
         throw error
       }
-      await this.fadeIn()
     }
   }
 

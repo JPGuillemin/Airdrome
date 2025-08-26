@@ -246,6 +246,28 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
+  const PREGAP = 0.35
+
+  watch(
+    () => playerStore.currentTime,
+    (time) => {
+      if (!playerStore.track) return
+      const remaining = playerStore.duration - time
+      if (remaining <= PREGAP && playerStore.hasNext) {
+        playerStore.queueIndex++
+        playerStore.duration = playerStore.track.duration
+        if (mediaSession) {
+          mediaSession.metadata = new MediaMetadata({
+            title: playerStore.track.title,
+            artist: formatArtists(playerStore.track.artists),
+            album: playerStore.track.album,
+            artwork: playerStore.track.image ? [{ src: playerStore.track.image, sizes: '300x300' }] : undefined,
+          })
+        }
+        audio.changeTrack({ ...playerStore.track, playbackRate: playerStore.playbackRate })
+      }
+    }
+  )
   audio.ondurationchange = (value: number) => {
     if (isFinite(value)) {
       playerStore.duration = value
