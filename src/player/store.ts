@@ -246,7 +246,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
-  const PREGAP = 0.35
+  const PREGAP = 0.4
 
   watch(
     () => playerStore.currentTime,

@@ -152,7 +152,6 @@ export class AudioController {
       try {
         this.context.resume()
         this.pipeline.audio.play()
-        this.pipeline.fadeNode.gain.setValueAtTime(1, this.context.currentTime)
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           console.warn(error)
@@ -218,7 +217,7 @@ function creatPipeline(context: AudioContext, options: { url?: string, volume?: 
   replayGainNode.gain.value = options.replayGain ?? 1
 
   const fadeNode = context.createGain()
-  fadeNode.gain.value = 0
+  fadeNode.gain.value = 1
 
   const normalizerNode = context.createDynamicsCompressor()
   normalizerNode.threshold.value = 0
