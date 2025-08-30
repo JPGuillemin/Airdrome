@@ -17,7 +17,7 @@ const audio = new AudioController()
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
-    queue: null as null | Track[],
+    queue: [] as Track[],
     queueIndex: -1,
     isPlaying: false,
     duration: 0, // duration of current track in seconds
@@ -259,7 +259,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
-  const PREGAP = 0.2
+  const PREGAP = 0.4
 
   watch(
     () => playerStore.currentTime,
@@ -379,7 +379,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       })
 
     // Save play queue
-    const maxDuration = 10_000
+    const maxDuration = 30_000
     const lastSaved = ref(Date.now())
 
     watch(

@@ -15,7 +15,7 @@ type ReplayGain = {
 }
 
 export class AudioController {
-  private fadeDuration = 0.2
+  private fadeDuration = 0.4
 
   private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
@@ -41,6 +41,7 @@ export class AudioController {
   }
 
   setBuffer(url: string) {
+    this.buffer = null
     this.buffer = new Audio(url)
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
@@ -99,8 +100,8 @@ export class AudioController {
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline, 1.0)
     }
-    console.info('target URL :', options.url)
-    console.info('buffer URL :', this.buffer ? this.buffer.src : '(none)')
+    // console.info('target URL :', options.url)
+    // console.info('buffer URL :', this.buffer ? this.buffer.src : '(none)')
 
     this.replayGain = options.replayGain || null
 
@@ -110,17 +111,23 @@ export class AudioController {
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
-      this.buffer = null
-      console.info('AudioController: using buffer', options.url)
+      console.info('AudioController: using buffer for ', options.url)
+      await this.startTrack(options.url, options.paused)
+      this.SetIcecast(options.url, options.isStream, options.playbackRate)
     } else {
       this.pipeline = creatPipeline(this.context, {
         url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
-      console.info('AudioController: no buffer, using url', options.url)
+      console.info('AudioController: no buffer, fetching ', options.url)
+      await this.startTrack(options.url, options.paused)
+      this.SetIcecast(options.url, options.isStream, options.playbackRate)
+      await this.fadeIn(0.4)
     }
+  }
 
+  private async startTrack(url?: string, paused?: boolean) {
     this.setReplayGainMode(this.replayGainMode)
 
     this.pipeline.audio.onerror = () => {
@@ -140,35 +147,11 @@ export class AudioController {
     }
     this.ondurationchange(this.pipeline.audio.duration)
     this.ontimeupdate(this.pipeline.audio.currentTime)
-    this.onstreamtitlechange(null)
-    this.pipeline.audio.playbackRate = options.playbackRate ?? 1.0
 
-    this.statsListener?.stop()
-    if (options.isStream) {
-      console.info('Icecast: starting stats listener')
-      this.statsListener = new IcecastMetadataStats(options.url, {
-        sources: ['icy'],
-        onStats: (stats: any) => {
-          if (stats?.icy === undefined) {
-            console.info('Icecast: no metadata found. Stopping')
-            this.statsListener?.stop()
-          } else if (stats?.icy?.StreamTitle) {
-            this.onstreamtitlechange(stats?.icy?.StreamTitle)
-          }
-        }
-      })
-      this.statsListener?.start()
-    }
-
-    if (options.isStream) {
-      this.pipeline.audio.load()
-    }
-
-    if (options.paused !== true) {
+    if (paused !== true) {
       try {
         this.context.resume()
         this.pipeline.audio.play()
-        this.buffer = null
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           console.warn(error)
@@ -220,11 +203,40 @@ export class AudioController {
     console.info('AudioController: calculated ReplayGain factor', factor)
     return factor
   }
+
+  private async SetIcecast(url?: string, isStream?: boolean, playbackRate?: number) {
+    this.statsListener?.stop()
+    if (isStream) {
+      this.onstreamtitlechange(null)
+      this.pipeline.audio.playbackRate = playbackRate ?? 1.0
+      console.info('Icecast: starting stats listener')
+      this.statsListener = new IcecastMetadataStats(url, {
+        sources: ['icy'],
+        onStats: (stats: any) => {
+          if (stats?.icy === undefined) {
+            console.info('Icecast: no metadata found. Stopping')
+            this.statsListener?.stop()
+          } else if (stats?.icy?.StreamTitle) {
+            this.onstreamtitlechange(stats?.icy?.StreamTitle)
+          }
+        }
+      })
+      this.statsListener?.start()
+      this.pipeline.audio.load()
+    }
+  }
 }
 
 function creatPipeline(context: AudioContext, options: { url?: string, audio?: HTMLAudioElement, volume?: number, replayGain?: number }) {
-  const audio = options.audio ?? (options.url ? new Audio(options.url) : new Audio())
-  audio.crossOrigin = 'anonymous'
+  let audio: HTMLAudioElement
+  if (options.audio) {
+    audio = options.audio
+  } else {
+    audio = options.url ? new Audio(options.url) : new Audio()
+    audio.crossOrigin = 'anonymous'
+    audio.preload = 'auto'
+  }
+
   const sourceNode = context.createMediaElementSource(audio)
 
   const volumeNode = context.createGain()
