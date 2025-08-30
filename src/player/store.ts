@@ -57,6 +57,15 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
+    async preloadNext() {
+      if (this.queue && this.queue.length > 0) {
+        const next = (this.queueIndex + 1) % this.queue.length
+        const nextTrack = this.queue[next]
+        if (nextTrack?.url) {
+          audio.setBuffer(nextTrack.url)
+        }
+      }
+    },
     async playNow(tracks: Track[]) {
       this.setShuffle(false)
       await this.playTrackList(tracks, 0)
@@ -69,6 +78,7 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(index)
       this.setPlaying()
       await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      await this.preloadNext()
     },
     async playTrackList(tracks: Track[], index?: number) {
       if (index == null) {
@@ -85,6 +95,7 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(index)
       this.setPlaying()
       await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      await this.preloadNext()
     },
     async resume() {
       this.setPlaying()
@@ -101,11 +112,13 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(this.queueIndex + 1)
       this.setPlaying()
       await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      await this.preloadNext()
     },
     async previous() {
       this.setQueueIndex(audio.currentTime() > 3 ? this.queueIndex : this.queueIndex - 1)
       this.setPlaying()
       await audio.changeTrack(this.track!)
+      await this.preloadNext()
     },
     async seek(value: number) {
       if (isFinite(this.duration)) {
@@ -118,12 +131,14 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(currentTrack)
       this.setPaused()
       await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
+      await this.preloadNext()
       await audio.seek(currentTrackPosition)
     },
     async resetQueue() {
       this.setQueueIndex(0)
       this.setPaused()
       await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
+      await this.preloadNext()
     },
     async clearQueue() {
       if (!this.queue) {
@@ -228,8 +243,6 @@ export const usePlayerStore = defineStore('player', {
       this.scrobbled = false
       const track = this.queue[index]
       this.duration = track.duration
-      const next = (index + 1) % this.queue.length
-      audio.setBuffer(this.queue[next].url!)
       if (mediaSession) {
         mediaSession.metadata = new MediaMetadata({
           title: track.title,
@@ -246,7 +259,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
-  const PREGAP = 0.4
+  const PREGAP = 0.2
 
   watch(
     () => playerStore.currentTime,
@@ -254,17 +267,10 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (!playerStore.track) return
       const remaining = playerStore.duration - time
       if (remaining <= PREGAP && playerStore.hasNext) {
-        playerStore.queueIndex++
-        playerStore.duration = playerStore.track.duration
-        if (mediaSession) {
-          mediaSession.metadata = new MediaMetadata({
-            title: playerStore.track.title,
-            artist: formatArtists(playerStore.track.artists),
-            album: playerStore.track.album,
-            artwork: playerStore.track.image ? [{ src: playerStore.track.image, sizes: '300x300' }] : undefined,
-          })
-        }
+        playerStore.setQueueIndex(playerStore.queueIndex + 1)
+        playerStore.setPlaying()
         audio.changeTrack({ ...playerStore.track, playbackRate: playerStore.playbackRate })
+        playerStore.preloadNext()
       }
     }
   )
@@ -300,6 +306,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   const track = playerStore.track
   if (track?.url) {
     audio.changeTrack({ ...track, paused: true })
+    playerStore.preloadNext()
   }
   audio.setPlaybackRate(playerStore.playbackRate)
 

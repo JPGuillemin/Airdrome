@@ -17,7 +17,7 @@ type ReplayGain = {
 export class AudioController {
   private fadeDuration = 0.2
 
-  private buffer = new Audio()
+  private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
@@ -41,7 +41,10 @@ export class AudioController {
   }
 
   setBuffer(url: string) {
-    this.buffer.src = url
+    this.buffer = new Audio(url)
+    this.buffer.crossOrigin = 'anonymous'
+    this.buffer.preload = 'auto'
+    try { this.buffer.load() } catch { /* ignore */ }
   }
 
   setVolume(value: number) {
@@ -96,14 +99,27 @@ export class AudioController {
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline, 1.0)
     }
+    console.info('target URL :', options.url)
+    console.info('buffer URL :', this.buffer ? this.buffer.src : '(none)')
 
     this.replayGain = options.replayGain || null
 
-    this.pipeline = creatPipeline(this.context, {
-      url: options.url,
-      volume: this.pipeline.volumeNode.gain.value,
-      replayGain: this.replayGainFactor(),
-    })
+    if (this.buffer && this.buffer.src === options.url) {
+      this.pipeline = creatPipeline(this.context, {
+        audio: this.buffer,
+        volume: this.pipeline.volumeNode.gain.value,
+        replayGain: this.replayGainFactor(),
+      })
+      this.buffer = null
+      console.info('AudioController: using buffer', options.url)
+    } else {
+      this.pipeline = creatPipeline(this.context, {
+        url: options.url,
+        volume: this.pipeline.volumeNode.gain.value,
+        replayGain: this.replayGainFactor(),
+      })
+      console.info('AudioController: no buffer, using url', options.url)
+    }
 
     this.setReplayGainMode(this.replayGainMode)
 
@@ -152,6 +168,7 @@ export class AudioController {
       try {
         this.context.resume()
         this.pipeline.audio.play()
+        this.buffer = null
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           console.warn(error)
@@ -205,8 +222,8 @@ export class AudioController {
   }
 }
 
-function creatPipeline(context: AudioContext, options: { url?: string, volume?: number, replayGain?: number }) {
-  const audio = new Audio(options.url)
+function creatPipeline(context: AudioContext, options: { url?: string, audio?: HTMLAudioElement, volume?: number, replayGain?: number }) {
+  const audio = options.audio ?? (options.url ? new Audio(options.url) : new Audio())
   audio.crossOrigin = 'anonymous'
   const sourceNode = context.createMediaElementSource(audio)
 
