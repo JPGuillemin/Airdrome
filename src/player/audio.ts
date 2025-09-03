@@ -14,6 +14,26 @@ type ReplayGain = {
   albumPeak: number // 0.0-1.0
 }
 
+async function UrlFetch(url: string, maxRetries = 5, retryDelay = 2000): Promise<string> {
+  let attempt = 0
+  while (attempt <= maxRetries) {
+    try {
+      console.info(`UrlFetch: attempt ${attempt + 1} for ${url}`)
+      const res = await fetch(url, { method: 'HEAD', cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return url
+    } catch (err) {
+      console.warn(`UrlFetch: failed (attempt ${attempt + 1})`, err)
+      attempt++
+      if (attempt > maxRetries) throw err
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, retryDelay)
+      })
+    }
+  }
+  throw new Error('UrlFetch: unexpected exit')
+}
+
 export class AudioController {
   private fadeDuration = 0.4
 
@@ -40,12 +60,17 @@ export class AudioController {
     return this.pipeline.audio.duration
   }
 
-  setBuffer(url: string) {
+  async setBuffer(url: string) {
     this.buffer = null
-    this.buffer = new Audio(url)
+    const FetchedUrl = await UrlFetch(url)
+    this.buffer = new Audio(FetchedUrl)
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
-    try { this.buffer.load() } catch { /* ignore */ }
+    try {
+      this.buffer.load()
+    } catch {
+      /* ignore */
+    }
   }
 
   setVolume(value: number) {
@@ -100,8 +125,6 @@ export class AudioController {
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline, 1.0)
     }
-    // console.info('target URL :', options.url)
-    // console.info('buffer URL :', this.buffer ? this.buffer.src : '(none)')
 
     this.replayGain = options.replayGain || null
 
@@ -114,15 +137,16 @@ export class AudioController {
       console.info('AudioController: using buffer for ', options.url)
       await this.startTrack(options.url, options.paused)
       this.SetIcecast(options.url, options.isStream, options.playbackRate)
-    } else {
+    } else if (options.url) {
+      const FetchedUrl = await UrlFetch(options.url)
       this.pipeline = creatPipeline(this.context, {
-        url: options.url,
+        url: FetchedUrl,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
-      console.info('AudioController: no buffer, fetching ', options.url)
-      await this.startTrack(options.url, options.paused)
-      this.SetIcecast(options.url, options.isStream, options.playbackRate)
+      console.info('AudioController: no buffer, fetching ', FetchedUrl)
+      await this.startTrack(FetchedUrl, options.paused)
+      this.SetIcecast(FetchedUrl, options.isStream, options.playbackRate)
       await this.fadeIn(0.4)
     }
   }
