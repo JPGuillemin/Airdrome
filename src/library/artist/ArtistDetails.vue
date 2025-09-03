@@ -207,7 +207,7 @@
         ui.showLoading()
         try {
           const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
-          return this.playerStore.shuffleNow(tracks)
+          return this.playerStore.playNow(tracks)
         } finally {
           ui.hideLoading()
         }
