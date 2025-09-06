@@ -203,6 +203,7 @@
         }
       },
       async ArtistRadioNow() {
+        this.playerStore.setShuffle(false)
         const ui = useUiStore()
         ui.showLoading()
         try {

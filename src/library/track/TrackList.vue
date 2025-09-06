@@ -76,6 +76,7 @@
     },
     methods: {
       play(index: number) {
+        this.playerStore.setShuffle(false)
         if (this.tracks[index].id === this.playingTrackId) {
           return this.playerStore.playPause()
         }

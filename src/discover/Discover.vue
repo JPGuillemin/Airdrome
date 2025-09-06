@@ -68,6 +68,7 @@
   import { Album, Genre, Artist } from '@/shared/api'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import { orderBy } from 'lodash-es'
+  import { useUiStore } from '@/shared/ui'
 
   export default defineComponent({
     components: {
@@ -93,24 +94,34 @@
       }
     },
     created() {
+      const ui = useUiStore()
       const size = 18
-      this.$api.getAlbums('recently-added', size).then(result => {
-        this.result.recent = result
-      })
-      this.$api.getAlbums('recently-played', size).then(result => {
-        this.result.played = result
-      })
-      this.$api.getAlbums('random', size).then(result => {
-        this.result.random = result
-      })
-      this.$api.getFavourites().then(result => {
-        this.result.favalbums = result.albums.slice(0, size)
-        this.result.favartists = result.artists.slice(0, size)
-      })
-      this.$api.getGenres().then(result => {
-        this.result.genres = orderBy(result, 'albumCount', 'desc')
-        this.loading = false
-      })
+
+      ui.showLoading()
+      this.loading = true
+
+      Promise.all([
+        this.$api.getAlbums('recently-added', size).then(result => {
+          this.result.recent = result
+        }),
+        this.$api.getAlbums('recently-played', size).then(result => {
+          this.result.played = result
+        }),
+        this.$api.getAlbums('random', size).then(result => {
+          this.result.random = result
+        }),
+        this.$api.getFavourites().then(result => {
+          this.result.favalbums = result.albums.slice(0, size)
+          this.result.favartists = result.artists.slice(0, size)
+        }),
+        this.$api.getGenres().then(result => {
+          this.result.genres = orderBy(result, 'albumCount', 'desc')
+        }),
+      ])
+        .finally(() => {
+          this.loading = false
+          ui.hideLoading()
+        })
     }
   })
 </script>

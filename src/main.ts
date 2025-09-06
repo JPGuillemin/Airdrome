@@ -13,6 +13,7 @@ import { createApi } from '@/shared'
 import { createPinia, PiniaVuePlugin } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
+import { useUiStore } from '@/shared/ui'
 
 function setTheme(color: string) {
   document.documentElement.style.setProperty('--bs-primary', color)
@@ -66,8 +67,15 @@ watch(
   })
 
 router.beforeEach((to, from, next) => {
+  const ui = useUiStore()
+  ui.showLoading()
   mainStore.clearError()
   next()
+})
+
+router.afterEach(() => {
+  const ui = useUiStore()
+  ui.hideLoading()
 })
 
 const app = createApp(AppComponent, { router, pinia, store: playerStore })
