@@ -1,10 +1,11 @@
 <template>
-  <Tiles>
+  <Tiles square :allow-h-scroll="allowHScroll">
     <Tile
       v-for="item in items" :key="item.id"
       :to="{name: 'artist', params: { id: item.id } }"
       :title="item.name"
       :image="item.image"
+      :circle="true"
     >
       <template #text>
         <strong>{{ item.albumCount }}</strong> albums
@@ -27,6 +28,7 @@
   export default defineComponent({
     props: {
       items: { type: Array, required: true },
+      allowHScroll: { type: Boolean, default: false },
     },
     setup() {
       return {

@@ -1,6 +1,10 @@
 <template functional>
   <div class="tile card" v-bind="data.attrs" v-on="data.on">
-    <ContextMenu class="tile-img" :enabled="!!$slots['context-menu']">
+    <ContextMenu
+      class="tile-img"
+      :class="props.circle ? 'tile-img--circle' : ''"
+      :enabled="!!$slots['context-menu']"
+    >
       <router-link :to="props.to">
         <img v-if="props.image" :src="props.image">
         <img v-else src="@/shared/assets/fallback.svg">
@@ -36,5 +40,9 @@
       height: 100%;
       object-fit: cover;
     }
+  }
+  .tile-img--circle {
+    border-radius: 50%;
+    overflow: hidden;
   }
 </style>

@@ -259,7 +259,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
-  const PREGAP = 0.4
+  const PREGAP = 0.2
 
   watch(
     () => playerStore.currentTime,
@@ -274,6 +274,22 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
     }
   )
+
+  // backup / resume PWA
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+    }
+  })
+
+  window.addEventListener('pagehide', () => {
+    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+  })
+
+  window.addEventListener('beforeunload', () => {
+    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+  })
+
   audio.ondurationchange = (value: number) => {
     if (isFinite(value)) {
       playerStore.duration = value
@@ -288,6 +304,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
   audio.onpause = () => {
     playerStore.setPaused()
+    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
   }
   audio.onstreamtitlechange = (value: string | null) => {
     playerStore.streamTitle = value
@@ -309,6 +326,24 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.preloadNext()
   }
   audio.setPlaybackRate(playerStore.playbackRate)
+
+  // listen to Bluetooth connexion
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', async() => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const hasAudioOutput = devices.some(d => d.kind === 'audiooutput')
+
+        if (hasAudioOutput && playerStore.isPlaying) {
+          playerStore.resume().catch(() => {
+            console.log('Autoplay blocked : user action requise (BT connected)')
+          })
+        }
+      } catch (err) {
+        console.warn('Error devicechange:', err)
+      }
+    })
+  }
 
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
@@ -339,16 +374,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       const offset = details.seekOffset || 10
       audio.seek(Math.max(audio.currentTime() - offset, 0))
     })
-    // FIXME
-    // function updatePositionState() {
-    //   if (mediaSession && mediaSession.setPositionState) {
-    //     mediaSession.setPositionState({
-    //       duration: audio.duration || 0,
-    //       playbackRate: audio.playbackRate,
-    //       position: audio.currentTime,
-    //     });
-    //   }
-    // }
 
     // Update now playing
     watch(
@@ -378,8 +403,8 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         }
       })
 
-    // Save play queue
-    const maxDuration = 30_000
+    // Save play queue périodiquement
+    const maxDuration = 10_000
     const lastSaved = ref(Date.now())
 
     watch(
