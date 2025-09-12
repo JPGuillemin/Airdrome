@@ -36,7 +36,7 @@ async function UrlFetch(url: string, maxRetries = 5, retryDelay = 2000): Promise
 
 export class AudioController {
   private fadeDuration = 0.4
-
+  private changeToken = 0
   private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
   private replayGainMode = ReplayGainMode.None
@@ -107,7 +107,15 @@ export class AudioController {
 
   async resume() {
     await this.context.resume()
-    await this.pipeline.audio.play()
+    try {
+      await this.pipeline.audio.play()
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('Resume aborted')
+        return
+      }
+      throw err
+    }
     await this.fadeIn()
   }
 
@@ -122,63 +130,79 @@ export class AudioController {
   }
 
   async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain, isStream?: boolean, playbackRate?: number }) {
+    const token = ++this.changeToken
+
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline, 1.0)
     }
 
     this.replayGain = options.replayGain || null
 
+    let pipeline: ReturnType<typeof creatPipeline> | undefined
+
     if (this.buffer && this.buffer.src === options.url) {
-      this.pipeline = creatPipeline(this.context, {
+      pipeline = creatPipeline(this.context, {
         audio: this.buffer,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
+      if (token === this.changeToken) {
+        this.pipeline = pipeline!
+      } else {
+        console.info('Skipped old track change due to rapid skip')
+        pipeline?.disconnect()
+      }
       console.info('AudioController: using buffer for ', options.url)
-      await this.startTrack(options.url, options.paused)
+      await this.startTrack(token, pipeline, options.url, options.paused)
       this.SetIcecast(options.url, options.isStream, options.playbackRate)
     } else if (options.url) {
       const FetchedUrl = await UrlFetch(options.url)
-      this.pipeline = creatPipeline(this.context, {
+      pipeline = creatPipeline(this.context, {
         url: FetchedUrl,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
+      if (token === this.changeToken) {
+        this.pipeline = pipeline!
+      } else {
+        console.info('Skipped old track change due to rapid skip')
+        pipeline?.disconnect()
+      }
       console.info('AudioController: no buffer, fetching ', FetchedUrl)
-      await this.startTrack(FetchedUrl, options.paused)
+      await this.startTrack(token, pipeline, FetchedUrl, options.paused)
       this.SetIcecast(FetchedUrl, options.isStream, options.playbackRate)
       await this.fadeIn(0.4)
     }
   }
 
-  private async startTrack(url?: string, paused?: boolean) {
+  private async startTrack(token: number, pipeline: ReturnType<typeof creatPipeline>, url?: string, paused?: boolean) {
     this.setReplayGainMode(this.replayGainMode)
 
-    this.pipeline.audio.onerror = () => {
-      this.onerror(this.pipeline.audio.error)
+    pipeline.audio.onerror = () => {
+      if (token === this.changeToken) this.onerror(pipeline.audio.error)
     }
-    this.pipeline.audio.onended = () => {
-      this.onended()
+    pipeline.audio.onended = () => {
+      if (token === this.changeToken) this.onended()
     }
-    this.pipeline.audio.ontimeupdate = () => {
-      this.ontimeupdate(this.pipeline.audio.currentTime)
+    pipeline.audio.ontimeupdate = () => {
+      if (token === this.changeToken) this.ontimeupdate(pipeline.audio.currentTime)
     }
-    this.pipeline.audio.ondurationchange = () => {
-      this.ondurationchange(this.pipeline.audio.duration)
+    pipeline.audio.ondurationchange = () => {
+      if (token === this.changeToken) this.ondurationchange(pipeline.audio.duration)
     }
-    this.pipeline.audio.onpause = () => {
-      this.onpause()
+    pipeline.audio.onpause = () => {
+      if (token === this.changeToken) this.onpause()
     }
     this.ondurationchange(this.pipeline.audio.duration)
     this.ontimeupdate(this.pipeline.audio.currentTime)
 
     if (paused !== true) {
       try {
-        this.context.resume()
-        this.pipeline.audio.play()
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.warn(error)
+        await this.context.resume()
+        await this.pipeline.audio.play()
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.warn('Audio play aborted due to rapid skip')
           return
         }
         throw error
