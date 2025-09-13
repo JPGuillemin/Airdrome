@@ -133,7 +133,7 @@ export class AudioController {
     const token = ++this.changeToken
 
     if (this.pipeline.audio) {
-      endPlayback(this.context, this.pipeline, 1.0)
+      endPlayback(this.context, this.pipeline, 0.7)
     }
 
     this.replayGain = options.replayGain || null
@@ -141,6 +141,7 @@ export class AudioController {
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
     if (this.buffer && this.buffer.src === options.url) {
+      console.info('AudioController: using buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
         volume: this.pipeline.volumeNode.gain.value,
@@ -148,15 +149,15 @@ export class AudioController {
       })
       if (token === this.changeToken) {
         this.pipeline = pipeline!
+        await this.startTrack(token, pipeline, options.url, options.paused)
+        this.SetIcecast(options.url, options.isStream, options.playbackRate)
       } else {
-        console.info('Skipped old track change due to rapid skip')
+        console.info('Skipped track change due to rapid skip')
         pipeline?.disconnect()
       }
-      console.info('AudioController: using buffer for ', options.url)
-      await this.startTrack(token, pipeline, options.url, options.paused)
-      this.SetIcecast(options.url, options.isStream, options.playbackRate)
     } else if (options.url) {
       const FetchedUrl = await UrlFetch(options.url)
+      console.info('AudioController: no buffer, fetching ', FetchedUrl)
       pipeline = creatPipeline(this.context, {
         url: FetchedUrl,
         volume: this.pipeline.volumeNode.gain.value,
@@ -164,14 +165,13 @@ export class AudioController {
       })
       if (token === this.changeToken) {
         this.pipeline = pipeline!
+        await this.startTrack(token, pipeline, FetchedUrl, options.paused)
+        this.SetIcecast(FetchedUrl, options.isStream, options.playbackRate)
+        await this.fadeIn(0.4)
       } else {
-        console.info('Skipped old track change due to rapid skip')
+        console.info('Skipped track change due to rapid skip')
         pipeline?.disconnect()
       }
-      console.info('AudioController: no buffer, fetching ', FetchedUrl)
-      await this.startTrack(token, pipeline, FetchedUrl, options.paused)
-      this.SetIcecast(FetchedUrl, options.isStream, options.playbackRate)
-      await this.fadeIn(0.4)
     }
   }
 

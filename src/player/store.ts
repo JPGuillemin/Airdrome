@@ -77,8 +77,8 @@ export const usePlayerStore = defineStore('player', {
     async playTrackListIndex(index: number) {
       this.setQueueIndex(index)
       this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-      await this.preloadNext()
+      audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      this.preloadNext()
     },
     async playTrackList(tracks: Track[], index?: number) {
       if (index == null) {
@@ -94,8 +94,8 @@ export const usePlayerStore = defineStore('player', {
       }
       this.setQueueIndex(index)
       this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-      await this.preloadNext()
+      audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      this.preloadNext()
     },
     async resume() {
       this.setPlaying()
@@ -111,14 +111,14 @@ export const usePlayerStore = defineStore('player', {
     async next() {
       this.setQueueIndex(this.queueIndex + 1)
       this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-      await this.preloadNext()
+      audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
+      this.preloadNext()
     },
     async previous() {
       this.setQueueIndex(audio.currentTime() > 3 ? this.queueIndex : this.queueIndex - 1)
       this.setPlaying()
-      await audio.changeTrack(this.track!)
-      await this.preloadNext()
+      audio.changeTrack(this.track!)
+      this.preloadNext()
     },
     async seek(value: number) {
       if (isFinite(this.duration)) {
@@ -130,15 +130,15 @@ export const usePlayerStore = defineStore('player', {
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
       this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
-      await this.preloadNext()
+      audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
+      this.preloadNext()
       await audio.seek(currentTrackPosition)
     },
     async resetQueue() {
       this.setQueueIndex(0)
       this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
-      await this.preloadNext()
+      audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
+      this.preloadNext()
     },
     async clearQueue() {
       if (!this.queue) {
@@ -151,7 +151,7 @@ export const usePlayerStore = defineStore('player', {
         this.setQueue([])
         this.setQueueIndex(-1)
         this.setPaused()
-        await audio.changeTrack({ })
+        audio.changeTrack({ })
       }
     },
     addToQueue(tracks: Track[]) {
