@@ -14,28 +14,7 @@ type ReplayGain = {
   albumPeak: number // 0.0-1.0
 }
 
-async function UrlFetch(url: string, maxRetries = 5, retryDelay = 2000): Promise<string> {
-  let attempt = 0
-  while (attempt <= maxRetries) {
-    try {
-      console.info(`UrlFetch: attempt ${attempt + 1} for ${url}`)
-      const res = await fetch(url, { method: 'HEAD', cache: 'no-store' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return url
-    } catch (err) {
-      console.warn(`UrlFetch: failed (attempt ${attempt + 1})`, err)
-      attempt++
-      if (attempt > maxRetries) throw err
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, retryDelay)
-      })
-    }
-  }
-  throw new Error('UrlFetch: unexpected exit')
-}
-
 export class AudioController {
-  private fadeDuration = 0.4
   private changeToken = 0
   private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
@@ -62,15 +41,10 @@ export class AudioController {
 
   async setBuffer(url: string) {
     this.buffer = null
-    const FetchedUrl = await UrlFetch(url)
-    this.buffer = new Audio(FetchedUrl)
+    this.buffer = new Audio(url)
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
-    try {
-      this.buffer.load()
-    } catch {
-      /* ignore */
-    }
+    try { this.buffer.load() } catch { /* ignore */ }
   }
 
   setVolume(value: number) {
@@ -101,14 +75,14 @@ export class AudioController {
   }
 
   async pause() {
-    await this.fadeOut()
+    await this.fadeOut(0.2)
     this.pipeline.audio.pause()
   }
 
   async resume() {
-    await this.context.resume()
+    this.context.resume()
     try {
-      await this.pipeline.audio.play()
+      this.pipeline.audio.play()
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
@@ -116,29 +90,27 @@ export class AudioController {
       }
       throw err
     }
-    await this.fadeIn()
+    await this.fadeIn(0.1)
   }
 
   async seek(value: number) {
     if (!this.pipeline.audio.paused) {
-      await this.fadeOut(this.fadeDuration / 2.0)
+      await this.fadeOut(0.2)
     }
     this.pipeline.audio.currentTime = value
     if (!this.pipeline.audio.paused) {
-      await this.fadeIn(this.fadeDuration / 2.0)
+      await this.fadeIn(0.2)
     }
   }
 
   async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain, isStream?: boolean, playbackRate?: number }) {
     const token = ++this.changeToken
+    let pipeline: ReturnType<typeof creatPipeline> | undefined
 
     if (this.pipeline.audio) {
-      endPlayback(this.context, this.pipeline, 0.7)
+      endPlayback(this.context, this.pipeline)
     }
-
     this.replayGain = options.replayGain || null
-
-    let pipeline: ReturnType<typeof creatPipeline> | undefined
 
     if (this.buffer && this.buffer.src === options.url) {
       console.info('AudioController: using buffer for ', options.url)
@@ -147,59 +119,50 @@ export class AudioController {
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
-      if (token === this.changeToken) {
-        this.pipeline = pipeline!
-        await this.startTrack(token, pipeline, options.url, options.paused)
-        this.SetIcecast(options.url, options.isStream, options.playbackRate)
-      } else {
-        console.info('Skipped track change due to rapid skip')
-        pipeline?.disconnect()
-      }
-    } else if (options.url) {
-      const FetchedUrl = await UrlFetch(options.url)
-      console.info('AudioController: no buffer, fetching ', FetchedUrl)
+    } else {
+      console.info('AudioController: no buffer, fetching ', options.url)
       pipeline = creatPipeline(this.context, {
-        url: FetchedUrl,
+        url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
-      if (token === this.changeToken) {
-        this.pipeline = pipeline!
-        await this.startTrack(token, pipeline, FetchedUrl, options.paused)
-        this.SetIcecast(FetchedUrl, options.isStream, options.playbackRate)
-        await this.fadeIn(0.4)
-      } else {
-        console.info('Skipped track change due to rapid skip')
-        pipeline?.disconnect()
-      }
+    }
+    if (token === this.changeToken) {
+      this.pipeline.disconnect()
+      this.pipeline = pipeline!
+      this.startTrack(this.pipeline, options.url, options.paused)
+      this.SetIcecast(options.url, options.isStream, options.playbackRate)
+      await this.fadeIn(0.2)
+    } else {
+      pipeline!.disconnect()
     }
   }
 
-  private async startTrack(token: number, pipeline: ReturnType<typeof creatPipeline>, url?: string, paused?: boolean) {
+  private async startTrack(pipeline: ReturnType<typeof creatPipeline>, url?: string, paused?: boolean) {
     this.setReplayGainMode(this.replayGainMode)
 
-    pipeline.audio.onerror = () => {
-      if (token === this.changeToken) this.onerror(pipeline.audio.error)
+    this.pipeline.audio.onerror = () => {
+      this.onerror(this.pipeline.audio.error)
     }
-    pipeline.audio.onended = () => {
-      if (token === this.changeToken) this.onended()
+    this.pipeline.audio.onended = () => {
+      this.onended()
     }
-    pipeline.audio.ontimeupdate = () => {
-      if (token === this.changeToken) this.ontimeupdate(pipeline.audio.currentTime)
+    this.pipeline.audio.ontimeupdate = () => {
+      this.ontimeupdate(this.pipeline.audio.currentTime)
     }
-    pipeline.audio.ondurationchange = () => {
-      if (token === this.changeToken) this.ondurationchange(pipeline.audio.duration)
+    this.pipeline.audio.ondurationchange = () => {
+      this.ondurationchange(this.pipeline.audio.duration)
     }
-    pipeline.audio.onpause = () => {
-      if (token === this.changeToken) this.onpause()
+    this.pipeline.audio.onpause = () => {
+      this.onpause()
     }
     this.ondurationchange(this.pipeline.audio.duration)
     this.ontimeupdate(this.pipeline.audio.currentTime)
 
     if (paused !== true) {
       try {
-        await this.context.resume()
-        await this.pipeline.audio.play()
+        this.context.resume()
+        this.pipeline.audio.play()
       } catch (error: any) {
         if (error.name === 'AbortError') {
           console.warn('Audio play aborted due to rapid skip')
@@ -210,7 +173,7 @@ export class AudioController {
     }
   }
 
-  private async fadeIn(duration: number = this.fadeDuration) {
+  private async fadeIn(duration = 0) {
     const value = this.pipeline.fadeNode.gain.value
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
@@ -218,7 +181,7 @@ export class AudioController {
     await sleep(duration * 1000)
   }
 
-  private async fadeOut(duration: number = this.fadeDuration) {
+  private async fadeOut(duration = 0) {
     const value = this.pipeline.fadeNode.gain.value
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
@@ -313,13 +276,15 @@ function creatPipeline(context: AudioContext, options: { url?: string, audio?: H
     replayGainNode.disconnect()
     fadeNode.disconnect()
     normalizerNode.disconnect()
+    audio.src = ''
+    try { audio.load() } catch {}
   }
 
   return { audio, volumeNode, replayGainNode, fadeNode, normalizerNode, disconnect }
 }
 
-function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>, duration: number) {
-  console.info(`AudioController: ending payback for ${pipeline.audio}`)
+function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>) {
+  // console.info(`AudioController: ending payback for ${pipeline.audio}`)
   pipeline.audio.ontimeupdate = null
   pipeline.audio.ondurationchange = null
   pipeline.audio.onpause = null
@@ -327,14 +292,11 @@ function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPip
   pipeline.audio.onended = null
   pipeline.audio.onloadedmetadata = null
 
-  pipeline.fadeNode.gain.cancelScheduledValues(0)
-  pipeline.fadeNode.gain.linearRampToValueAtTime(0, context.currentTime + duration)
-
-  const startTime = Date.now()
+  // const startTime = Date.now()
   setTimeout(() => {
-    console.info(`AudioController: ending payback done. actual ${Date.now() - startTime}ms`)
+    // console.info(`AudioController: ending payback done. actual ${Date.now() - startTime}ms`)
     pipeline.disconnect()
-  }, duration * 1000)
+  }, 200)
 }
 
 function sleep(ms: number) {

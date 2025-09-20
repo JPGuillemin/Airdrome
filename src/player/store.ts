@@ -138,7 +138,6 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(0)
       this.setPaused()
       audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
-      this.preloadNext()
     },
     async clearQueue() {
       if (!this.queue) {
@@ -259,23 +258,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
-  const PREGAP = 0.2
 
-  watch(
-    () => playerStore.currentTime,
-    (time) => {
-      if (!playerStore.track) return
-      const remaining = playerStore.duration - time
-      if (remaining <= PREGAP && playerStore.hasNext) {
-        playerStore.setQueueIndex(playerStore.queueIndex + 1)
-        playerStore.setPlaying()
-        audio.changeTrack({ ...playerStore.track, playbackRate: playerStore.playbackRate })
-        playerStore.preloadNext()
-      }
-    }
-  )
-
-  // backup / resume PWA
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
@@ -403,7 +386,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         }
       })
 
-    // Save play queue périodiquement
+    // Save play queue
     const maxDuration = 10_000
     const lastSaved = ref(Date.now())
 
