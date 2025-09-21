@@ -306,6 +306,19 @@
     max-height: 0;
     transition: max-height 0.5s;
   }
+  @media(max-width: 442px) {
+    .player {
+      font-size: 0.7rem;
+      position: fixed;
+      z-index: 2000;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      max-height: 0;
+      transition: max-height 0.5s;
+    }
+  }
   .visible {
     height: auto;
     max-height: 100px;

@@ -30,6 +30,35 @@ export class AudioController {
   onstreamtitlechange: (value: string | null) => void = () => { /* do nothing */ }
   onended: () => void = () => { /* do nothing */ }
   onerror: (err: MediaError | null) => void = () => { /* do nothing */ }
+  onfocus: () => void = () => { /* do nothing */ }
+  onblur: () => void = () => { /* do nothing */ }
+  onvisibilitychange: () => void = () => { /* do nothing */ }
+
+  constructor() {
+    // Adding event listeners for focus and visibility
+    window.addEventListener('focus', this.handleFocus.bind(this))
+    window.addEventListener('blur', this.handleBlur.bind(this))
+    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
+  }
+
+  private handleFocus() {
+    console.log('AudioController: got focus')
+    this.onfocus()
+  }
+
+  private handleBlur() {
+    console.log('AudioController: lost focus')
+    this.onblur()
+  }
+
+  private handleVisibilityChange() {
+    if (document.hidden) {
+      console.log('AudioController: hidden')
+    } else {
+      console.log('AudioController: visible')
+    }
+    this.onvisibilitychange()
+  }
 
   currentTime() {
     return this.pipeline.audio.currentTime
@@ -83,6 +112,7 @@ export class AudioController {
     this.context.resume()
     try {
       this.pipeline.audio.play()
+      await this.fadeIn(0.1)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
@@ -90,7 +120,18 @@ export class AudioController {
       }
       throw err
     }
-    await this.fadeIn(0.1)
+  }
+
+  async play() {
+    try {
+      this.pipeline.audio.play()
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('Play aborted')
+        return
+      }
+      throw err
+    }
   }
 
   async seek(value: number) {

@@ -101,6 +101,10 @@ export const usePlayerStore = defineStore('player', {
       this.setPlaying()
       await audio.resume()
     },
+    async play() {
+      this.setPlaying()
+      await audio.play()
+    },
     async pause() {
       audio.pause()
       this.setPaused()
@@ -260,7 +264,19 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
+    if (!playerStore.isPlaying) {
+      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+    }
+  })
+
+  window.addEventListener('blur', () => {
+    if (!playerStore.isPlaying) {
+      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+    }
+  })
+
+  window.addEventListener('focus', () => {
+    if (!playerStore.isPlaying) {
       api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
     }
   })
