@@ -73,6 +73,7 @@
   import CellActions from '@/library/track/CellActions.vue'
   import { usePlayerStore } from '@/player/store'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
+  import ContentLoader from '@/shared/components/ContentLoader.vue'
 
   export default defineComponent({
     components: {
@@ -85,6 +86,7 @@
       CellTitle,
       CellTrackNumber,
       CreatePlaylistModal,
+      ContentLoader,
     },
     setup() {
       return {

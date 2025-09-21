@@ -1,48 +1,50 @@
 <template>
-  <ContentLoader v-slot :loading="items === null">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class="mb-0 me-2 text-truncate">
-        Radio
-      </h1>
-      <b-button variant="transparent" :disabled="unsupported" @click="openAddModal">
-        <Icon icon="plus" />
-      </b-button>
-    </div>
+  <div class="main-content">
+    <ContentLoader v-slot :loading="items === null">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="mb-0 me-2 text-truncate">
+          Radio
+        </h1>
+        <b-button variant="transparent" :disabled="unsupported" @click="openAddModal">
+          <Icon icon="plus" />
+        </b-button>
+      </div>
 
-    <TrackList v-if="items.length > 0" :tracks="items" no-artist no-album no-duration>
-      <template #context-menu="{ item }">
-        <DropdownItem icon="edit" @click="openEditModal(item)">
-          Edit
-        </DropdownItem>
-        <hr class="dropdown-divider">
-        <DropdownItem icon="x" variant="danger" @click="deleteRadioStation(item)">
-          Delete
-        </DropdownItem>
-      </template>
-    </TrackList>
-    <EmptyIndicator v-else-if="unsupported" label="Not supported" />
-    <EmptyIndicator v-else />
+      <TrackList v-if="items.length > 0" :tracks="items" no-artist no-album no-duration>
+        <template #context-menu="{ item }">
+          <DropdownItem icon="edit" @click="openEditModal(item)">
+            Edit
+          </DropdownItem>
+          <hr class="dropdown-divider">
+          <DropdownItem icon="x" variant="danger" @click="deleteRadioStation(item)">
+            Delete
+          </DropdownItem>
+        </template>
+      </TrackList>
+      <EmptyIndicator v-else-if="unsupported" label="Not supported" />
+      <EmptyIndicator v-else />
 
-    <EditModal :visible.sync="modalVisible" :item="editItem" @confirm="saveRadioStation">
-      <template #title="{ item }">
-        {{ item?.id ? "Edit" : "Add" }} Radio Station
-      </template>
-      <template #default="{ item }">
-        <div class="mb-3">
-          <label class="form-label">Name</label>
-          <input v-model="item.title" class="form-control" type="text">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Stream URL</label>
-          <input v-model="item.url" class="form-control" type="text">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Home Page URL</label>
-          <input v-model="item.description" class="form-control" type="text">
-        </div>
-      </template>
-    </EditModal>
-  </ContentLoader>
+      <EditModal :visible.sync="modalVisible" :item="editItem" @confirm="saveRadioStation">
+        <template #title="{ item }">
+          {{ item?.id ? "Edit" : "Add" }} Radio Station
+        </template>
+        <template #default="{ item }">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input v-model="item.title" class="form-control" type="text">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Stream URL</label>
+            <input v-model="item.url" class="form-control" type="text">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Home Page URL</label>
+            <input v-model="item.description" class="form-control" type="text">
+          </div>
+        </template>
+      </EditModal>
+    </ContentLoader>
+  </div>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'

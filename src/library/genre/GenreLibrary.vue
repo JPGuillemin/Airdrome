@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <h1>Genres</h1>
     <ul class="nav-underlined mb-3">
       <li>
         <router-link :to="{... $route, params: {... $route.params, sort: null }}">

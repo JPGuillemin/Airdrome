@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar-container elevated">
+  <div class="main-content sidebar-container elevated">
     <div class="sidebar-fixed d-none d-md-block">
       <SidebarNav />
     </div>
