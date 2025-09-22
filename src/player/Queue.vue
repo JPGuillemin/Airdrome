@@ -23,8 +23,8 @@
         </OverflowMenu>
       </div>
     </div>
-    <ContentLoader v-slot :loading="loading">
-      <BaseTable v-if="tracks.length > 0">
+    <ContentLoader v-slot :loading="playerStore.queue == null">
+      <BaseTable v-if="tracks && tracks.length > 0">
         <BaseTableHead>
           <th class="text-start d-none d-lg-table-cell">
             Artist

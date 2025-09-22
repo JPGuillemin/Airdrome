@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
@@ -263,32 +263,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.currentTime = value
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (!playerStore.isPlaying) {
-      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-    }
-  })
-
-  window.addEventListener('blur', () => {
-    if (!playerStore.isPlaying) {
-      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-    }
-  })
-
-  window.addEventListener('focus', () => {
-    if (!playerStore.isPlaying) {
-      api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-    }
-  })
-
-  window.addEventListener('pagehide', () => {
-    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-  })
-
-  window.addEventListener('beforeunload', () => {
-    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-  })
-
   audio.ondurationchange = (value: number) => {
     if (isFinite(value)) {
       playerStore.duration = value
@@ -343,6 +317,22 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
     })
   }
+
+  // Save play queue
+  const saveQueueInterval = window.setInterval(() => {
+    if (playerStore.queue && playerStore.queue.length > 0 && playerStore.track) {
+      api.savePlayQueue(playerStore.queue, playerStore.track, playerStore.currentTime)
+    }
+  }, 10_000)
+
+  document.addEventListener('visibilitychange', () => { /* do nothing */ })
+  window.addEventListener('blur', () => { /* do nothing */ })
+  window.addEventListener('focus', () => { /* do nothing */ })
+  window.addEventListener('pagehide', () => { /* do nothing */ })
+  window.addEventListener('beforeunload', () => {
+    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
+    clearInterval(saveQueueInterval)
+  })
 
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
@@ -399,33 +389,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
             playerStore.scrobbled = true
             return api.scrobble(id)
           }
-        }
-      })
-
-    // Save play queue
-    const maxDuration = 10_000
-    const lastSaved = ref(Date.now())
-
-    watch(
-      () => [
-        playerStore.queue,
-        playerStore.queueIndex,
-      ],
-      (_: any, [oldQueue]) => {
-        if (oldQueue !== null) {
-          lastSaved.value = Date.now()
-          return api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-        }
-      })
-
-    watch(
-      () => [playerStore.currentTime],
-      () => {
-        const now = Date.now()
-        const duration = now - lastSaved.value
-        if (duration >= maxDuration) {
-          lastSaved.value = now
-          return api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
         }
       })
   }
