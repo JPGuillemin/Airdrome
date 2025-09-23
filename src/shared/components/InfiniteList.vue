@@ -6,7 +6,6 @@
 </template>
   <script lang="ts">
   import { defineComponent, PropType } from 'vue'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     props: {
@@ -22,15 +21,12 @@
     },
     methods: {
       loadMore() {
-        const loader = useLoader()
-        loader.showLoading()
         this.loading = true
         return this.load(this.offset).then((items: any[]) => {
           this.items.push(...items)
           this.offset += items.length
           this.hasMore = items.length > 0
           this.loading = false
-          loader.hideLoading()
         })
       }
     }

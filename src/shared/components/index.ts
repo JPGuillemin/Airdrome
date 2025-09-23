@@ -6,6 +6,7 @@ import EmptyIndicator from './EmptyIndicator.vue'
 import ExternalLink from './ExternalLink.vue'
 import Hero from './Hero.vue'
 import Icon from './Icon.vue'
+import InfiniteLoader from './InfiniteLoader.vue'
 import OverflowMenu from './OverflowMenu.vue'
 import Slider from './Slider.vue'
 import Tiles from './Tiles.vue'
@@ -26,6 +27,7 @@ export const components = {
   ExternalLink,
   Hero,
   Icon,
+  InfiniteLoader,
   OverflowMenu,
   Slider,
   Tile,
