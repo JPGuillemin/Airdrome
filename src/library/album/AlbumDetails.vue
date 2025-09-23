@@ -1,79 +1,77 @@
 <template>
   <div class="main-content">
-    <ContentLoader v-slot :loading="album == null">
-      <Hero :image="album.image">
-        <small>Album</small>
-        <h1 class="display-5 fw-bold">
-          {{ album.name }}
-        </h1>
-        <div class="d-flex flex-wrap align-items-center">
-          <div>
-            by
-            <span v-for="(artist, index) in album.artists" :key="artist.id">
-              <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'artist', params: { id: artist.id }}">
-                {{ artist.name }}
-              </router-link>
-            </span>
+    <Hero :image="album.image">
+      <small>Album</small>
+      <h1 class="display-5 fw-bold">
+        {{ album.name }}
+      </h1>
+      <div class="d-flex flex-wrap align-items-center">
+        <div>
+          by
+          <span v-for="(artist, index) in album.artists" :key="artist.id">
+            <span v-if="index > 0">, </span>
+            <router-link :to="{name: 'artist', params: { id: artist.id }}">
+              {{ artist.name }}
+            </router-link>
+          </span>
+        </div>
+
+        <template v-if="album.year">
+          <span class="mx-2">•</span> {{ album.year }}
+        </template>
+
+        <template v-if="album.genres.length">
+          <span class="mx-2">•</span>
+          <span v-for="({ name: genre }, index) in album.genres" :key="genre">
+            <span v-if="index > 0">, </span>
+            <router-link :to="{name: 'genre', params: { id: genre }}">
+              {{ genre }}
+            </router-link>
+          </span>
+        </template>
+
+        <template v-if="album.lastFmUrl || album.musicBrainzUrl">
+          <span class="mx-2">•</span>
+          <div class="d-flex flex-nowrap">
+            <ExternalLink v-if="album.lastFmUrl" :href="album.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
+              <IconLastFm />
+            </ExternalLink>
+            <ExternalLink v-if="album.musicBrainzUrl" :href="album.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+              <IconMusicBrainz />
+            </ExternalLink>
           </div>
-
-          <template v-if="album.year">
-            <span class="mx-2">•</span> {{ album.year }}
-          </template>
-
-          <template v-if="album.genres.length">
-            <span class="mx-2">•</span>
-            <span v-for="({ name: genre }, index) in album.genres" :key="genre">
-              <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'genre', params: { id: genre }}">
-                {{ genre }}
-              </router-link>
-            </span>
-          </template>
-
-          <template v-if="album.lastFmUrl || album.musicBrainzUrl">
-            <span class="mx-2">•</span>
-            <div class="d-flex flex-nowrap">
-              <ExternalLink v-if="album.lastFmUrl" :href="album.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-                <IconLastFm />
-              </ExternalLink>
-              <ExternalLink v-if="album.musicBrainzUrl" :href="album.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-                <IconMusicBrainz />
-              </ExternalLink>
-            </div>
-          </template>
-        </div>
-
-        <OverflowFade v-if="album.description" class="mt-3">
-          {{ album.description }}
-        </OverflowFade>
-
-        <div class="text-nowrap mt-3">
-          <b-button variant="transparent" class="me-2" title="Play" @click="playNow">
-            <Icon icon="play" />
-          </b-button>
-          <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
-            <Icon icon="shuffle" />
-          </b-button>
-          <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
-            <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-          </b-button>
-          <OverflowMenu variant="transparent">
-            <DropdownItem icon="plus" @click="setNextInQueue">
-              Play next
-            </DropdownItem>
-            <DropdownItem icon="plus" @click="addToQueue">
-              Add to queue
-            </DropdownItem>
-          </OverflowMenu>
-        </div>
-      </Hero>
-      <div class="row">
-        <div class="col">
-          <TrackList :tracks="album.tracks" no-album />
-        </div>
+        </template>
       </div>
-    </ContentLoader>
+
+      <OverflowFade v-if="album.description" class="mt-3">
+        {{ album.description }}
+      </OverflowFade>
+
+      <div class="text-nowrap mt-3">
+        <b-button variant="transparent" class="me-2" title="Play" @click="playNow">
+          <Icon icon="play" />
+        </b-button>
+        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
+          <Icon icon="shuffle" />
+        </b-button>
+        <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
+          <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+        </b-button>
+        <OverflowMenu variant="transparent">
+          <DropdownItem icon="plus" @click="setNextInQueue">
+            Play next
+          </DropdownItem>
+          <DropdownItem icon="plus" @click="addToQueue">
+            Add to queue
+          </DropdownItem>
+        </OverflowMenu>
+      </div>
+    </Hero>
+    <div class="row">
+      <div class="col">
+        <TrackList :tracks="album.tracks" no-album />
+      </div>
+    </div>
   </div>
 </template>
 <script lang="ts">
@@ -85,7 +83,7 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { usePlayerStore } from '@/player/store'
-  import ContentLoader from '@/shared/components/ContentLoader.vue'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -93,7 +91,6 @@
       IconMusicBrainz,
       IconLastFm,
       TrackList,
-      ContentLoader,
     },
     props: {
       id: { type: String, required: true }
@@ -114,14 +111,17 @@
         return !!this.favouriteStore.albums[this.id]
       },
     },
-    watch: {
-      id: {
-        immediate: true,
-        async handler(value: string) {
-          this.album = null
-          this.album = await this.$api.getAlbumDetails(value)
-        }
-      }
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getAlbumDetails(this.id).then(result => {
+          this.album = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
+        })
     },
     methods: {
       playNow() {

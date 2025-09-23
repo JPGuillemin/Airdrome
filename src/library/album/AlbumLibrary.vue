@@ -1,21 +1,41 @@
 <template>
   <div class="main-content">
     <ul class="nav-underlined mb-3">
-      <li v-for="{ value, text } in options" :key="value">
-        <router-link :to="{... $route, params: {... $route.params, sort: value }}">
-          {{ text }}
+      <li>
+        <router-link :to="{... $route, params: {... $route.params, sort: 'recently-added' }}">
+          Recently added
+        </router-link>
+      </li>
+      <li>
+        <router-link :to="{... $route, params: {... $route.params, sort: 'recently-played' }}">
+          Recently played
+        </router-link>
+      </li>
+      <li>
+        <router-link :to="{... $route, params: {... $route.params, sort: 'most-played' }}">
+          Most played
+        </router-link>
+      </li>
+      <li>
+        <router-link :to="{... $route, params: {... $route.params, sort: 'a-z' }}">
+          A-Z
+        </router-link>
+      </li>
+      <li>
+        <router-link :to="{... $route, params: {... $route.params, sort: 'random' }}">
+          Random
         </router-link>
       </li>
     </ul>
     <AlbumList :items="albums" />
     <EmptyIndicator v-if="!loading && albums.length === 0" />
-    <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
   import AlbumList from './AlbumList.vue'
   import { Album, AlbumSort } from '@/shared/api'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -27,41 +47,19 @@
     data() {
       return {
         albums: [] as | Album[],
-        loading: true,
-        offset: 0 as number,
-        hasMore: true,
       }
     },
-    computed: {
-      options() {
-        return [
-          { text: 'Recently added', value: 'recently-added' },
-          { text: 'Recently played', value: 'recently-played' },
-          { text: 'Most played', value: 'most-played' },
-          { text: 'A-Z', value: 'a-z' },
-          { text: 'Random', value: 'random' },
-        ]
-      }
-    },
-    watch: {
-      sort: {
-        handler() {
-          this.albums = []
-          this.offset = 0
-          this.hasMore = true
-        }
-      }
-    },
-    methods: {
-      loadMore() {
-        this.loading = true
-        return this.$api.getAlbums(this.sort as AlbumSort, 50, this.offset).then(albums => {
-          this.albums.push(...albums)
-          this.offset += albums.length
-          this.hasMore = albums.length >= 50
-          this.loading = false
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getAlbums(this.sort as AlbumSort, 1000, 0).then(result => {
+          this.albums = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
         })
-      }
-    }
+    },
   })
 </script>

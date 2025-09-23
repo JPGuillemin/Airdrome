@@ -22,21 +22,18 @@
         </b-button>
       </div>
     </div>
-    <ContentLoader v-slot :loading="items === null">
-      <Tiles v-if="items.length > 0" square>
-        <Tile v-for="item in sortedItems" :key="item.id"
-              :image="item.image"
-              :to="{name: 'podcast', params: { id: item.id } }"
-              :title="item.name">
-          <template #text>
-            <strong>{{ item.trackCount }}</strong> episodes
-          </template>
-        </Tile>
-      </Tiles>
-      <EmptyIndicator v-else-if="unsupported" label="Not supported" />
-      <EmptyIndicator v-else />
-    </ContentLoader>
-
+    <Tiles v-if="items.length > 0" square>
+      <Tile v-for="item in sortedItems" :key="item.id"
+            :image="item.image"
+            :to="{name: 'podcast', params: { id: item.id } }"
+            :title="item.name">
+        <template #text>
+          <strong>{{ item.trackCount }}</strong> episodes
+        </template>
+      </Tile>
+    </Tiles>
+    <EmptyIndicator v-else-if="unsupported" label="Not supported" />
+    <EmptyIndicator v-else />
     <AddPodcastModal :visible.sync="showAddModal" @confirm="add" />
   </div>
 </template>
@@ -45,6 +42,7 @@
   import { orderBy } from 'lodash-es'
   import AddPodcastModal from '@/library/podcast/AddPodcastModal.vue'
   import { UnsupportedOperationError } from '@/shared/api'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -68,16 +66,20 @@
       },
     },
     async created() {
+      const loader = useLoader()
+      loader.showLoading()
       try {
         this.items = await this.$api.getPodcasts()
       } catch (err) {
         if (err instanceof UnsupportedOperationError) {
           this.items = []
           this.unsupported = true
+          loader.hideLoading()
           return
         }
         throw err
       }
+      loader.hideLoading()
     },
     methods: {
       async refresh() {

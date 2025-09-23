@@ -5,38 +5,36 @@
         Files
       </h1>
     </div>
-    <ContentLoader v-slot :loading="item === null">
-      <BaseTable>
-        <BaseTableHead />
-        <tbody class="text-break">
-          <tr v-if="path" @click="openParent">
-            <td>
-              <Icon icon="folder" />
-            </td>
-            <td colspan="2">
-              ..
-            </td>
-          </tr>
-          <tr v-for="dir in item.directories" :key="dir.id" @click="openDirectory(dir.id)">
-            <td>
-              <Icon icon="folder" />
-            </td>
-            <td colspan="2">
-              {{ dir.name }}
-            </td>
-          </tr>
-          <tr
-            v-for="track in item.tracks" :key="track.id"
-            :class="{'active': track.id === playingTrackId}"
-            @click="playTrack(track)"
-          >
-            <CellTrackNumber :active="track.id === playingTrackId && isPlaying" :value="track.track" />
-            <CellTitle :track="track" />
-            <CellActions :track="track" />
-          </tr>
-        </tbody>
-      </BaseTable>
-    </ContentLoader>
+    <BaseTable>
+      <BaseTableHead />
+      <tbody class="text-break">
+        <tr v-if="path" @click="openParent">
+          <td>
+            <Icon icon="folder" />
+          </td>
+          <td colspan="2">
+            ..
+          </td>
+        </tr>
+        <tr v-for="dir in item.directories" :key="dir.id" @click="openDirectory(dir.id)">
+          <td>
+            <Icon icon="folder" />
+          </td>
+          <td colspan="2">
+            {{ dir.name }}
+          </td>
+        </tr>
+        <tr
+          v-for="track in item.tracks" :key="track.id"
+          :class="{'active': track.id === playingTrackId}"
+          @click="playTrack(track)"
+        >
+          <CellTrackNumber :active="track.id === playingTrackId && isPlaying" :value="track.track" />
+          <CellTitle :track="track" />
+          <CellActions :track="track" />
+        </tr>
+      </tbody>
+    </BaseTable>
   </div>
 </template>
 <script lang="ts">
@@ -49,6 +47,7 @@
   import CellActions from '@/library/track/CellActions.vue'
   import { orderBy } from 'lodash-es'
   import { usePlayerStore } from '@/player/store'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -83,10 +82,13 @@
       path: {
         immediate: true,
         async handler(value: string) {
+          const loader = useLoader()
+          loader.showLoading()
           this.item = null
           this.item = await this.$api.getDirectory(value)
           this.item.tracks = orderBy(this.item.tracks, ['track', 'title'])
           this.item.directories = orderBy(this.item.directories, 'name')
+          loader.hideLoading()
         }
       }
     },

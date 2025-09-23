@@ -1,12 +1,12 @@
 <template>
-  <div v-if="ui.loading" class="loader-overlay">
+  <div v-if="loader.loading" class="loader-overlay">
     <img src="@/shared/assets/spinner.svg" alt="Loading..." class="spinner-svg">
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useUiStore } from '@/shared/ui'
-  const ui = useUiStore()
+  import { useLoader } from '@/shared/loader'
+  const loader = useLoader()
 </script>
 
 <style>

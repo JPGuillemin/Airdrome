@@ -42,7 +42,7 @@
   import TrackList from '@/library/track/TrackList.vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
-  import { useUiStore } from '@/shared/ui'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -61,34 +61,34 @@
     },
     methods: {
       async loadAlbums(offset: number) {
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           return await this.$api.getAlbumsByGenre(this.id, 100, offset)
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
 
       async loadTracks(offset: number) {
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           const tracks = await this.$api.getTracksByGenre(this.id, 200, offset)
           return orderBy(tracks, t => t.title?.toLowerCase(), 'asc')
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
 
       async shuffleNow() {
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
           return this.playerStore.shuffleNow(tracks)
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
     }

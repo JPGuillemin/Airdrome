@@ -17,20 +17,18 @@
         </router-link>
       </li>
     </ul>
-    <ContentLoader v-slot :loading="details == null">
-      <template v-if="section === 'artists'">
-        <ArtistList v-if="details.artists.length > 0" :items="details.artists" />
-        <EmptyIndicator v-else />
-      </template>
-      <template v-else-if="section === 'tracks'">
-        <TrackList v-if="details.tracks.length > 0" :tracks="details.tracks" />
-        <EmptyIndicator v-else />
-      </template>
-      <template v-else>
-        <AlbumList v-if="details.albums.length > 0" :items="details.albums" />
-        <EmptyIndicator v-else />
-      </template>
-    </ContentLoader>
+    <template v-if="section === 'artists'">
+      <ArtistList v-if="details.artists.length > 0" :items="details.artists" />
+      <EmptyIndicator v-else />
+    </template>
+    <template v-else-if="section === 'tracks'">
+      <TrackList v-if="details.tracks.length > 0" :tracks="details.tracks" />
+      <EmptyIndicator v-else />
+    </template>
+    <template v-else>
+      <AlbumList v-if="details.albums.length > 0" :items="details.albums" />
+      <EmptyIndicator v-else />
+    </template>
   </div>
 </template>
 <script lang="ts">
@@ -40,6 +38,7 @@
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { useApi } from '@/shared'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -57,12 +56,15 @@
       watch(
         () => [favouriteStore],
         async() => {
+          const loader = useLoader()
+          loader.showLoading()
           const result = await api.getFavourites()
           details.value = {
             albums: result.albums.filter((item: any) => favouriteStore.albums[item.id]),
             artists: result.artists.filter((item: any) => favouriteStore.artists[item.id]),
             tracks: result.tracks.filter((item: any) => favouriteStore.tracks[item.id]),
           }
+          loader.hideLoading()
         },
         { deep: true, immediate: true }
       )

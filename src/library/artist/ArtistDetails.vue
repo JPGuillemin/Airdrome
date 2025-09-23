@@ -1,112 +1,110 @@
 <template>
   <div class="main-content">
-    <ContentLoader v-slot :loading="item == null">
-      <Hero :image="item.image">
-        <small>Artist</small>
-        <h1 class="display-5 fw-bold">
-          {{ item.name }}
-        </h1>
-        <div class="d-flex flex-wrap align-items-center">
-          <span class="text-nowrap">
-            <strong>{{ item.albumCount }}</strong> albums
-          </span>
+    <Hero :image="artist.image">
+      <small>Artist</small>
+      <h1 class="display-5 fw-bold">
+        {{ artist.name }}
+      </h1>
+      <div class="d-flex flex-wrap align-items-center">
+        <span class="text-nowrap">
+          <strong>{{ artist.albumCount }}</strong> albums
+        </span>
+        <span class="mx-2">•</span>
+        <span class="text-nowrap">
+          <strong>{{ artist.trackCount }}</strong> tracks
+        </span>
+
+        <template v-if="artist.genres.length > 0">
           <span class="mx-2">•</span>
-          <span class="text-nowrap">
-            <strong>{{ item.trackCount }}</strong> tracks
+          <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
+            <span v-if="index > 0">, </span>
+            <router-link :to="{name: 'genre', params: { id: genre }}">
+              {{ genre }}
+            </router-link>
           </span>
+        </template>
 
-          <template v-if="item.genres.length > 0">
-            <span class="mx-2">•</span>
-            <span v-for="({ name: genre }, index) in item.genres" :key="genre">
-              <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'genre', params: { id: genre }}">
-                {{ genre }}
-              </router-link>
-            </span>
-          </template>
+        <template v-if="artist.lastFmUrl || artist.musicBrainzUrl">
+          <span class="mx-2">•</span>
+          <div class="d-flex flex-nowrap">
+            <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
+              <IconLastFm />
+            </ExternalLink>
+            <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+              <IconMusicBrainz />
+            </ExternalLink>
+          </div>
+        </template>
+      </div>
 
-          <template v-if="item.lastFmUrl || item.musicBrainzUrl">
-            <span class="mx-2">•</span>
-            <div class="d-flex flex-nowrap">
-              <ExternalLink v-if="item.lastFmUrl" :href="item.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-                <IconLastFm />
-              </ExternalLink>
-              <ExternalLink v-if="item.musicBrainzUrl" :href="item.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-                <IconMusicBrainz />
-              </ExternalLink>
-            </div>
-          </template>
-        </div>
+      <OverflowFade v-if="artist.description" class="mt-3">
+        {{ artist.description }}
+      </OverflowFade>
 
-        <OverflowFade v-if="item.description" class="mt-3">
-          {{ item.description }}
-        </OverflowFade>
-
-        <div class="text-nowrap mt-3">
+      <div class="text-nowrap mt-3">
+        <b-button
+          v-if="artist.trackCount > 0"
+          variant="transparent"
+          class="me-2"
+          title="Shuffle"
+          @click="shuffleNow">
+          <Icon icon="shuffle" />
+        </b-button>
+        <b-button
+          v-if="artist.trackCount > 0"
+          variant="transparent"
+          class="me-2"
+          title="Favourite"
+          @click="toggleFavourite">
+          <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+        </b-button>
+        <template v-if="artist.similarArtist.length > 0">
           <b-button
-            v-if="item.trackCount > 0"
+            v-if="artist.trackCount > 0"
             variant="transparent"
             class="me-2"
-            title="Shuffle"
-            @click="shuffleNow">
-            <Icon icon="shuffle" />
+            title="Radio"
+            @click="ArtistRadioNow">
+            <Icon icon="radio" />
           </b-button>
-          <b-button
-            v-if="item.trackCount > 0"
-            variant="transparent"
-            class="me-2"
-            title="Favourite"
-            @click="toggleFavourite">
-            <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-          </b-button>
-          <template v-if="item.similarArtist.length > 0">
-            <b-button
-              v-if="item.trackCount > 0"
-              variant="transparent"
-              class="me-2"
-              title="Radio"
-              @click="ArtistRadioNow">
-              <Icon icon="radio" />
-            </b-button>
-          </template>
-        </div>
-      </Hero>
+        </template>
+      </div>
+    </Hero>
 
-      <template v-if="item.topTracks.length > 0">
-        <div class="d-flex justify-content-between mt-5 mb-2">
-          <h3 class="my-0">
-            Top tracks
-          </h3>
-          <router-link :to="{name: 'artist-tracks', params: { id }}">
-            View all
-          </router-link>
-        </div>
-        <TrackList :tracks="item.topTracks" no-artist />
-      </template>
-
-      <template v-for="({ releaseType, albums: releaseTypeAlbums }) in albums">
-        <div :key="`${releaseType}-h`" class="d-flex justify-content-between mt-5 mb-2">
-          <h3 class="my-0">
-            {{ formatReleaseType(releaseType) }}
-          </h3>
-          <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
-            <Icon icon="arrow-up-down" />
-          </b-button>
-        </div>
-        <AlbumList :key="`${releaseType}-body`" :items="releaseTypeAlbums">
-          <template #text="{ year }">
-            {{ year || 'Unknown' }}
-          </template>
-        </AlbumList>
-      </template>
-
-      <template v-if="item.similarArtist.length > 0">
-        <h3 class="mt-5">
-          Similar artists
+    <template v-if="artist.topTracks.length > 0">
+      <div class="d-flex justify-content-between mt-5 mb-2">
+        <h3 class="my-0">
+          Top tracks
         </h3>
-        <ArtistList :items="item.similarArtist" />
-      </template>
-    </ContentLoader>
+        <router-link :to="{name: 'artist-tracks', params: { id }}">
+          View all
+        </router-link>
+      </div>
+      <TrackList :tracks="artist.topTracks" no-artist />
+    </template>
+
+    <template v-for="({ releaseType, albums: releaseTypeAlbums }) in albums">
+      <div :key="`${releaseType}-h`" class="d-flex justify-content-between mt-5 mb-2">
+        <h3 class="my-0">
+          {{ formatReleaseType(releaseType) }}
+        </h3>
+        <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
+          <Icon icon="arrow-up-down" />
+        </b-button>
+      </div>
+      <AlbumList :key="`${releaseType}-body`" :items="releaseTypeAlbums">
+        <template #text="{ year }">
+          {{ year || 'Unknown' }}
+        </template>
+      </AlbumList>
+    </template>
+
+    <template v-if="artist.similarArtist.length > 0">
+      <h3 class="mt-5">
+        Similar artists
+      </h3>
+      <ArtistList :items="artist.similarArtist" />
+    </template>
   </div>
 </template>
 <script lang="ts">
@@ -123,7 +121,8 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { usePlayerStore } from '@/player/store'
   import type { Track } from '@/shared/api'
-  import { useUiStore } from '@/shared/ui'
+  import { useLoader } from '@/shared/loader'
+
   export default defineComponent({
     components: {
       IconMusicBrainz,
@@ -145,7 +144,7 @@
     },
     data() {
       return {
-        item: null as any,
+        artist: null as any,
       }
     },
     computed: {
@@ -154,7 +153,7 @@
       },
       albums(): { releaseType: string, albums: Album[] }[] {
         const sorted: Album[] = orderBy(
-          this.item?.albums ?? [],
+          this.artist?.albums ?? [],
           ['year', 'name'],
           [this.mainStore.artistAlbumSortOrder, this.mainStore.artistAlbumSortOrder]
         )
@@ -170,14 +169,17 @@
         return groups.map(([releaseType, albums]) => ({ releaseType, albums: albums || [] }))
       },
     },
-    watch: {
-      id: {
-        immediate: true,
-        async handler(value: string) {
-          this.item = null
-          this.item = await this.$api.getArtistDetails(value)
-        }
-      }
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getArtistDetails(this.id).then(result => {
+          this.artist = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
+        })
     },
     methods: {
       formatReleaseType(value: string) {
@@ -190,8 +192,8 @@
         }
       },
       async shuffleNow() {
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           const tracks: Track[] = []
           for await (const batch of this.$api.getTracksByArtist(this.id)) {
@@ -199,18 +201,18 @@
           }
           return this.playerStore.shuffleNow(tracks)
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
       async ArtistRadioNow() {
         this.playerStore.setShuffle(false)
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
           return this.playerStore.playNow(tracks)
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
       toggleFavourite() {

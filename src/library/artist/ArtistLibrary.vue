@@ -12,10 +12,8 @@
         </router-link>
       </li>
     </ul>
-    <ContentLoader v-slot :loading="loading">
-      <ArtistList :items="sortedItems" />
-      <EmptyIndicator v-if="items.length === 0" />
-    </ContentLoader>
+    <ArtistList :items="sortedItems" />
+    <EmptyIndicator v-if="items.length === 0" />
   </div>
 </template>
 <script lang="ts">
@@ -23,6 +21,7 @@
   import ArtistList from './ArtistList.vue'
   import { Artist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -44,9 +43,17 @@
           : orderBy(this.items, 'albumCount', 'desc')
       },
     },
-    async created() {
-      this.items = Object.freeze(await this.$api.getArtists())
-      this.loading = false
-    }
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getArtists().then(result => {
+          this.items = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
+        })
+    },
   })
 </script>

@@ -23,42 +23,40 @@
         </OverflowMenu>
       </div>
     </div>
-    <ContentLoader v-slot :loading="playerStore.queue == null">
-      <BaseTable v-if="tracks && tracks.length > 0">
-        <BaseTableHead>
-          <th class="text-start d-none d-lg-table-cell">
-            Artist
-          </th>
-          <th class="text-start d-none d-md-table-cell">
-            Album
-          </th>
-          <th class="text-end d-none d-md-table-cell">
-            Duration
-          </th>
-        </BaseTableHead>
-        <tbody>
-          <tr v-for="(item, index) in tracks" :key="index"
-              :class="{'active': index === queueIndex}"
-              :draggable="true" @dragstart="dragstart(item.id, $event)"
-              @click="play(index)">
-            <CellTrackNumber :active="index === queueIndex && isPlaying" :value="item.track" />
-            <CellTitle :track="item" />
-            <CellArtist :track="item" />
-            <CellAlbum :track="item" />
-            <CellDuration :track="item" />
-            <CellActions :track="item">
-              <hr class="dropdown-divider">
-              <DropdownItem icon="x" variant="danger" :disabled="index === queueIndex" @click="remove(index)">
-                Remove
-              </DropdownItem>
-            </CellActions>
-          </tr>
-        </tbody>
-      </BaseTable>
-      <EmptyIndicator v-else />
+    <BaseTable v-if="tracks && tracks.length > 0">
+      <BaseTableHead>
+        <th class="text-start d-none d-lg-table-cell">
+          Artist
+        </th>
+        <th class="text-start d-none d-md-table-cell">
+          Album
+        </th>
+        <th class="text-end d-none d-md-table-cell">
+          Duration
+        </th>
+      </BaseTableHead>
+      <tbody>
+        <tr v-for="(item, index) in tracks" :key="index"
+            :class="{'active': index === queueIndex}"
+            :draggable="true" @dragstart="dragstart(item.id, $event)"
+            @click="play(index)">
+          <CellTrackNumber :active="index === queueIndex && isPlaying" :value="item.track" />
+          <CellTitle :track="item" />
+          <CellArtist :track="item" />
+          <CellAlbum :track="item" />
+          <CellDuration :track="item" />
+          <CellActions :track="item">
+            <hr class="dropdown-divider">
+            <DropdownItem icon="x" variant="danger" :disabled="index === queueIndex" @click="remove(index)">
+              Remove
+            </DropdownItem>
+          </CellActions>
+        </tr>
+      </tbody>
+    </BaseTable>
+    <EmptyIndicator v-else />
 
-      <CreatePlaylistModal :visible.sync="savePlaylistModalVisible" :tracks="tracks" />
-    </ContentLoader>
+    <CreatePlaylistModal :visible.sync="savePlaylistModalVisible" :tracks="tracks" />
   </div>
 </template>
 <script lang="ts">
@@ -73,7 +71,6 @@
   import CellActions from '@/library/track/CellActions.vue'
   import { usePlayerStore } from '@/player/store'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
-  import ContentLoader from '@/shared/components/ContentLoader.vue'
 
   export default defineComponent({
     components: {
@@ -86,7 +83,6 @@
       CellTitle,
       CellTrackNumber,
       CreatePlaylistModal,
-      ContentLoader,
     },
     setup() {
       return {

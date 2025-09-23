@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-export const useUiStore = defineStore('ui', {
+export const useLoader = defineStore('loader', {
   state: () => ({
     loading: false,
   }),

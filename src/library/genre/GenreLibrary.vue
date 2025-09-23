@@ -14,28 +14,27 @@
       </li>
     </ul>
 
-    <ContentLoader v-slot :loading="loading">
-      <div v-if="sortedItems.length > 0" class="d-flex flex-wrap justify-content-center gap-2 px-2 py-2 px-md-0">
-        <span
-          v-for="item in sortedItems"
-          :key="item.id"
-          class="text-bg-secondary rounded-pill py-3 px-2 text-truncate text-center"
-          style="width: 160px;">
-          <router-link
-            :to="{ name: 'genre', params: { id: item.id } }"
-            class="text-decoration-none"
-            style="color: var(--bs-primary) !important;">
-            {{ item.name }}
-          </router-link>
-        </span>
-      </div>
-      <EmptyIndicator v-else />
-    </ContentLoader>
+    <div v-if="sortedItems.length > 0" class="d-flex flex-wrap justify-content-center gap-2 px-2 py-2 px-md-0">
+      <span
+        v-for="item in sortedItems"
+        :key="item.id"
+        class="text-bg-secondary rounded-pill py-3 px-2 text-truncate text-center"
+        style="width: 160px;">
+        <router-link
+          :to="{ name: 'genre', params: { id: item.id } }"
+          class="text-decoration-none"
+          style="color: var(--bs-primary) !important;">
+          {{ item.name }}
+        </router-link>
+      </span>
+    </div>
+    <EmptyIndicator v-else />
   </div>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { orderBy } from 'lodash-es'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     props: {
@@ -54,9 +53,17 @@
           : orderBy(this.items, 'albumCount', 'desc')
       },
     },
-    async created() {
-      this.items = await this.$api.getGenres()
-      this.loading = false
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getGenres().then(result => {
+          this.items = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
+        })
     },
   })
 </script>

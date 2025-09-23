@@ -1,5 +1,5 @@
 <template>
-  <ContentLoader v-slot :loading="podcast == null">
+  <div class="main-content">
     <Hero :image="podcast.image">
       <small>Podcast</small>
       <h1 class="display-5 fw-bold">
@@ -43,7 +43,7 @@
       </tbody>
     </BaseTable>
     <EmptyIndicator v-else />
-  </ContentLoader>
+  </div>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
@@ -56,6 +56,7 @@
   import { Track } from '@/shared/api'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -91,8 +92,17 @@
         return this.podcast.tracks.filter((x: any) => !x.isUnavailable)
       }
     },
-    async created() {
-      this.podcast = await this.$api.getPodcast(this.id)
+    created() {
+      const loader = useLoader()
+      loader.showLoading()
+      Promise.all([
+        this.$api.getPodcast(this.id).then(result => {
+          this.podcast = result
+        }),
+      ])
+        .finally(() => {
+          loader.hideLoading()
+        })
     },
     methods: {
       async playNow() {

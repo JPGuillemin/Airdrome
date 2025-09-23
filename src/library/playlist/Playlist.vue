@@ -1,78 +1,76 @@
 <template>
   <div class="main-content">
-    <ContentLoader v-slot :loading="playlist == null">
-      <Hero :image="playlist.image">
-        <small>Playlist</small>
-        <h1 class="display-5 fw-bold">
-          {{ playlist.name }}
-        </h1>
+    <Hero :image="playlist.image">
+      <small>Playlist</small>
+      <h1 class="display-5 fw-bold">
+        {{ playlist.name }}
+      </h1>
 
-        <div class="d-flex flex-wrap align-items-center">
-          <span class="text-nowrap">
-            <strong>{{ playlist.trackCount }}</strong> tracks
-          </span>
+      <div class="d-flex flex-wrap align-items-center">
+        <span class="text-nowrap">
+          <strong>{{ playlist.trackCount }}</strong> tracks
+        </span>
+        <span class="mx-2">•</span>
+        <strong>{{ formatDuration(playlist.duration) }}</strong>
+        <template v-if="playlist.isPublic">
           <span class="mx-2">•</span>
-          <strong>{{ formatDuration(playlist.duration) }}</strong>
-          <template v-if="playlist.isPublic">
-            <span class="mx-2">•</span>
-            <span class="badge bg-secondary rounded-pill">
-              Public
-            </span>
-          </template>
-        </div>
+          <span class="badge bg-secondary rounded-pill">
+            Public
+          </span>
+        </template>
+      </div>
 
-        <OverflowFade v-if="playlist.comment" class="mt-3">
-          {{ playlist.comment }}
-        </OverflowFade>
+      <OverflowFade v-if="playlist.comment" class="mt-3">
+        {{ playlist.comment }}
+      </OverflowFade>
 
-        <div class="text-nowrap mt-3">
-          <b-button variant="transparent" :disabled="playlist.tracks.length === 0" title="Play" class="me-2" @click="playNow">
-            <Icon icon="play" />
-          </b-button>
-          <b-button variant="transparent" class="me-2" :disabled="playlist.tracks.length === 0" title="Shuffle" @click="shuffleNow">
-            <Icon icon="shuffle" />
-          </b-button>
-          <OverflowMenu variant="transparent" class="ms-auto">
-            <DropdownItem icon="edit" :disabled="playlist.isReadOnly" @click="showEditModal = true">
-              Edit
-            </DropdownItem>
-            <hr class="dropdown-divider">
-            <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="deletePlaylist()">
-              Delete
-            </DropdownItem>
-          </OverflowMenu>
-        </div>
-      </Hero>
-
-      <TrackList v-if="playlist.tracks.length > 0" :tracks="playlist.tracks" class="mt-3">
-        <template #context-menu="{index}">
-          <hr class="dropdown-divider">
-          <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="removeTrack(index)">
-            Remove
+      <div class="text-nowrap mt-3">
+        <b-button variant="transparent" :disabled="playlist.tracks.length === 0" title="Play" class="me-2" @click="playNow">
+          <Icon icon="play" />
+        </b-button>
+        <b-button variant="transparent" class="me-2" :disabled="playlist.tracks.length === 0" title="Shuffle" @click="shuffleNow">
+          <Icon icon="shuffle" />
+        </b-button>
+        <OverflowMenu variant="transparent" class="ms-auto">
+          <DropdownItem icon="edit" :disabled="playlist.isReadOnly" @click="showEditModal = true">
+            Edit
           </DropdownItem>
-        </template>
-      </TrackList>
-      <EmptyIndicator v-else />
-      <EditModal :visible.sync="showEditModal" :item="playlist" @confirm="updatePlaylist">
-        <template #title>
-          Edit playlist
-        </template>
-        <template #default="{ item }">
-          <div class="mb-3">
-            <label class="form-label">Name</label>
-            <input v-model="item.name" class="form-control" type="text">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Comment</label>
-            <textarea v-model="item.comment" class="form-control" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Public</label>
-            <SwitchInput v-model="item.isPublic" />
-          </div>
-        </template>
-      </EditModal>
-    </ContentLoader>
+          <hr class="dropdown-divider">
+          <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="deletePlaylist()">
+            Delete
+          </DropdownItem>
+        </OverflowMenu>
+      </div>
+    </Hero>
+
+    <TrackList v-if="playlist.tracks.length > 0" :tracks="playlist.tracks" class="mt-3">
+      <template #context-menu="{index}">
+        <hr class="dropdown-divider">
+        <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="removeTrack(index)">
+          Remove
+        </DropdownItem>
+      </template>
+    </TrackList>
+    <EmptyIndicator v-else />
+    <EditModal :visible.sync="showEditModal" :item="playlist" @confirm="updatePlaylist">
+      <template #title>
+        Edit playlist
+      </template>
+      <template #default="{ item }">
+        <div class="mb-3">
+          <label class="form-label">Name</label>
+          <input v-model="item.name" class="form-control" type="text">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Comment</label>
+          <textarea v-model="item.comment" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Public</label>
+          <SwitchInput v-model="item.isPublic" />
+        </div>
+      </template>
+    </EditModal>
   </div>
 </template>
 <script lang="ts">
@@ -84,7 +82,7 @@
   import { formatDuration } from '@/shared/utils'
   import { usePlayerStore } from '@/player/store'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
-  import { useUiStore } from '@/shared/ui'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -113,13 +111,13 @@
       id: {
         immediate: true,
         async handler(value: string) {
-          const ui = useUiStore()
-          ui.showLoading()
+          const loader = useLoader()
+          loader.showLoading()
           try {
             this.playlist = null
             this.playlist = await this.$api.getPlaylist(value)
           } finally {
-            ui.hideLoading()
+            loader.hideLoading()
           }
         }
       }
@@ -136,13 +134,13 @@
         return this.playlistStore.removeTrack(this.id, index)
       },
       async updatePlaylist(value: any) {
-        const ui = useUiStore()
-        ui.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         try {
           this.playlist = value
           return await this.playlistStore.update(this.playlist)
         } finally {
-          ui.hideLoading()
+          loader.hideLoading()
         }
       },
       deletePlaylist() {

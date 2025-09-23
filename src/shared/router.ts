@@ -18,7 +18,7 @@ import SearchResult from '@/library/search/SearchResult.vue'
 import { AuthService } from '@/auth/service'
 import ArtistTracks from '@/library/artist/ArtistTracks.vue'
 import Files from '@/library/file/Files.vue'
-import { useUiStore } from '@/shared/ui'
+import { useLoader } from '@/shared/loader'
 
 export function setupRouter(auth: AuthService) {
   const router = new Router({
@@ -154,8 +154,8 @@ export function setupRouter(auth: AuthService) {
   })
 
   router.beforeEach((to, from, next) => {
-    const ui = useUiStore()
-    ui.showLoading()
+    const loader = useLoader()
+    loader.showLoading()
     if (to.name !== 'login' && !auth.isAuthenticated()) {
       next({ name: 'login', query: { returnTo: to.fullPath } })
     } else {
@@ -164,8 +164,8 @@ export function setupRouter(auth: AuthService) {
   })
 
   router.afterEach(() => {
-    const ui = useUiStore()
-    ui.hideLoading()
+    const loader = useLoader()
+    loader.hideLoading()
   })
 
   return router
