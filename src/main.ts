@@ -15,6 +15,14 @@ import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
 import { useLoader } from '@/shared/loader'
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('Service worker registered:', reg))
+      .catch(err => console.error('Service worker error:', err))
+  })
+}
+
 function setTheme(color: string) {
   document.documentElement.style.setProperty('--bs-primary', color)
   localStorage.setItem('themeColor', color)

@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "org.zenwalk.darkstar.twa",
+    "sha256_cert_fingerprints": ["2A:7B:9D:B2:B4:AB:9F:CE:EB:C1:60:A1:90:21:17:4D:07:B1:D9:93:ED:F5:33:B2:94:8D:5D:3B:B0:3E:6D:4C"]
+  }
+}]

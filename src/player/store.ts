@@ -325,10 +325,10 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }
   }, 10_000)
 
-  document.addEventListener('visibilitychange', () => { /* do nothing */ })
-  window.addEventListener('blur', () => { /* do nothing */ })
-  window.addEventListener('focus', () => { /* do nothing */ })
-  window.addEventListener('pagehide', () => { /* do nothing */ })
+  // document.addEventListener('visibilitychange', () => { /* do nothing */ })
+  // window.addEventListener('blur', () => { /* do nothing */ })
+  // window.addEventListener('focus', () => { /* do nothing */ })
+  // window.addEventListener('pagehide', () => { /* do nothing */ })
   window.addEventListener('beforeunload', () => {
     api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
     clearInterval(saveQueueInterval)
