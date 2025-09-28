@@ -18,7 +18,6 @@
     </div>
 
     <div class="d-flex align-items-center">
-      <span v-if="isScanning" class="spinner-border me-2" title="Scanning…" />
       <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
       <template v-if="store.username">
         <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
@@ -37,7 +36,7 @@
           </DropdownItem>
 
           <DropdownItem @click="scan">
-            Scan media folders
+            Scan media changes
           </DropdownItem>
 
           <DropdownItem @click="showAboutModal = true">
@@ -84,6 +83,7 @@
   import { useMainStore } from '@/shared/store'
   import { useAuth } from '@/auth/service'
   import { sleep } from '@/shared/utils'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -130,6 +130,8 @@
         if (this.isScanning) {
           return
         }
+        const loader = useLoader()
+        loader.showLoading()
         this.isScanning = true
         try {
           await this.$api.scan()
@@ -138,7 +140,12 @@
             await sleep(1000)
             scanning = await this.$api.getScanStatus()
           } while (scanning)
+          this.$router.replace({
+            name: this.$route.name as string,
+            query: { t: Date.now().toString() }
+          })
         } finally {
+          loader.hideLoading()
           this.isScanning = false
         }
       },
