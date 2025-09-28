@@ -89,7 +89,6 @@
       async add(url: string) {
         await this.$api.addPodcast(url)
         this.items = await this.$api.getPodcasts()
-        // Backend doesn't always download metadata immediately. Wait and refresh again.
         await new Promise(resolve => setTimeout(resolve, 1000))
         this.items = await this.$api.getPodcasts()
       },
