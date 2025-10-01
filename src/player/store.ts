@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import { defineStore } from 'pinia'
-import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
+import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
@@ -29,6 +29,7 @@ export const usePlayerStore = defineStore('player', {
     volume: storedVolume,
     podcastPlaybackRate: storedPodcastPlaybackRate,
     scrobbled: false,
+    userPaused: true,
   }),
   getters: {
     track(): Track | null {
@@ -98,10 +99,12 @@ export const usePlayerStore = defineStore('player', {
       this.preloadNext()
     },
     async resume() {
+      this.userPaused = false
       this.setPlaying()
       await audio.resume()
     },
     async play() {
+      this.userPaused = false
       this.setPlaying()
       await audio.play()
     },
@@ -110,7 +113,13 @@ export const usePlayerStore = defineStore('player', {
       this.setPaused()
     },
     async playPause() {
-      return this.isPlaying ? this.pause() : this.resume()
+      if (this.isPlaying) {
+        this.userPaused = true
+        return this.pause()
+      } else {
+        this.userPaused = false
+        return this.resume()
+      }
     },
     async next() {
       this.setQueueIndex(this.queueIndex + 1)
@@ -277,7 +286,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
   audio.onpause = () => {
     playerStore.setPaused()
-    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
   }
   audio.onstreamtitlechange = (value: string | null) => {
     playerStore.streamTitle = value
@@ -286,7 +294,11 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }
   }
   audio.onerror = (error: any) => {
-    playerStore.setPaused()
+    if (playerStore.hasNext) {
+      playerStore.next()
+    } else {
+      playerStore.resetQueue()
+    }
     mainStore.setError(error)
   }
 
@@ -307,9 +319,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         const devices = await navigator.mediaDevices.enumerateDevices()
         const hasAudioOutput = devices.some(d => d.kind === 'audiooutput')
 
-        if (hasAudioOutput && playerStore.isPlaying) {
+        if (hasAudioOutput) {
           playerStore.resume().catch(() => {
-            console.log('Autoplay blocked : user action requise (BT connected)')
+            console.log('Autoplay blocked')
           })
         }
       } catch (err) {
@@ -337,6 +349,8 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
       playerStore.resume()
+      sleep(400)
+      playerStore.play()
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
@@ -391,5 +405,20 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
           }
         }
       })
+
+    const PREGAP = 0.2
+    watch(
+      () => playerStore.currentTime,
+      (time) => {
+        if (!playerStore.track) return
+        const remaining = playerStore.duration - time
+        if (remaining <= PREGAP && playerStore.hasNext) {
+          playerStore.queueIndex++
+          playerStore.duration = playerStore.track.duration
+          playerStore.setQueueIndex(playerStore.queueIndex)
+          audio.changeTrack({ ...playerStore.track, playbackRate: playerStore.playbackRate })
+        }
+      }
+    )
   }
 }

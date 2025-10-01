@@ -1,4 +1,5 @@
 import IcecastMetadataStats from 'icecast-metadata-stats'
+import { sleep } from '@/shared/utils'
 
 export enum ReplayGainMode {
   None,
@@ -104,15 +105,15 @@ export class AudioController {
   }
 
   async pause() {
-    await this.fadeOut(0.2)
+    await this.fadeOut(0.4)
     this.pipeline.audio.pause()
   }
 
   async resume() {
-    this.context.resume()
+    await this.context.resume()
     try {
       this.pipeline.audio.play()
-      await this.fadeIn(0.1)
+      await this.fadeIn(0.4)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
@@ -202,7 +203,6 @@ export class AudioController {
 
     if (paused !== true) {
       try {
-        this.context.resume()
         this.pipeline.audio.play()
       } catch (error: any) {
         if (error.name === 'AbortError') {
@@ -337,9 +337,5 @@ function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPip
   setTimeout(() => {
     // console.info(`AudioController: ending payback done. actual ${Date.now() - startTime}ms`)
     pipeline.disconnect()
-  }, 200)
-}
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  }, 400)
 }
