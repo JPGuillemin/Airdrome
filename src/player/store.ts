@@ -256,6 +256,15 @@ export const usePlayerStore = defineStore('player', {
               ]
             : undefined,
         })
+        try {
+          mediaSession.setPositionState({
+            duration: track.duration,
+            playbackRate: 1.0,
+            position: 0,
+          })
+        } catch (err) {
+          console.warn('Failed to set initial position state:', err)
+        }
       }
     },
   },
@@ -271,13 +280,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       playerStore.queueIndex++
       playerStore.setQueueIndex(playerStore.queueIndex)
       audio.changeTrack({ ...playerStore.track })
-    }
-    if (mediaSession) {
-      mediaSession.setPositionState({
-        duration: playerStore.duration,
-        playbackRate: 1.0,
-        position: time,
-      })
     }
     if (!track?.isStream) {
       if (
@@ -353,6 +355,22 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   })
 
   if (mediaSession) {
+    setInterval(() => {
+      const track = playerStore.track
+      if (!track) return
+      if (playerStore.isPlaying && playerStore.track) {
+        try {
+          mediaSession.setPositionState({
+            duration: playerStore.duration,
+            playbackRate: 1.0,
+            position: audio.currentTime(),
+          })
+        } catch (err) {
+          console.warn('Failed to update position state:', err)
+        }
+      }
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
+    }, 1000)
     mediaSession.setActionHandler('play', () => {
       playerStore.resume()
       sleep(400)
