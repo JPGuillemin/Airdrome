@@ -35,32 +35,6 @@ export class AudioController {
   onblur: () => void = () => { /* do nothing */ }
   onvisibilitychange: () => void = () => { /* do nothing */ }
 
-  constructor() {
-    // Adding event listeners for focus and visibility
-    window.addEventListener('focus', this.handleFocus.bind(this))
-    window.addEventListener('blur', this.handleBlur.bind(this))
-    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
-  }
-
-  private handleFocus() {
-    console.log('AudioController: got focus')
-    this.onfocus()
-  }
-
-  private handleBlur() {
-    console.log('AudioController: lost focus')
-    this.onblur()
-  }
-
-  private handleVisibilityChange() {
-    if (document.hidden) {
-      console.log('AudioController: hidden')
-    } else {
-      console.log('AudioController: visible')
-    }
-    this.onvisibilitychange()
-  }
-
   currentTime() {
     return this.pipeline.audio.currentTime
   }
@@ -96,16 +70,11 @@ export class AudioController {
       this.pipeline.normalizerNode.attack.value = 0.01
       this.pipeline.normalizerNode.release.value = 0.1
     }
-
     console.log('Set replay gain: ' + this.replayGainFactor())
   }
 
-  setPlaybackRate(value: number) {
-    this.pipeline.audio.playbackRate = value
-  }
-
   async pause() {
-    await this.fadeOut(0.4)
+    this.fadeOut(0.4)
     this.pipeline.audio.pause()
   }
 
@@ -113,7 +82,7 @@ export class AudioController {
     await this.context.resume()
     try {
       this.pipeline.audio.play()
-      await this.fadeIn(0.4)
+      this.fadeIn(0.4)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
@@ -137,15 +106,15 @@ export class AudioController {
 
   async seek(value: number) {
     if (!this.pipeline.audio.paused) {
-      await this.fadeOut(0.2)
+      this.fadeOut(0.2)
     }
     this.pipeline.audio.currentTime = value
     if (!this.pipeline.audio.paused) {
-      await this.fadeIn(0.2)
+      this.fadeIn(0.2)
     }
   }
 
-  async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain, isStream?: boolean, playbackRate?: number }) {
+  async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain, isStream?: boolean }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
@@ -173,8 +142,8 @@ export class AudioController {
       this.pipeline.disconnect()
       this.pipeline = pipeline!
       this.startTrack(this.pipeline, options.url, options.paused)
-      this.SetIcecast(options.url, options.isStream, options.playbackRate)
-      await this.fadeIn(0.2)
+      this.SetIcecast(options.url, options.isStream)
+      this.fadeIn(0.2)
     } else {
       pipeline!.disconnect()
     }
@@ -198,8 +167,11 @@ export class AudioController {
     this.pipeline.audio.onpause = () => {
       this.onpause()
     }
-    this.ondurationchange(this.pipeline.audio.duration)
-    this.ontimeupdate(this.pipeline.audio.currentTime)
+
+    this.pipeline.audio.onloadedmetadata = () => {
+      this.ondurationchange(this.pipeline.audio.duration)
+      this.ontimeupdate(this.pipeline.audio.currentTime)
+    }
 
     if (paused !== true) {
       try {
@@ -219,7 +191,7 @@ export class AudioController {
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
     this.pipeline.fadeNode.gain.linearRampToValueAtTime(1, this.context.currentTime + duration)
-    await sleep(duration * 1000)
+    sleep(duration * 1000)
   }
 
   private async fadeOut(duration = 0) {
@@ -227,7 +199,7 @@ export class AudioController {
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
     this.pipeline.fadeNode.gain.linearRampToValueAtTime(0, this.context.currentTime + duration)
-    await sleep(duration * 1000)
+    sleep(duration * 1000)
   }
 
   private replayGainFactor(): number {
@@ -256,11 +228,11 @@ export class AudioController {
     return factor
   }
 
-  private async SetIcecast(url?: string, isStream?: boolean, playbackRate?: number) {
+  private async SetIcecast(url?: string, isStream?: boolean) {
     this.statsListener?.stop()
     if (isStream) {
       this.onstreamtitlechange(null)
-      this.pipeline.audio.playbackRate = playbackRate ?? 1.0
+      this.pipeline.audio.playbackRate = 1.0
       console.info('Icecast: starting stats listener')
       this.statsListener = new IcecastMetadataStats(url, {
         sources: ['icy'],
@@ -289,6 +261,7 @@ function creatPipeline(context: AudioContext, options: { url?: string, audio?: H
     audio.preload = 'auto'
   }
 
+  audio.playbackRate = 1.0
   const sourceNode = context.createMediaElementSource(audio)
 
   const volumeNode = context.createGain()

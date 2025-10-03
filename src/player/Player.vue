@@ -44,13 +44,13 @@
             @click="toggleShuffle">
             <Icon icon="shuffle" />
           </b-button>
-          <b-button variant="transparent" class="m-2 d-none d-md-inline-block" @click="previous">
+          <b-button variant="transparent" class="m-1" @click="previous">
             <Icon icon="skip-start" />
           </b-button>
-          <b-button variant="transparent" size="lg" class="btn-play m-2" @click="playPause">
+          <b-button variant="transparent" size="lg" class="btn-play m-0" @click="playPause">
             <Icon :icon="isPlaying ? 'pause' : 'play'" />
           </b-button>
-          <b-button variant="transparent" class="m-2" @click="next">
+          <b-button variant="transparent" class="m-1" @click="next">
             <Icon icon="skip-end" />
           </b-button>
           <b-button
@@ -67,20 +67,6 @@
         <div class="col-auto col-md p-0">
           <div class="d-flex flex-nowrap justify-content-end pe-3">
             <div class="m-0 d-none d-md-inline-flex align-items-center">
-              <template v-if="track && track.isPodcast">
-                <Dropdown variant="transparent" align="center" direction="up" menu-style="min-width: 0px;" title="Speed">
-                  <template #button-content>
-                    {{ playbackRate }}x
-                  </template>
-                  <Slider
-                    class="py-3 px-4" style="height: 120px;" direction="btt"
-                    :min="0.8" :max="2" :step="0.1"
-                    :value="playbackRate"
-                    @input="setPlaybackRate"
-                  />
-                </Dropdown>
-              </template>
-
               <b-button
                 title="Favourite"
                 variant="transparent" class="m-0"
@@ -89,7 +75,6 @@
               >
                 <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
               </b-button>
-
               <b-button
                 v-if="track && track.replayGain"
                 title="ReplayGain"
@@ -102,7 +87,6 @@
                 <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                 <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
               </b-button>
-
               <Dropdown variant="transparent" align="center" direction="up" menu-style="min-width: 0px;" title="Volume">
                 <template #button-content>
                   <Icon :icon="isMuted ? 'mute' : 'volume'" />
@@ -114,12 +98,10 @@
                   :value="volume" @input="setVolume"
                 />
               </Dropdown>
-
               <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
                 <Icon icon="list" />
               </router-link>
             </div>
-
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
                 <span>Volume</span>
@@ -128,15 +110,6 @@
                         :value="volume" @input="setVolume"
                 />
               </div>
-              <template v-if="track && track.isPodcast">
-                <div class="d-flex justify-content-between align-items-center px-3 py-1">
-                  <span>Speed</span>
-                  <Slider class="px-3" style="width: 120px;"
-                          :min="0.7" :max="2" :step="0.1"
-                          :value="playbackRate" @input="setPlaybackRate"
-                  />
-                </div>
-              </template>
               <div class="d-flex justify-content-between px-3 py-1">
                 <span>Repeat</span>
                 <b-button
@@ -202,6 +175,7 @@
   import Dropdown from '@/shared/components/Dropdown.vue'
 
   export default defineComponent({
+    name: 'Player',
     components: {
       Dropdown,
       SwitchInput,
@@ -235,9 +209,6 @@
       },
       shuffleActive(): boolean {
         return this.playerStore.shuffle
-      },
-      playbackRate(): number {
-        return this.playerStore.playbackRate
       },
       isFavourite(): boolean {
         return !!this.track && !!this.favouriteStore.tracks[this.track.id]
@@ -279,9 +250,6 @@
       },
       toggleReplayGain() {
         return this.playerStore.toggleReplayGain()
-      },
-      setPlaybackRate(value: number) {
-        return this.playerStore.setPlaybackRate(value)
       },
       toggleRepeat() {
         return this.playerStore.toggleRepeat()

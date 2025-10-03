@@ -44,6 +44,7 @@
   import { useAuth } from '@/auth/service'
 
   export default defineComponent({
+    name: 'Login',
     props: {
       returnTo: { type: String, required: true },
     },
