@@ -27,7 +27,7 @@ export const usePlayerStore = defineStore('player', {
     shuffle: localStorage.getItem('player.shuffle') === 'true',
     volume: storedVolume,
     scrobbled: false,
-    // userPaused: true,
+    api: null as API | null,
   }),
   getters: {
     track(): Track | null {
@@ -94,12 +94,10 @@ export const usePlayerStore = defineStore('player', {
       this.preloadNext()
     },
     async resume() {
-      // this.userPaused = false
       this.setPlaying()
       await audio.resume()
     },
     async play() {
-      // this.userPaused = false
       this.setPlaying()
       await audio.play()
     },
@@ -109,10 +107,8 @@ export const usePlayerStore = defineStore('player', {
     },
     async playPause() {
       if (this.isPlaying) {
-        // this.userPaused = true
         return this.pause()
       } else {
-        // this.userPaused = false
         return this.resume()
       }
     },
@@ -134,7 +130,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
     async loadQueue() {
-      const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
+      const { tracks, currentTrack, currentTrackPosition } = await this.api!.getPlayQueue()
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
       this.setPaused()
@@ -213,19 +209,28 @@ export const usePlayerStore = defineStore('player', {
     },
     setPlaying() {
       this.isPlaying = true
-      if (mediaSession) {
-        mediaSession.playbackState = 'playing'
-      }
+      setMediaSession({
+        track: this.track,
+        currentTime: this.currentTime,
+        playbackRate: 1.0,
+        isPlaying: this.isPlaying,
+      })
+      this.api!.savePlayQueue(this.queue!, this.track, 0)
     },
     setPaused() {
       this.isPlaying = false
-      if (mediaSession) {
-        mediaSession.playbackState = 'paused'
-      }
+      this.api!.savePlayQueue(this.queue!, this.track, 0)
+      setMediaSession({
+        track: this.track,
+        currentTime: this.currentTime,
+        playbackRate: 1.0,
+        isPlaying: this.isPlaying,
+      })
     },
     setQueue(queue: Track[]) {
       this.queue = queue
       this.queueIndex = -1
+      this.api!.savePlayQueue(this.queue!, this.track, 0)
     },
     setQueueIndex(index: number) {
       if (!this.queue || this.queue.length === 0) {
@@ -244,36 +249,92 @@ export const usePlayerStore = defineStore('player', {
       const track = this.queue[index]
       this.duration = track.duration
       if (mediaSession) {
-        mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: formatArtists(track.artists),
-          album: track.album,
-          artwork: track.image
-            ? [
-                { src: track.image, sizes: '96x96', type: 'image/png' },
-                { src: track.image, sizes: '256x256', type: 'image/png' },
-                { src: track.image, sizes: '512x512', type: 'image/png' }
-              ]
-            : undefined,
+        mediaSession.metadata = null
+        setMediaSession({
+          track: this.track,
+          currentTime: 0,
+          playbackRate: 1.0,
+          isPlaying: this.isPlaying,
         })
-        try {
-          mediaSession.setPositionState({
-            duration: track.duration,
-            playbackRate: 1.0,
-            position: 0,
-          })
-        } catch (err) {
-          console.warn('Failed to set initial position state:', err)
-        }
       }
+      this.api!.savePlayQueue(this.queue!, this.track, 0)
     },
   },
 })
 
+export function setMediaSession({
+  track,
+  currentTime = 0,
+  playbackRate = 1.0,
+  isPlaying = false,
+}: {
+  track: any | null
+  currentTime?: number
+  playbackRate?: number
+  isPlaying?: boolean
+}) {
+  if (!('mediaSession' in navigator)) return
+  const mediaSession = navigator.mediaSession
+  if (!mediaSession) return
+
+  const getImageMime = (url: string): string => {
+    const ext = url.split('.').pop()?.toLowerCase() || ''
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg'
+      case 'webp':
+        return 'image/webp'
+      case 'png':
+        return 'image/png'
+      case 'gif':
+        return 'image/gif'
+      default:
+        return 'image/png'
+    }
+  }
+
+  if (track) {
+    const artwork =
+      track.image
+        ? [
+            { src: track.image, sizes: '96x96', type: getImageMime(track.image) },
+            { src: track.image, sizes: '256x256', type: getImageMime(track.image) },
+            { src: track.image, sizes: '512x512', type: getImageMime(track.image) },
+          ]
+        : []
+
+    mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Unknown Title',
+      artist: (track.artists && formatArtists(track.artists)) || 'Unknown Artist',
+      album: track.album || '',
+      artwork,
+    })
+  }
+
+  mediaSession.playbackState = isPlaying ? 'playing' : 'paused'
+
+  if (typeof mediaSession.setPositionState === 'function' && track?.duration) {
+    const duration = Math.max(0, track.duration)
+    const position = Math.min(Math.max(0, currentTime || 0), duration)
+    const rate = playbackRate > 0 ? playbackRate : 1.0
+
+    try {
+      mediaSession.setPositionState({
+        duration,
+        position,
+        playbackRate: rate,
+      })
+    } catch (err) {
+      console.warn('MediaSession.setPositionState failed:', err)
+    }
+  }
+}
+
 export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>, api: API) {
+  playerStore.api = api
   audio.ontimeupdate = (time: number) => {
     playerStore.currentTime = time
-    // console.log('ontimeupdate - dur: ' + playerStore.duration + ' rate: ' + 1.0 + 'pos: ' + time)
     if (!playerStore.track) return
     const remaining = playerStore.duration - time
     if (remaining <= 0.2 && playerStore.hasNext) {
@@ -310,19 +371,24 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
   audio.onstreamtitlechange = (value: string | null) => {
     playerStore.streamTitle = value
-    if (mediaSession?.metadata) {
-      const currentMetadata = mediaSession.metadata
-      mediaSession.metadata = new MediaMetadata({
-        title: value || currentMetadata.title || 'Live Stream',
-        artist: currentMetadata.artist || 'Unknown Artist',
-        album: currentMetadata.album || 'Radio',
-        artwork: [
-          { src: '/images/radio-default-96.png', sizes: '96x96', type: 'image/png' },
-          { src: '/images/radio-default-256.png', sizes: '256x256', type: 'image/png' },
-          { src: '/images/radio-default-512.png', sizes: '512x512', type: 'image/png' }
-        ]
-      })
+    const track = playerStore.track
+    if (!track) return
+    const streamTrack = {
+      ...track,
+      title: value || track.title || 'Live Stream',
+      artist: track.artists || 'Unknown Artist',
+      album: track.album || 'Radio',
+      image:
+        track.image ||
+        '/images/radio-default-256.png',
+      duration: track.duration || Infinity,
     }
+    setMediaSession({
+      track: streamTrack,
+      currentTime: playerStore.currentTime,
+      playbackRate: 1.0,
+      isPlaying: playerStore.isPlaying,
+    })
   }
   audio.onerror = (error: any) => {
     if (playerStore.hasNext) {
@@ -342,39 +408,27 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.preloadNext()
   }
 
-  // Save play queue
-  const saveQueueInterval = window.setInterval(() => {
-    if (playerStore.queue && playerStore.queue.length > 0 && playerStore.track) {
-      api.savePlayQueue(playerStore.queue, playerStore.track, playerStore.currentTime)
-    }
-  }, 10_000)
-
   window.addEventListener('beforeunload', () => {
-    api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-    clearInterval(saveQueueInterval)
+    api.savePlayQueue(playerStore.queue!, playerStore.track, 0)
+    if (mediaSession) {
+      mediaSession.metadata = null
+      mediaSession.playbackState = 'none'
+    }
   })
+
+  // window.addEventListener('load', () => { ... })
 
   if (mediaSession) {
     setInterval(() => {
-      const track = playerStore.track
-      if (!track) return
-      if (playerStore.isPlaying && playerStore.track) {
-        try {
-          mediaSession.setPositionState({
-            duration: playerStore.duration,
-            playbackRate: 1.0,
-            position: audio.currentTime(),
-          })
-        } catch (err) {
-          console.warn('Failed to update position state:', err)
-        }
-      }
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
+      setMediaSession({
+        track: playerStore.track,
+        currentTime: playerStore.currentTime,
+        playbackRate: 1.0,
+        isPlaying: playerStore.isPlaying,
+      })
     }, 1000)
     mediaSession.setActionHandler('play', () => {
       playerStore.resume()
-      sleep(400)
-      playerStore.play()
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
