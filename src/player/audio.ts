@@ -1,4 +1,3 @@
-import IcecastMetadataStats from 'icecast-metadata-stats'
 import { sleep } from '@/shared/utils'
 
 export enum ReplayGainMode {
@@ -28,7 +27,6 @@ export class AudioController {
   ontimeupdate: (value: number) => void = () => { /* do nothing */ }
   ondurationchange: (value: number) => void = () => { /* do nothing */ }
   onpause: () => void = () => { /* do nothing */ }
-  onstreamtitlechange: (value: string | null) => void = () => { /* do nothing */ }
   onended: () => void = () => { /* do nothing */ }
   onerror: (err: MediaError | null) => void = () => { /* do nothing */ }
   onfocus: () => void = () => { /* do nothing */ }
@@ -114,7 +112,7 @@ export class AudioController {
     }
   }
 
-  async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain, isStream?: boolean }) {
+  async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
@@ -142,7 +140,6 @@ export class AudioController {
       this.pipeline.disconnect()
       this.pipeline = pipeline!
       this.startTrack(this.pipeline, options.url, options.paused)
-      this.SetIcecast(options.url, options.isStream)
       this.fadeIn(0.2)
     } else {
       pipeline!.disconnect()
@@ -227,28 +224,6 @@ export class AudioController {
     console.info('AudioController: calculated ReplayGain factor', factor)
     return factor
   }
-
-  private async SetIcecast(url?: string, isStream?: boolean) {
-    this.statsListener?.stop()
-    if (isStream) {
-      this.onstreamtitlechange(null)
-      this.pipeline.audio.playbackRate = 1.0
-      console.info('Icecast: starting stats listener')
-      this.statsListener = new IcecastMetadataStats(url, {
-        sources: ['icy'],
-        onStats: (stats: any) => {
-          if (stats?.icy === undefined) {
-            console.info('Icecast: no metadata found. Stopping')
-            this.statsListener?.stop()
-          } else if (stats?.icy?.StreamTitle) {
-            this.onstreamtitlechange(stats?.icy?.StreamTitle)
-          }
-        }
-      })
-      this.statsListener?.start()
-      this.pipeline.audio.load()
-    }
-  }
 }
 
 function creatPipeline(context: AudioContext, options: { url?: string, audio?: HTMLAudioElement, volume?: number, replayGain?: number }) {
@@ -310,5 +285,5 @@ function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPip
   setTimeout(() => {
     // console.info(`AudioController: ending payback done. actual ${Date.now() - startTime}ms`)
     pipeline.disconnect()
-  }, 400)
+  }, 1000)
 }

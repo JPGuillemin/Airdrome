@@ -17,7 +17,7 @@
             </component>
             <div style="min-width: 0">
               <div class="text-truncate">
-                {{ streamTitle || track.title }}
+                {{ track.title }}
               </div>
               <div class="text-truncate text-muted">
                 <template v-if="track.artists.length > 0">
@@ -70,7 +70,6 @@
               <b-button
                 title="Favourite"
                 variant="transparent" class="m-0"
-                :disabled="track && track.isStream"
                 @click="toggleFavourite"
               >
                 <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
@@ -216,12 +215,9 @@
       track() {
         return this.playerStore.track
       },
-      streamTitle() {
-        return this.playerStore.streamTitle
-      },
       documentTitle(): string {
         return [
-          this.streamTitle || this.track?.title,
+          this.track?.title,
           formatArtists(this.track?.artists || []) || this.track?.album,
           'Airdrome'
         ].filter(x => !!x).join(' • ')
