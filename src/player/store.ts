@@ -1,3 +1,4 @@
+import { watch } from 'vue'
 import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
@@ -26,7 +27,6 @@ export const usePlayerStore = defineStore('player', {
     volume: storedVolume,
     scrobbled: false,
     userPaused: false,
-    api: null as API | null,
   }),
   getters: {
     track(): Track | null {
@@ -72,7 +72,7 @@ export const usePlayerStore = defineStore('player', {
     async playTrackListIndex(index: number) {
       this.setQueueIndex(index)
       this.setPlaying()
-      audio.changeTrack({ ...this.track })
+      await audio.changeTrack({ ...this.track })
       this.preloadNext()
     },
     async playTrackList(tracks: Track[], index?: number) {
@@ -89,25 +89,16 @@ export const usePlayerStore = defineStore('player', {
       }
       this.setQueueIndex(index)
       this.setPlaying()
-      audio.changeTrack({ ...this.track })
-      this.setMediaSessionPosition()
+      await audio.changeTrack({ ...this.track })
       this.preloadNext()
-    },
-    async resume() {
-      this.userPaused = false
-      this.setPlaying()
-      await audio.resume()
-      this.setMediaSessionPosition()
     },
     async play() {
       this.userPaused = false
       this.setPlaying()
-      await audio.play()
-      this.setMediaSessionPosition()
+      await audio.resume()
     },
     async pause() {
-      audio.pause()
-      this.setMediaSessionPosition()
+      await audio.pause()
       this.setPaused()
     },
     async playPause() {
@@ -116,27 +107,23 @@ export const usePlayerStore = defineStore('player', {
         return this.pause()
       } else {
         this.userPaused = false
-        return this.resume()
+        return this.play()
       }
     },
     async next() {
       this.setQueueIndex(this.queueIndex + 1)
       this.setPlaying()
       await audio.changeTrack({ ...this.track })
-      this.setMediaSessionPosition()
       this.preloadNext()
     },
     async previous() {
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
       this.setPlaying()
       await audio.changeTrack(this.track!)
-      this.setMediaSessionPosition()
       this.preloadNext()
     },
     async seek(value: number) {
-      if (isFinite(this.duration)) {
-        await audio.seek(this.duration * value)
-      }
+      await audio.seek(value)
       this.setMediaSessionPosition()
     },
     async loadQueue() {
@@ -146,14 +133,12 @@ export const usePlayerStore = defineStore('player', {
       this.setPaused()
       await audio.changeTrack({ ...this.track, paused: true })
       await audio.seek(currentTrackPosition)
-      this.setMediaSessionPosition()
       this.preloadNext()
     },
     async resetQueue() {
       this.setQueueIndex(0)
       this.setPaused()
       await audio.changeTrack({ ...this.track, paused: true })
-      this.setMediaSessionPosition()
     },
     async clearQueue() {
       if (!this.queue) {
@@ -169,10 +154,10 @@ export const usePlayerStore = defineStore('player', {
         await audio.changeTrack({ })
       }
     },
-    setMediaSessionPosition() {
+    async setMediaSessionPosition() {
       if (mediaSession) {
         mediaSession.setPositionState({
-          duration: this.duration || Infinity,
+          duration: this.duration || audio.duration(),
           playbackRate: 1.0,
           position: Math.min(this.currentTime, this.duration) || 0.0,
         })
@@ -247,7 +232,7 @@ export const usePlayerStore = defineStore('player', {
     setQueueIndex(index: number) {
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
-        this.duration = Infinity
+        this.duration = 0
         if (mediaSession) {
           mediaSession.metadata = null
           mediaSession.playbackState = 'none'
@@ -268,35 +253,27 @@ export const usePlayerStore = defineStore('player', {
           album: track.album,
           artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
         })
-        mediaSession.setPositionState({
-          duration: this.duration || Infinity,
-          playbackRate: 1.0,
-          position: 0.0,
-        })
       }
-      this.api!.updateNowPlaying(track.id)
-      this.api!.savePlayQueue(this.queue!, this.track, 0.0)
     },
   },
 })
 
 export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>, api: API) {
   playerStore.api = api
-  audio.ontimeupdate = (time: number) => {
-    playerStore.currentTime = time || 0.0
-    if (!playerStore.track || !playerStore.isPlaying) return
-    const remaining = playerStore.duration - playerStore.currentTime
-    if (remaining <= 0.4 && playerStore.hasNext) {
-      playerStore.queueIndex++
-      playerStore.setQueueIndex(playerStore.queueIndex)
-      audio.changeTrack({ ...playerStore.track })
-    }
+
+  audio.ontimeupdate = (value: number) => {
+    playerStore.currentTime = value
   }
+
   audio.ondurationchange = (value: number) => {
-    if (isFinite(value)) {
-      playerStore.duration = value
-    }
+    playerStore.duration = value
   }
+
+  // setInterval(() => {
+  // if (!playerStore.track || !playerStore.isPlaying) return
+  // playerStore.setMediaSessionPosition()
+  // }, 500)
+
   audio.onended = () => {
     if (playerStore.hasNext || playerStore.repeat) {
       return playerStore.next()
@@ -304,6 +281,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       return playerStore.resetQueue()
     }
   }
+
   audio.onpause = () => {
     playerStore.setPaused()
   }
@@ -318,6 +296,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   audio.setReplayGainMode(storedReplayGainMode)
+
   audio.setVolume(storedVolume)
 
   const track = playerStore.track
@@ -326,29 +305,16 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.preloadNext()
   }
 
-  window.addEventListener('beforeunload', () => {
-    api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
-    if (mediaSession) {
-      mediaSession.playbackState = 'paused'
-    }
-  })
-
-  window.addEventListener('load', () => {
-    if (mediaSession) {
-      mediaSession.playbackState = 'paused'
-    }
-  })
-
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
-      playerStore.resume()
+      playerStore.play()
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
     })
     mediaSession.setActionHandler('hangup' as any, () => {
       if (!playerStore.userPaused) {
-        playerStore.resume()
+        playerStore.play()
       }
     })
     mediaSession.setActionHandler('nexttrack', () => {
@@ -362,7 +328,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
     mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime) {
-        audio.seek(details.seekTime)
+        audio.seek(Math.min(details.seekTime, playerStore.duration))
       }
     })
     mediaSession.setActionHandler('seekforward', (details) => {
@@ -374,4 +340,31 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       audio.seek(Math.max(playerStore.currentTime - offset, 0))
     })
   }
+
+  watch(
+    () => [playerStore.currentTime],
+    () => {
+      playerStore.setMediaSessionPosition()
+
+      if (playerStore.track && playerStore.isPlaying) {
+        const remaining = playerStore.duration - playerStore.currentTime
+        if (remaining <= 0.4 && playerStore.hasNext) {
+          playerStore.queueIndex++
+          playerStore.setQueueIndex(playerStore.queueIndex)
+          audio.changeTrack({ ...playerStore.track })
+        }
+        if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
+          playerStore.scrobbled = true
+          api.scrobble(playerStore.track.id)
+        }
+      }
+    })
+  watch(
+    () => [playerStore.duration],
+    () => {
+      if (playerStore.track) {
+        api.updateNowPlaying(playerStore.track.id)
+        api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
+      }
+    })
 }

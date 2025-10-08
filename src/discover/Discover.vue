@@ -1,17 +1,8 @@
 <template>
   <div class="main-content">
-    <div v-if="result.favalbums.length > 0" class="mb-4">
-      <router-link :to="{name: 'favourites'}" class="text-muted">
-        <h3>My albums</h3>
-      </router-link>
-      <AlbumList :items="result.favalbums" allow-h-scroll />
-    </div>
-
-    <div v-if="result.favartists.length > 0" class="mb-4">
-      <router-link :to="{name: 'favourites', params: { section: 'artists' }}" class="text-muted">
-        <h3>My artists</h3>
-      </router-link>
-      <ArtistList :items="result.favartists" allow-h-scroll />
+    <div v-if="recommendedAlbums.length > 0" class="mb-4">
+      <h3>Current mood selection</h3>
+      <AlbumList :items="recommendedAlbums" allow-h-scroll />
     </div>
 
     <div v-if="result.genres.length > 0" class="mb-4">
@@ -34,6 +25,20 @@
           </router-link>
         </span>
       </div>
+    </div>
+
+    <div v-if="result.favartists.length > 0" class="mb-4">
+      <router-link :to="{name: 'favourites', params: { section: 'artists' }}" class="text-muted">
+        <h3>Fav artists</h3>
+      </router-link>
+      <ArtistList :items="result.favartists" allow-h-scroll />
+    </div>
+
+    <div v-if="result.favalbums.length > 0" class="mb-4">
+      <router-link :to="{name: 'favourites'}" class="text-muted">
+        <h3>Fav albums</h3>
+      </router-link>
+      <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="mb-4">
@@ -63,9 +68,9 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
-  import { Album, Genre, Artist } from '@/shared/api'
   import ArtistList from '@/library/artist/ArtistList.vue'
-  import { orderBy } from 'lodash-es'
+  import { Album, Genre, Artist } from '@/shared/api'
+  import { orderBy, uniq } from 'lodash-es'
   import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
@@ -83,43 +88,77 @@
           favalbums: [] as Album[],
           favartists: [] as Artist[],
           genres: [] as Genre[],
-        }
+        },
+        recommendedAlbums: [] as Album[],
       }
     },
     computed: {
       empty() {
         return Object.values(this.result).findIndex(x => x.length > 0) === -1
-      }
+      },
     },
-    created() {
+    async created() {
       const loader = useLoader()
       const size = 18
 
       loader.showLoading()
       this.loading = true
 
-      Promise.all([
-        this.$api.getAlbums('recently-added', size).then(result => {
-          this.result.recent = result
-        }),
-        this.$api.getAlbums('recently-played', size).then(result => {
-          this.result.played = result
-        }),
-        this.$api.getAlbums('random', size).then(result => {
-          this.result.random = result
-        }),
-        this.$api.getFavourites().then(result => {
-          this.result.favalbums = result.albums.slice(0, size)
-          this.result.favartists = result.artists.slice(0, size)
-        }),
-        this.$api.getGenres().then(result => {
-          this.result.genres = orderBy(result, 'albumCount', 'desc')
-        }),
-      ])
-        .finally(() => {
-          this.loading = false
-          loader.hideLoading()
-        })
-    }
+      try {
+        // Fetch all in parallel for consistency
+        const [
+          recent,
+          played,
+          random,
+          favourites,
+          genres,
+          recentlyPlayedForMood,
+        ] = await Promise.all([
+          this.$api.getAlbums('recently-added', size),
+          this.$api.getAlbums('recently-played', size),
+          this.$api.getAlbums('random', size),
+          this.$api.getFavourites(),
+          this.$api.getGenres(),
+          this.$api.getAlbums('recently-played', 15),
+        ])
+
+        // Assign results
+        this.result.recent = recent
+        this.result.played = played
+        this.result.random = random
+        this.result.favalbums = favourites.albums.slice(0, size)
+        this.result.favartists = favourites.artists.slice(0, size)
+        this.result.genres = orderBy(genres, 'albumCount', 'desc')
+
+        // --- Mood-based recommendation logic ---
+        const genreCounts: Record<string, number> = {}
+        for (const album of recentlyPlayedForMood) {
+          const albumGenres = uniq(album.genres?.map(g => g.name) || [])
+          for (const genre of albumGenres) {
+            genreCounts[genre] = (genreCounts[genre] || 0) + 1
+          }
+        }
+        const sortedGenres = orderBy(
+          Object.entries(genreCounts).map(([name, count]) => ({ name, count })),
+          ['count'],
+          ['desc']
+        )
+        const topGenres = sortedGenres.slice(0, 2).map(g => g.name)
+        const albumsFromGenres: Album[] = []
+        await Promise.all(
+          topGenres.map(async(genre) => {
+            const albums = await this.$api.getAlbumsByGenre(genre, 10)
+            albumsFromGenres.push(...albums)
+          })
+        )
+        const uniqueAlbums = Array.from(new Map(albumsFromGenres.map(a => [a.id, a])).values())
+        this.recommendedAlbums = uniqueAlbums.sort(() => Math.random() - 0.5).slice(0, 15)
+      } catch (error) {
+        console.error('Error loading Discover data:', error)
+      } finally {
+        this.loading = false
+        loader.hideLoading()
+      }
+    },
   })
 </script>

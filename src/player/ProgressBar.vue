@@ -4,7 +4,7 @@
     :value="progress"
     :min="0"
     :max="1"
-    :interval="0.00001"
+    :interval="0.0001"
     :lazy="true"
     :contained="true"
     :dot-options="{tooltip: 'always'}"
@@ -39,7 +39,8 @@
         return `${formatDuration(time)} / ${formatDuration(duration)}`
       },
       seek(value: number) {
-        this.playerStore.seek(value)
+        const duration = this.playerStore.duration
+        this.playerStore.seek(value * duration)
       },
     }
   })

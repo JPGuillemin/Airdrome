@@ -72,7 +72,7 @@ export class AudioController {
   }
 
   async pause() {
-    this.fadeOut(0.4)
+    await this.fadeOut(0.4)
     this.pipeline.audio.pause()
   }
 
@@ -80,22 +80,10 @@ export class AudioController {
     await this.context.resume()
     try {
       this.pipeline.audio.play()
-      this.fadeIn(0.4)
+      await this.fadeIn(0.4)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
-        return
-      }
-      throw err
-    }
-  }
-
-  async play() {
-    try {
-      this.pipeline.audio.play()
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.warn('Play aborted')
         return
       }
       throw err
@@ -148,31 +136,44 @@ export class AudioController {
 
   private async startTrack(pipeline: ReturnType<typeof creatPipeline>, url?: string, paused?: boolean) {
     this.setReplayGainMode(this.replayGainMode)
-
-    this.pipeline.audio.onerror = () => {
-      this.onerror(this.pipeline.audio.error)
+    const audio = pipeline.audio
+    audio.onerror = () => {
+      this.onerror(audio.error)
     }
-    this.pipeline.audio.onended = () => {
+    audio.onended = () => {
       this.onended()
     }
-    this.pipeline.audio.ontimeupdate = () => {
-      this.ontimeupdate(this.pipeline.audio.currentTime)
+    audio.ontimeupdate = () => {
+      this.ontimeupdate(audio.currentTime)
     }
-    this.pipeline.audio.ondurationchange = () => {
-      this.ondurationchange(this.pipeline.audio.duration)
+    audio.ondurationchange = () => {
+      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+        this.ondurationchange(audio.duration)
+      }
     }
-    this.pipeline.audio.onpause = () => {
+    audio.onpause = () => {
       this.onpause()
     }
-
-    this.pipeline.audio.onloadedmetadata = () => {
-      this.ondurationchange(this.pipeline.audio.duration)
-      this.ontimeupdate(this.pipeline.audio.currentTime)
+    audio.onloadedmetadata = () => {
+      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+        this.ondurationchange(audio.duration)
+      } else {
+        this.ensureDuration(audio)
+      }
+      this.ontimeupdate(audio.currentTime)
     }
-
+    if (audio.readyState < 1) {
+      try {
+        audio.load()
+      } catch {
+        /* ignore */
+      }
+    }
     if (paused !== true) {
       try {
-        this.pipeline.audio.play()
+        await this.context.resume()
+        await audio.play()
+        this.fadeIn(0.2)
       } catch (error: any) {
         if (error.name === 'AbortError') {
           console.warn('Audio play aborted due to rapid skip')
@@ -183,12 +184,23 @@ export class AudioController {
     }
   }
 
+  private async ensureDuration(audio: HTMLAudioElement, retries = 20, delay = 200) {
+    for (let i = 0; i < retries; i++) {
+      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+        this.ondurationchange(audio.duration)
+        return
+      }
+      await sleep(delay)
+    }
+    console.warn('AudioController: failed to resolve duration for', audio.src)
+  }
+
   private async fadeIn(duration = 0) {
     const value = this.pipeline.fadeNode.gain.value
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
     this.pipeline.fadeNode.gain.linearRampToValueAtTime(1, this.context.currentTime + duration)
-    sleep(duration * 1000)
+    await sleep(duration * 1000)
   }
 
   private async fadeOut(duration = 0) {
@@ -196,7 +208,7 @@ export class AudioController {
     this.pipeline.fadeNode.gain.cancelScheduledValues(0)
     this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
     this.pipeline.fadeNode.gain.linearRampToValueAtTime(0, this.context.currentTime + duration)
-    sleep(duration * 1000)
+    await sleep(duration * 1000)
   }
 
   private replayGainFactor(): number {

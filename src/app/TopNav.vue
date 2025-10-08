@@ -36,7 +36,7 @@
           </DropdownItem>
 
           <DropdownItem @click="scan">
-            Scan media changes
+            Refresh content
           </DropdownItem>
 
           <DropdownItem @click="showAboutModal = true">
