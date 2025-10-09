@@ -19,10 +19,10 @@ export const usePlayerStore = defineStore('player', {
     queue: [] as Track[],
     queueIndex: -1,
     isPlaying: false,
-    duration: 0, // duration of current track in seconds
-    currentTime: 0, // position of current track in seconds
+    duration: 0,
+    currentTime: 0,
     replayGainMode: storedReplayGainMode as ReplayGainMode,
-    repeat: localStorage.getItem('player.repeat') !== 'false',
+    repeat: localStorage.getItem('player.repeat') === 'true',
     shuffle: localStorage.getItem('player.shuffle') === 'true',
     volume: storedVolume,
     scrobbled: false,
@@ -71,8 +71,8 @@ export const usePlayerStore = defineStore('player', {
     },
     async playTrackListIndex(index: number) {
       this.setQueueIndex(index)
+      await audio.loadTrack({ ...this.track })
       this.setPlaying()
-      await audio.changeTrack({ ...this.track })
       this.preloadNext()
     },
     async playTrackList(tracks: Track[], index?: number) {
@@ -88,14 +88,14 @@ export const usePlayerStore = defineStore('player', {
         this.setQueue(tracks)
       }
       this.setQueueIndex(index)
+      await audio.loadTrack({ ...this.track })
       this.setPlaying()
-      await audio.changeTrack({ ...this.track })
       this.preloadNext()
     },
     async play() {
       this.userPaused = false
+      await audio.play()
       this.setPlaying()
-      await audio.resume()
     },
     async pause() {
       await audio.pause()
@@ -112,14 +112,14 @@ export const usePlayerStore = defineStore('player', {
     },
     async next() {
       this.setQueueIndex(this.queueIndex + 1)
+      await audio.loadTrack({ ...this.track })
       this.setPlaying()
-      await audio.changeTrack({ ...this.track })
       this.preloadNext()
     },
     async previous() {
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
+      await audio.loadTrack(this.track!)
       this.setPlaying()
-      await audio.changeTrack(this.track!)
       this.preloadNext()
     },
     async seek(value: number) {
@@ -130,15 +130,15 @@ export const usePlayerStore = defineStore('player', {
       const { tracks, currentTrack, currentTrackPosition } = await this.api!.getPlayQueue()
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
-      this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true })
+      await audio.loadTrack({ ...this.track, paused: true })
       await audio.seek(currentTrackPosition)
+      this.setPaused()
       this.preloadNext()
     },
     async resetQueue() {
       this.setQueueIndex(0)
+      await audio.loadTrack({ ...this.track, paused: true })
       this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true })
     },
     async clearQueue() {
       if (!this.queue) {
@@ -150,18 +150,19 @@ export const usePlayerStore = defineStore('player', {
       } else {
         this.setQueue([])
         this.setQueueIndex(-1)
+        await audio.loadTrack({ })
         this.setPaused()
-        await audio.changeTrack({ })
       }
     },
-    async setMediaSessionPosition() {
-      if (mediaSession) {
-        mediaSession.setPositionState({
-          duration: this.duration || audio.duration(),
-          playbackRate: 1.0,
-          position: Math.min(this.currentTime, this.duration) || 0.0,
-        })
-      }
+    async setMediaSessionPosition(duration?: number, rate = 1.0, position?: number) {
+      if (!navigator.mediaSession) return
+      duration ??= this.duration
+      position ??= this.currentTime
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: rate,
+        position: Math.min(position, duration),
+      })
     },
     addToQueue(tracks: Track[]) {
       const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
@@ -254,6 +255,7 @@ export const usePlayerStore = defineStore('player', {
           artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
         })
       }
+      this.setMediaSessionPosition(undefined, 1.0, 0.0)
     },
   },
 })
@@ -274,11 +276,46 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   // playerStore.setMediaSessionPosition()
   // }, 500)
 
-  audio.onended = () => {
-    if (playerStore.hasNext || playerStore.repeat) {
-      return playerStore.next()
-    } else {
-      return playerStore.resetQueue()
+  audio.onended = async() => {
+    const { hasNext, repeat } = playerStore
+
+    if (hasNext || repeat) return playerStore.next()
+
+    if (playerStore.track) {
+      const lastTrack = playerStore.track
+
+      try {
+        let genreName: string | undefined = (lastTrack as any).genre
+
+        if (!genreName && lastTrack.albumId) {
+          const album = await api.getAlbumDetails(lastTrack.albumId)
+          genreName = album.genres?.[0]?.name
+        }
+
+        if (!genreName) {
+          console.warn('No genre found for last track — ending playback.')
+          return playerStore.resetQueue()
+        }
+
+        const similarTracks = await api.getTracksByGenre(genreName, 50) as Track[]
+        if (!similarTracks?.length) {
+          console.warn(`No tracks found for genre "${genreName}"`)
+          return playerStore.resetQueue()
+        }
+        playerStore.setQueue([])
+        playerStore.setQueueIndex(-1)
+
+        const shuffledTracks = shuffled(similarTracks) as Track[]
+        playerStore.addToQueue(shuffledTracks)
+        playerStore.setQueueIndex(0)
+        await audio.loadTrack({ ...playerStore.track })
+        playerStore.setPlaying()
+        playerStore.preloadNext()
+        console.info(`Auto-continued with genre: ${genreName}`)
+      } catch (error) {
+        console.error('Error fetching genre-based continuation:', error)
+        playerStore.resetQueue()
+      }
     }
   }
 
@@ -300,44 +337,55 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.setVolume(storedVolume)
 
   const track = playerStore.track
+
   if (track?.url) {
-    audio.changeTrack({ ...track, paused: true })
+    audio.loadTrack({ ...track, paused: true })
     playerStore.preloadNext()
   }
 
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
       playerStore.play()
+      mediaSession.playbackState = 'playing'
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
+      mediaSession.playbackState = 'paused'
     })
     mediaSession.setActionHandler('hangup' as any, () => {
+      console.info('hangup')
       if (!playerStore.userPaused) {
         playerStore.play()
       }
+      mediaSession.playbackState = 'playing'
     })
     mediaSession.setActionHandler('nexttrack', () => {
       playerStore.next()
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('previoustrack', () => {
       playerStore.previous()
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('stop', () => {
       playerStore.pause()
+      mediaSession.playbackState = 'paused'
     })
     mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime) {
         audio.seek(Math.min(details.seekTime, playerStore.duration))
       }
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
       audio.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
       audio.seek(Math.max(playerStore.currentTime - offset, 0))
+      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
   }
 
@@ -351,7 +399,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         if (remaining <= 0.4 && playerStore.hasNext) {
           playerStore.queueIndex++
           playerStore.setQueueIndex(playerStore.queueIndex)
-          audio.changeTrack({ ...playerStore.track })
+          audio.loadTrack({ ...playerStore.track })
         }
         if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
           playerStore.scrobbled = true

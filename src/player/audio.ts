@@ -76,8 +76,7 @@ export class AudioController {
     this.pipeline.audio.pause()
   }
 
-  async resume() {
-    await this.context.resume()
+  async play() {
     try {
       this.pipeline.audio.play()
       await this.fadeIn(0.4)
@@ -100,7 +99,7 @@ export class AudioController {
     }
   }
 
-  async changeTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain }) {
+  async loadTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
@@ -127,64 +126,60 @@ export class AudioController {
     if (token === this.changeToken) {
       this.pipeline.disconnect()
       this.pipeline = pipeline!
-      this.startTrack(this.pipeline, options.url, options.paused)
-      this.fadeIn(0.2)
+      this.setReplayGainMode(this.replayGainMode)
+
+      const audio = pipeline.audio
+      audio.onerror = () => {
+        this.onerror(audio.error)
+      }
+      audio.onended = () => {
+        this.onended()
+      }
+      audio.ontimeupdate = () => {
+        this.ontimeupdate(audio.currentTime)
+      }
+      audio.ondurationchange = () => {
+        if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+          this.ondurationchange(audio.duration)
+        }
+      }
+      audio.onpause = () => {
+        this.onpause()
+      }
+      audio.onloadedmetadata = () => {
+        if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+          this.ondurationchange(audio.duration)
+        } else {
+          this.ensureDuration(audio)
+        }
+        this.ontimeupdate(audio.currentTime)
+      }
+      if (audio.readyState < 1) {
+        try {
+          audio.load()
+        } catch {
+          /* ignore */
+        }
+      }
+      if (options.paused !== true) {
+        try {
+          await this.context.resume()
+          await this.play()
+          this.fadeIn(0.2)
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn('Audio play aborted due to rapid skip')
+            return
+          }
+          throw error
+        }
+      }
     } else {
       pipeline!.disconnect()
     }
   }
 
-  private async startTrack(pipeline: ReturnType<typeof creatPipeline>, url?: string, paused?: boolean) {
-    this.setReplayGainMode(this.replayGainMode)
-    const audio = pipeline.audio
-    audio.onerror = () => {
-      this.onerror(audio.error)
-    }
-    audio.onended = () => {
-      this.onended()
-    }
-    audio.ontimeupdate = () => {
-      this.ontimeupdate(audio.currentTime)
-    }
-    audio.ondurationchange = () => {
-      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
-        this.ondurationchange(audio.duration)
-      }
-    }
-    audio.onpause = () => {
-      this.onpause()
-    }
-    audio.onloadedmetadata = () => {
-      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
-        this.ondurationchange(audio.duration)
-      } else {
-        this.ensureDuration(audio)
-      }
-      this.ontimeupdate(audio.currentTime)
-    }
-    if (audio.readyState < 1) {
-      try {
-        audio.load()
-      } catch {
-        /* ignore */
-      }
-    }
-    if (paused !== true) {
-      try {
-        await this.context.resume()
-        await audio.play()
-        this.fadeIn(0.2)
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.warn('Audio play aborted due to rapid skip')
-          return
-        }
-        throw error
-      }
-    }
-  }
-
-  private async ensureDuration(audio: HTMLAudioElement, retries = 20, delay = 200) {
+  private async ensureDuration(audio: HTMLAudioElement, retries = 20, delay = 100) {
     for (let i = 0; i < retries; i++) {
       if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
         this.ondurationchange(audio.duration)
