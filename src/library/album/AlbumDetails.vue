@@ -54,6 +54,9 @@
         <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
           <Icon icon="shuffle" />
         </b-button>
+        <b-button variant="transparent" class="me-2" title="Radio" @click="RadioNow">
+          <Icon icon="radio" />
+        </b-button>
         <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
           <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
         </b-button>
@@ -129,6 +132,27 @@
       },
       shuffleNow() {
         return this.playerStore.shuffleNow(this.album!.tracks!)
+      },
+      async RadioNow() {
+        const album = this.album
+        if (!album || !album.artists?.length) {
+          console.warn('No album or artist information available for radio mode.')
+          return
+        }
+        this.playerStore.setShuffle(false)
+        const loader = useLoader()
+        loader.showLoading()
+        try {
+          const artistId = album.artists[0].id
+          const tracks = await this.$api.getSimilarTracksByArtist(artistId, 50)
+          if (!tracks?.length) {
+            console.warn(`No similar tracks found for artist ${album.artists[0].name}`)
+            return
+          }
+          return this.playerStore.playNow(tracks)
+        } finally {
+          loader.hideLoading()
+        }
       },
       setNextInQueue() {
         if (this.album) {

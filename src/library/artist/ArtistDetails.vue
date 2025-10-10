@@ -64,7 +64,7 @@
             variant="transparent"
             class="me-2"
             title="Radio"
-            @click="ArtistRadioNow">
+            @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
         </template>
@@ -204,12 +204,12 @@
           loader.hideLoading()
         }
       },
-      async ArtistRadioNow() {
+      async RadioNow() {
         this.playerStore.setShuffle(false)
         const loader = useLoader()
         loader.showLoading()
         try {
-          const tracks = await this.$api.getSimilarTracksByArtist(this.id, 500)
+          const tracks = await this.$api.getSimilarTracksByArtist(this.id, 50)
           return this.playerStore.playNow(tracks)
         } finally {
           loader.hideLoading()

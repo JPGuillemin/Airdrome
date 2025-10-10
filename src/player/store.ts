@@ -281,41 +281,64 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
     if (hasNext || repeat) return playerStore.next()
 
-    if (playerStore.track) {
-      const lastTrack = playerStore.track
+    if (!playerStore.track) return
 
-      try {
-        let genreName: string | undefined = (lastTrack as any).genre
+    const lastTrack = playerStore.track
 
-        if (!genreName && lastTrack.albumId) {
-          const album = await api.getAlbumDetails(lastTrack.albumId)
-          genreName = album.genres?.[0]?.name
+    try {
+      const artistId = lastTrack.artists?.[0]?.id
+      if (artistId) {
+        try {
+          const similarTracks = await api.getSimilarTracksByArtist(artistId, 50)
+          if (similarTracks?.length) {
+            console.info(`Auto-continued with similar tracks by artist: ${lastTrack.artists?.[0]?.name}`)
+            playerStore.setQueue([])
+            playerStore.setQueueIndex(-1)
+
+            const shuffledTracks = shuffled(similarTracks) as Track[]
+            playerStore.addToQueue(shuffledTracks)
+            playerStore.setQueueIndex(0)
+            await audio.loadTrack({ ...playerStore.track })
+            playerStore.setPlaying()
+            playerStore.preloadNext()
+            return
+          }
+        } catch (artistErr) {
+          console.warn('Error fetching similar tracks by artist:', artistErr)
         }
-
-        if (!genreName) {
-          console.warn('No genre found for last track — ending playback.')
-          return playerStore.resetQueue()
-        }
-
-        const similarTracks = await api.getTracksByGenre(genreName, 50) as Track[]
-        if (!similarTracks?.length) {
-          console.warn(`No tracks found for genre "${genreName}"`)
-          return playerStore.resetQueue()
-        }
-        playerStore.setQueue([])
-        playerStore.setQueueIndex(-1)
-
-        const shuffledTracks = shuffled(similarTracks) as Track[]
-        playerStore.addToQueue(shuffledTracks)
-        playerStore.setQueueIndex(0)
-        await audio.loadTrack({ ...playerStore.track })
-        playerStore.setPlaying()
-        playerStore.preloadNext()
-        console.info(`Auto-continued with genre: ${genreName}`)
-      } catch (error) {
-        console.error('Error fetching genre-based continuation:', error)
-        playerStore.resetQueue()
       }
+
+      let genreName: string | undefined = (lastTrack as any).genre
+
+      if (!genreName && lastTrack.albumId) {
+        const album = await api.getAlbumDetails(lastTrack.albumId)
+        genreName = album.genres?.[0]?.name
+      }
+
+      if (!genreName) {
+        console.warn('No genre found for last track — ending playback.')
+        return playerStore.resetQueue()
+      }
+
+      const similarTracks = await api.getTracksByGenre(genreName, 50) as Track[]
+      if (!similarTracks?.length) {
+        console.warn(`No tracks found for genre "${genreName}"`)
+        return playerStore.resetQueue()
+      }
+
+      playerStore.setQueue([])
+      playerStore.setQueueIndex(-1)
+
+      const shuffledTracks = shuffled(similarTracks) as Track[]
+      playerStore.addToQueue(shuffledTracks)
+      playerStore.setQueueIndex(0)
+      await audio.loadTrack({ ...playerStore.track })
+      playerStore.setPlaying()
+      playerStore.preloadNext()
+      console.info(`Auto-continued with genre: ${genreName}`)
+    } catch (error) {
+      console.error('Error fetching radio-like continuation:', error)
+      playerStore.resetQueue()
     }
   }
 
