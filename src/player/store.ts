@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import { defineStore } from 'pinia'
-import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
+import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
@@ -19,8 +19,9 @@ export const usePlayerStore = defineStore('player', {
     queue: [] as Track[],
     queueIndex: -1,
     isPlaying: false,
-    duration: 0,
-    currentTime: 0,
+    duration: 0.0,
+    currentTime: 0.0,
+    playbackRate: 0.0001,
     replayGainMode: storedReplayGainMode as ReplayGainMode,
     repeat: localStorage.getItem('player.repeat') === 'true',
     shuffle: localStorage.getItem('player.shuffle') === 'true',
@@ -154,9 +155,10 @@ export const usePlayerStore = defineStore('player', {
         this.setPaused()
       }
     },
-    async setMediaSessionPosition(duration?: number, rate = 1.0, position?: number) {
+    async setMediaSessionPosition(duration?: number, rate?: number, position?: number) {
       if (!navigator.mediaSession) return
       duration ??= this.duration
+      rate ??= this.playbackRate
       position ??= this.currentTime
       navigator.mediaSession.setPositionState({
         duration,
@@ -217,6 +219,7 @@ export const usePlayerStore = defineStore('player', {
     setPlaying() {
       if (mediaSession) {
         mediaSession.playbackState = 'playing'
+        this.setMediaSessionPosition(undefined, 1.0, undefined)
       }
       this.isPlaying = true
     },
@@ -224,6 +227,7 @@ export const usePlayerStore = defineStore('player', {
       this.isPlaying = false
       if (mediaSession) {
         mediaSession.playbackState = 'paused'
+        this.setMediaSessionPosition(undefined, 0.0001, undefined)
       }
     },
     setQueue(queue: Track[]) {
@@ -255,7 +259,7 @@ export const usePlayerStore = defineStore('player', {
           artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
         })
       }
-      this.setMediaSessionPosition(undefined, 1.0, 0.0)
+      this.setMediaSessionPosition(this.duration, 1.0, this.currentTime)
     },
   },
 })
@@ -270,6 +274,12 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ondurationchange = (value: number) => {
     playerStore.duration = value
   }
+
+  window.addEventListener('beforeunload', () => {
+    playerStore.pause()
+    api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
+    playerStore.setMediaSessionPosition(playerStore.duration, 0.0001, 0.0)
+  })
 
   // setInterval(() => {
   // if (!playerStore.track || !playerStore.isPlaying) return
@@ -379,6 +389,8 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       console.info('hangup')
       if (!playerStore.userPaused) {
         playerStore.play()
+        sleep(1000)
+        playerStore.play()
       }
       mediaSession.playbackState = 'playing'
     })
@@ -412,9 +424,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
+  let lastUpdate = 0
   watch(
     () => [playerStore.currentTime],
     () => {
+      const now = performance.now()
+      if (now - lastUpdate < 500) return
+      lastUpdate = now
+
       playerStore.setMediaSessionPosition()
 
       if (playerStore.track && playerStore.isPlaying) {
