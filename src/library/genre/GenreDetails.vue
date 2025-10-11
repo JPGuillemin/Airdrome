@@ -86,7 +86,9 @@
         loader.showLoading()
         try {
           const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
-          return this.playerStore.shuffleNow(tracks)
+          const shuffled = tracks.sort(() => Math.random() - 0.5)
+          const limited = shuffled.slice(0, 50)
+          return this.playerStore.shuffleNow(limited)
         } finally {
           loader.hideLoading()
         }
