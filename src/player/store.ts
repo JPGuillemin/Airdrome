@@ -13,6 +13,8 @@ const storedVolume = parseFloat(localStorage.getItem('player.volume') || '1.0')
 const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMode') ?? '0')
 const mediaSession: MediaSession | undefined = navigator.mediaSession
 const audio = new AudioController()
+const pauseRate = 0.00001
+const playRate = 1.0
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
@@ -21,7 +23,7 @@ export const usePlayerStore = defineStore('player', {
     isPlaying: false,
     duration: 0.0,
     currentTime: 0.0,
-    playbackRate: 0.0001,
+    playbackRate: pauseRate,
     replayGainMode: storedReplayGainMode as ReplayGainMode,
     repeat: localStorage.getItem('player.repeat') === 'true',
     shuffle: localStorage.getItem('player.shuffle') === 'true',
@@ -219,7 +221,7 @@ export const usePlayerStore = defineStore('player', {
     setPlaying() {
       if (mediaSession) {
         mediaSession.playbackState = 'playing'
-        this.setMediaSessionPosition(undefined, 1.0, undefined)
+        this.setMediaSessionPosition(undefined, playRate, undefined)
       }
       this.isPlaying = true
     },
@@ -227,7 +229,7 @@ export const usePlayerStore = defineStore('player', {
       this.isPlaying = false
       if (mediaSession) {
         mediaSession.playbackState = 'paused'
-        this.setMediaSessionPosition(undefined, 0.0001, undefined)
+        this.setMediaSessionPosition(undefined, pauseRate, undefined)
       }
     },
     setQueue(queue: Track[]) {
@@ -259,7 +261,7 @@ export const usePlayerStore = defineStore('player', {
           artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
         })
       }
-      this.setMediaSessionPosition(this.duration, 1.0, this.currentTime)
+      this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
     },
   },
 })
@@ -278,7 +280,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
     api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
-    playerStore.setMediaSessionPosition(playerStore.duration, 0.0001, 0.0)
+    playerStore.setMediaSessionPosition(playerStore.duration, pauseRate, 0.0)
   })
 
   // setInterval(() => {

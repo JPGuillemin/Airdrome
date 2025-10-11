@@ -96,9 +96,10 @@
 
       const colors = [
         { name: 'Blue', value: '#0d6efd' },
-        { name: 'Green', value: '#198754' },
+        { name: 'Green', value: '#1db954' },
         { name: 'Orange', value: '#ff8c00' },
-        { name: 'Purple', value: '#6f42c1' }
+        { name: 'Purple', value: '#6f42c1' },
+        { name: 'Red', value: '#bf0000' }
       ]
 
       const currentColor = ref(

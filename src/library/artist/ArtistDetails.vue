@@ -50,14 +50,6 @@
           @click="shuffleNow">
           <Icon icon="shuffle" />
         </b-button>
-        <b-button
-          v-if="artist.trackCount > 0"
-          variant="transparent"
-          class="me-2"
-          title="Favourite"
-          @click="toggleFavourite">
-          <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-        </b-button>
         <template v-if="artist.similarArtist.length > 0">
           <b-button
             v-if="artist.trackCount > 0"
@@ -68,6 +60,14 @@
             <Icon icon="radio" />
           </b-button>
         </template>
+        <b-button
+          v-if="artist.trackCount > 0"
+          variant="transparent"
+          class="me-2"
+          title="Favourite"
+          @click="toggleFavourite">
+          <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+        </b-button>
       </div>
     </Hero>
 

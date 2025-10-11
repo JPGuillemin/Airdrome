@@ -15,6 +15,7 @@ type ReplayGain = {
 }
 
 export class AudioController {
+  private fadeTime = 0.4
   private changeToken = 0
   private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
@@ -72,14 +73,14 @@ export class AudioController {
   }
 
   async pause() {
-    await this.fadeOut(0.4)
+    await this.fadeOut(this.fadeTime)
     this.pipeline.audio.pause()
   }
 
   async play() {
     try {
       this.pipeline.audio.play()
-      await this.fadeIn(0.4)
+      await this.fadeIn(this.fadeTime)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
@@ -91,11 +92,11 @@ export class AudioController {
 
   async seek(value: number) {
     if (!this.pipeline.audio.paused) {
-      this.fadeOut(0.2)
+      this.fadeOut(this.fadeTime / 2)
     }
     this.pipeline.audio.currentTime = value
     if (!this.pipeline.audio.paused) {
-      this.fadeIn(0.2)
+      this.fadeIn(this.fadeTime / 2)
     }
   }
 
@@ -165,7 +166,7 @@ export class AudioController {
         try {
           await this.context.resume()
           await this.play()
-          this.fadeIn(0.2)
+          this.fadeIn(this.fadeTime)
         } catch (error: any) {
           if (error.name === 'AbortError') {
             console.warn('Audio play aborted due to rapid skip')
