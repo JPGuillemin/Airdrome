@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <Hero :image="album.image">
+    <Hero :image="album.image" class="cursor-pointer" @click="heroPlayNow">
       <small>Album</small>
       <h1 class="display-5 fw-bold">
         {{ album.name }}
@@ -130,6 +130,18 @@
       playNow() {
         return this.playerStore.playNow(this.album!.tracks!)
       },
+      heroPlayNow() {
+        const album = this.album
+        const currentTrack = this.playerStore.track
+        if (!album) return
+        const isAlbumTrack =
+          !!currentTrack && (currentTrack.albumId === album.id || album.tracks?.some(t => t.id === currentTrack.id))
+        if (isAlbumTrack) {
+          return this.playerStore.playPause()
+        }
+        return this.playNow()
+      },
+
       shuffleNow() {
         return this.playerStore.shuffleNow(this.album!.tracks!)
       },
