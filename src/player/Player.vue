@@ -98,7 +98,7 @@
                 />
               </Dropdown>
               <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
-                <Icon icon="list" />
+                <Icon icon="soundwave" />
               </router-link>
             </div>
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">

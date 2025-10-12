@@ -28,6 +28,7 @@
   import iconFolder from '@iconify-icons/bi/folder'
   import iconGear from '@iconify-icons/bi/gear-fill'
   import iconGenre from '@iconify-icons/bi/palette'
+  import iconGoBack from '@iconify-icons/bi/caret-left'
   import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
   import iconHome from '@iconify-icons/bi/house-fill'
@@ -44,7 +45,7 @@
   import iconPodcast from '@iconify-icons/bi/rss'
   import iconRadio from '@iconify-icons/bi/broadcast'
   import iconRefresh from '@iconify-icons/bi/arrow-counterclockwise'
-  import iconRepeat from '@iconify-icons/bi/arrow-repeat'
+  import iconRepeat from '@iconify-icons/bi/repeat'
   import iconShuffle from '@iconify-icons/bi/shuffle'
   import iconSkipEnd from '@iconify-icons/bi/skip-end-fill'
   import iconSkipStart from '@iconify-icons/bi/skip-start-fill'
@@ -67,6 +68,7 @@
     folder: iconFolder.body,
     gear: iconGear.body,
     genres: iconGenre.body,
+    goback: iconGoBack.body,
     heart: iconHeart.body,
     'heart-fill': iconHeartFill.body,
     home: iconHome.body,

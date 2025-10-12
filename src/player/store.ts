@@ -430,25 +430,27 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   watch(
     () => [playerStore.currentTime],
     () => {
+      if (!playerStore.track || !playerStore.isPlaying) return
+
+      const remaining = playerStore.duration - playerStore.currentTime
+      if (remaining <= 0.10 && playerStore.hasNext) {
+        playerStore.queueIndex++
+        playerStore.setQueueIndex(playerStore.queueIndex)
+        audio.loadTrack({ ...playerStore.track })
+      }
+
       const now = performance.now()
-      if (now - lastUpdate < 500) return
+      if (now - lastUpdate < 300) return
       lastUpdate = now
 
       playerStore.setMediaSessionPosition()
 
-      if (playerStore.track && playerStore.isPlaying) {
-        const remaining = playerStore.duration - playerStore.currentTime
-        if (remaining <= 0.4 && playerStore.hasNext) {
-          playerStore.queueIndex++
-          playerStore.setQueueIndex(playerStore.queueIndex)
-          audio.loadTrack({ ...playerStore.track })
-        }
-        if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
-          playerStore.scrobbled = true
-          api.scrobble(playerStore.track.id)
-        }
+      if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
+        playerStore.scrobbled = true
+        api.scrobble(playerStore.track.id)
       }
     })
+
   watch(
     () => [playerStore.duration],
     () => {

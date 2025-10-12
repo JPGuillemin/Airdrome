@@ -15,7 +15,7 @@ type ReplayGain = {
 }
 
 export class AudioController {
-  private fadeTime = 0.4
+  private fadeTime = 0.3
   private changeToken = 0
   private buffer: HTMLAudioElement | null = null
   private statsListener : any = null
@@ -80,7 +80,7 @@ export class AudioController {
   async play() {
     try {
       this.pipeline.audio.play()
-      await this.fadeIn(this.fadeTime)
+      this.fadeIn(this.fadeTime)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')

@@ -15,6 +15,13 @@
       >
         <Icon icon="home" class="nav-icon nav-link" />
       </router-link>
+      <button
+        class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2 d-none d-md-inline"
+        title="Go back"
+        @click="$router.back()"
+      >
+        <Icon icon="goback" class="nav-icon nav-link" />
+      </button>
     </div>
 
     <div class="d-flex align-items-center">

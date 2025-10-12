@@ -1,5 +1,5 @@
 import { AuthService } from '@/auth/service'
-import { map, max, orderBy, startCase, sumBy, uniqBy } from 'lodash-es'
+import { orderBy, startCase, sumBy, uniqBy } from 'lodash-es'
 import { toQueryString } from '@/shared/utils'
 
 export type AlbumSort =
@@ -425,60 +425,6 @@ export class API {
     }
   }
 
-  async getRadioStations(): Promise<RadioStation[]> {
-    const response = await this.fetch('rest/getInternetRadioStations')
-    return (response?.internetRadioStations?.internetRadioStation || [])
-      .map((item: any, idx: number) => ({ ...item, track: idx + 1 }))
-      .map(this.normalizeRadioStation, this)
-  }
-
-  async addRadioStation(title: string, url: string, description?: string): Promise<RadioStation[]> {
-    const params = {
-      name: title ?? '',
-      streamUrl: url,
-      homepageUrl: description?.trim() === '' ? undefined : description,
-    }
-    await this.fetch('rest/createInternetRadioStation', params)
-    return await this.getRadioStations()
-  }
-
-  async updateRadioStation(item: RadioStation): Promise<RadioStation[]> {
-    const params = {
-      id: item.id.replace('radio-', ''),
-      name: item.title ?? '',
-      streamUrl: item.url,
-      homepageUrl: item.description?.trim() === '' ? undefined : item.description
-    }
-    await this.fetch('rest/updateInternetRadioStation', params)
-    return await this.getRadioStations()
-  }
-
-  async deleteRadioStation(id: string): Promise<void> {
-    return this.fetch('rest/deleteInternetRadioStation', { id: id.replace('radio-', '') })
-  }
-
-  async getPodcasts(): Promise<any[]> {
-    const response = await this.fetch('rest/getPodcasts')
-    return (response?.podcasts?.channel || []).map(this.normalizePodcast, this)
-  }
-
-  async getPodcast(id: string): Promise<any> {
-    const response = await this.fetch('rest/getPodcasts', { id })
-    return this.normalizePodcast(response?.podcasts?.channel[0])
-  }
-
-  async addPodcast(url: string): Promise<any> {
-    return this.fetch('rest/createPodcastChannel', { url })
-  }
-
-  async refreshPodcasts(): Promise<void> {
-    return this.fetch('rest/refreshPodcasts')
-  }
-
-  async deletePodcast(id: string): Promise<any> {
-    return this.fetch('rest/deletePodcastChannel', { id })
-  }
-
   async getDirectory(path: string): Promise<Directory> {
     const parts = path.split('/')
     const musicFolderId = parts[0]
@@ -543,22 +489,6 @@ export class API {
 
   async updateNowPlaying(id: string): Promise<void> {
     return this.fetch('rest/scrobble', { id, submission: false })
-  }
-
-  private normalizeRadioStation(item: any): Track & RadioStation {
-    return {
-      id: `radio-${item.id}`,
-      title: item.name,
-      // Workaround: airsonic-advanced does not use correct name
-      description: item.homepageUrl || item.homePageUrl,
-      album: item.name,
-      track: item.track,
-      url: item.streamUrl,
-      duration: 0,
-      favourite: false,
-      isStream: true,
-      artists: [],
-    }
   }
 
   private normalizeTrack(item: any): Track {
@@ -664,38 +594,6 @@ export class API {
       image: response.songCount > 0 ? this.getCoverArtUrl(response) : undefined,
       isPublic: response.public,
       isReadOnly: false,
-    }
-  }
-
-  private normalizePodcast(podcast: any): any {
-    const image = podcast.originalImageUrl
-    const episodes = podcast.episode || []
-    return {
-      id: podcast.id,
-      name: podcast.title || podcast.url,
-      description: podcast.description,
-      image,
-      url: podcast.url,
-      trackCount: episodes.length,
-      updatedAt: max(map(episodes, 'publishDate')),
-      tracks: episodes.map((item: any, index: number): Track & PodcastEpisode => ({
-        id: item.streamId,
-        title: item.title,
-        duration: item.duration,
-        favourite: false,
-        track: episodes.length - index,
-        album: podcast.title,
-        albumId: undefined,
-        image,
-        isPodcast: true,
-        isUnavailable: item.status !== 'completed' || !item.streamId,
-        url: item.status === 'completed' && item.streamId
-          ? this.getStreamUrl(item.streamId)
-          : undefined,
-        description: item.description,
-        playCount: item.playCount || 0,
-        artists: [],
-      })),
     }
   }
 
