@@ -1,4 +1,4 @@
-<template functional>
+<template>
   <div class="d-flex flex-column align-items-center pt-5">
     <Icon icon="stack" class="empty-icon" />
     <div class="mt-4 text-muted">

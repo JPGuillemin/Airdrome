@@ -18,7 +18,9 @@ declare module 'pinia' {
   }
 }
 
-declare const __BUILD_DATE__: string
-declare const __BUILD_VERSION__: string
+declare global {
+  const __BUILD_DATE__: string
+  const __BUILD_VERSION__: string
+}
 
 export {}

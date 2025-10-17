@@ -1,8 +1,9 @@
-<template functional>
-  <div :class="['tiles', props.square ? 'tiles-square' : 'tiles-rect', {'tiles-hs' : props.allowHScroll}]">
+<template>
+  <div :class="['tiles', square ? 'tiles-square' : 'tiles-rect', { 'tiles-hs': allowHScroll }]">
     <slot />
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
 
@@ -10,7 +11,7 @@
     props: {
       square: { type: Boolean, default: false },
       allowHScroll: { type: Boolean, default: false },
-    }
+    },
   })
 </script>
 <style>

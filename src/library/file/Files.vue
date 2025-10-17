@@ -29,7 +29,7 @@
           :class="{'active': track.id === playingTrackId}"
           @click="playTrack(track)"
         >
-          <CellTrackNumber :active="track.id === playingTrackId && isPlaying" :value="track.track" />
+          <CellTrackNumber :active="track.id === playingTrackId && isPlaying" :model-value="track.track" />
           <CellTitle :track="track" />
           <CellActions :track="track" />
         </tr>

@@ -1,6 +1,6 @@
 <template>
   <div v-if="loader.loading" class="loader-overlay">
-    <img src="@/shared/assets/spinner.svg" alt="Loading..." class="spinner-svg">
+    <img src="@/shared/assets/spinner.png" alt="Loading..." class="spinner-png">
   </div>
 </template>
 
@@ -23,7 +23,7 @@
     z-index: 99999;
   }
 
-  .spinner-svg {
+  .spinner-png {
     width: 80px;
     height: 80px;
     animation: spin 1s linear infinite;

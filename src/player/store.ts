@@ -43,7 +43,7 @@ export const usePlayerStore = defineStore('player', {
     },
     progress(): number {
       if (this.duration > 0) {
-        return Math.min(this.currentTime / this.duration, 1)
+        return Math.min(this.currentTime, this.duration)
       }
       return 0
     },

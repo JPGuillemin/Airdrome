@@ -45,14 +45,16 @@
     },
     emits: ['close'],
     setup() {
+      const auth = useAuth()
+      const url = 'https://github.com/JPGuillemin/Airdrome'
+      const build = __BUILD_VERSION__
+      const buildDate = __BUILD_DATE__
       return {
-        auth: useAuth()
+        auth,
+        build,
+        buildDate,
+        url
       }
-    },
-    computed: {
-      build: () => import.meta.env.VITE_BUILD,
-      buildDate: () => import.meta.env.VITE_BUILD_DATE,
-      url: () => 'https://github.com/JPGuillemin/Airdrome'
     },
   })
 </script>

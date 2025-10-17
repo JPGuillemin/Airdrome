@@ -1,4 +1,4 @@
-import Router from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/auth/Login.vue'
 import Queue from '@/player/Queue.vue'
 import Discover from '@/discover/Discover.vue'
@@ -18,10 +18,8 @@ import Files from '@/library/file/Files.vue'
 import { useLoader } from '@/shared/loader'
 
 export function setupRouter(auth: AuthService) {
-  const router = new Router({
-    mode: 'history',
-    linkExactActiveClass: 'active',
-    base: import.meta.env.BASE_URL,
+  const router = createRouter({
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
       {
         path: '/',
@@ -32,8 +30,8 @@ export function setupRouter(auth: AuthService) {
         name: 'login',
         path: '/login',
         component: Login,
-        props: (route) => ({
-          returnTo: route.query.returnTo,
+        props: route => ({
+          returnTo: route.query.returnTo
         }),
         meta: {
           layout: 'fullscreen'
@@ -42,15 +40,15 @@ export function setupRouter(auth: AuthService) {
       {
         name: 'queue',
         path: '/queue',
-        component: Queue,
+        component: Queue
       },
       {
         name: 'albums-default',
         path: '/albums',
-        redirect: ({
+        redirect: {
           name: 'albums',
           params: { sort: 'recently-added' }
-        }),
+        }
       },
       {
         name: 'albums',
@@ -60,77 +58,77 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'album',
-        path: '/albums/id/:id',
+        path: '/albums/:id',
         component: AlbumDetails,
-        props: true,
+        props: true
       },
       {
         name: 'artists',
         path: '/artists/:sort?',
         component: ArtistLibrary,
-        props: true,
+        props: true
       },
       {
         name: 'artist',
-        path: '/artists/id/:id',
+        path: '/artists/:id',
         component: ArtistDetails,
-        props: true,
+        props: true
       },
       {
         name: 'artist-tracks',
-        path: '/artists/id/:id/tracks',
+        path: '/artists/:id/tracks',
         component: ArtistTracks,
-        props: true,
+        props: true
       },
       {
         name: 'genres',
         path: '/genres/:sort?',
         component: GenreLibrary,
-        props: true,
+        props: true
       },
       {
         name: 'genre',
-        path: '/genres/id/:id/:section?',
+        path: '/genres/:id/:section?',
         component: GenreDetails,
-        props: true,
+        props: true
       },
       {
         name: 'favourites',
         path: '/favourites/:section?',
         component: Favourites,
-        props: true,
+        props: true
       },
       {
         name: 'files',
-        path: '/files/:path*',
+        path: '/files/:path(.*)',
         component: Files,
-        props: true,
+        props: true
       },
       {
         name: 'playlists',
         path: '/playlists/:sort?',
         component: PlaylistLibrary,
-        props: true,
+        props: true
       },
       {
         name: 'playlist',
         path: '/playlist/:id',
         component: Playlist,
-        props: true,
+        props: true
       },
       {
         name: 'search',
         path: '/search/:type?',
         component: SearchResult,
-        props: (route) => ({
+        props: route => ({
           ...route.params,
-          ...route.query,
+          ...route.query
         })
-      },
+      }
     ],
     scrollBehavior(to, from, savedPosition) {
-      return savedPosition || { x: 0, y: 0 }
-    },
+      return savedPosition || { left: 0, top: 0 }
+    }
   })
 
   router.beforeEach((to, from, next) => {

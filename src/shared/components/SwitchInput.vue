@@ -4,8 +4,8 @@
       :id="id"
       type="checkbox" role="switch"
       class="form-check-input"
-      :checked="value"
-      @change="$emit('input', $event.target.checked)"
+      :checked="modelValue"
+      @change="$emit('update:model-value', $event.target.checked)"
     >
     <label :for="id" class="form-check-label" />
   </div>
@@ -16,9 +16,9 @@
 
   export default defineComponent({
     props: {
-      value: { type: Boolean, default: false },
+      modelValue: { type: Boolean, default: false },
     },
-    emits: ['input'],
+    emits: ['input', 'update:model-value'],
     computed: {
       id(): string {
         return uniqueId('switch-')

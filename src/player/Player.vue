@@ -1,8 +1,21 @@
 <template>
   <div :class="{'visible': track}" class="player d-flex">
     <div class="flex-fill">
-      <ProgressBar v-if="track" />
-
+      <Slider
+        v-model="sliderValue"
+        :min="0"
+        :max="playerStore.duration"
+        :step="0.1"
+        :tooltips="true"
+        :show-tooltip="dragging"
+        :format="formatter"
+        :orientation="horizontal"
+        :lazy="true"
+        class="playback-slider"
+        @start="onSliderDragStart"
+        @end="onSliderDragEnd"
+        @change="onSliderUpdate"
+      />
       <div class="row align-items-center m-0 elevated">
         <!-- Track info --->
         <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start" style="width: 0; min-width: 0">
@@ -86,15 +99,21 @@
                 <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                 <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
               </b-button>
-              <Dropdown variant="transparent" align="center" direction="up" menu-style="min-width: 0px;" title="Volume">
+              <Dropdown variant="transparent" align="center" direction="up" menu-style="min-width:0px;" title="Volume">
                 <template #button-content>
                   <Icon :icon="isMuted ? 'mute' : 'volume'" />
                 </template>
                 <Slider
-                  class="py-3 px-4"
-                  style="height: 120px;" direction="btt"
-                  :min="0" :max="1" :step="0.01" percent
-                  :value="volume" @input="setVolume"
+                  v-model="playerStore.volume"
+                  orientation="vertical"
+                  direction="rtl"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                  :tooltips="false"
+                  :show-tooltip="never"
+                  class="volume-slider"
+                  @update="playerStore.setVolume"
                 />
               </Dropdown>
               <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
@@ -104,9 +123,17 @@
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
                 <span>Volume</span>
-                <Slider class="p-3" style="width: 120px;"
-                        :min="0" :max="1" :step="0.01" percent
-                        :value="volume" @input="setVolume"
+                <Slider
+                  v-model="playerStore.volume"
+                  :orientation="vertical"
+                  :direction="rtl"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                  :tooltips="false"
+                  :show-tooltip="never"
+                  class="volume-slider"
+                  @update="playerStore.setVolume"
                 />
               </div>
               <div class="d-flex justify-content-between px-3 py-1">
@@ -161,67 +188,78 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, watch, ref } from 'vue'
   import { ReplayGainMode } from './audio'
-  import ProgressBar from '@/player/ProgressBar.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
-  import { formatArtists } from '@/shared/utils'
+  import { usePlayerStore } from '@/player/store'
+  import Dropdown from '@/shared/components/Dropdown.vue'
   import SwitchInput from '@/shared/components/SwitchInput.vue'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
   import IconReplayGainTrack from '@/shared/components/IconReplayGainTrack.vue'
   import IconReplayGainAlbum from '@/shared/components/IconReplayGainAlbum.vue'
-  import { usePlayerStore } from '@/player/store'
-  import Dropdown from '@/shared/components/Dropdown.vue'
+  import Slider from '@vueform/slider'
+  import '@vueform/slider/themes/default.css'
+  import { formatDuration } from '@/shared/utils'
 
   export default defineComponent({
     name: 'Player',
     components: {
       Dropdown,
       SwitchInput,
-      ProgressBar,
       IconReplayGain,
       IconReplayGainTrack,
       IconReplayGainAlbum,
+      Slider,
     },
     setup() {
-      return {
-        ReplayGainMode,
-        favouriteStore: useFavouriteStore(),
-        playerStore: usePlayerStore(),
+      const playerStore = usePlayerStore()
+      const favouriteStore = useFavouriteStore()
+      const sliderValue = ref(0)
+      watch(
+        () => playerStore.currentTime,
+        (current) => {
+          // Only update slider if user is not dragging
+          if (!dragging.value) {
+            sliderValue.value = current
+          }
+        },
+        { immediate: true }
+      )
+
+      const dragging = ref(false)
+
+      const onSliderDragStart = () => {
+        dragging.value = true
       }
+      const onSliderDragEnd = () => {
+        dragging.value = false
+      }
+      const onSliderUpdate = (value: number) => {
+        playerStore.seek(value)
+        dragging.value = false
+      }
+      const formatter = (value: number) => {
+        return `${formatDuration(value)} / ${formatDuration(playerStore.duration)}`
+      }
+      return { formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
     },
     computed: {
-      isPlaying() {
-        return this.playerStore.isPlaying
-      },
-      volume() {
-        return this.playerStore.volume
-      },
-      isMuted() {
-        return this.playerStore.volume <= 0.0
-      },
-      replayGainMode(): ReplayGainMode {
-        return this.playerStore.replayGainMode
-      },
-      repeatActive(): boolean {
-        return this.playerStore.repeat
-      },
-      shuffleActive(): boolean {
-        return this.playerStore.shuffle
-      },
+      track() { return this.playerStore.track },
+      isPlaying() { return this.playerStore.isPlaying },
+      isMuted() { return this.playerStore.volume <= 0 },
+      repeatActive() { return this.playerStore.repeat },
+      shuffleActive() { return this.playerStore.shuffle },
+      replayGainMode(): ReplayGainMode { return this.playerStore.replayGainMode },
       isFavourite(): boolean {
         return !!this.track && !!this.favouriteStore.tracks[this.track.id]
-      },
-      track() {
-        return this.playerStore.track
       },
       documentTitle(): string {
         return [
           this.track?.title,
-          formatArtists(this.track?.artists || []) || this.track?.album,
+          this.track?.artists?.map(a => a.name).join(', ') || this.track?.album,
           'Airdrome'
-        ].filter(x => !!x).join(' • ')
-      }
+        ].filter(Boolean).join(' • ')
+      },
     },
     watch: {
       documentTitle: {
@@ -232,33 +270,17 @@
       }
     },
     methods: {
-      playPause() {
-        return this.playerStore.playPause()
-      },
-      next() {
-        return this.playerStore.next()
-      },
-      previous() {
-        return this.playerStore.previous()
-      },
-      setVolume(volume: any) {
-        return this.playerStore.setVolume(parseFloat(volume))
-      },
-      toggleReplayGain() {
-        return this.playerStore.toggleReplayGain()
-      },
-      toggleRepeat() {
-        return this.playerStore.toggleRepeat()
-      },
-      toggleShuffle() {
-        return this.playerStore.toggleShuffle()
-      },
-      toggleFavourite() {
-        return this.favouriteStore.toggle('track', this.track!.id)
-      },
+      playPause() { this.playerStore.playPause() },
+      next() { this.playerStore.next() },
+      previous() { this.playerStore.previous() },
+      toggleReplayGain() { this.playerStore.toggleReplayGain() },
+      toggleRepeat() { this.playerStore.toggleRepeat() },
+      toggleShuffle() { this.playerStore.toggleShuffle() },
+      toggleFavourite() { this.favouriteStore.toggle('track', this.track!.id) },
     }
   })
 </script>
+
 <style scoped>
   .player {
     position: fixed;
@@ -293,5 +315,21 @@
   }
   .btn-play {
     --bs-btn-font-size: 1.5rem;
+  }
+  .playback-slider {
+    --slider-connect-bg: var(--bs-primary);
+    --slider-bg: var(--bs-secondary);
+    --slider-handle-bg: var(--bs-primary);
+    --slider-tooltip-bg: var(--bs-primary);
+    height: 4px !important;
+    margin: 0;
+  }
+  .volume-slider {
+    --slider-connect-bg: var(--bs-primary);
+    --slider-bg: var(--bs-secondary);
+    --slider-handle-bg: var(--bs-primary);
+    width: 4px !important;
+    height: 120px !important;
+    margin: auto;
   }
 </style>

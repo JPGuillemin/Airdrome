@@ -1,34 +1,52 @@
-<template functional>
-  <div class="tile card" v-bind="data.attrs" v-on="data.on">
-    <ContextMenu
-      class="tile-img"
-      :class="props.circle ? 'tile-img--circle' : ''"
-      :enabled="!!$slots['context-menu']"
-    >
-      <router-link :to="props.to">
-        <img v-if="props.image" :src="props.image">
-        <img v-else src="@/shared/assets/fallback.svg">
+<template>
+  <div class="tile card">
+    <ContextMenu class="tile-img" :class="{ 'tile-img--circle': circle }" :enabled="!!$slots['context-menu']">
+      <router-link v-if="to" :to="to">
+        <img v-if="image" :src="image" alt="Album cover">
+        <img v-else :src="fallback" alt="Fallback cover">
       </router-link>
+      <template v-else>
+        <img v-if="image" :src="image" alt="Album cover">
+        <img v-else :src="fallback" alt="Fallback cover">
+      </template>
+
       <template #context-menu>
         <slot name="context-menu" />
       </template>
     </ContextMenu>
+
     <div class="card-body">
       <div class="text-truncate fw-bold">
         <slot name="title">
-          <router-link :to="props.to">
-            {{ props.title }}
-          </router-link>
+          {{ title }}
         </slot>
       </div>
       <div class="text-truncate text-muted">
         <slot name="text">
-          {{ props.text }}
+          {{ text }}
         </slot>
       </div>
     </div>
   </div>
 </template>
+
+<script lang="ts">
+  import { defineComponent } from 'vue'
+  import fallback from '@/shared/assets/fallback.svg'
+
+  export default defineComponent({
+    props: {
+      to: { type: Object, default: null },
+      title: { type: String, default: '' },
+      text: { type: String, default: '' },
+      image: { type: String, default: '' },
+      circle: { type: Boolean, default: false },
+    },
+    setup() {
+      return { fallback }
+    },
+  })
+</script>
 <style>
   .tile-img {
     position: relative;

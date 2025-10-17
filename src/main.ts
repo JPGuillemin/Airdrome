@@ -1,19 +1,20 @@
-import '@/style/main.scss'
-import Vue, { markRaw, watch } from 'vue'
-import Router from 'vue-router'
+import { createApp, markRaw, watch } from 'vue'
 import AppComponent from '@/app/App.vue'
-import { createApp } from '@/shared/compat'
 import { components } from '@/shared/components'
 import { setupRouter } from '@/shared/router'
 import { useMainStore } from '@/shared/store'
-import { API } from '@/shared/api'
+import { createApi } from '@/shared'
 import { createAuth } from '@/auth/service'
 import { setupAudio, usePlayerStore } from './player/store'
-import { createApi } from '@/shared'
-import { createPinia, PiniaVuePlugin } from 'pinia'
+import { createPinia } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
 import { useLoader } from '@/shared/loader'
+import { createBootstrap } from 'bootstrap-vue-next'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
+import '@/style/main.scss'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -33,29 +34,13 @@ if (savedColor) {
   setTheme(savedColor)
 }
 
-declare module 'vue/types/vue' {
-  interface Vue {
-    $api: API
-  }
-}
-
-declare module 'pinia' {
-  export interface PiniaCustomProperties {
-    api: API;
-  }
-}
-
-Vue.use(Router)
-Vue.use(PiniaVuePlugin)
-
 const auth = createAuth()
 const api = createApi(auth)
 const router = setupRouter(auth)
 
-const pinia = createPinia()
-  .use(({ store }) => {
-    store.api = markRaw(api)
-  })
+const pinia = createPinia().use(({ store }) => {
+  store.api = markRaw(api)
+})
 
 const mainStore = useMainStore(pinia)
 const playerStore = usePlayerStore(pinia)
@@ -72,7 +57,8 @@ watch(
         playerStore.loadQueue(),
       ])
     }
-  })
+  }
+)
 
 router.beforeEach((to, from, next) => {
   const loader = useLoader()
@@ -86,16 +72,16 @@ router.afterEach(() => {
   loader.hideLoading()
 })
 
-const app = createApp(AppComponent, { router, pinia, store: playerStore })
+const app = createApp(AppComponent)
 
-app.config.errorHandler = (err: Error) => {
-  // eslint-disable-next-line
-  console.error(err)
-  mainStore.setError(err)
-}
-
+app.use(router)
+app.use(pinia)
 app.use(auth)
 app.use(api)
+app.use(createBootstrap())
+
+// Set global $api property
+app.config.globalProperties.$api = api
 
 Object.entries(components).forEach(([key, value]) => {
   app.component(key, value as any)

@@ -4,7 +4,7 @@
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>
 </template>
-  <script lang="ts">
+<script lang="ts">
   import { defineComponent, PropType } from 'vue'
 
   export default defineComponent({

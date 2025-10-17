@@ -1,7 +1,7 @@
 <template>
-  <VueSlider
+  <Slider
     v-bind="$attrs"
-    :value="value"
+    :model-value="modelValue"
     :min="min"
     :max="max"
     :interval="step"
@@ -11,23 +11,24 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import VueSlider from 'vue-slider-component'
+  import '@vueform/slider/themes/default.css'
+  import Slider from '@vueform/slider'
 
   export default defineComponent({
     components: {
-      VueSlider,
+      Slider,
     },
     props: {
-      value: { type: Number, required: true },
+      modelValue: { type: Number, required: true },
       min: { type: Number, required: true },
       max: { type: Number, required: true },
       step: { type: Number, required: true },
       percent: { type: Boolean, default: false },
     },
-    emits: ['input'],
+    emits: ['input', 'update:model-value'],
     methods: {
       onInput(value: number) {
-        this.$emit('input', value)
+        this.$emit('update:model-value', value)
       },
       formatter(value: number) {
         return this.percent

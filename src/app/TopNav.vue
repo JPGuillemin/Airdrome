@@ -11,7 +11,7 @@
         class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2"
         :to="{ name: 'home' }"
         title="Home panel"
-        exact
+        :exact="true"
       >
         <Icon icon="home" class="nav-icon nav-link" />
       </router-link>

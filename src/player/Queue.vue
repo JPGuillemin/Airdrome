@@ -40,7 +40,7 @@
             :class="{'active': index === queueIndex}"
             :draggable="true" @dragstart="dragstart(item.id, $event)"
             @click="play(index)">
-          <CellTrackNumber :active="index === queueIndex && isPlaying" :value="item.track" />
+          <CellTrackNumber :active="index === queueIndex && isPlaying" :model-value="item.track" />
           <CellTitle :track="item" />
           <CellArtist :track="item" />
           <CellAlbum :track="item" />
@@ -56,7 +56,7 @@
     </BaseTable>
     <EmptyIndicator v-else />
 
-    <CreatePlaylistModal :visible.sync="savePlaylistModalVisible" :tracks="tracks" />
+    <CreatePlaylistModal v-model="savePlaylistModalVisible" :tracks="tracks" />
   </div>
 </template>
 <script lang="ts">

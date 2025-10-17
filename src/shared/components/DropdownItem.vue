@@ -1,17 +1,11 @@
 <template>
   <li>
-    <component
-      :is="href ? 'a' : 'button'"
-      type="button"
-      :href="href"
-      :disabled="disabled"
-      :class="[
-        'dropdown-item d-flex justify-content-between align-items-center text-nowrap',
-        {[`dropdown-item-${variant}`]: variant}
-      ]"
-      v-bind="$attrs"
-      v-on="$listeners"
-    >
+    <component :is="href ? 'a' : 'button'" type="button" :href="href" :disabled="disabled" :class="[
+      'dropdown-item d-flex justify-content-between align-items-center text-nowrap',
+      {
+        [`dropdown-item-${variant}`]: variant,
+      },
+    ]" v-bind="$attrs">
       <slot />
       <Icon v-if="icon" :icon="icon" class="ms-4" />
     </component>

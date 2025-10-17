@@ -18,7 +18,7 @@
           @click="play(index)">
         <CellTrackNumber
           :active="item.id === playingTrackId && isPlaying"
-          :value="item.track || index + 1"
+          :model-value="item.track || index + 1"
         />
         <CellTitle :track="item" />
         <CellArtist v-if="!noArtist" :track="item" />

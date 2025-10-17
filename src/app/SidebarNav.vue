@@ -6,7 +6,7 @@
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{name: 'home'}" exact>
+    <router-link class="nav-link" :to="{name: 'home'}" :exact="true">
       <Icon icon="discover" class="" /> Discover
     </router-link>
 

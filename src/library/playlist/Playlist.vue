@@ -52,7 +52,7 @@
       </template>
     </TrackList>
     <EmptyIndicator v-else />
-    <EditModal :visible.sync="showEditModal" :item="playlist" @confirm="updatePlaylist">
+    <EditModal v-model="showEditModal" :item="playlist" @confirm="updatePlaylist">
       <template #title>
         Edit playlist
       </template>
