@@ -48,9 +48,6 @@
       </OverflowFade>
 
       <div class="text-nowrap mt-3">
-        <b-button variant="transparent" class="me-2" title="Play" @click="playNow">
-          <Icon :icon="isPlaying ? 'pause' : 'play'" />
-        </b-button>
         <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
           <Icon icon="shuffle" />
         </b-button>
@@ -137,7 +134,7 @@
         if (isAlbumTrack) {
           return this.playerStore.playPause()
         }
-        return this.playNow()
+        return this.playerStore.playNow(this.album!.tracks!)
       },
 
       shuffleNow() {

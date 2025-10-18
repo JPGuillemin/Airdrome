@@ -319,6 +319,10 @@
   .playback-slider {
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--bs-secondary);
+    --slider-handle-size: 18px;
+    --slider-handle-ring-size: 24px;
+    --slider-handle-ring-opacity: 0;
+    --slider-handle-border: 2px solid var(--bs-primary);
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
     height: 4px !important;
