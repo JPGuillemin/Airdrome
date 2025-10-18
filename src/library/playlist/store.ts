@@ -7,6 +7,9 @@ export const usePlaylistStore = defineStore('playlist', {
     playlists: null as null | Playlist[],
   }),
   actions: {
+    getPlaylist(id: string) {
+      return this.playlists?.find(p => p.id === id) || null
+    },
     load() {
       return this.api.getPlaylists().then(result => {
         this.playlists = orderBy(result, 'createdAt')

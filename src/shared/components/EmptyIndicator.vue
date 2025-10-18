@@ -3,7 +3,7 @@
     <Icon icon="stack" class="empty-icon" />
     <div class="mt-4 text-muted">
       <slot>
-        {{ props.label || 'Empty' }}
+        {{ props?.label || 'Empty' }}
       </slot>
     </div>
   </div>

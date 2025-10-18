@@ -381,11 +381,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   if (mediaSession) {
     mediaSession.setActionHandler('play', () => {
       playerStore.play()
-      mediaSession.playbackState = 'playing'
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
-      mediaSession.playbackState = 'paused'
     })
     mediaSession.setActionHandler('hangup' as any, () => {
       console.info('hangup')
@@ -394,35 +392,28 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         sleep(1000)
         playerStore.play()
       }
-      mediaSession.playbackState = 'playing'
     })
     mediaSession.setActionHandler('nexttrack', () => {
       playerStore.next()
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('previoustrack', () => {
       playerStore.previous()
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('stop', () => {
       playerStore.pause()
-      mediaSession.playbackState = 'paused'
     })
     mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime) {
         audio.seek(Math.min(details.seekTime, playerStore.duration))
       }
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
       audio.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
       audio.seek(Math.max(playerStore.currentTime - offset, 0))
-      mediaSession.playbackState = playerStore.isPlaying ? 'playing' : 'paused'
     })
   }
 

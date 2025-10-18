@@ -1,7 +1,9 @@
 <template>
-  <div v-if="loader.loading" class="loader-overlay">
-    <img src="@/shared/assets/spinner.png" alt="Loading..." class="spinner-png">
-  </div>
+  <transition name="fade">
+    <div v-if="loader.loading" class="loader-overlay">
+      <img src="@/shared/assets/spinner.png" alt="Loading..." class="spinner-png">
+    </div>
+  </transition>
 </template>
 
 <script setup lang="ts">
@@ -31,5 +33,13 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  .fade-enter-active, .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from, .fade-leave-to {
+    opacity: 0;
   }
 </style>

@@ -7,9 +7,9 @@
         :max="playerStore.duration"
         :step="0.1"
         :tooltips="true"
-        :show-tooltip="dragging"
+        show-tooltip="drag"
         :format="formatter"
-        :orientation="horizontal"
+        orientation="horizontal"
         :lazy="true"
         class="playback-slider"
         @start="onSliderDragStart"
@@ -111,7 +111,7 @@
                   :max="1"
                   :step="0.01"
                   :tooltips="false"
-                  :show-tooltip="never"
+                  show-tooltip="never"
                   class="volume-slider"
                   @update="playerStore.setVolume"
                 />
@@ -125,13 +125,13 @@
                 <span>Volume</span>
                 <Slider
                   v-model="playerStore.volume"
-                  :orientation="vertical"
-                  :direction="rtl"
+                  orientation="vertical"
+                  direction="rtl"
                   :min="0"
                   :max="1"
                   :step="0.01"
                   :tooltips="false"
-                  :show-tooltip="never"
+                  show-tooltip="never"
                   class="volume-slider"
                   @update="playerStore.setVolume"
                 />

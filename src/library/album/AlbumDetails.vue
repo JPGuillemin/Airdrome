@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <Hero :image="album.image" class="cursor-pointer" @click="heroPlayNow">
+    <Hero v-if="album" :image="album.image" class="cursor-pointer" @click="playNow">
       <small>Album</small>
       <h1 class="display-5 fw-bold">
         {{ album.name }}
@@ -49,7 +49,7 @@
 
       <div class="text-nowrap mt-3">
         <b-button variant="transparent" class="me-2" title="Play" @click="playNow">
-          <Icon icon="play" />
+          <Icon :icon="isPlaying ? 'pause' : 'play'" />
         </b-button>
         <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
           <Icon icon="shuffle" />
@@ -113,6 +113,7 @@
       isFavourite(): boolean {
         return !!this.favouriteStore.albums[this.id]
       },
+      isPlaying() { return this.playerStore.isPlaying },
     },
     created() {
       const loader = useLoader()
@@ -128,9 +129,6 @@
     },
     methods: {
       playNow() {
-        return this.playerStore.playNow(this.album!.tracks!)
-      },
-      heroPlayNow() {
         const album = this.album
         const currentTrack = this.playerStore.track
         if (!album) return

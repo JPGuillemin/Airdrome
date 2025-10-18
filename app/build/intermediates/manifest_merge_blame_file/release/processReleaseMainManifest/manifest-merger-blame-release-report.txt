@@ -1,0 +1,458 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<!--
+3    Copyright 2019 Google Inc. All Rights Reserved.
+4
+5     Licensed under the Apache License, Version 2.0 (the "License");
+6     you may not use this file except in compliance with the License.
+7     You may obtain a copy of the License at
+8
+9         http://www.apache.org/licenses/LICENSE-2.0
+10
+11     Unless required by applicable law or agreed to in writing, software
+12     distributed under the License is distributed on an "AS IS" BASIS,
+13     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+14     See the License for the specific language governing permissions and
+15     limitations under the License.
+16-->
+17<!--
+18 The "package" attribute is rewritten by the Gradle build with the value of applicationId.
+19     It is still required here, as it is used to derive paths, for instance when referring
+20     to an Activity by ".MyActivity" instead of the full name. If more Activities are added to the
+21     application, the package attribute will need to reflect the correct path in order to use
+22     the abbreviated format.
+23-->
+24<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+25    package="org.zenwalk.darkstar.twa"
+26    android:versionCode="3"
+27    android:versionName="3" >
+28
+29    <uses-sdk
+30        android:minSdkVersion="21"
+31        android:targetSdkVersion="35" />
+32
+33    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+33-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:26:9-80
+33-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:26:26-78
+34    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+34-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:27:9-81
+34-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:27:26-78
+35    <uses-permission android:name="android.permission.WAKE_LOCK" />
+35-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:28:9-72
+35-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:28:26-69
+36    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+36-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:29:9-84
+36-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:29:26-81
+37    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+37-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:30:9-84
+37-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:30:26-81
+38
+39    <queries>
+39-->[com.google.androidbrowserhelper:androidbrowserhelper:2.6.2] /root/.gradle/caches/8.11.1/transforms/5053e02be90783e54992393be394bb70/transformed/androidbrowserhelper-2.6.2/AndroidManifest.xml:22:5-30:15
+40        <intent>
+40-->[com.google.androidbrowserhelper:androidbrowserhelper:2.6.2] /root/.gradle/caches/8.11.1/transforms/5053e02be90783e54992393be394bb70/transformed/androidbrowserhelper-2.6.2/AndroidManifest.xml:23:9-29:18
+41            <action android:name="android.intent.action.VIEW" />
+41-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:17-68
+41-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:25-66
+42
+43            <category android:name="android.intent.category.BROWSABLE" />
+43-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:137:17-77
+43-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:137:27-75
+44
+45            <data android:scheme="https" />
+45-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:138:17-141:19
+45-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:138:23-45
+46        </intent>
+47    </queries>
+48
+49    <permission
+49-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:22:5-24:47
+50        android:name="org.zenwalk.darkstar.twa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+50-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:23:9-81
+51        android:protectionLevel="signature" />
+51-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:24:9-44
+52
+53    <uses-permission android:name="org.zenwalk.darkstar.twa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+53-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:26:5-97
+53-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:26:22-94
+54
+55    <application
+55-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:32:5-217:19
+56        android:name="org.zenwalk.darkstar.twa.Application"
+56-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:33:9-35
+57        android:allowBackup="true"
+57-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:34:9-35
+58        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+58-->[androidx.core:core:1.13.0] /root/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:28:18-86
+59        android:extractNativeLibs="true"
+60        android:icon="@mipmap/ic_launcher"
+60-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:35:9-43
+61        android:label="@string/appName"
+61-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:36:9-40
+62        android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+62-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:38:9-105
+63        android:supportsRtl="true"
+63-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:40:9-35
+64        android:theme="@android:style/Theme.Translucent.NoTitleBar" >
+64-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:41:9-68
+65        <meta-data
+65-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:43:9-45:58
+66            android:name="asset_statements"
+66-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:44:13-44
+67            android:resource="@string/assetStatements" />
+67-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:45:13-55
+68        <meta-data
+68-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:48:13-50:58
+69            android:name="web_manifest_url"
+69-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:49:17-48
+70            android:value="@string/webManifestUrl" />
+70-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:50:17-55
+71        <meta-data
+71-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:53:9-55:52
+72            android:name="twa_generator"
+72-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:54:13-41
+73            android:value="@string/generatorApp" />
+73-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:55:13-49
+74
+75        <activity
+75-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:57:13-68:24
+76            android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+76-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:57:23-104
+77            android:enabled="true"
+77-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:59:17-39
+78            android:excludeFromRecents="true"
+78-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:60:17-50
+79            android:exported="false" >
+79-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:58:17-41
+80            <meta-data
+80-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:61:17-63:57
+81                android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL"
+81-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:62:21-87
+82                android:value="@string/launchUrl" />
+82-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:63:21-54
+83
+84            <intent-filter>
+84-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:64:17-67:33
+85                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+85-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:65:21-92
+85-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:65:29-89
+86
+87                <category android:name="android.intent.category.DEFAULT" />
+87-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:21-80
+87-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:31-77
+88            </intent-filter>
+89        </activity>
+90        <activity
+90-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:71:9-161:20
+91            android:name="org.zenwalk.darkstar.twa.LauncherActivity"
+91-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:71:19-50
+92            android:alwaysRetainTaskState="true"
+92-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:72:13-49
+93            android:exported="true"
+93-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:74:13-36
+94            android:label="@string/launcherName" >
+94-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:73:13-49
+95            <meta-data
+95-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:75:13-76:53
+96                android:name="android.support.customtabs.trusted.DEFAULT_URL"
+96-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:75:24-85
+97                android:value="@string/launchUrl" />
+97-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:76:17-50
+98            <meta-data
+98-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:78:13-80:58
+99                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+99-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:79:17-83
+100                android:resource="@color/colorPrimary" />
+100-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:80:17-55
+101            <meta-data
+101-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:84:13-86:62
+102                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK"
+102-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:85:17-88
+103                android:resource="@color/colorPrimaryDark" />
+103-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:86:17-59
+104            <meta-data
+104-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:88:13-90:61
+105                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
+105-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:89:17-87
+106                android:resource="@color/navigationColor" />
+106-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:90:17-58
+107            <meta-data
+107-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:92:13-94:65
+108                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK"
+108-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:93:17-92
+109                android:resource="@color/navigationColorDark" />
+109-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:94:17-62
+110            <meta-data
+110-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:96:13-98:68
+111                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR"
+111-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:97:17-84
+112                android:resource="@color/navigationDividerColor" />
+112-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:98:17-65
+113            <meta-data
+113-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:100:13-102:72
+114                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK"
+114-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:101:17-89
+115                android:resource="@color/navigationDividerColorDark" />
+115-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:102:17-69
+116            <meta-data
+116-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:104:13-105:54
+117                android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
+117-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:104:24-95
+118                android:resource="@drawable/splash" />
+118-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:105:17-52
+119            <meta-data
+119-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:107:13-108:60
+120                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
+120-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:107:24-104
+121                android:resource="@color/backgroundColor" />
+121-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:108:17-58
+122            <meta-data
+122-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:110:13-111:71
+123                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
+123-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:110:24-105
+124                android:value="@integer/splashScreenFadeOutDuration" />
+124-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:111:17-69
+125            <meta-data
+125-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:113:13-114:60
+126                android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
+126-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:113:24-97
+127                android:value="@string/providerAuthority" />
+127-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:114:17-58
+128            <meta-data
+128-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:116:13-97
+129                android:name="android.app.shortcuts"
+129-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:116:24-60
+130                android:resource="@xml/shortcuts" />
+130-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:116:61-94
+131            <meta-data
+131-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:118:13-119:56
+132                android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
+132-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:118:24-91
+133                android:value="@string/fallbackType" />
+133-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:119:17-53
+134            <meta-data
+134-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:125:13-126:54
+135                android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
+135-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:125:24-92
+136                android:value="@string/orientation" />
+136-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:126:17-52
+137
+138            <intent-filter>
+138-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:129:13-132:29
+139                <action android:name="android.intent.action.MAIN" />
+139-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:130:17-69
+139-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:130:25-66
+140
+141                <category android:name="android.intent.category.LAUNCHER" />
+141-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:131:17-77
+141-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:131:27-74
+142            </intent-filter>
+143            <intent-filter android:autoVerify="true" >
+143-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:134:13-142:29
+143-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:134:28-53
+144                <action android:name="android.intent.action.VIEW" />
+144-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:17-68
+144-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:25-66
+145
+146                <category android:name="android.intent.category.DEFAULT" />
+146-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:21-80
+146-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:31-77
+147                <category android:name="android.intent.category.BROWSABLE" />
+147-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:137:17-77
+147-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:137:27-75
+148
+149                <data
+149-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:138:17-141:19
+150                    android:host="@string/hostName"
+150-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:139:21-52
+151                    android:scheme="https" />
+151-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:138:23-45
+152            </intent-filter>
+153
+154            <!-- Declare as a music/audio app -->
+155            <intent-filter>
+155-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:145:13-151:29
+156                <action android:name="android.intent.action.VIEW" />
+156-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:17-68
+156-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:135:25-66
+157                <action android:name="android.intent.action.MUSIC_PLAYER" />
+157-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:147:17-77
+157-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:147:25-74
+158
+159                <category android:name="android.intent.category.DEFAULT" />
+159-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:21-80
+159-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:31-77
+160                <category android:name="android.intent.category.APP_MUSIC" />
+160-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:149:17-78
+160-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:149:27-75
+161
+162                <data android:mimeType="audio/*" />
+162-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:138:17-141:19
+162-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:150:23-49
+163            </intent-filter>
+164
+165            <!-- Support "play from search" (Google Assistant, etc.) -->
+166            <intent-filter>
+166-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:154:13-157:29
+167                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+167-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:155:17-86
+167-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:155:25-83
+168
+169                <category android:name="android.intent.category.DEFAULT" />
+169-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:21-80
+169-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:31-77
+170            </intent-filter>
+171        </activity>
+172        <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
+172-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:163:9-90
+172-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:163:19-87
+173        <activity
+173-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:165:9-166:62
+174            android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"
+174-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:165:19-97
+175            android:configChanges="orientation|screenSize" />
+175-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:166:13-59
+176
+177        <provider
+177-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:168:9-176:20
+178            android:name="androidx.core.content.FileProvider"
+178-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:169:13-62
+179            android:authorities="@string/providerAuthority"
+179-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:170:13-60
+180            android:exported="false"
+180-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:172:13-37
+181            android:grantUriPermissions="true" >
+181-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:171:13-47
+182            <meta-data
+182-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:173:13-175:53
+183                android:name="android.support.FILE_PROVIDER_PATHS"
+183-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:174:17-67
+184                android:resource="@xml/filepaths" />
+184-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:175:17-50
+185        </provider>
+186
+187        <service
+187-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:178:9-193:19
+188            android:name="org.zenwalk.darkstar.twa.DelegationService"
+188-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:179:13-46
+189            android:enabled="@bool/enableNotification"
+189-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:180:13-55
+190            android:exported="@bool/enableNotification" >
+190-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:181:13-56
+191            <meta-data
+191-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:184:17-186:73
+192                android:name="android.support.customtabs.trusted.SMALL_ICON"
+192-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:185:21-81
+193                android:resource="@drawable/ic_notification_icon" />
+193-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:186:21-70
+194
+195            <intent-filter>
+195-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:189:13-192:29
+196                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+196-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:190:17-105
+196-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:190:25-103
+197
+198                <category android:name="android.intent.category.DEFAULT" />
+198-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:21-80
+198-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:66:31-77
+199            </intent-filter>
+200        </service>
+201        <service
+201-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:195:9-201:19
+202            android:name="org.zenwalk.darkstar.twa.TwaMediaService"
+202-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:196:13-44
+203            android:exported="true" >
+203-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:197:13-36
+204            <intent-filter>
+204-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:198:13-200:29
+205                <action android:name="android.media.browse.MediaBrowserService" />
+205-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:199:17-83
+205-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:199:25-80
+206            </intent-filter>
+207        </service>
+208
+209        <receiver
+209-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:203:9-209:20
+210            android:name="android.support.v4.media.session.MediaButtonReceiver"
+210-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:204:13-80
+211            android:exported="true" >
+211-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:205:13-36
+212            <intent-filter>
+212-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:206:13-208:29
+213                <action android:name="android.intent.action.MEDIA_BUTTON" />
+213-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:207:17-77
+213-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:207:25-74
+214            </intent-filter>
+215        </receiver>
+216
+217        <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
+217-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:213:13-118
+217-->/data/Projects/Airdrome/app/src/main/AndroidManifest.xml:213:23-115
+218
+219        <provider
+219-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+220            android:name="androidx.startup.InitializationProvider"
+220-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+221            android:authorities="org.zenwalk.darkstar.twa.androidx-startup"
+221-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+222            android:exported="false" >
+222-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+223            <meta-data
+223-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+224                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+224-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+225                android:value="androidx.startup" />
+225-->[androidx.emoji2:emoji2:1.3.0] /root/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+226            <meta-data
+226-->[androidx.lifecycle:lifecycle-process:2.6.2] /root/.gradle/caches/8.11.1/transforms/4bc52031417e9743197e36b704fe409f/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+227                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+227-->[androidx.lifecycle:lifecycle-process:2.6.2] /root/.gradle/caches/8.11.1/transforms/4bc52031417e9743197e36b704fe409f/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+228                android:value="androidx.startup" />
+228-->[androidx.lifecycle:lifecycle-process:2.6.2] /root/.gradle/caches/8.11.1/transforms/4bc52031417e9743197e36b704fe409f/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+229            <meta-data
+229-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+230                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+230-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+231                android:value="androidx.startup" />
+231-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+232        </provider>
+233
+234        <receiver
+234-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+235            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+235-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+236            android:directBootAware="false"
+236-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+237            android:enabled="true"
+237-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+238            android:exported="true"
+238-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+239            android:permission="android.permission.DUMP" >
+239-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+240            <intent-filter>
+240-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+241                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+241-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+241-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+242            </intent-filter>
+243            <intent-filter>
+243-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+244                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+244-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+244-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+245            </intent-filter>
+246            <intent-filter>
+246-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+247                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+247-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+247-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+248            </intent-filter>
+249            <intent-filter>
+249-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+250                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+250-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+250-->[androidx.profileinstaller:profileinstaller:1.3.1] /root/.gradle/caches/8.11.1/transforms/bb4a0d32d1b17a1dcea0cf71d2bde5e0/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+251            </intent-filter>
+252        </receiver>
+253    </application>
+254
+255</manifest>

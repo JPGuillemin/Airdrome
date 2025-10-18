@@ -52,13 +52,13 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'albums',
-        path: '/albums/:sort',
+        path: '/albums/:sort?',
         component: AlbumLibrary,
         props: true
       },
       {
         name: 'album',
-        path: '/albums/:id',
+        path: '/albums/id/:id',
         component: AlbumDetails,
         props: true
       },
@@ -70,13 +70,13 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'artist',
-        path: '/artists/:id',
+        path: '/artists/id/:id',
         component: ArtistDetails,
         props: true
       },
       {
         name: 'artist-tracks',
-        path: '/artists/:id/tracks',
+        path: '/artists/id/:id/tracks',
         component: ArtistTracks,
         props: true
       },
@@ -88,7 +88,7 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'genre',
-        path: '/genres/:id/:section?',
+        path: '/genres/id/:id/:section?',
         component: GenreDetails,
         props: true
       },
@@ -100,7 +100,7 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'files',
-        path: '/files/:path(.*)',
+        path: '/files/:path(.*)?',
         component: Files,
         props: true
       },

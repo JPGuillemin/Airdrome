@@ -3,30 +3,35 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 192.168.10.101",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite",
+    "serve": "vite"
   },
   "dependencies": {
     "@iconify-icons/bi": "^1.2.2",
+    "@popperjs/core": "^2.11.8",
+    "@vueform/slider": "^2.1.10",
     "@vueuse/core": "^11.1.0",
-    "bootstrap": "^5.3.3",
-    "bootstrap-vue": "^2.23.1",
+    "bootstrap": "^5.3.8",
+    "bootstrap-vue-next": "^0.40.6",
     "icecast-metadata-stats": "^0.1.1",
     "lodash-es": "^4.17.21",
     "md5-es": "^1.8.2",
     "pinia": "^2.0.28",
-    "vue": "^2.7.0",
-    "vue-router": "^3.5.2",
-    "vue-slider-component": "^3.2.22"
+    "vue": "^3.4.27",
+    "vue-router": "^4.3.3"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.6",
     "@typescript-eslint/eslint-plugin": "^5.18.0",
     "@typescript-eslint/parser": "^5.18.0",
-    "@vitejs/plugin-vue2": "^2.3.3",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/compiler-sfc": "^3.4.27",
     "@vue/eslint-config-standard": "^8.0.1",
     "@vue/eslint-config-typescript": "^11.0.2",
+    "@vue/test-utils": "^2.0.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.13.0",
     "eslint-plugin-import": "^2.24.2",
@@ -35,10 +40,15 @@
     "eslint-plugin-standard": "^5.0.0",
     "eslint-plugin-vue": "^9.5.1",
     "rollup-plugin-bundle-analyzer": "^1.6.6",
-    "sass": "^1.34.0",
-    "typescript": "^5.0.4",
-    "vite": "^6.3.6",
+    "sass": "^1.77.8",
+    "typescript": "^5.1.6",
+    "vite": "^6.4.0",
     "vite-plugin-checker": "^0.10.2",
     "vue-tsc": "^2.2.2"
-  }
+  },
+  "engines": {
+    "node": "^22.20.0",
+    "npm": "10.2.4"
+  },
+  "type": "module"
 }

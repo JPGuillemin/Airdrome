@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Automatically generated file. DO NOT MODIFY -->
+
+    <!-- Value from default config. -->
+    <bool name="enableNotification">true</bool>
+    <!-- Value from default config. -->
+    <bool name="enableSiteSettingsShortcut">true</bool>
+    <!-- Value from default config. -->
+    <color name="backgroundColor">#000000</color>
+    <!-- Value from default config. -->
+    <color name="colorPrimary">#000000</color>
+    <!-- Value from default config. -->
+    <color name="colorPrimaryDark">#000000</color>
+    <!-- Value from default config. -->
+    <color name="navigationColor">#000000</color>
+    <!-- Value from default config. -->
+    <color name="navigationColorDark">#000000</color>
+    <!-- Value from default config. -->
+    <color name="navigationDividerColor">#000000</color>
+    <!-- Value from default config. -->
+    <color name="navigationDividerColorDark">#000000</color>
+    <!-- Value from default config. -->
+    <integer name="splashScreenFadeOutDuration">300</integer>
+    <!-- Value from default config. -->
+    <string name="appName" translatable="false">Airdrome</string>
+    <!-- Value from default config. -->
+    <string name="fallbackType" translatable="false">customtabs</string>
+    <!-- Value from default config. -->
+    <string name="fullScopeUrl" translatable="false">https://darkstar.zenwalk.org/</string>
+    <!-- Value from default config. -->
+    <string name="generatorApp" translatable="false">bubblewrap-cli</string>
+    <!-- Value from default config. -->
+    <string name="hostName" translatable="false">darkstar.zenwalk.org</string>
+    <!-- Value from default config. -->
+    <string name="launchUrl" translatable="false">https://darkstar.zenwalk.org/</string>
+    <!-- Value from default config. -->
+    <string name="launcherName" translatable="false">Airdrome</string>
+    <!-- Value from default config. -->
+    <string name="orientation" translatable="false">default</string>
+    <!-- Value from default config. -->
+    <string name="providerAuthority" translatable="false">org.zenwalk.darkstar.twa.fileprovider</string>
+    <!-- Value from default config. -->
+    <string name="webManifestUrl" translatable="false">https://darkstar.zenwalk.org/manifest.json</string>
+
+</resources>

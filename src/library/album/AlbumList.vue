@@ -1,7 +1,7 @@
 <template>
   <Tiles square :allow-h-scroll="allowHScroll">
     <Tile
-      v-for="(item, index) in items"
+      v-for="(item, index) in validItems"
       :key="item.id || index"
       :to="{ name: 'album', params: { id: item.id } }"
       :title="item.name || 'Unknown Album'"

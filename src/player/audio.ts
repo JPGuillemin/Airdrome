@@ -34,6 +34,10 @@ export class AudioController {
   onblur: () => void = () => { /* do nothing */ }
   onvisibilitychange: () => void = () => { /* do nothing */ }
 
+  get audioElement(): HTMLAudioElement | undefined {
+    return this.pipeline?.audio
+  }
+
   currentTime() {
     return this.pipeline.audio.currentTime
   }
@@ -79,13 +83,17 @@ export class AudioController {
 
   async play() {
     try {
-      this.pipeline.audio.play()
+      if (this.context.state === 'suspended') {
+        await this.context.resume()
+      }
+      await this.pipeline.audio.play()
       this.fadeIn(this.fadeTime)
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn('Resume aborted')
         return
       }
+      console.error('AudioController.play() failed:', err)
       throw err
     }
   }
@@ -100,68 +108,71 @@ export class AudioController {
     }
   }
 
-  async loadTrack(options: { url?: string, paused?: boolean, replayGain?: ReplayGain }) {
+  async loadTrack(options: { url?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
+
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
-      console.info('AudioController: using buffer for ', options.url)
+      console.info('AudioController: using buffer for', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
     } else {
-      console.info('AudioController: no buffer, fetching ', options.url)
+      console.info('AudioController: no buffer, fetching', options.url)
       pipeline = creatPipeline(this.context, {
         url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
     }
+
     if (token === this.changeToken) {
       this.pipeline.disconnect()
       this.pipeline = pipeline!
       this.setReplayGainMode(this.replayGainMode)
 
       const audio = pipeline.audio
-      audio.onerror = () => {
-        this.onerror(audio.error)
-      }
-      audio.onended = () => {
-        this.onended()
-      }
-      audio.ontimeupdate = () => {
-        this.ontimeupdate(audio.currentTime)
-      }
-      audio.ondurationchange = () => {
+
+      audio.onerror = () => this.onerror(audio.error)
+      audio.onended = () => this.onended()
+      audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
+      audio.onpause = () => this.onpause()
+
+      // Duration: prefer native event, fallback to polling
+      const handleDuration = () => {
         if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
           this.ondurationchange(audio.duration)
+          return true
         }
+        return false
       }
-      audio.onpause = () => {
-        this.onpause()
-      }
-      audio.onloadedmetadata = () => {
-        if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
-          this.ondurationchange(audio.duration)
-        } else {
-          this.ensureDuration(audio)
+
+      const onMetadataLoaded = () => {
+        if (!handleDuration()) {
+          this.ensureDuration(audio) // fallback polling
         }
         this.ontimeupdate(audio.currentTime)
       }
+
+      audio.onloadedmetadata = onMetadataLoaded
+      audio.addEventListener('durationchange', () => handleDuration())
+
       if (audio.readyState < 1) {
         try {
           audio.load()
         } catch {
-          /* ignore */
+          // ignore
         }
       }
+
       if (options.paused !== true) {
         try {
           await this.context.resume()
@@ -180,15 +191,21 @@ export class AudioController {
     }
   }
 
-  private async ensureDuration(audio: HTMLAudioElement, retries = 20, delay = 100) {
+  // Fallback polling only if necessary
+  private async ensureDuration(audio: HTMLAudioElement, retries = 50, delay = 100) {
     for (let i = 0; i < retries; i++) {
-      if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
-        this.ondurationchange(audio.duration)
+      const duration = audio.duration
+      if (duration && duration !== Infinity && !isNaN(duration)) {
+        this.ondurationchange(duration)
         return
       }
       await sleep(delay)
     }
-    console.warn('AudioController: failed to resolve duration for', audio.src)
+
+    // Only warn if duration is truly invalid after all retries
+    if (!audio.duration || audio.duration === Infinity || isNaN(audio.duration)) {
+      console.warn('AudioController: failed to resolve duration for', audio.src)
+    }
   }
 
   private async fadeIn(duration = 0) {

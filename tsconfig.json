@@ -11,6 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
     "sourceMap": true,
+    "noImplicitAny": false,
     "baseUrl": "./src",
     "types": ["vite/client"],
     "paths": {
@@ -28,6 +29,7 @@
   },
   "include": [
     "src/**/*.ts",
+    "src/**/*.d.ts",
     "src/**/*.vue",
   ],
   "exclude": [

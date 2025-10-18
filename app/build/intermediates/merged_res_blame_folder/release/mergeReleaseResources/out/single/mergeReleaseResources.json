@@ -1,0 +1,102 @@
+[
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xxhdpi_ic_notification_icon.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xxhdpi/ic_notification_icon.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xxxhdpi_splash.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xxxhdpi/splash.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-hdpi_ic_maskable.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-hdpi/ic_maskable.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-anydpi_shortcut_legacy_background.xml.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-anydpi/shortcut_legacy_background.xml"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-mdpi_ic_notification_icon.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-mdpi/ic_notification_icon.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xxxhdpi_ic_notification_icon.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xxxhdpi/ic_notification_icon.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-hdpi_splash.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-hdpi/splash.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-mdpi_splash.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-mdpi/splash.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/raw_web_app_manifest.json.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/raw/web_app_manifest.json"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/xml_filepaths.xml.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/xml/filepaths.xml"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-hdpi_ic_notification_icon.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-hdpi/ic_notification_icon.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xxhdpi_splash.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xxhdpi/splash.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xxxhdpi_ic_maskable.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xxxhdpi/ic_maskable.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-mdpi_ic_maskable.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-mdpi/ic_maskable.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xhdpi_ic_notification_icon.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xhdpi/ic_notification_icon.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/xml_shortcuts.xml.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/xml/shortcuts.xml"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xxhdpi_ic_maskable.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xxhdpi/ic_maskable.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/drawable-xhdpi_splash.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/drawable-xhdpi/splash.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "org.zenwalk.darkstar.twa.app-release-4:/mipmap-xhdpi_ic_maskable.png.flat",
+        "source": "org.zenwalk.darkstar.twa.app-main-5:/mipmap-xhdpi/ic_maskable.png"
+    }
+]

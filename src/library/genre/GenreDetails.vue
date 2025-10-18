@@ -3,96 +3,98 @@
     <h1>{{ id }}</h1>
     <ul class="nav-underlined mb-3">
       <li>
-        <router-link :to="{... $route, params: { section: 'albums' }}">
+        <router-link :to="{ ...$route, params: { section: 'albums' } }">
           Albums
         </router-link>
       </li>
       <li>
-        <router-link :to="{... $route, params: { section: 'tracks' }}">
-          Tracks
-        </router-link>
-      </li>
-      <li>
-        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
-          <Icon icon="shuffle" />
+        <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
+          <Icon icon="radio" />
         </b-button>
       </li>
     </ul>
-    <template v-if="section === 'tracks'">
-      <InfiniteList v-slot="{ items }" key="tracks" :load="loadTracks">
-        <TrackList :tracks="items" />
-      </InfiniteList>
-    </template>
-    <template v-if="section === 'shuffle'">
-      <InfiniteList v-slot="{ items }" key="tracks" :load="loadShuffle">
-        <TrackList :tracks="items" />
-      </InfiniteList>
-    </template>
-    <template v-if="section === 'albums'">
+
+    <template v-if="currentSection === 'albums'">
       <InfiniteList v-slot="{ items }" key="albums" :load="loadAlbums">
         <AlbumList :items="items" />
       </InfiniteList>
     </template>
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import { orderBy } from 'lodash-es'
   import AlbumList from '@/library/album/AlbumList.vue'
-  import TrackList from '@/library/track/TrackList.vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
+  import type { Album, Track } from '@/shared/api' // adjust path if necessary
 
   export default defineComponent({
-    components: {
-      AlbumList,
-      TrackList,
-      InfiniteList,
-    },
+    components: { AlbumList, InfiniteList },
     props: {
       id: { type: String, required: true },
-      section: { type: String, default: 'albums' },
+      section: { type: String, default: 'albums' }
     },
     setup() {
+      const playerStore = usePlayerStore()
+      const loader = useLoader()
+      return { playerStore, loader }
+    },
+    data() {
       return {
-        playerStore: usePlayerStore(),
+        currentSection: this.section,
+        firstLoadDone: false
+      }
+    },
+    watch: {
+      '$route.params.section': {
+        immediate: true,
+        handler(newSection: string) {
+          this.currentSection = newSection || 'albums'
+        }
       }
     },
     methods: {
-      async loadAlbums(offset: number) {
+      async loadAlbums(offset: number): Promise<Album[]> {
         const loader = useLoader()
-        loader.showLoading()
+        if (!this.firstLoadDone) loader.showLoading()
         try {
-          return await this.$api.getAlbumsByGenre(this.id, 100, offset)
+          return await this.$api.getAlbumsByGenre(this.id, 30, offset)
         } finally {
-          loader.hideLoading()
+          if (!this.firstLoadDone) {
+            loader.hideLoading()
+            this.firstLoadDone = true
+          }
         }
       },
 
-      async loadTracks(offset: number) {
-        const loader = useLoader()
-        loader.showLoading()
+      async shuffleNow(): Promise<void> {
+        this.loader.showLoading()
+        await new Promise(resolve => setTimeout(resolve, 0)) // give loader a tick
         try {
-          const tracks = await this.$api.getTracksByGenre(this.id, 200, offset)
-          return orderBy(tracks, t => t.title?.toLowerCase(), 'asc')
-        } finally {
-          loader.hideLoading()
-        }
-      },
+          const albums: Album[] = await this.$api.getAlbumsByGenre(this.id, 50, 0)
+          if (!albums.length) return
 
-      async shuffleNow() {
-        const loader = useLoader()
-        loader.showLoading()
-        try {
-          const tracks = await this.$api.getTracksByGenre(this.id, 10000, 0)
-          const shuffled = tracks.sort(() => Math.random() - 0.5)
-          const limited = shuffled.slice(0, 50)
-          return this.playerStore.shuffleNow(limited)
+          const selectedAlbums: Album[] = []
+          const copy: Album[] = [...albums]
+          for (let i = 0; i < 5 && copy.length; i++) {
+            const idx = Math.floor(Math.random() * copy.length)
+            selectedAlbums.push(copy.splice(idx, 1)[0])
+          }
+
+          const albumDetails: Album[] = await Promise.all(
+            selectedAlbums.map(album => this.$api.getAlbumDetails(album.id))
+          )
+
+          const tracks: Track[] = albumDetails.flatMap(album => album.tracks || [])
+          if (!tracks.length) return
+
+          this.playerStore.shuffleNow(tracks)
         } finally {
-          loader.hideLoading()
+          this.loader.hideLoading()
         }
-      },
+      }
     }
   })
 </script>

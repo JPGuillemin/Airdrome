@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="enableNotification">true</bool>
+    <bool name="enableSiteSettingsShortcut">true</bool>
+    <color name="backgroundColor">#000000</color>
+    <color name="colorPrimary">#000000</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="navigationColor">#000000</color>
+    <color name="navigationColorDark">#000000</color>
+    <color name="navigationDividerColor">#000000</color>
+    <color name="navigationDividerColorDark">#000000</color>
+    <color name="shortcut_background">#F5F5F5</color>
+    <integer name="splashScreenFadeOutDuration">300</integer>
+    <string name="appName" translatable="false">Airdrome</string>
+    <string name="assetStatements">
+    [{
+        \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+        \"target\": {
+            \"namespace\": \"web\",
+            \"site\": \"https://darkstar.zenwalk.org\"
+        }
+    }]
+    
+  </string>
+    <string name="fallbackType" translatable="false">customtabs</string>
+    <string name="fullScopeUrl" translatable="false">https://darkstar.zenwalk.org/</string>
+    <string name="generatorApp" translatable="false">bubblewrap-cli</string>
+    <string name="hostName" translatable="false">darkstar.zenwalk.org</string>
+    <string name="launchUrl" translatable="false">https://darkstar.zenwalk.org/</string>
+    <string name="launcherName" translatable="false">Airdrome</string>
+    <string name="orientation" translatable="false">default</string>
+    <string name="providerAuthority" translatable="false">org.zenwalk.darkstar.twa.fileprovider</string>
+    <string name="webManifestUrl" translatable="false">https://darkstar.zenwalk.org/manifest.json</string>
+</resources>

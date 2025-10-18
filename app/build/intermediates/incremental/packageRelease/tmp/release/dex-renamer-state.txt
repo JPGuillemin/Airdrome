@@ -1,0 +1,4 @@
+#Sat Sep 27 17:58:15 CEST 2025
+base.0=/data/Projects/Airdrome/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
