@@ -1,24 +1,19 @@
 <template>
   <div class="main-content">
-    <h1>{{ id }}</h1>
-    <ul class="nav-underlined mb-3">
-      <li>
-        <router-link :to="{ ...$route, params: { section: 'albums' } }">
-          Albums
-        </router-link>
-      </li>
-      <li>
-        <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
-          <Icon icon="radio" />
-        </b-button>
-      </li>
-    </ul>
-
-    <template v-if="currentSection === 'albums'">
-      <InfiniteList v-slot="{ items }" key="albums" :load="loadAlbums">
-        <AlbumList :items="items" />
-      </InfiniteList>
-    </template>
+    <h1 class="display-5 fw-bold hero-title">
+      {{ id }}
+    </h1>
+    <div class="text-nowrap mt-3">
+      <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
+        <Icon icon="radio" />
+      </b-button>
+      <b-button variant="transparent" class="me-2" title="Playing" @click="$router.push({ name: 'queue' })">
+        <Icon icon="soundwave" />
+      </b-button>
+    </div>
+    <InfiniteList v-slot="{ items }" key="albums" :load="loadAlbums">
+      <AlbumList :items="items" />
+    </InfiniteList>
   </div>
 </template>
 
@@ -98,3 +93,14 @@
     }
   })
 </script>
+
+<style scoped>
+  .hero-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+</style>

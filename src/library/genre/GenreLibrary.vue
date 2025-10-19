@@ -1,6 +1,8 @@
 <template>
   <div class="main-content">
-    <h1>Genres</h1>
+    <h1 class="display-5 fw-bold hero-title">
+      Genres
+    </h1>
     <ul class="nav-underlined mb-3">
       <li>
         <router-link :to="{ ...$route, params: { sort: null } }">
@@ -65,3 +67,13 @@
     }
   })
 </script>
+<style scoped>
+  .hero-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+</style>

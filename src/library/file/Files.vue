@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class="mb-0 me-2 text-truncate">
+      <h1 class="display-5 fw-bold hero-title">
         Files
       </h1>
     </div>
@@ -117,3 +117,13 @@
     }
   })
 </script>
+<style scoped>
+  .hero-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+</style>

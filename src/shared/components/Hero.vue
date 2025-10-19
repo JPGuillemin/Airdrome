@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column flex-md-row align-items-center position-relative mb-3">
+  <div class="hero-container d-flex flex-column flex-md-row align-items-center position-relative mb-3">
     <div
       class="backdrop"
       :style="{
@@ -7,19 +7,14 @@
         '--blurAmount': blur
       }"
     />
+
     <img
-      v-if="image"
-      :src="image"
+      :src="image || fallbackImage"
       class="album-cover cursor-pointer"
       @click="$emit('click')"
     >
-    <img
-      v-else
-      :src="fallbackImage"
-      class="album-cover cursor-pointer"
-      @click="$emit('click')"
-    >
-    <div class="d-flex flex-column align-items-center align-items-md-start pt-4 pt-md-0 ps-md-4 pb-1 text-center text-md-start">
+
+    <div class="content d-flex flex-column align-items-center align-items-md-start pt-4 pt-md-0 ps-md-4 pb-1 text-center text-md-start">
       <slot />
     </div>
   </div>
@@ -32,39 +27,60 @@
   export default defineComponent({
     props: {
       image: { type: String, default: null },
-      blur: { type: String, default: '8px' } // configurable blur
+      blur: { type: String, default: '8px' }
     },
     emits: ['click'],
     setup() {
       return { fallbackImage }
-    },
+    }
   })
 </script>
 
 <style scoped>
-  img {
+  .hero-container {
+    position: relative;
+    overflow: hidden;
+    padding: 1rem 0;
+    height: 170px;
+  }
+
+  /* On small screens (mobile), add ~160px */
+  @media (max-width: 767.98px) {
+    .hero-container {
+      height: 320px;
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+
+  .album-cover {
     display: block;
-    width: 300px;
-    height: auto;
-    max-width: 75%;
-    aspect-ratio: 1;
+    width: 160px;
+    height: 160px;
     object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .backdrop {
     position: absolute;
     z-index: -1;
     width: 100%;
-    top: -50%;
-    height: calc(100% + 300px);
-    transform: scale(1.025);
+    height: 100%;
+    top: 0;
+    left: 0;
     filter: blur(var(--blurAmount));
-    opacity: 0.25;
-    background-size: max(100%, 1000px) auto;
+    opacity: 0.60;
+    background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
     background-image:
       linear-gradient(to bottom, transparent, black),
       var(--backgroundImage);
   }
+
+  .content {
+    min-width: 0;
+    flex: 1 1 auto;
+}
 </style>

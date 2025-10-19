@@ -1,5 +1,8 @@
 <template>
   <div class="main-content">
+    <h1 class="display-5 fw-bold hero-title">
+      Playlists
+    </h1>
     <div class="d-flex justify-content-between align-items-center mb-3">
       <ul class="nav-underlined">
         <li>
@@ -85,3 +88,13 @@
     }
   })
 </script>
+<style scoped>
+  .hero-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+</style>

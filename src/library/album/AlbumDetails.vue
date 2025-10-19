@@ -1,75 +1,81 @@
 <template>
   <div class="main-content">
-    <Hero v-if="album" :image="album.image" class="cursor-pointer" @click="playNow">
-      <small>Album</small>
-      <h1 class="display-5 fw-bold">
-        {{ album.name }}
-      </h1>
-      <div class="d-flex flex-wrap align-items-center">
-        <div>
-          by
-          <span v-for="(artist, index) in album.artists" :key="artist.id">
-            <span v-if="index > 0">, </span>
-            <router-link :to="{name: 'artist', params: { id: artist.id }}">
-              {{ artist.name }}
-            </router-link>
-          </span>
-        </div>
-
-        <template v-if="album.year">
-          <span class="mx-2">•</span> {{ album.year }}
-        </template>
-
-        <template v-if="album.genres.length">
-          <span class="mx-2">•</span>
-          <span v-for="({ name: genre }, index) in album.genres" :key="genre">
-            <span v-if="index > 0">, </span>
-            <router-link :to="{name: 'genre', params: { id: genre }}">
-              {{ genre }}
-            </router-link>
-          </span>
-        </template>
-
-        <template v-if="album.lastFmUrl || album.musicBrainzUrl">
-          <span class="mx-2">•</span>
-          <div class="d-flex flex-nowrap">
-            <ExternalLink v-if="album.lastFmUrl" :href="album.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-              <IconLastFm />
-            </ExternalLink>
-            <ExternalLink v-if="album.musicBrainzUrl" :href="album.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-              <IconMusicBrainz />
-            </ExternalLink>
+    <div class="hero-wrapper">
+      <Hero v-if="album" :image="album.image" class="cursor-pointer" @click="playNow">
+        <h1 class="display-5 fw-bold hero-title">
+          {{ album.name }}
+        </h1>
+        <div class="d-flex flex-wrap align-items-center">
+          <div>
+            by
+            <span v-for="(artist, index) in album.artists" :key="artist.id">
+              <span v-if="index > 0">, </span>
+              <router-link :to="{name: 'artist', params: { id: artist.id }}">
+                {{ artist.name }}
+              </router-link>
+            </span>
           </div>
-        </template>
+          <template v-if="album.year">
+            <span class="mx-2">•</span> {{ album.year }}
+          </template>
+          <template v-if="album.genres.length">
+            <span class="mx-2">•</span>
+            <span v-for="({ name: genre }, index) in album.genres" :key="genre">
+              <span v-if="index > 0">, </span>
+              <router-link :to="{name: 'genre', params: { id: genre }}">
+                {{ genre }}
+              </router-link>
+            </span>
+          </template>
+          <template v-if="album.lastFmUrl || album.musicBrainzUrl">
+            <span class="mx-2">•</span>
+            <div class="d-flex flex-nowrap">
+              <ExternalLink v-if="album.lastFmUrl" :href="album.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
+                <IconLastFm />
+              </ExternalLink>
+              <ExternalLink v-if="album.musicBrainzUrl" :href="album.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+                <IconMusicBrainz />
+              </ExternalLink>
+            </div>
+          </template>
+        </div>
+        <div class="text-nowrap mt-3">
+          <b-button variant="transparent" class="me-2" title="Shuffle album" @click="shuffleNow">
+            <Icon icon="shuffle" />
+          </b-button>
+          <b-button variant="transparent" class="me-2" title="Radio" @click="RadioNow">
+            <Icon icon="radio" />
+          </b-button>
+          <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
+            <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+          </b-button>
+          <b-button variant="transparent" class="me-2" title="All Albums" @click="$router.push({ name: 'albums-default' })">
+            <Icon icon="albums" />
+          </b-button>
+          <b-button variant="transparent" class="me-2" title="Playing" @click="$router.push({ name: 'queue' })">
+            <Icon icon="soundwave" />
+          </b-button>
+          <OverflowMenu variant="transparent">
+            <DropdownItem icon="plus" @click="setNextInQueue">
+              Play next
+            </DropdownItem>
+            <DropdownItem icon="plus" @click="addToQueue">
+              Add to queue
+            </DropdownItem>
+          </OverflowMenu>
+        </div>
+      </Hero>
+    </div>
+    <div class="content-wrapper">
+      <div class="row">
+        <div class="col">
+          <TrackList :tracks="album.tracks" no-album />
+        </div>
       </div>
-
-      <OverflowFade v-if="album.description" class="mt-3">
-        {{ album.description }}
-      </OverflowFade>
-
-      <div class="text-nowrap mt-3">
-        <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
-          <Icon icon="shuffle" />
-        </b-button>
-        <b-button variant="transparent" class="me-2" title="Radio" @click="RadioNow">
-          <Icon icon="radio" />
-        </b-button>
-        <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
-          <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-        </b-button>
-        <OverflowMenu variant="transparent">
-          <DropdownItem icon="plus" @click="setNextInQueue">
-            Play next
-          </DropdownItem>
-          <DropdownItem icon="plus" @click="addToQueue">
-            Add to queue
-          </DropdownItem>
-        </OverflowMenu>
-      </div>
-    </Hero>
-    <div class="row">
-      <div class="col">
-        <TrackList :tracks="album.tracks" no-album />
+      <div class="row">
+        <OverflowFade v-if="album.description" class="mt-3">
+          {{ album.description }}
+        </OverflowFade>
       </div>
     </div>
   </div>
@@ -177,3 +183,38 @@
     }
   })
 </script>
+<style scoped>
+  .hero-wrapper {
+    position: fixed;
+    width: 100%;
+    z-index: 500;
+    background: var(--bs-body-bg);
+  }
+
+  /* Default: Desktop layout */
+  .content-wrapper {
+    position: relative;
+    z-index: 100;
+    margin-top: 170px; /* matches desktop Hero height */
+    padding: 1rem;
+  }
+
+  .hero-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+
+  /* Mobile layout: add ~150px more to match Hero */
+  @media (max-width: 767.98px) {
+    .content-wrapper {
+      margin-top: 320px; /* matches mobile Hero height */
+    }
+    .hero-title {
+      max-width: calc(100% - 160px - 1rem);
+    }
+  }
+</style>
