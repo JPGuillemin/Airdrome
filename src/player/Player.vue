@@ -20,14 +20,18 @@
         <!-- Track info --->
         <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start" style="width: 0; min-width: 0">
           <template v-if="track">
-            <component
-              :is="track.albumId ? 'router-link': 'div'"
-              :to="{ name: 'album', params: { id: track.albumId } }"
-              style="padding: 12px"
+            <div
+              v-if="track.albumId"
+              style="padding: 12px; cursor: pointer"
+              @click="onAlbumClick"
             >
               <img v-if="track.image" width="52" height="52" :src="track.image">
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
-            </component>
+            </div>
+            <div v-else style="padding: 12px">
+              <img v-if="track.image" width="52" height="52" :src="track.image">
+              <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
+            </div>
             <div style="min-width: 0">
               <div class="text-truncate">
                 {{ track.title }}
@@ -116,9 +120,6 @@
                   @update="playerStore.setVolume"
                 />
               </Dropdown>
-              <router-link :to="{ name: 'queue' }" class="btn btn-transparent">
-                <Icon icon="soundwave" />
-              </router-link>
             </div>
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
@@ -193,28 +194,31 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import Dropdown from '@/shared/components/Dropdown.vue'
-  import SwitchInput from '@/shared/components/SwitchInput.vue'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
   import IconReplayGainTrack from '@/shared/components/IconReplayGainTrack.vue'
   import IconReplayGainAlbum from '@/shared/components/IconReplayGainAlbum.vue'
   import Slider from '@vueform/slider'
   import '@vueform/slider/themes/default.css'
   import { formatDuration } from '@/shared/utils'
+  import { useRouter, useRoute } from 'vue-router'
 
   export default defineComponent({
     name: 'Player',
     components: {
       Dropdown,
-      SwitchInput,
       IconReplayGain,
       IconReplayGainTrack,
       IconReplayGainAlbum,
       Slider,
     },
     setup() {
+      const router = useRouter()
+      const route = useRoute()
       const playerStore = usePlayerStore()
       const favouriteStore = useFavouriteStore()
       const sliderValue = ref(0)
+      const dragging = ref(false)
+
       watch(
         () => playerStore.currentTime,
         (current) => {
@@ -226,7 +230,16 @@
         { immediate: true }
       )
 
-      const dragging = ref(false)
+      const onAlbumClick = () => {
+        const track = playerStore.track
+        if (!track?.albumId) return
+
+        if (route.name === 'album' && String(route.params.id) === String(track.albumId)) {
+          router.back()
+        } else {
+          router.push({ name: 'album', params: { id: track.albumId } })
+        }
+      }
 
       const onSliderDragStart = () => {
         dragging.value = true
@@ -241,7 +254,7 @@
       const formatter = (value: number) => {
         return `${formatDuration(value)} / ${formatDuration(playerStore.duration)}`
       }
-      return { formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
+      return { onAlbumClick, formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
     },
     computed: {
       track() { return this.playerStore.track },
@@ -325,8 +338,8 @@
     --slider-handle-border: 2px solid var(--bs-primary);
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
-    height: 4px !important;
-    margin: 0;
+    height: 6px !important;
+    margin: 1;
   }
   .volume-slider {
     --slider-connect-bg: var(--bs-primary);

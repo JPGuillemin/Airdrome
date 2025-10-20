@@ -11,80 +11,103 @@ import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
 import { useLoader } from '@/shared/loader'
 import { createBootstrap } from 'bootstrap-vue-next'
+
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import '@/style/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log('Service worker registered:', reg))
-      .catch(err => console.error('Service worker error:', err))
-  })
-}
-
-function setTheme(color: string) {
-  document.documentElement.style.setProperty('--bs-primary', color)
-  localStorage.setItem('themeColor', color)
-}
-
-const savedColor = localStorage.getItem('themeColor')
-if (savedColor) {
-  setTheme(savedColor)
-}
-
-const auth = createAuth()
-const api = createApi(auth)
-const router = setupRouter(auth)
-
-const pinia = createPinia().use(({ store }) => {
-  store.api = markRaw(api)
-})
-
-const mainStore = useMainStore(pinia)
-const playerStore = usePlayerStore(pinia)
-
-setupAudio(playerStore, mainStore, api)
-
-watch(
-  () => mainStore.isLoggedIn,
-  (value) => {
-    if (value) {
-      return Promise.all([
-        useFavouriteStore().load(),
-        usePlaylistStore().load(),
-        playerStore.loadQueue(),
-      ])
-    }
+async function bootstrapApp() {
+  // --- Theme ---
+  function setTheme(color: string) {
+    document.documentElement.style.setProperty('--bs-primary', color)
+    localStorage.setItem('themeColor', color)
   }
-)
+  const savedColor = localStorage.getItem('themeColor')
+  if (savedColor) setTheme(savedColor)
 
-router.beforeEach((to, from, next) => {
-  const loader = useLoader()
-  loader.showLoading()
-  mainStore.clearError()
-  next()
-})
+  // --- Auth & API ---
+  const auth = createAuth()
+  const api = createApi(auth)
 
-router.afterEach(() => {
-  const loader = useLoader()
-  loader.hideLoading()
-})
+  // --- Router & Pinia ---
+  const router = setupRouter(auth)
+  const pinia = createPinia().use(({ store }) => {
+    store.api = markRaw(api)
+  })
 
-const app = createApp(AppComponent)
+  const mainStore = useMainStore(pinia)
+  const playerStore = usePlayerStore(pinia)
 
-app.use(router)
-app.use(pinia)
-app.use(auth)
-app.use(api)
-app.use(createBootstrap())
+  // --- Setup player ---
+  setupAudio(playerStore, mainStore, api)
 
-// Set global $api property
-app.config.globalProperties.$api = api
+  // --- Watch logged-in state ---
+  watch(
+    () => mainStore.isLoggedIn,
+    async(value) => {
+      if (value) {
+        try {
+          await Promise.all([
+            useFavouriteStore().load(),
+            usePlaylistStore().load(),
+            playerStore.loadQueue(),
+          ])
+        } catch (err) {
+          console.error('Error loading user data', err)
+        }
+      }
+    }
+  )
 
-Object.entries(components).forEach(([key, value]) => {
-  app.component(key, value as any)
-})
+  // --- Router hooks ---
+  router.beforeEach((to, from, next) => {
+    const loader = useLoader()
+    loader.showLoading()
+    mainStore.clearError()
+    next()
+  })
 
-app.mount('#app')
+  router.afterEach(() => {
+    const loader = useLoader()
+    loader.hideLoading()
+  })
+
+  // --- Create App ---
+  const app = createApp(AppComponent)
+
+  app.use(router)
+  app.use(pinia)
+  app.use(auth)
+  app.use(api)
+  app.use(createBootstrap())
+
+  // --- Global properties ---
+  app.config.globalProperties.$auth = auth
+  app.config.globalProperties.$api = api
+
+  // --- Register components ---
+  Object.entries(components).forEach(([key, value]) => {
+    app.component(key, value as any)
+  })
+
+  // --- Mount app ---
+  try {
+    app.mount('#app')
+    console.log('App mounted successfully')
+  } catch (err) {
+    console.error('App mount failed', err)
+  }
+
+  // --- Service Worker ---
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('Service worker registered:', reg))
+        .catch(err => console.error('Service worker error:', err))
+    })
+  }
+}
+
+// Run the bootstrap
+bootstrapApp()

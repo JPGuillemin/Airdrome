@@ -7,7 +7,7 @@
       <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
         <Icon icon="radio" />
       </b-button>
-      <b-button variant="transparent" class="me-2" title="Playing" @click="$router.push({ name: 'queue' })">
+      <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
         <Icon icon="soundwave" />
       </b-button>
     </div>

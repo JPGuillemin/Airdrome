@@ -1,5 +1,5 @@
 <template>
-  <div class="main-content">
+  <div v-if="artist" class="main-content">
     <div class="hero-wrapper">
       <Hero :image="artist.image" class="cursor-pointer" @click="shuffleNow">
         <h1 class="display-5 fw-bold hero-title">
@@ -47,10 +47,10 @@
           <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="All Artists" @click="$router.push({ name: 'artists' })">
+          <b-button variant="transparent" class="me-2 d-md-none" title="All Artists" @click="$router.push({ name: 'artists' })">
             <Icon icon="artists" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Playing" @click="$router.push({ name: 'queue' })">
+          <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
         </div>

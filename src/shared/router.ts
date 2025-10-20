@@ -4,6 +4,7 @@ import Queue from '@/player/Queue.vue'
 import Discover from '@/discover/Discover.vue'
 import ArtistDetails from '@/library/artist/ArtistDetails.vue'
 import ArtistLibrary from '@/library/artist/ArtistLibrary.vue'
+import ArtistTracks from '@/library/artist/ArtistTracks.vue'
 import AlbumDetails from '@/library/album/AlbumDetails.vue'
 import AlbumLibrary from '@/library/album/AlbumLibrary.vue'
 import GenreDetails from '@/library/genre/GenreDetails.vue'
@@ -12,20 +13,23 @@ import Favourites from '@/library/favourite/Favourites.vue'
 import Playlist from '@/library/playlist/Playlist.vue'
 import PlaylistLibrary from '@/library/playlist/PlaylistLibrary.vue'
 import SearchResult from '@/library/search/SearchResult.vue'
-import { AuthService } from '@/auth/service'
-import ArtistTracks from '@/library/artist/ArtistTracks.vue'
 import Files from '@/library/file/Files.vue'
+import { AuthService } from '@/auth/service'
 import { useLoader } from '@/shared/loader'
 
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
+      // Home / Discover
       {
         path: '/',
         name: 'home',
-        component: Discover
+        component: Discover,
+        meta: { keepAlive: true }
       },
+
+      // Login
       {
         name: 'login',
         path: '/login',
@@ -34,14 +38,20 @@ export function setupRouter(auth: AuthService) {
           returnTo: route.query.returnTo
         }),
         meta: {
-          layout: 'fullscreen'
+          layout: 'fullscreen',
+          keepAlive: false
         }
       },
+
+      // Queue
       {
         name: 'queue',
         path: '/queue',
-        component: Queue
+        component: Queue,
+        meta: { keepAlive: false }
       },
+
+      // Albums
       {
         name: 'albums-default',
         path: '/albums',
@@ -54,68 +64,91 @@ export function setupRouter(auth: AuthService) {
         name: 'albums',
         path: '/albums/:sort?',
         component: AlbumLibrary,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
       {
         name: 'album',
-        path: '/albums/id/:id',
+        path: '/albums/id/:id?',
         component: AlbumDetails,
-        props: true
+        props: true,
+        meta: { keepAlive: false }
       },
+
+      // Artists
       {
         name: 'artists',
         path: '/artists/:sort?',
         component: ArtistLibrary,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
       {
         name: 'artist',
-        path: '/artists/id/:id',
+        path: '/artists/id?/:id?',
         component: ArtistDetails,
-        props: true
+        props: true,
+        meta: { keepAlive: false }
       },
       {
         name: 'artist-tracks',
-        path: '/artists/id/:id/tracks',
+        path: '/artists/id/:id?/tracks?',
         component: ArtistTracks,
-        props: true
+        props: true,
+        meta: { keepAlive: false }
       },
+
+      // Genres
       {
         name: 'genres',
         path: '/genres/:sort?',
         component: GenreLibrary,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
       {
         name: 'genre',
-        path: '/genres/id/:id/:section?',
+        path: '/genres/id/:id?/:section?',
         component: GenreDetails,
-        props: true
+        props: true,
+        meta: { keepAlive: false }
       },
+
+      // Favourites
       {
         name: 'favourites',
         path: '/favourites/:section?',
         component: Favourites,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
+
+      // Files
       {
         name: 'files',
         path: '/files/:path(.*)?',
         component: Files,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
+
+      // Playlists
       {
         name: 'playlists',
         path: '/playlists/:sort?',
         component: PlaylistLibrary,
-        props: true
+        props: true,
+        meta: { keepAlive: true }
       },
       {
         name: 'playlist',
-        path: '/playlist/:id',
+        path: '/playlist/:id?',
         component: Playlist,
-        props: true
+        props: true,
+        meta: { keepAlive: false }
       },
+
+      // Search
       {
         name: 'search',
         path: '/search/:type?',
@@ -123,17 +156,31 @@ export function setupRouter(auth: AuthService) {
         props: route => ({
           ...route.params,
           ...route.query
-        })
+        }),
+        meta: { keepAlive: true }
       }
     ],
+
+    // Smooth scroll restoration
     scrollBehavior(to, from, savedPosition) {
-      return savedPosition || { left: 0, top: 0 }
+      if (savedPosition) return savedPosition
+      return { left: 0, top: 0 }
     }
   })
 
+  // Inline scroll memory for better UX
+  const scrollPositions = new Map<string, { left: number; top: number }>()
+  const saveScrollPosition = (route: any) => {
+    scrollPositions.set(route.fullPath, { left: window.scrollX, top: window.scrollY })
+  }
+  const getScrollPosition = (route: any) => scrollPositions.get(route.fullPath)
+
   router.beforeEach((to, from, next) => {
+    saveScrollPosition(from)
+
     const loader = useLoader()
     loader.showLoading()
+
     if (to.name !== 'login' && !auth.isAuthenticated()) {
       next({ name: 'login', query: { returnTo: to.fullPath } })
     } else {
@@ -141,9 +188,14 @@ export function setupRouter(auth: AuthService) {
     }
   })
 
-  router.afterEach(() => {
+  router.afterEach(to => {
     const loader = useLoader()
     loader.hideLoading()
+
+    const pos = getScrollPosition(to)
+    if (pos) {
+      window.scrollTo(pos.left, pos.top)
+    }
   })
 
   return router

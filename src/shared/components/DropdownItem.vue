@@ -1,6 +1,6 @@
 <template>
   <li>
-    <component :is="href ? 'a' : 'button'" type="button" :href="href" :disabled="disabled" :class="[
+    <component :is="href ? 'a' : 'button'" type="button" :href="href || undefined" :disabled="disabled" :class="[
       'dropdown-item d-flex justify-content-between align-items-center text-nowrap',
       {
         [`dropdown-item-${variant}`]: variant,
@@ -19,7 +19,7 @@
       icon: { type: String, default: null },
       variant: { type: String, default: '' },
       disabled: { type: Boolean, default: false },
-      href: { type: String, default: null },
+      href: { type: String, default: '' },
     }
   })
 </script>

@@ -1,12 +1,12 @@
 <template>
-  <div class="main-content">
+  <div v-if="album" class="main-content">
     <div class="hero-wrapper">
-      <Hero v-if="album" :image="album.image" class="cursor-pointer" @click="playNow">
+      <Hero :image="album.image" class="cursor-pointer" @click="playNow">
         <h1 class="display-5 fw-bold hero-title">
           {{ album.name }}
         </h1>
         <div class="d-flex flex-wrap align-items-center">
-          <div>
+          <div v-if="album.artists?.length">
             by
             <span v-for="(artist, index) in album.artists" :key="artist.id">
               <span v-if="index > 0">, </span>
@@ -18,7 +18,7 @@
           <template v-if="album.year">
             <span class="mx-2">•</span> {{ album.year }}
           </template>
-          <template v-if="album.genres.length">
+          <template v-if="album.genres?.length">
             <span class="mx-2">•</span>
             <span v-for="({ name: genre }, index) in album.genres" :key="genre">
               <span v-if="index > 0">, </span>
@@ -49,10 +49,10 @@
           <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="All Albums" @click="$router.push({ name: 'albums-default' })">
+          <b-button variant="transparent" class="me-2 d-md-none" title="All Albums" @click="$router.push({ name: 'albums-default' })">
             <Icon icon="albums" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Playing" @click="$router.push({ name: 'queue' })">
+          <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
           <OverflowMenu variant="transparent">
@@ -69,7 +69,7 @@
     <div class="content-wrapper">
       <div class="row">
         <div class="col">
-          <TrackList :tracks="album.tracks" no-album />
+          <TrackList :tracks="album.tracks || []" no-album />
         </div>
       </div>
       <div class="row">
@@ -109,7 +109,7 @@
     },
     data() {
       return {
-        album: null as null | Album,
+        album: null as Album | null
       }
     },
     computed: {
@@ -133,18 +133,17 @@
     methods: {
       playNow() {
         const album = this.album
-        const currentTrack = this.playerStore.track
         if (!album) return
+        const currentTrack = this.playerStore.track
         const isAlbumTrack =
           !!currentTrack && (currentTrack.albumId === album.id || album.tracks?.some(t => t.id === currentTrack.id))
-        if (isAlbumTrack) {
-          return this.playerStore.playPause()
-        }
-        return this.playerStore.playNow(this.album!.tracks!)
+        if (isAlbumTrack) return this.playerStore.playPause()
+        if (album.tracks?.length) return this.playerStore.playNow(album.tracks)
       },
-
       shuffleNow() {
-        return this.playerStore.shuffleNow(this.album!.tracks!)
+        const album = this.album
+        if (!album || !album.tracks?.length) return
+        return this.playerStore.shuffleNow(album.tracks)
       },
       async RadioNow() {
         const album = this.album

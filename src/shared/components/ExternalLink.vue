@@ -1,5 +1,14 @@
 <template>
-  <a :href="props.href" target="_blank" rel="noopener noreferrer" :class="[data.class, data.staticClass]" v-bind="data.attrs">
+  <a :href="href" target="_blank" rel="noopener noreferrer" :class="[className]" v-bind="$attrs">
     <slot />
   </a>
 </template>
+
+<script>
+  export default {
+    name: 'ExternalLink',
+    props: {
+      href: { type: String, required: true }
+    }
+  }
+</script>

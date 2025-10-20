@@ -28,7 +28,7 @@
             <div v-if="error != null" class="alert alert-danger">
               Could not log in. ({{ error.message }})
             </div>
-            <button class="btn btn-primary w-100" @click="login">
+            <button class="btn btn-primary w-100" :disabled="busy">
               <span v-show="busy" class="spinner-border spinner-border-sm" /> Log in
             </button>
           </form>
@@ -37,6 +37,7 @@
     </div>
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { config } from '@/shared/config'
@@ -49,10 +50,10 @@
       returnTo: { type: String, required: true },
     },
     setup() {
-      return {
-        store: useMainStore(),
-        auth: useAuth(),
-      }
+      const store = useMainStore()
+      const auth = useAuth()
+
+      return { store, auth }
     },
     data() {
       return {
@@ -60,7 +61,7 @@
         username: '',
         password: '',
         busy: false,
-        error: null,
+        error: null as null | Error,
         displayForm: false,
       }
     },
@@ -70,9 +71,11 @@
       },
       config: () => config
     },
-    async created() {
+    async mounted() {
+      // Load saved credentials if any
       this.server = this.auth.server
       this.username = this.auth.username
+
       const success = await this.auth.autoLogin()
       if (success) {
         this.store.setLoginSuccess(this.username, this.server)
@@ -82,24 +85,24 @@
       }
     },
     methods: {
-      login() {
+      async login() {
         this.error = null
         this.busy = true
+
         this.server = this.server.trim()
         if (!this.server.startsWith('http://') && !this.server.startsWith('https://')) {
           this.server = `https://${this.server}`
         }
-        this.auth.loginWithPassword(this.server, this.username, this.password)
-          .then(() => {
-            this.store.setLoginSuccess(this.username, this.server)
-            this.$router.replace(this.returnTo)
-          })
-          .catch(err => {
-            this.error = err
-          })
-          .finally(() => {
-            this.busy = false
-          })
+
+        try {
+          await this.auth.loginWithPassword(this.server, this.username, this.password)
+          this.store.setLoginSuccess(this.username, this.server)
+          await this.$router.replace(this.returnTo)
+        } catch (err: any) {
+          this.error = err
+        } finally {
+          this.busy = false
+        }
       }
     }
   })
