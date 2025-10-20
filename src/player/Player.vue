@@ -32,8 +32,8 @@
               <img v-if="track.image" width="52" height="52" :src="track.image">
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
             </div>
-            <div style="min-width: 0">
-              <div class="text-truncate">
+            <div style="min-width: 0; overflow: hidden">
+              <div class="title-text">
                 {{ track.title }}
               </div>
               <div class="text-truncate text-muted">
@@ -348,5 +348,31 @@
     width: 4px !important;
     height: 120px !important;
     margin: auto;
+  }
+
+  @media (min-width: 768px) {
+    .title-text {
+      color: var(--bs-primary);
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .title-text {
+      color: var(--bs-primary);
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      animation: slide-text 10s linear infinite;
+      animation-delay: 3s;
+    }
+
+    @keyframes slide-text {
+      0% { transform: translateX(0); }      /* start fully visible */
+      100% { transform: translateX(-100%); } /* scroll left */
+    }
   }
 </style>

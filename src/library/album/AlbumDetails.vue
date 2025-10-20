@@ -214,6 +214,7 @@
     }
     .hero-title {
       max-width: calc(100% - 160px - 1rem);
+      color: var(--bs-primary);
     }
   }
 </style>
