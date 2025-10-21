@@ -367,12 +367,12 @@
       white-space: nowrap;
       overflow: hidden;
       animation: slide-text 10s linear infinite;
-      animation-delay: 3s;
+      animation-delay: 0s;
     }
 
     @keyframes slide-text {
-      0% { transform: translateX(0); }      /* start fully visible */
-      100% { transform: translateX(-100%); } /* scroll left */
+      0% { transform: translateX(35%); }
+      100% { transform: translateX(-65%); }
     }
   }
 </style>

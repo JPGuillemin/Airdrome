@@ -4,7 +4,6 @@ import Queue from '@/player/Queue.vue'
 import Discover from '@/discover/Discover.vue'
 import ArtistDetails from '@/library/artist/ArtistDetails.vue'
 import ArtistLibrary from '@/library/artist/ArtistLibrary.vue'
-import ArtistTracks from '@/library/artist/ArtistTracks.vue'
 import AlbumDetails from '@/library/album/AlbumDetails.vue'
 import AlbumLibrary from '@/library/album/AlbumLibrary.vue'
 import GenreDetails from '@/library/genre/GenreDetails.vue'
@@ -85,15 +84,8 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'artist',
-        path: '/artists/id?/:id?',
+        path: '/artists/id/:id?',
         component: ArtistDetails,
-        props: true,
-        meta: { keepAlive: false }
-      },
-      {
-        name: 'artist-tracks',
-        path: '/artists/id/:id?/tracks?',
-        component: ArtistTracks,
         props: true,
         meta: { keepAlive: false }
       },

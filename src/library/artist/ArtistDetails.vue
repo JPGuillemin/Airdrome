@@ -47,7 +47,8 @@
           <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button variant="transparent" class="me-2 d-md-none" title="All Artists" @click="$router.push({ name: 'artists' })">
+          <b-button
+            variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
             <Icon icon="artists" />
           </b-button>
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
@@ -59,7 +60,7 @@
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-5 mb-2">
-          <h3 class="my-0">
+          <h3 ref="topTracks" class="my-0">
             Top tracks
           </h3>
           <router-link :to="{name: 'artist-tracks', params: { id }}">
@@ -84,7 +85,7 @@
         </AlbumList>
       </div>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 class="mt-5">
+        <h3 ref="similarArtists" class="mt-5">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" />
@@ -210,7 +211,23 @@
       },
       toggleAlbumSortOrder() {
         this.mainStore.toggleArtistAlbumSortOrder()
-      }
+      },
+      scrollToSection(refName: string) {
+        this.$nextTick(() => {
+          const section = this.$refs[refName] as HTMLElement | undefined
+          if (!section) return
+
+          // Adjust this to match your fixed header height
+          const heroHeight = window.innerWidth < 768 ? 380 : 230
+
+          const top = section.getBoundingClientRect().top + window.scrollY - heroHeight
+
+          window.scrollTo({
+            top,
+            behavior: 'smooth',
+          })
+        })
+      },
     }
   })
 </script>
@@ -237,6 +254,7 @@
     text-overflow: ellipsis;
     max-width: 100%;
     display: block;
+    color: var(--bs-primary);
   }
 
   /* Mobile layout: add ~150px more to match Hero */

@@ -49,9 +49,6 @@
           <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button variant="transparent" class="me-2 d-md-none" title="All Albums" @click="$router.push({ name: 'albums-default' })">
-            <Icon icon="albums" />
-          </b-button>
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
@@ -205,6 +202,7 @@
     text-overflow: ellipsis;
     max-width: 100%;
     display: block;
+    color: var(--bs-primary);
   }
 
   /* Mobile layout: add ~150px more to match Hero */
