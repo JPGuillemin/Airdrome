@@ -15,11 +15,20 @@
         </router-link>
       </li>
     </ul>
-
     <div v-if="sortedItems.length > 0" class="d-flex flex-wrap justify-content-center gap-2 px-2 py-2 px-md-0">
-      <span v-for="item in sortedItems" :key="item.id" class="text-bg-secondary rounded-pill py-3 px-2 text-truncate text-center" style="width: 160px;">
-        <router-link :to="{ name: 'genre', params: { id: item.id } }" class="text-decoration-none" style="color: var(--bs-primary) !important;">
-          {{ item.name }}
+      <span
+        v-for="item in sortedItems"
+        :key="item.id"
+        class="text-bg-secondary rounded-pill py-3 px-2 text-truncate text-center d-flex align-items-center justify-content-center gap-2"
+        style="width: 160px;"
+      >
+        <router-link
+          :to="{ name: 'genre', params: { id: item.id } }"
+          class="text-decoration-none d-flex align-items-center gap-2"
+          style="color: var(--bs-primary) !important;"
+        >
+          <img :src="item.cover" alt="" class="genre-icon">
+          <span class="text-truncate">{{ item.name }}</span>
         </router-link>
       </span>
     </div>
@@ -31,26 +40,30 @@
   import { defineComponent } from 'vue'
   import { orderBy } from 'lodash-es'
   import { useLoader } from '@/shared/loader'
+  import fallbackImage from '@/shared/assets/fallback.svg'
 
   export default defineComponent({
     props: { sort: { type: String, default: null } },
     data() {
-      return { items: [] as any[], loading: true }
+      return {
+        items: [] as any[],
+        loading: true,
+      }
     },
     computed: {
       sortedItems(): any[] {
         return this.sort === 'a-z'
           ? orderBy(this.items, 'name')
           : orderBy(this.items, 'albumCount', 'desc')
-      }
+      },
     },
     watch: {
       '$route.params.sort': {
         immediate: true,
         handler() {
           this.loadGenres()
-        }
-      }
+        },
+      },
     },
     methods: {
       async loadGenres() {
@@ -58,15 +71,28 @@
         const loader = useLoader()
         loader.showLoading()
         try {
-          this.items = await this.$api.getGenres()
+          // Step 1: Fetch genres
+          const genres = await this.$api.getGenres()
+
+          // Step 2: For each genre, get its first album’s cover image
+          const genresWithCovers = await Promise.all(
+            genres.map(async(genre: any) => {
+              const albums = await this.$api.getAlbumsByGenre(genre.id, 1)
+              const cover = albums[0]?.image || fallbackImage
+              return { ...genre, cover }
+            })
+          )
+
+          this.items = genresWithCovers
         } finally {
           loader.hideLoading()
           this.loading = false
         }
-      }
-    }
+      },
+    },
   })
 </script>
+
 <style scoped>
   .hero-title {
     font-size: 1rem;
@@ -75,5 +101,13 @@
     text-overflow: ellipsis;
     max-width: 100%;
     display: block;
+  }
+
+  .genre-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 </style>

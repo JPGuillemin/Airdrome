@@ -146,24 +146,7 @@ export class AudioController {
       audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
       audio.onpause = () => this.onpause()
 
-      // Duration: prefer native event, fallback to polling
-      const handleDuration = () => {
-        if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
-          this.ondurationchange(audio.duration)
-          return true
-        }
-        return false
-      }
-
-      const onMetadataLoaded = () => {
-        if (!handleDuration()) {
-          this.ensureDuration(audio) // fallback polling
-        }
-        this.ontimeupdate(audio.currentTime)
-      }
-
-      audio.onloadedmetadata = onMetadataLoaded
-      audio.addEventListener('durationchange', () => handleDuration())
+      this.setupDurationListener(pipeline.audio)
 
       if (audio.readyState < 1) {
         try {
@@ -191,21 +174,21 @@ export class AudioController {
     }
   }
 
-  // Fallback polling only if necessary
-  private async ensureDuration(audio: HTMLAudioElement, retries = 50, delay = 100) {
-    for (let i = 0; i < retries; i++) {
+  private setupDurationListener(audio: HTMLAudioElement) {
+    const updateDuration = () => {
       const duration = audio.duration
       if (duration && duration !== Infinity && !isNaN(duration)) {
         this.ondurationchange(duration)
-        return
       }
-      await sleep(delay)
     }
 
-    // Only warn if duration is truly invalid after all retries
-    if (!audio.duration || audio.duration === Infinity || isNaN(audio.duration)) {
-      console.warn('AudioController: failed to resolve duration for', audio.src)
-    }
+    // Listen for metadata and readiness events
+    audio.addEventListener('loadedmetadata', updateDuration)
+    audio.addEventListener('canplay', updateDuration)
+
+    // Optional quick fallback: sometimes metadata loads slightly later
+    const fallback = setTimeout(updateDuration, 200)
+    audio.addEventListener('durationchange', () => clearTimeout(fallback))
   }
 
   private async fadeIn(duration = 0) {

@@ -6,22 +6,27 @@
     </div>
 
     <div v-if="result.genres.length > 0" class="mb-4">
-      <router-link :to="{name: 'genres'}" class="text-muted">
+      <router-link :to="{ name: 'genres' }" class="text-muted">
         <h3>Genres</h3>
       </router-link>
+
       <div
         class="d-flex gap-2 px-2 py-2 px-md-0 flex-nowrap flex-md-wrap overflow-auto overflow-md-visible"
-        style="scrollbar-width: none; -ms-overflow-style: none;">
+        style="scrollbar-width: none; -ms-overflow-style: none;"
+      >
         <span
           v-for="item in result.genres"
           :key="item.id"
-          class="text-bg-secondary rounded-pill py-3 px-2 flex-shrink-0 text-truncate text-center align-items-center justify-content-center"
-          style="width: 100px;">
+          class="text-bg-secondary rounded-pill py-3 px-2 flex-shrink-0 text-truncate text-center align-items-center justify-content-center d-flex"
+          style="width: 150px;"
+        >
           <router-link
-            :to="{name: 'genre', params: { id: item.id } }"
-            class="text-decoration-none"
-            style="color: var(--bs-primary) !important;">
-            {{ item.name }}
+            :to="{ name: 'genre', params: { id: item.id } }"
+            class="text-decoration-none d-flex align-items-center gap-2 w-100 justify-content-center"
+            style="color: var(--bs-primary) !important;"
+          >
+            <img :src="item.cover" alt="" class="genre-icon">
+            <span class="text-truncate">{{ item.name }}</span>
           </router-link>
         </span>
       </div>
@@ -65,6 +70,7 @@
     <EmptyIndicator v-if="empty" />
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
@@ -72,6 +78,7 @@
   import { Album, Genre, Artist } from '@/shared/api'
   import { orderBy, uniq } from 'lodash-es'
   import { useLoader } from '@/shared/loader'
+  import fallbackImage from '@/shared/assets/fallback.svg'
 
   export default defineComponent({
     components: {
@@ -105,7 +112,6 @@
       this.loading = true
 
       try {
-        // Fetch all in parallel for consistency
         const [
           recent,
           played,
@@ -122,13 +128,28 @@
           this.$api.getAlbums('recently-played', 15),
         ])
 
-        // Assign results
+        // Fetch first album cover for each genre
+        const genresWithCovers = await Promise.all(
+          genres.map(async(genre: Genre) => {
+            try {
+              // Use the genre name instead of ID
+              const albums = await this.$api.getAlbumsByGenre(genre.name, 1)
+              const cover = albums[0]?.image || fallbackImage
+
+              // Add `id` field for router-link compatibility
+              return { ...genre, id: genre.name, cover }
+            } catch {
+              return { ...genre, id: genre.name, cover: fallbackImage }
+            }
+          })
+        )
+
         this.result.recent = recent
         this.result.played = played
         this.result.random = random
         this.result.favalbums = favourites.albums.slice(0, size)
         this.result.favartists = favourites.artists.slice(0, size)
-        this.result.genres = orderBy(genres, 'albumCount', 'desc')
+        this.result.genres = orderBy(genresWithCovers, 'albumCount', 'desc')
 
         // --- Mood-based recommendation logic ---
         const genreCounts: Record<string, number> = {}
@@ -138,6 +159,7 @@
             genreCounts[genre] = (genreCounts[genre] || 0) + 1
           }
         }
+
         const sortedGenres = orderBy(
           Object.entries(genreCounts).map(([name, count]) => ({ name, count })),
           ['count'],
@@ -145,12 +167,14 @@
         )
         const topGenres = sortedGenres.slice(0, 2).map(g => g.name)
         const albumsFromGenres: Album[] = []
+
         await Promise.all(
           topGenres.map(async(genre) => {
             const albums = await this.$api.getAlbumsByGenre(genre, 10)
             albumsFromGenres.push(...albums)
           })
         )
+
         const uniqueAlbums = Array.from(new Map(albumsFromGenres.map(a => [a.id, a])).values())
         this.recommendedAlbums = uniqueAlbums.sort(() => Math.random() - 0.5).slice(0, 15)
       } catch (error) {
@@ -162,3 +186,13 @@
     },
   })
 </script>
+
+<style scoped>
+  .genre-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+</style>
