@@ -116,18 +116,21 @@
       isPlaying() { return this.playerStore.isPlaying },
     },
     created() {
-      const loader = useLoader()
-      loader.showLoading()
-      Promise.all([
-        this.$api.getAlbumDetails(this.id).then(result => {
-          this.album = result
-        }),
-      ])
-        .finally(() => {
-          loader.hideLoading()
-        })
+      this.fetchAlbum()
     },
     methods: {
+      fetchAlbum() {
+        const loader = useLoader()
+        loader.showLoading()
+        Promise.all([
+          this.$api.getAlbumDetails(this.id).then(result => {
+            this.album = result
+          }),
+        ])
+          .finally(() => {
+            loader.hideLoading()
+          })
+      },
       playNow() {
         const album = this.album
         if (!album) return

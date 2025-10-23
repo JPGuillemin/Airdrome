@@ -139,9 +139,7 @@
     },
     methods: {
       async scan() {
-        if (this.isScanning) {
-          return
-        }
+        if (this.isScanning) return
         const loader = useLoader()
         loader.showLoading()
         this.isScanning = true
@@ -152,9 +150,12 @@
             await sleep(1000)
             scanning = await this.$api.getScanStatus()
           } while (scanning)
+
+          // Preserve params and existing query, add/overwrite `t`
           this.$router.replace({
             name: this.$route.name as string,
-            query: { t: Date.now().toString() }
+            params: { ...(this.$route.params || {}) },
+            query: { ...(this.$route.query || {}), t: Date.now().toString() }
           })
         } finally {
           loader.hideLoading()
@@ -164,7 +165,7 @@
       logout() {
         this.auth.logout()
         this.$router.go(0)
-      }
+      },
     }
   })
 </script>
