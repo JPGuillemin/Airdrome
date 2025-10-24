@@ -73,7 +73,7 @@ export class AudioController {
       this.pipeline.normalizerNode.attack.value = 0.01
       this.pipeline.normalizerNode.release.value = 0.1
     }
-    console.log('Set replay gain: ' + this.replayGainFactor())
+    console.info('AudioController.setReplayGainMode():', this.replayGainFactor())
   }
 
   async pause() {
@@ -93,7 +93,7 @@ export class AudioController {
         console.warn('Resume aborted')
         return
       }
-      console.error('AudioController.play() failed:', err)
+      console.error('AudioController.play(): failed:', err)
       throw err
     }
   }
@@ -108,7 +108,7 @@ export class AudioController {
     }
   }
 
-  async loadTrack(options: { url?: string; paused?: boolean; replayGain?: ReplayGain }) {
+  async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
 
@@ -119,14 +119,14 @@ export class AudioController {
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
-      console.info('AudioController: using buffer for', options.url)
+      console.info('AudioController.loadTrack(): Using pre-buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
     } else {
-      console.info('AudioController: no buffer, fetching', options.url)
+      console.info('AudioController.loadTrack(): Fetching cache or server for ', options.url)
       pipeline = creatPipeline(this.context, {
         url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
@@ -163,11 +163,17 @@ export class AudioController {
           this.fadeIn(this.fadeTime)
         } catch (error: any) {
           if (error.name === 'AbortError') {
-            console.warn('Audio play aborted due to rapid skip')
+            console.error('AudioController.loadTrack(): Audio play aborted due to rapid skip')
             return
           }
           throw error
         }
+      }
+      if (options.nextUrl) {
+        this.setBuffer(options.nextUrl)
+        console.info('AudioController.loadTrack(): buffering', options.nextUrl)
+      } else {
+        console.info('AudioController.loadTrack(): no nextUrl')
       }
     } else {
       pipeline!.disconnect()
@@ -221,7 +227,7 @@ export class AudioController {
       : this.replayGain.albumPeak
 
     if (!Number.isFinite(gain) || !Number.isFinite(peak) || peak <= 0) {
-      console.warn('AudioController: invalid ReplayGain settings', this.replayGain)
+      console.warn('AudioController.replayGainFactor(): invalid ReplayGain settings', this.replayGain)
       return 1.0
     }
 
@@ -229,7 +235,7 @@ export class AudioController {
     const gainFactor = Math.pow(10, (gain + preAmp) / 20)
     const peakFactor = 1 / peak
     const factor = Math.min(gainFactor, peakFactor)
-    console.info('AudioController: calculated ReplayGain factor', factor)
+    console.info('AudioController.replayGainFactor():', factor)
     return factor
   }
 }
@@ -281,7 +287,7 @@ function creatPipeline(context: AudioContext, options: { url?: string, audio?: H
 }
 
 function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>) {
-  // console.info(`AudioController: ending payback for ${pipeline.audio}`)
+  console.info('AudioController.endPlayback(): ending payback')
   pipeline.audio.ontimeupdate = null
   pipeline.audio.ondurationchange = null
   pipeline.audio.onpause = null
