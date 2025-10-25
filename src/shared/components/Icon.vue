@@ -21,6 +21,7 @@
   import iconArrowUpDown from '@iconify-icons/bi/arrow-up-down'
   import iconArtist from '@iconify-icons/bi/incognito'
   import iconCheck from '@iconify-icons/bi/check'
+  import iconCheckCircle from '@iconify-icons/bi/check-circle'
   import iconChevronRight from '@iconify-icons/bi/chevron-compact-right'
   import iconDownload from '@iconify-icons/bi/download'
   import iconEdit from '@iconify-icons/bi/pencil-square'
@@ -60,6 +61,7 @@
     'arrow-up-down': iconArrowUpDown.body,
     artists: iconArtist.body,
     check: iconCheck.body,
+    'check-circle': iconCheckCircle.body,
     'chevron-right': iconChevronRight.body,
     discover: iconHome.body,
     download: iconDownload.body,

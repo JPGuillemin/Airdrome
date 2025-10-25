@@ -49,6 +49,9 @@
           <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
+          <b-button variant="transparent" class="me-2" title="Download album for offline use" @click="downloadAlbum">
+            <Icon icon="download" />
+          </b-button>
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
@@ -178,6 +181,41 @@
       },
       toggleFavourite() {
         return this.favouriteStore.toggle('album', this.id)
+      },
+      async downloadAlbum() {
+        const album = this.album
+        if (!album?.tracks?.length) {
+          console.warn('No tracks to cache for this album.')
+          return
+        }
+        const cache = await caches.open('airdrome-cache-v2')
+        // Filter only valid string URLs
+        const trackUrls = album.tracks
+          .map(t => t.url)
+          .filter((u): u is string => typeof u === 'string' && u.length > 0)
+        const total = trackUrls.length
+        let done = 0
+        console.info(`Caching ${total} tracks for album "${album.name}"...`)
+        for (const url of trackUrls) {
+          try {
+            const match = await cache.match(url)
+            if (!match) {
+              const response = await fetch(url, { mode: 'cors' })
+              if (response.ok) {
+                await cache.put(url, response.clone())
+                done++
+                console.info(`Cached [${done}/${total}] ${url}`)
+              } else {
+                console.warn(`Failed to fetch: ${url} (${response.status})`)
+              }
+            } else {
+              console.info(`Already cached: ${url}`)
+            }
+          } catch (err) {
+            console.warn(`Error caching ${url}:`, err)
+          }
+        }
+        console.info(`inished caching album "${album.name}" (${done}/${total})`)
       },
     }
   })

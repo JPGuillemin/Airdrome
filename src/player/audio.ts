@@ -48,9 +48,30 @@ export class AudioController {
 
   async setBuffer(url: string) {
     this.buffer = null
-    this.buffer = new Audio(url)
+    this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
+    this.buffer.src = url // start streaming immediately
+
+    // Background caching
+    ;(async() => {
+      try {
+        const cache = await caches.open('airdrome-cache-v2')
+        const existing = await cache.match(url)
+        if (!existing) {
+          console.info('setBuffer(): caching in background', url)
+          const response = await fetch(url, { mode: 'cors' })
+          if (response.ok) await cache.put(url, response.clone())
+          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
+          window.dispatchEvent(cacheFinishedEvent)
+        } else {
+          console.info('setBuffer(): already cached', url)
+        }
+      } catch (err) {
+        console.warn('setBuffer(): cache failed', err)
+      }
+    })()
+
     try { this.buffer.load() } catch { /* ignore */ }
   }
 
@@ -73,7 +94,7 @@ export class AudioController {
       this.pipeline.normalizerNode.attack.value = 0.01
       this.pipeline.normalizerNode.release.value = 0.1
     }
-    console.info('AudioController.setReplayGainMode():', this.replayGainFactor())
+    console.info('setReplayGainMode():', this.replayGainFactor())
   }
 
   async pause() {
@@ -93,7 +114,7 @@ export class AudioController {
         console.warn('Resume aborted')
         return
       }
-      console.error('AudioController.play(): failed:', err)
+      console.error('play(): failed:', err)
       throw err
     }
   }
@@ -119,14 +140,14 @@ export class AudioController {
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
-      console.info('AudioController.loadTrack(): Using pre-buffer for ', options.url)
+      console.info('loadTrack(): Using pre-buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
         volume: this.pipeline.volumeNode.gain.value,
         replayGain: this.replayGainFactor(),
       })
     } else {
-      console.info('AudioController.loadTrack(): Fetching cache or server for ', options.url)
+      console.info('loadTrack(): Fetching cache or server for ', options.url)
       pipeline = creatPipeline(this.context, {
         url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
@@ -163,7 +184,7 @@ export class AudioController {
           this.fadeIn(this.fadeTime)
         } catch (error: any) {
           if (error.name === 'AbortError') {
-            console.error('AudioController.loadTrack(): Audio play aborted due to rapid skip')
+            console.error('loadTrack(): Audio play aborted due to rapid skip')
             return
           }
           throw error
@@ -171,9 +192,9 @@ export class AudioController {
       }
       if (options.nextUrl) {
         this.setBuffer(options.nextUrl)
-        console.info('AudioController.loadTrack(): buffering', options.nextUrl)
+        console.info('loadTrack(): buffering', options.nextUrl)
       } else {
-        console.info('AudioController.loadTrack(): no nextUrl')
+        console.info('loadTrack(): no nextUrl')
       }
     } else {
       pipeline!.disconnect()
@@ -227,7 +248,7 @@ export class AudioController {
       : this.replayGain.albumPeak
 
     if (!Number.isFinite(gain) || !Number.isFinite(peak) || peak <= 0) {
-      console.warn('AudioController.replayGainFactor(): invalid ReplayGain settings', this.replayGain)
+      console.warn('replayGainFactor(): invalid ReplayGain settings', this.replayGain)
       return 1.0
     }
 
@@ -235,24 +256,49 @@ export class AudioController {
     const gainFactor = Math.pow(10, (gain + preAmp) / 20)
     const peakFactor = 1 / peak
     const factor = Math.min(gainFactor, peakFactor)
-    console.info('AudioController.replayGainFactor():', factor)
+    console.info('replayGainFactor():', factor)
     return factor
   }
 }
 
-function creatPipeline(context: AudioContext, options: { url?: string, audio?: HTMLAudioElement, volume?: number, replayGain?: number }) {
+function creatPipeline(
+  context: AudioContext,
+  options: { url?: string; audio?: HTMLAudioElement; volume?: number; replayGain?: number }
+) {
   let audio: HTMLAudioElement
+
   if (options.audio) {
     audio = options.audio
-  } else {
-    audio = options.url ? new Audio(options.url) : new Audio()
+  } else if (options.url) {
+    audio = new Audio()
     audio.crossOrigin = 'anonymous'
     audio.preload = 'auto'
+    audio.src = options.url! // start streaming immediately
+
+    // Background caching
+    ;(async() => {
+      try {
+        const cache = await caches.open('airdrome-cache-v2')
+        const response = await fetch(options.url!, { mode: 'cors' })
+        if (response.ok) {
+          await cache.put(options.url!, response.clone())
+          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: options.url! })
+          window.dispatchEvent(cacheFinishedEvent)
+          console.info('creatPipeline(): cached audio after start', options.url)
+        } else {
+          console.warn('creatPipeline(): fetch failed, not caching', options.url)
+        }
+      } catch (err) {
+        console.warn('creatPipeline(): cache failed', options.url, err)
+      }
+    })()
+  } else {
+    audio = new Audio()
   }
 
   audio.playbackRate = 1.0
-  const sourceNode = context.createMediaElementSource(audio)
 
+  const sourceNode = context.createMediaElementSource(audio)
   const volumeNode = context.createGain()
   volumeNode.gain.value = options.volume ?? 1
 
@@ -280,14 +326,16 @@ function creatPipeline(context: AudioContext, options: { url?: string, audio?: H
     fadeNode.disconnect()
     normalizerNode.disconnect()
     audio.src = ''
-    try { audio.load() } catch {}
+    try {
+      audio.load()
+    } catch {}
   }
 
   return { audio, volumeNode, replayGainNode, fadeNode, normalizerNode, disconnect }
 }
 
 function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>) {
-  console.info('AudioController.endPlayback(): ending payback')
+  console.info('endPlayback(): ending payback')
   pipeline.audio.ontimeupdate = null
   pipeline.audio.ondurationchange = null
   pipeline.audio.onpause = null

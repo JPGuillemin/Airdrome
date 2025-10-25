@@ -5,7 +5,7 @@
         class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2"
         @click="store.showMenu"
       >
-        <img width="36" height="36" src="@/shared/assets/logo.png">
+        <img width="36" height="36" src="@/shared/assets/logo.svg">
       </button>
       <router-link
         class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2"
