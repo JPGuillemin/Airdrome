@@ -46,6 +46,28 @@ export class AudioController {
     return this.pipeline.audio.duration
   }
 
+  async setCache(url: string) {
+    try {
+      const cache = await caches.open('airdrome-cache-v2')
+      const existing = await cache.match(url)
+      if (!existing) {
+        console.info('setCache(): caching in background', url)
+        const response = await fetch(url, { mode: 'cors' })
+        if (response.ok) {
+          await cache.put(url, response.clone())
+          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
+          window.dispatchEvent(cacheFinishedEvent)
+        } else {
+          console.warn('setCache(): fetch failed, not caching', url)
+        }
+      } else {
+        console.info('setCache(): already cached', url)
+      }
+    } catch (err) {
+      console.warn('setCache(): cache failed', url, err)
+    }
+  }
+
   async setBuffer(url: string) {
     this.buffer = null
     this.buffer = new Audio()
@@ -53,24 +75,7 @@ export class AudioController {
     this.buffer.preload = 'auto'
     this.buffer.src = url // start streaming immediately
 
-    // Background caching
-    ;(async() => {
-      try {
-        const cache = await caches.open('airdrome-cache-v2')
-        const existing = await cache.match(url)
-        if (!existing) {
-          console.info('setBuffer(): caching in background', url)
-          const response = await fetch(url, { mode: 'cors' })
-          if (response.ok) await cache.put(url, response.clone())
-          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
-          window.dispatchEvent(cacheFinishedEvent)
-        } else {
-          console.info('setBuffer(): already cached', url)
-        }
-      } catch (err) {
-        console.warn('setBuffer(): cache failed', err)
-      }
-    })()
+    this.setCache(url)
 
     try { this.buffer.load() } catch { /* ignore */ }
   }
@@ -196,6 +201,7 @@ export class AudioController {
       } else {
         console.info('loadTrack(): no nextUrl')
       }
+      this.setCache(options.url!)
     } else {
       pipeline!.disconnect()
     }
@@ -275,23 +281,6 @@ function creatPipeline(
     audio.preload = 'auto'
     audio.src = options.url! // start streaming immediately
 
-    // Background caching
-    ;(async() => {
-      try {
-        const cache = await caches.open('airdrome-cache-v2')
-        const response = await fetch(options.url!, { mode: 'cors' })
-        if (response.ok) {
-          await cache.put(options.url!, response.clone())
-          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: options.url! })
-          window.dispatchEvent(cacheFinishedEvent)
-          console.info('creatPipeline(): cached audio after start', options.url)
-        } else {
-          console.warn('creatPipeline(): fetch failed, not caching', options.url)
-        }
-      } catch (err) {
-        console.warn('creatPipeline(): cache failed', options.url, err)
-      }
-    })()
   } else {
     audio = new Audio()
   }
