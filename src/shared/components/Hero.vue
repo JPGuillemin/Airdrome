@@ -39,7 +39,7 @@
 <style scoped>
   .hero-container {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     padding: 1rem 0;
     height: 170px;
   }

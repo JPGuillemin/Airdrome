@@ -55,12 +55,15 @@
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
-          <OverflowMenu variant="transparent">
+          <OverflowMenu variant="transparent" class="on-top">
             <DropdownItem icon="plus" @click="setNextInQueue">
               Play next
             </DropdownItem>
             <DropdownItem icon="plus" @click="addToQueue">
               Add to queue
+            </DropdownItem>
+            <DropdownItem icon="trash" @click="clearAlbumCache">
+              Clear from cache
             </DropdownItem>
           </OverflowMenu>
         </div>
@@ -217,6 +220,44 @@
         }
         console.info(`inished caching album "${album.name}" (${done}/${total})`)
       },
+      async clearAlbumCache() {
+        const album = this.album
+        if (!album?.tracks?.length) {
+          console.warn('No tracks found for this album.')
+          return
+        }
+        const loader = useLoader()
+        loader.showLoading()
+        const cache = await caches.open('airdrome-cache-v2')
+        const trackUrls = album.tracks
+          .map(t => t.url)
+          .filter((u): u is string => typeof u === 'string' && u.length > 0)
+        let deleted = 0
+        for (const url of trackUrls) {
+          try {
+            const success = await cache.delete(url)
+            if (success) {
+              deleted++
+              console.info(`Removed from cache: ${url}`)
+            }
+          } catch (err) {
+            console.warn(`Failed to remove ${url} from cache:`, err)
+          }
+          this.$router.replace({
+            name: this.$route.name as string,
+            params: { ...(this.$route.params || {}) },
+            query: { ...(this.$route.query || {}), t: Date.now().toString() }
+          })
+          loader.hideLoading()
+        }
+        console.info(
+          `Cleared ${deleted}/${trackUrls.length} cached tracks for album "${album.name}".`
+        )
+        const cacheClearedEvent = new CustomEvent('albumCacheCleared', {
+          detail: { albumId: album.id, name: album.name, deleted },
+        })
+        window.dispatchEvent(cacheClearedEvent)
+      },
     }
   })
 </script>
@@ -226,6 +267,7 @@
     width: 100%;
     z-index: 500;
     background: var(--bs-body-bg);
+    overflow: visible; /* allow dropdown to escape */
   }
 
   /* Default: Desktop layout */
@@ -239,7 +281,7 @@
   .hero-title {
     font-size: 1rem;
     white-space: nowrap;
-    overflow: hidden;
+    overflow: visible;
     text-overflow: ellipsis;
     max-width: 100%;
     display: block;
@@ -255,5 +297,14 @@
       max-width: calc(100% - 160px - 1rem);
       color: var(--bs-primary);
     }
+  }
+
+  .text-nowrap.mt-3 {
+    position: relative; /* stacking context for the dropdown */
+  }
+
+  .on-top {
+    position: absolute; /* position relative to parent */
+    z-index: 3000;
   }
 </style>

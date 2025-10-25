@@ -1,5 +1,6 @@
 <template>
   <div class="top-nav elevated d-flex justify-content-between align-items-center mb-2">
+    <ConfirmDialog ref="confirmDialog" />
     <div class="d-flex align-items-center">
       <button
         class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2"
@@ -76,6 +77,9 @@
 
           <hr class="dropdown-divider">
 
+          <DropdownItem @click="clearAllCache">
+            Clear cache
+          </DropdownItem>
           <DropdownItem @click="logout">
             Log out
           </DropdownItem>
@@ -95,15 +99,18 @@
   import { useAuth } from '@/auth/service'
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
+  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 
   export default defineComponent({
     components: {
       About,
-      SearchForm
+      SearchForm,
+      ConfirmDialog
     },
     setup() {
       const store = useMainStore()
       const auth = useAuth()
+      const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 
       const colors = [
         { name: 'Blue', value: '#0d6efd' },
@@ -128,7 +135,8 @@
         auth,
         colors,
         currentColor,
-        setTheme
+        setTheme,
+        confirmDialog
       }
     },
     data() {
@@ -151,7 +159,7 @@
             scanning = await this.$api.getScanStatus()
           } while (scanning)
 
-          // Preserve params and existing query, add/overwrite `t`
+          // Refresh page
           this.$router.replace({
             name: this.$route.name as string,
             params: { ...(this.$route.params || {}) },
@@ -160,6 +168,36 @@
         } finally {
           loader.hideLoading()
           this.isScanning = false
+        }
+      },
+      async clearAllCache() {
+        try {
+          const dialog = this.$refs.confirmDialog as InstanceType<typeof ConfirmDialog>
+          const userConfirmed = await dialog.open(
+            'Clear all cache?',
+            'This will delete all cached audio files. Continue?'
+          )
+          if (!userConfirmed) return
+          const loader = useLoader()
+          loader.showLoading()
+          const success = await caches.delete('airdrome-cache-v2')
+          if (success) {
+            console.info('All audio cache cleared successfully.')
+            // alert('All cached audio files have been deleted.')
+            window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
+            // Refresh page
+            this.$router.replace({
+              name: this.$route.name as string,
+              params: { ...(this.$route.params || {}) },
+              query: { ...(this.$route.query || {}), t: Date.now().toString() }
+            })
+          } else {
+            alert('No cache found to clear.')
+          }
+          loader.hideLoading()
+        } catch (err) {
+          console.error('Error clearing cache:', err)
+          // alert('Failed to clear cache. Check console for details.')
         }
       },
       logout() {

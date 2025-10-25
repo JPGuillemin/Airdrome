@@ -1,6 +1,6 @@
 <template>
   <td class="text-end" @click.stop="">
-    <OverflowMenu>
+    <OverflowMenu class="on-top">
       <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="setNextInQueue()">
         Play next
       </DropdownItem>
@@ -18,7 +18,6 @@
       </DropdownItem>
       <slot :item="track" />
     </OverflowMenu>
-
     <b-modal v-model="showPlaylistSelect" ok-only ok-variant="transparent" ok-title="Cancel" size="md">
       <template #modal-header>
         <h5 class="modal-title">
@@ -94,3 +93,9 @@
     }
   })
 </script>
+<style scoped>
+  .on-top {
+    position: absolute;
+    z-index: 3000 !important;
+  }
+</style>

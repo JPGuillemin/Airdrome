@@ -80,6 +80,37 @@ export class AudioController {
     try { this.buffer.load() } catch { /* ignore */ }
   }
 
+  async clearCache() {
+    try {
+      const success = await caches.delete('airdrome-cache-v2')
+      if (success) {
+        console.info('clearCache(): All cached audio files deleted.')
+        const cacheClearedEvent = new CustomEvent('audioCacheCleared')
+        window.dispatchEvent(cacheClearedEvent)
+      } else {
+        console.warn('clearCache(): No cache found or failed to delete.')
+      }
+    } catch (err) {
+      console.error('clearCache(): Error clearing cache:', err)
+    }
+  }
+
+  async deleteCacheEntry(url: string) {
+    try {
+      const cache = await caches.open('airdrome-cache-v2')
+      const deleted = await cache.delete(url)
+      if (deleted) {
+        console.info('deleteCacheEntry(): Cache entry deleted for', url)
+        const cacheDeletedEvent = new CustomEvent('audioCacheDeleted', { detail: url })
+        window.dispatchEvent(cacheDeletedEvent)
+      } else {
+        console.warn('deleteCacheEntry(): No matching cache entry found for', url)
+      }
+    } catch (err) {
+      console.error('deleteCacheEntry(): Error deleting cache entry:', err)
+    }
+  }
+
   setVolume(value: number) {
     this.pipeline.volumeNode.gain.value = value
   }
