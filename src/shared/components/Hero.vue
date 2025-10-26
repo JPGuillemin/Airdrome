@@ -65,12 +65,12 @@
   .backdrop {
     position: absolute;
     z-index: -1;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
+    top: -10px;
+    left: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
     filter: blur(var(--blurAmount));
-    opacity: 0.60;
+    opacity: 0.6;
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;

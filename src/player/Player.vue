@@ -291,6 +291,12 @@
 </script>
 
 <style scoped>
+  img {
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    color-scheme: light;
+    background-color: transparent;
+  }
   .player {
     position: fixed;
     z-index: 2000;

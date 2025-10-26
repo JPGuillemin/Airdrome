@@ -184,6 +184,13 @@ a.active {
   padding-top: 38px;
 }
 
+img {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  color-scheme: light;
+  background-color: transparent;
+}
+
 @import './nav-underlined';
 @import 'bootstrap/scss/bootstrap';
 @import '@vueform/slider/themes/default.css';
