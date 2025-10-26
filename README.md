@@ -8,13 +8,16 @@ A modern responsive web frontend for [navidrome](https://github.com/navidrome/na
 [gonic](https://github.com/sentriz/gonic) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
 ## Features
-- Discover Home page with playback suggestions 
+- Discover Home page with playback suggestions based on recent listenings
 - Responsive UI for desktop and mobile
 - Browse library for albums, artist, genres
+- Gapless playback
 - Playback with persistent queue, repeat, shuffle and Replay-Gain
-- MediaSession integration
+- Persistant cache and download for offline listening
+- Codec quality control
+- Full mediaSession integration
 - View, create, and edit playlists with drag and drop
-- Dynamic playlists for Genre and Artist
+- Dynamic playlists for Genre, albums and Artist
 - 4 color themes
 - Search
 - Favourites
@@ -22,6 +25,8 @@ A modern responsive web frontend for [navidrome](https://github.com/navidrome/na
 ## Screenshots
 
 <img src="screenshots/album-list.png" width="200" />  <img src="screenshots/album.png" width="200" />  <img src="screenshots/artist.png" width="200" />  <img src="screenshots/genre.png" width="200" />
+
+<img src="screenshots/desktop.png" width="800" />
 
 ## Install
 
