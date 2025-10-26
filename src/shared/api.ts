@@ -133,7 +133,7 @@ export class API {
 
   constructor(private auth: AuthService) {
     this.fetch = (path: string, params: any) => {
-      params = { ...params, v: '1.15.0', f: 'json', c: this.clientName }
+      params = { ...params, v: '1.16.1', f: 'json', c: this.clientName }
 
       const request = auth.serverInfo?.extensions.includes('formPost')
         ? new Request(`${this.auth.server}/${path}`, {
@@ -601,7 +601,7 @@ export class API {
     const { server, urlParams } = this.auth
     return `${server}/rest/download` +
       `?id=${id}` +
-      '&v=1.15.0' +
+      '&v=1.16.1' +
       `&${urlParams}` +
       `&c=${this.clientName}`
   }
@@ -613,7 +613,7 @@ export class API {
     const { server, urlParams } = this.auth
     return `${server}/rest/getCoverArt` +
       `?id=${item.coverArt}` +
-      '&v=1.15.0' +
+      '&v=1.16.1' +
       `&${urlParams}` +
       `&c=${this.clientName}` +
       '&size=300'
@@ -621,10 +621,12 @@ export class API {
 
   private getStreamUrl(id: any) {
     const { server, urlParams } = this.auth
+    const maxBitRate = localStorage.getItem('streamQuality') || 128
     return `${server}/rest/stream` +
       `?id=${id}` +
-      '&v=1.15.0' +
+      '&v=1.16.1' +
       `&${urlParams}` +
+      `&maxBitRate=${maxBitRate}` +
       `&c=${this.clientName}`
   }
 }

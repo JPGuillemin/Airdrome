@@ -28,10 +28,6 @@
               <img v-if="track.image" width="52" height="52" :src="track.image">
               <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
             </div>
-            <div v-else style="padding: 12px">
-              <img v-if="track.image" width="52" height="52" :src="track.image">
-              <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
-            </div>
             <div style="min-width: 0; overflow: hidden">
               <div class="title-text">
                 {{ track.title }}

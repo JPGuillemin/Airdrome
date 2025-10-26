@@ -77,6 +77,29 @@
 
           <hr class="dropdown-divider">
 
+          <div class="px-3 py-2">
+            <div class="fw-bold small mb-1">
+              Stream quality
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button
+                v-for="option in [
+                  { icon: 'low', value: 128 },
+                  { icon: 'medium', value: 160 },
+                  { icon: 'high', value: 384 }
+                ]"
+                :key="option.value"
+                class="btn btn-sm"
+                :class="streamQuality === option.value ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="setStreamQuality(option.value)"
+              >
+                <Icon :icon="option.icon" />
+              </button>
+            </div>
+          </div>
+
+          <hr class="dropdown-divider">
+
           <DropdownItem @click="clearAllCache">
             Clear cache
           </DropdownItem>
@@ -130,11 +153,20 @@
         localStorage.setItem('themeColor', color)
       }
 
+      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
+
+      function setStreamQuality(value: number) {
+        streamQuality.value = value
+        localStorage.setItem('streamQuality', String(value))
+      }
+
       return {
         store,
         auth,
         colors,
         currentColor,
+        setStreamQuality,
+        streamQuality,
         setTheme,
         confirmDialog
       }

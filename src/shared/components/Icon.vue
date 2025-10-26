@@ -46,6 +46,9 @@
   import iconPodcast from '@iconify-icons/bi/rss'
   import iconRadio from '@iconify-icons/bi/broadcast'
   import iconRefresh from '@iconify-icons/bi/arrow-counterclockwise'
+  import iconLow from '@iconify-icons/bi/layers'
+  import iconMedium from '@iconify-icons/bi/layers-half'
+  import iconHigh from '@iconify-icons/bi/layers-fill'
   import iconRepeat from '@iconify-icons/bi/repeat'
   import iconShuffle from '@iconify-icons/bi/shuffle'
   import iconSkipEnd from '@iconify-icons/bi/skip-end-fill'
@@ -77,6 +80,9 @@
     library: iconLibrary.body,
     link: iconLink.body,
     list: iconList.body,
+    low: iconLow.body,
+    medium: iconMedium.body,
+    high: iconHigh.body,
     mute: iconMute.body,
     nav: iconNav.body,
     pause: iconPause.body,
