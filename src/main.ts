@@ -39,15 +39,15 @@ async function bootstrapApp() {
   const mainStore = useMainStore(pinia)
   const playerStore = usePlayerStore(pinia)
 
-  // --- Setup player ---
-  setupAudio(playerStore, mainStore, api)
-
   // --- Watch logged-in state ---
   watch(
     () => mainStore.isLoggedIn,
     async(value) => {
       if (value) {
         try {
+          // setup player once authenticated
+          setupAudio(playerStore, mainStore, api)
+
           await Promise.all([
             useFavouriteStore().load(),
             usePlaylistStore().load(),
@@ -57,7 +57,8 @@ async function bootstrapApp() {
           console.error('Error loading user data', err)
         }
       }
-    }
+    },
+    { immediate: false }
   )
 
   // --- Router hooks ---
@@ -101,9 +102,11 @@ async function bootstrapApp() {
 
   // --- Service Worker ---
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-      .then(reg => console.log('✅ Service worker registered:', reg.scope))
-      .catch(err => console.error('❌ Service worker registration failed:', err))
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('Service worker registered:', reg))
+        .catch(err => console.error('Service worker error:', err))
+    })
   }
 }
 
