@@ -168,7 +168,7 @@ export class AudioController {
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
-
+    let buffered = false
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
@@ -176,6 +176,7 @@ export class AudioController {
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
+      buffered = true
       console.info('loadTrack(): Using pre-buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
@@ -226,13 +227,18 @@ export class AudioController {
           throw error
         }
       }
-      if (options.nextUrl) {
-        this.setBuffer(options.nextUrl)
-        console.info('loadTrack(): buffering', options.nextUrl)
-      } else {
-        console.info('loadTrack(): no nextUrl')
-      }
-      this.setCache(options.url!)
+      (async() => {
+        if (options.nextUrl) {
+          await this.setBuffer(options.nextUrl)
+          console.info('loadTrack(): buffering', options.nextUrl)
+        } else {
+          if (!buffered) {
+            console.info('loadTrack(): no nextUrl')
+          }
+        }
+
+        await this.setCache(options.url!)
+      })()
     } else {
       pipeline!.disconnect()
     }
@@ -311,7 +317,6 @@ function creatPipeline(
     audio.crossOrigin = 'anonymous'
     audio.preload = 'auto'
     audio.src = options.url! // start streaming immediately
-
   } else {
     audio = new Audio()
   }

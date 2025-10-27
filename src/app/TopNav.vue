@@ -84,16 +84,19 @@
             <div class="d-flex gap-2 flex-wrap">
               <button
                 v-for="option in [
-                  { icon: 'low', value: 128 },
-                  { icon: 'medium', value: 160 },
-                  { icon: 'high', value: 256 }
+                  { icon: 'music-note', value: 128, shade: 0.6 },
+                  { icon: 'music-note', value: 160, shade: 0.9 },
+                  { icon: 'music-note-beamed', value: 256, shade: 0.9 }
                 ]"
                 :key="option.value"
                 class="btn btn-sm"
-                :class="streamQuality === option.value ? 'btn-primary' : 'btn-outline-secondary'"
+                :class="streamQuality === option.value ? 'btn-outline-primary active' : 'btn-outline-secondary'"
                 @click="setStreamQuality(option.value)"
               >
-                <Icon :icon="option.icon" />
+                <Icon
+                  :icon="option.icon"
+                  :style="{ color: `rgba(var(--bs-primary-rgb), ${option.shade})` }"
+                />
               </button>
             </div>
           </div>
@@ -146,10 +149,19 @@
       const currentColor = ref(
         getComputedStyle(document.documentElement).getPropertyValue('--bs-primary')
       )
-
       function setTheme(color: string) {
         currentColor.value = color
+        // Convert HEX to RGB
+        const hexToRgb = (hex: string) => {
+          const bigint = parseInt(hex.replace('#', ''), 16)
+          const r = (bigint >> 16) & 255
+          const g = (bigint >> 8) & 255
+          const b = bigint & 255
+          return `${r}, ${g}, ${b}`
+        }
+        const rgb = hexToRgb(color)
         document.documentElement.style.setProperty('--bs-primary', color)
+        document.documentElement.style.setProperty('--bs-primary-rgb', rgb)
         localStorage.setItem('themeColor', color)
       }
 
@@ -267,5 +279,9 @@
     outline: none;
     padding: 0;
     background: transparent;
+  }
+  .btn-outline-primary.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border-color: var(--bs-primary);
   }
 </style>

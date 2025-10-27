@@ -42,6 +42,8 @@
   import iconPerson from '@iconify-icons/bi/person-fill'
   import iconPlay from '@iconify-icons/bi/play-fill'
   import iconPlaylist from '@iconify-icons/bi/music-note-list'
+  import iconMusicNote from '@iconify-icons/bi/music-note'
+  import iconMusicNoteBeamed from '@iconify-icons/bi/music-note-beamed'
   import iconPlus from '@iconify-icons/bi/plus'
   import iconPodcast from '@iconify-icons/bi/rss'
   import iconRadio from '@iconify-icons/bi/broadcast'
@@ -82,6 +84,8 @@
     list: iconList.body,
     low: iconLow.body,
     medium: iconMedium.body,
+    'music-note': iconMusicNote.body,
+    'music-note-beamed': iconMusicNoteBeamed.body,
     high: iconHigh.body,
     mute: iconMute.body,
     nav: iconNav.body,
