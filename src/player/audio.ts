@@ -231,13 +231,11 @@ export class AudioController {
         if (options.nextUrl) {
           await this.setBuffer(options.nextUrl)
           console.info('loadTrack(): buffering', options.nextUrl)
-        } else {
-          if (!buffered) {
-            console.info('loadTrack(): no nextUrl')
-          }
         }
-
-        await this.setCache(options.url!)
+        if (!buffered) {
+          await this.setCache(options.url!)
+          console.info('loadTrack(): no nextUrl')
+        }
       })()
     } else {
       pipeline!.disconnect()
