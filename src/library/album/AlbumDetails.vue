@@ -187,9 +187,9 @@
         if (this.isFavourite) return this.downloadAlbum()
         return this.clearAlbumCache()
       },
-      toggleFavourite() {
+      async toggleFavourite() {
         this.favouriteStore.toggle('album', this.id)
-        sleep(300)
+        await sleep(300)
         return this.setFavouriteCache()
       },
       async downloadAlbum() {
@@ -226,7 +226,7 @@
           } catch (err) {
             console.warn(`Error caching ${url}:`, err)
           }
-          sleep(300)
+          await sleep(300)
         }
         console.info(`Finished caching album "${album.name}" (${done}/${total})`)
       },

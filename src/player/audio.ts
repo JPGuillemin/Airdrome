@@ -52,7 +52,7 @@ export class AudioController {
       const existing = await cache.match(url)
       if (!existing) {
         console.info('setCache(): caching in background', url)
-        const response = await fetch(url, { mode: 'cors' })
+        const response = await fetch(url, { mode: 'cors', cache: 'force-cache' })
         if (response.ok) {
           await cache.put(url, response.clone())
           const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
@@ -168,7 +168,7 @@ export class AudioController {
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
-    let buffered = false
+    // let buffered = false
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
@@ -176,7 +176,7 @@ export class AudioController {
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
-      buffered = true
+      // buffered = true
       console.info('loadTrack(): Using pre-buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
@@ -185,6 +185,7 @@ export class AudioController {
       })
     } else {
       console.info('loadTrack(): Fetching cache or server for ', options.url)
+      this.setCache(options.url!)
       pipeline = creatPipeline(this.context, {
         url: options.url,
         volume: this.pipeline.volumeNode.gain.value,
@@ -216,7 +217,6 @@ export class AudioController {
 
       if (options.paused !== true) {
         try {
-          await this.context.resume()
           await this.play()
           this.fadeIn(this.fadeTime)
         } catch (error: any) {
@@ -227,18 +227,10 @@ export class AudioController {
           throw error
         }
       }
-      (async() => {
-        if (!buffered) sleep(5000)
-        if (options.nextUrl) {
-          await this.setBuffer(options.nextUrl)
-          console.info('loadTrack(): buffering ', options.nextUrl)
-        }
-        if (!buffered) {
-          sleep(10000)
-          await this.setCache(options.url!)
-          console.info('loadTrack(): caching ', options.url!)
-        }
-      })()
+      if (options.nextUrl) {
+        this.setBuffer(options.nextUrl)
+        console.info('loadTrack(): buffering ', options.nextUrl)
+      }
     } else {
       pipeline!.disconnect()
     }
