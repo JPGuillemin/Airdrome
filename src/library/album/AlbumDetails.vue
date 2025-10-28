@@ -49,9 +49,6 @@
           <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Download album for offline use" @click="downloadAlbum">
-            <Icon icon="download" />
-          </b-button>
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
             <Icon icon="soundwave" />
           </b-button>
@@ -61,6 +58,9 @@
             </DropdownItem>
             <DropdownItem icon="plus" @click="addToQueue">
               Add to queue
+            </DropdownItem>
+            <DropdownItem icon="download" @click="downloadAlbum">
+              Add to cache
             </DropdownItem>
             <DropdownItem icon="trash" @click="clearAlbumCache">
               Clear from cache
@@ -93,6 +93,7 @@
   import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
+  import { sleep } from '@/shared/utils'
 
   export default defineComponent({
     components: {
@@ -182,8 +183,14 @@
           return this.playerStore.addToQueue(this.album.tracks!)
         }
       },
+      setFavouriteCache() {
+        if (this.isFavourite) return this.downloadAlbum()
+        return this.clearAlbumCache()
+      },
       toggleFavourite() {
-        return this.favouriteStore.toggle('album', this.id)
+        this.favouriteStore.toggle('album', this.id)
+        sleep(300)
+        return this.setFavouriteCache()
       },
       async downloadAlbum() {
         const album = this.album
@@ -208,6 +215,8 @@
                 await cache.put(url, response.clone())
                 done++
                 console.info(`Cached [${done}/${total}] ${url}`)
+                const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
+                window.dispatchEvent(cacheFinishedEvent)
               } else {
                 console.warn(`Failed to fetch: ${url} (${response.status})`)
               }
@@ -217,8 +226,9 @@
           } catch (err) {
             console.warn(`Error caching ${url}:`, err)
           }
+          sleep(300)
         }
-        console.info(`inished caching album "${album.name}" (${done}/${total})`)
+        console.info(`Finished caching album "${album.name}" (${done}/${total})`)
       },
       async clearAlbumCache() {
         const album = this.album

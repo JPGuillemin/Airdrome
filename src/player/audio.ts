@@ -228,13 +228,15 @@ export class AudioController {
         }
       }
       (async() => {
+        if (!buffered) sleep(5000)
         if (options.nextUrl) {
           await this.setBuffer(options.nextUrl)
-          console.info('loadTrack(): buffering', options.nextUrl)
+          console.info('loadTrack(): buffering ', options.nextUrl)
         }
         if (!buffered) {
+          sleep(10000)
           await this.setCache(options.url!)
-          console.info('loadTrack(): no nextUrl')
+          console.info('loadTrack(): caching ', options.url!)
         }
       })()
     } else {
