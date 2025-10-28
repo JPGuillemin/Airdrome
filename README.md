@@ -2,9 +2,7 @@
 
 ![Screenshot](public/icon.png)
 
-Airdrome is a fork of Airsonic (refix) UI (https://github.com/tamland/airsonic-refix)
-
-A modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
+Airdrome is a modern responsive web frontend for [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), 
 [gonic](https://github.com/sentriz/gonic) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
 ## Features
