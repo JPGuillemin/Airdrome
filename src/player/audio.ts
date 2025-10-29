@@ -68,7 +68,8 @@ export class AudioController {
     }
   }
 
-  async setBuffer(url: string) {
+  async setBuffer(url: string, sleeptime = 0) {
+    if (sleeptime > 0) await sleep(sleeptime)
     this.buffer = null
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
@@ -168,7 +169,7 @@ export class AudioController {
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
     let pipeline: ReturnType<typeof creatPipeline> | undefined
-    // let buffered = false
+    let buffered = false
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
@@ -176,7 +177,7 @@ export class AudioController {
     this.replayGain = options.replayGain || null
 
     if (this.buffer && this.buffer.src === options.url) {
-      // buffered = true
+      buffered = true
       console.info('loadTrack(): Using pre-buffer for ', options.url)
       pipeline = creatPipeline(this.context, {
         audio: this.buffer,
@@ -210,9 +211,7 @@ export class AudioController {
       if (audio.readyState < 1) {
         try {
           audio.load()
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
 
       if (options.paused !== true) {
@@ -228,7 +227,11 @@ export class AudioController {
         }
       }
       if (options.nextUrl) {
-        this.setBuffer(options.nextUrl)
+        if (buffered) {
+          this.setBuffer(options.nextUrl, 0)
+        } else {
+          this.setBuffer(options.nextUrl, 10000)
+        }
         console.info('loadTrack(): buffering ', options.nextUrl)
       }
     } else {
