@@ -25,8 +25,8 @@
               style="padding: 12px; cursor: pointer"
               @click="onAlbumClick"
             >
-              <img v-if="track.image" width="52" height="52" :src="track.image">
-              <img v-else width="52" height="52" src="@/shared/assets/fallback.svg">
+              <img v-if="track.image" :src="track.image" class="small-cover cursor-pointer">
+              <img v-else src="@/shared/assets/fallback.svg" class="small-cover cursor-pointer">
             </div>
             <div style="min-width: 0; overflow: hidden">
               <div class="title-text">
@@ -291,21 +291,24 @@
 </script>
 
 <style scoped>
-  img {
-    filter: none !important;
-    mix-blend-mode: normal !important;
-    color-scheme: light;
-    background-color: transparent;
-  }
   .player {
     position: fixed;
-    z-index: 2000;
+    z-index: 1000;
     bottom: 0;
     left: 0;
     right: 0;
     height: 0;
     max-height: 0;
     transition: max-height 0.5s;
+  }
+  .small-cover {
+    display: block;
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background-color: #000;
   }
   @media(max-width: 442px) {
     .player {

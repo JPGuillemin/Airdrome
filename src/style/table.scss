@@ -1,3 +1,7 @@
+table, th, td {
+  border: none; /* remove default borders that some browsers add */
+}
+
 table thead tr {
   font-size: 80%;
   text-transform: uppercase;
