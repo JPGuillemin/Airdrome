@@ -1,6 +1,6 @@
 <template>
   <div ref="el" class="d-flex justify-content-center my-4">
-    <span v-show="loading" class="spinner-border" />
+    <span />
   </div>
 </template>
 <script lang="ts">

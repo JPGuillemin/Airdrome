@@ -14,7 +14,6 @@ import PlaylistLibrary from '@/library/playlist/PlaylistLibrary.vue'
 import SearchResult from '@/library/search/SearchResult.vue'
 import Files from '@/library/file/Files.vue'
 import { AuthService } from '@/auth/service'
-import { useLoader } from '@/shared/loader'
 
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
@@ -22,7 +21,7 @@ export function setupRouter(auth: AuthService) {
     routes: [
       // Home / Discover
       {
-        path: '/',
+        path: '/home',
         name: 'home',
         component: Discover,
         meta: { keepAlive: true }
@@ -61,14 +60,14 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'albums',
-        path: '/albums/:sort?',
+        path: '/albums/:sort',
         component: AlbumLibrary,
         props: true,
         meta: { keepAlive: true }
       },
       {
         name: 'album',
-        path: '/albums/id/:id?',
+        path: '/album/:id',
         component: AlbumDetails,
         props: true,
         meta: { keepAlive: false }
@@ -84,7 +83,7 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'artist',
-        path: '/artists/id/:id?',
+        path: '/artist/:id',
         component: ArtistDetails,
         props: true,
         meta: { keepAlive: false }
@@ -100,7 +99,7 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'genre',
-        path: '/genres/id/:id?/:section?',
+        path: '/genre/:id/:section?',
         component: GenreDetails,
         props: true,
         meta: { keepAlive: false }
@@ -134,7 +133,7 @@ export function setupRouter(auth: AuthService) {
       },
       {
         name: 'playlist',
-        path: '/playlist/:id?',
+        path: '/playlist/:id',
         component: Playlist,
         props: true,
         meta: { keepAlive: false }
@@ -169,21 +168,18 @@ export function setupRouter(auth: AuthService) {
 
   router.beforeEach((to, from, next) => {
     saveScrollPosition(from)
-
-    const loader = useLoader()
-    loader.showLoading()
-
     if (to.name !== 'login' && !auth.isAuthenticated()) {
-      next({ name: 'login', query: { returnTo: to.fullPath } })
+      if (to.fullPath === '/') {
+        next({ name: 'login', query: { returnTo: '/home' } })
+      } else {
+        next({ name: 'login', query: { returnTo: to.fullPath } })
+      }
     } else {
       next()
     }
   })
 
   router.afterEach(to => {
-    const loader = useLoader()
-    loader.hideLoading()
-
     const pos = getScrollPosition(to)
     if (pos) {
       window.scrollTo(pos.left, pos.top)

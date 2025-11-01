@@ -47,6 +47,7 @@
       },
     },
     created() {
+      this.loading = true
       const loader = useLoader()
       loader.showLoading()
       Promise.all([
@@ -55,6 +56,7 @@
         }),
       ])
         .finally(() => {
+          this.loading = false
           loader.hideLoading()
         })
     },

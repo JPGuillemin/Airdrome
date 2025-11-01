@@ -1,10 +1,11 @@
 <template>
   <div class="main-content">
-    <div v-if="recommendedAlbums.length > 0" class="mb-4">
-      <h3>Current mood selection</h3>
-      <AlbumList :items="recommendedAlbums" allow-h-scroll />
+    <div v-if="result.played.length > 0" class="mb-4">
+      <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
+        <h3>Recently played</h3>
+      </router-link>
+      <AlbumList :items="result.played" allow-h-scroll />
     </div>
-
     <div v-if="result.genres.length > 0" class="mb-4">
       <router-link :to="{ name: 'genres' }" class="text-muted">
         <h3>Genres</h3>
@@ -59,15 +60,6 @@
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />
     </div>
-
-    <div v-if="result.played.length > 0" class="mb-4">
-      <router-link :to="{name: 'albums', params: {sort: 'recently-played'}}" class="text-muted">
-        <h3>Recently played</h3>
-      </router-link>
-      <AlbumList :items="result.played" allow-h-scroll />
-    </div>
-
-    <EmptyIndicator v-if="empty" />
   </div>
 </template>
 
@@ -76,7 +68,7 @@
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import { Album, Genre, Artist } from '@/shared/api'
-  import { orderBy, uniq } from 'lodash-es'
+  import { orderBy } from 'lodash-es'
   import { useLoader } from '@/shared/loader'
   import fallbackImage from '@/shared/assets/fallback.svg'
 
@@ -87,7 +79,8 @@
     },
     data() {
       return {
-        loading: true as boolean,
+        loading: true,
+        loaded: false,
         result: {
           recent: [] as Album[],
           played: [] as Album[],
@@ -96,7 +89,6 @@
           favartists: [] as Artist[],
           genres: [] as Genre[],
         },
-        recommendedAlbums: [] as Album[],
       }
     },
     computed: {
@@ -104,85 +96,63 @@
         return Object.values(this.result).findIndex(x => x.length > 0) === -1
       },
     },
-    async created() {
-      const loader = useLoader()
-      const size = 18
+    mounted() {
+      if (!this.loaded) this.fetchData()
+    },
+    activated() {
+      if (!this.loaded) this.fetchData()
+    },
+    methods: {
+      async fetchData() {
+        const loader = useLoader()
+        const size = 18
+        loader.showLoading()
+        this.loading = true
 
-      loader.showLoading()
-      this.loading = true
+        try {
+          const [
+            recent,
+            played,
+            random,
+            favourites,
+            genres,
+          ] = await Promise.all([
+            this.$api.getAlbums('recently-added', size),
+            this.$api.getAlbums('recently-played', size),
+            this.$api.getAlbums('random', size),
+            this.$api.getFavourites(),
+            this.$api.getGenres(),
+            this.$api.getAlbums('recently-played', 15),
+          ])
 
-      try {
-        const [
-          recent,
-          played,
-          random,
-          favourites,
-          genres,
-          recentlyPlayedForMood,
-        ] = await Promise.all([
-          this.$api.getAlbums('recently-added', size),
-          this.$api.getAlbums('recently-played', size),
-          this.$api.getAlbums('random', size),
-          this.$api.getFavourites(),
-          this.$api.getGenres(),
-          this.$api.getAlbums('recently-played', 15),
-        ])
+          const genresWithCovers = await Promise.all(
+            genres.map(async(genre: Genre) => {
+              try {
+                const albums = await this.$api.getAlbumsByGenre(genre.name, 1)
+                const cover = albums[0]?.image || fallbackImage
+                return { ...genre, id: genre.name, cover }
+              } catch {
+                return { ...genre, id: genre.name, cover: fallbackImage }
+              }
+            })
+          )
 
-        // Fetch first album cover for each genre
-        const genresWithCovers = await Promise.all(
-          genres.map(async(genre: Genre) => {
-            try {
-              // Use the genre name instead of ID
-              const albums = await this.$api.getAlbumsByGenre(genre.name, 1)
-              const cover = albums[0]?.image || fallbackImage
+          this.result.recent = recent
+          this.result.played = played
+          this.result.random = random
+          this.result.favalbums = favourites.albums.slice(0, size)
+          this.result.favartists = favourites.artists.slice(0, size)
+          this.result.genres = orderBy(genresWithCovers, 'albumCount', 'desc')
 
-              // Add `id` field for router-link compatibility
-              return { ...genre, id: genre.name, cover }
-            } catch {
-              return { ...genre, id: genre.name, cover: fallbackImage }
-            }
-          })
-        )
-
-        this.result.recent = recent
-        this.result.played = played
-        this.result.random = random
-        this.result.favalbums = favourites.albums.slice(0, size)
-        this.result.favartists = favourites.artists.slice(0, size)
-        this.result.genres = orderBy(genresWithCovers, 'albumCount', 'desc')
-
-        // --- Mood-based recommendation logic ---
-        const genreCounts: Record<string, number> = {}
-        for (const album of recentlyPlayedForMood) {
-          const albumGenres = uniq(album.genres?.map(g => g.name) || [])
-          for (const genre of albumGenres) {
-            genreCounts[genre] = (genreCounts[genre] || 0) + 1
-          }
+          this.loaded = true
+          console.info('loaded = ', this.loaded)
+        } catch (error) {
+          console.error('Error loading Discover data:', error)
+        } finally {
+          this.loading = false
+          loader.hideLoading()
         }
-
-        const sortedGenres = orderBy(
-          Object.entries(genreCounts).map(([name, count]) => ({ name, count })),
-          ['count'],
-          ['desc']
-        )
-        const topGenres = sortedGenres.slice(0, 2).map(g => g.name)
-        const albumsFromGenres: Album[] = []
-
-        await Promise.all(
-          topGenres.map(async(genre) => {
-            const albums = await this.$api.getAlbumsByGenre(genre, 10)
-            albumsFromGenres.push(...albums)
-          })
-        )
-
-        const uniqueAlbums = Array.from(new Map(albumsFromGenres.map(a => [a.id, a])).values())
-        this.recommendedAlbums = uniqueAlbums.sort(() => Math.random() - 0.5).slice(0, 15)
-      } catch (error) {
-        console.error('Error loading Discover data:', error)
-      } finally {
-        this.loading = false
-        loader.hideLoading()
-      }
+      },
     },
   })
 </script>

@@ -158,16 +158,9 @@
       },
     },
     created() {
-      const loader = useLoader()
-      loader.showLoading()
-      Promise.all([
-        this.$api.getArtistDetails(this.id).then(result => {
-          this.artist = result
-        }),
-      ])
-        .finally(() => {
-          loader.hideLoading()
-        })
+      this.$api.getArtistDetails(this.id).then(result => {
+        this.artist = result
+      })
     },
     methods: {
       formatReleaseType(value: string) {

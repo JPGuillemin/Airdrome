@@ -39,8 +39,8 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { orderBy } from 'lodash-es'
-  import { useLoader } from '@/shared/loader'
   import fallbackImage from '@/shared/assets/fallback.svg'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     props: { sort: { type: String, default: null } },
@@ -70,24 +70,17 @@
         this.loading = true
         const loader = useLoader()
         loader.showLoading()
-        try {
-          // Step 1: Fetch genres
-          const genres = await this.$api.getGenres()
-
-          // Step 2: For each genre, get its first album’s cover image
-          const genresWithCovers = await Promise.all(
-            genres.map(async(genre: any) => {
-              const albums = await this.$api.getAlbumsByGenre(genre.id, 1)
-              const cover = albums[0]?.image || fallbackImage
-              return { ...genre, cover }
-            })
-          )
-
-          this.items = genresWithCovers
-        } finally {
-          loader.hideLoading()
-          this.loading = false
-        }
+        const genres = await this.$api.getGenres()
+        const genresWithCovers = await Promise.all(
+          genres.map(async(genre: any) => {
+            const albums = await this.$api.getAlbumsByGenre(genre.id, 1)
+            const cover = albums[0]?.image || fallbackImage
+            return { ...genre, cover }
+          })
+        )
+        this.loading = false
+        loader.hideLoading()
+        this.items = genresWithCovers
       },
     },
   })

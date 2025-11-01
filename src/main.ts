@@ -102,10 +102,14 @@ async function bootstrapApp() {
 
   // --- Service Worker ---
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(reg => console.log('Service worker registered:', reg))
-        .catch(err => console.error('Service worker error:', err))
+    navigator.serviceWorker.register('/service-worker.js')
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'UPDATE_READY') {
+        // Exemple : notifier l’utilisateur
+        console.log('Nouvelle version disponible !')
+        // Option : window.location.reload()
+      }
     })
   }
 }

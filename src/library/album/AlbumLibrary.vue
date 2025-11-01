@@ -33,6 +33,7 @@
 
     <AlbumList :items="albums" />
     <EmptyIndicator v-if="!loading && albums.length === 0" />
+    <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadAlbums" />
   </div>
 </template>
 
@@ -46,27 +47,34 @@
     components: { AlbumList },
     props: { sort: { type: String, required: true } },
     data() {
-      return { albums: [] as Album[], loading: true }
+      return {
+        albums: [] as | Album[],
+        loading: true,
+        offset: 0 as number,
+        hasMore: true,
+      }
     },
     watch: {
-      '$route.params.sort': {
-        immediate: true,
-        handler(newSort: string) {
-          this.loadAlbums(newSort as AlbumSort)
+      sort: {
+        handler() {
+          this.albums = []
+          this.offset = 0
+          this.hasMore = true
         }
       }
     },
     methods: {
-      async loadAlbums(sort: AlbumSort) {
+      loadAlbums() {
         this.loading = true
         const loader = useLoader()
         loader.showLoading()
-        try {
-          this.albums = await this.$api.getAlbums(sort, 100000, 0)
-        } finally {
-          loader.hideLoading()
+        return this.$api.getAlbums(this.sort as AlbumSort, 50, this.offset).then(albums => {
+          this.albums.push(...albums)
+          this.offset += albums.length
+          this.hasMore = albums.length >= 50
           this.loading = false
-        }
+          loader.hideLoading()
+        })
       }
     }
   })
