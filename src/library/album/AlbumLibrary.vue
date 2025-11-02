@@ -41,7 +41,6 @@
   import { defineComponent } from 'vue'
   import AlbumList from './AlbumList.vue'
   import { Album, AlbumSort } from '@/shared/api'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: { AlbumList },
@@ -66,26 +65,13 @@
     methods: {
       loadAlbums() {
         this.loading = true
-        const loader = useLoader()
-        loader.showLoading()
         return this.$api.getAlbums(this.sort as AlbumSort, 50, this.offset).then(albums => {
           this.albums.push(...albums)
           this.offset += albums.length
           this.hasMore = albums.length >= 50
           this.loading = false
-          loader.hideLoading()
         })
       }
     }
   })
 </script>
-<style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-</style>

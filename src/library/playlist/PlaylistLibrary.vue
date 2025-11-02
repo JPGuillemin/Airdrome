@@ -88,13 +88,3 @@
     }
   })
 </script>
-<style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-</style>

@@ -181,14 +181,17 @@ a.active {
 }
 
 .main-content {
-  padding-top: 48px;
+  padding-top: 38px;
 }
 
-img {
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  color-scheme: light;
-  background-color: transparent;
+.hero-title {
+  padding: 10px;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 @import './nav-underlined';

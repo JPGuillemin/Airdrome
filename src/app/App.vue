@@ -1,6 +1,6 @@
 <template>
   <component :is="layout">
-    <keep-alive include="home,albums,artists,playlists,genres,favourites,files" :max="3">
+    <keep-alive max="3">
       <router-view v-slot="{ Component: ViewComponent }">
         <transition name="fade" mode="out-in">
           <component :is="ViewComponent" />

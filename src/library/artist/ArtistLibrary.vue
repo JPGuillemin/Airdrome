@@ -16,7 +16,7 @@
       </li>
     </ul>
     <ArtistList :items="sortedItems" />
-    <EmptyIndicator v-if="items.length === 0" />
+    <EmptyIndicator v-if="!loading && items.length === 0" />
   </div>
 </template>
 <script lang="ts">
@@ -24,7 +24,6 @@
   import ArtistList from './ArtistList.vue'
   import { Artist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -48,8 +47,6 @@
     },
     created() {
       this.loading = true
-      const loader = useLoader()
-      loader.showLoading()
       Promise.all([
         this.$api.getArtists().then(result => {
           this.items = result
@@ -57,18 +54,7 @@
       ])
         .finally(() => {
           this.loading = false
-          loader.hideLoading()
         })
     },
   })
 </script>
-<style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-</style>

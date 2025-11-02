@@ -41,7 +41,6 @@
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { useApi } from '@/shared'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -59,15 +58,12 @@
       watch(
         () => [favouriteStore],
         async() => {
-          const loader = useLoader()
-          loader.showLoading()
           const result = await api.getFavourites()
           details.value = {
             albums: result.albums.filter((item: any) => favouriteStore.albums[item.id]),
             artists: result.artists.filter((item: any) => favouriteStore.artists[item.id]),
             tracks: result.tracks.filter((item: any) => favouriteStore.tracks[item.id]),
           }
-          loader.hideLoading()
         },
         { deep: true, immediate: true }
       )
@@ -77,13 +73,3 @@
     },
   })
 </script>
-<style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-</style>

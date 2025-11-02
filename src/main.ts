@@ -9,7 +9,6 @@ import { setupAudio, usePlayerStore } from './player/store'
 import { createPinia } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
-import { useLoader } from '@/shared/loader'
 import { createBootstrap } from 'bootstrap-vue-next'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -60,19 +59,6 @@ async function bootstrapApp() {
     },
     { immediate: false }
   )
-
-  // --- Router hooks ---
-  router.beforeEach((to, from, next) => {
-    const loader = useLoader()
-    loader.showLoading()
-    mainStore.clearError()
-    next()
-  })
-
-  router.afterEach(() => {
-    const loader = useLoader()
-    loader.hideLoading()
-  })
 
   // --- Create App ---
   const app = createApp(AppComponent)

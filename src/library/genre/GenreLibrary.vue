@@ -40,7 +40,6 @@
   import { defineComponent } from 'vue'
   import { orderBy } from 'lodash-es'
   import fallbackImage from '@/shared/assets/fallback.svg'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     props: { sort: { type: String, default: null } },
@@ -68,8 +67,6 @@
     methods: {
       async loadGenres() {
         this.loading = true
-        const loader = useLoader()
-        loader.showLoading()
         const genres = await this.$api.getGenres()
         const genresWithCovers = await Promise.all(
           genres.map(async(genre: any) => {
@@ -79,7 +76,6 @@
           })
         )
         this.loading = false
-        loader.hideLoading()
         this.items = genresWithCovers
       },
     },
@@ -87,15 +83,6 @@
 </script>
 
 <style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-
   .genre-icon {
     width: 32px;
     height: 32px;

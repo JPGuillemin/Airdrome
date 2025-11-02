@@ -151,12 +151,6 @@ export function setupRouter(auth: AuthService) {
         meta: { keepAlive: true }
       }
     ],
-
-    // Smooth scroll restoration
-    scrollBehavior(to, from, savedPosition) {
-      if (savedPosition) return savedPosition
-      return { left: 0, top: 0 }
-    }
   })
 
   // Inline scroll memory for better UX
