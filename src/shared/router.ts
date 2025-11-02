@@ -18,142 +18,109 @@ import { AuthService } from '@/auth/service'
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
+    linkExactActiveClass: 'active',
     routes: [
-      // Home / Discover
       {
-        path: '/home',
+        path: '/',
         name: 'home',
-        component: Discover,
-        meta: { keepAlive: true }
+        component: Discover
       },
-
-      // Login
       {
         name: 'login',
         path: '/login',
         component: Login,
-        props: route => ({
-          returnTo: route.query.returnTo
+        props: (route) => ({
+          returnTo: route.query.returnTo,
         }),
         meta: {
-          layout: 'fullscreen',
-          keepAlive: false
+          layout: 'fullscreen'
         }
       },
-
-      // Queue
       {
         name: 'queue',
         path: '/queue',
         component: Queue,
-        meta: { keepAlive: false }
       },
-
-      // Albums
       {
         name: 'albums-default',
         path: '/albums',
-        redirect: {
+        redirect: ({
           name: 'albums',
           params: { sort: 'recently-added' }
-        }
+        }),
       },
       {
         name: 'albums',
         path: '/albums/:sort',
         component: AlbumLibrary,
-        props: true,
-        meta: { keepAlive: true }
+        props: true
       },
       {
         name: 'album',
-        path: '/album/:id',
+        path: '/albums/id/:id',
         component: AlbumDetails,
         props: true,
-        meta: { keepAlive: false }
       },
-
-      // Artists
       {
         name: 'artists',
         path: '/artists/:sort?',
         component: ArtistLibrary,
         props: true,
-        meta: { keepAlive: true }
       },
       {
         name: 'artist',
-        path: '/artist/:id',
+        path: '/artists/id/:id',
         component: ArtistDetails,
         props: true,
-        meta: { keepAlive: false }
       },
-
-      // Genres
       {
         name: 'genres',
         path: '/genres/:sort?',
         component: GenreLibrary,
         props: true,
-        meta: { keepAlive: true }
       },
       {
         name: 'genre',
-        path: '/genre/:id/:section?',
+        path: '/genres/id/:id/:section?',
         component: GenreDetails,
         props: true,
-        meta: { keepAlive: false }
       },
-
-      // Favourites
       {
         name: 'favourites',
         path: '/favourites/:section?',
         component: Favourites,
         props: true,
-        meta: { keepAlive: true }
       },
-
-      // Files
       {
         name: 'files',
-        path: '/files/:path(.*)?',
+        path: '/files/:path*',
         component: Files,
         props: true,
-        meta: { keepAlive: true }
       },
-
-      // Playlists
       {
         name: 'playlists',
         path: '/playlists/:sort?',
         component: PlaylistLibrary,
         props: true,
-        meta: { keepAlive: true }
       },
       {
         name: 'playlist',
         path: '/playlist/:id',
         component: Playlist,
         props: true,
-        meta: { keepAlive: false }
       },
-
-      // Search
       {
         name: 'search',
         path: '/search/:type?',
         component: SearchResult,
-        props: route => ({
+        props: (route) => ({
           ...route.params,
-          ...route.query
-        }),
-        meta: { keepAlive: true }
-      }
+          ...route.query,
+        })
+      },
     ],
   })
 
-  // Inline scroll memory for better UX
   const scrollPositions = new Map<string, { left: number; top: number }>()
   const saveScrollPosition = (route: any) => {
     scrollPositions.set(route.fullPath, { left: window.scrollX, top: window.scrollY })
@@ -163,11 +130,7 @@ export function setupRouter(auth: AuthService) {
   router.beforeEach((to, from, next) => {
     saveScrollPosition(from)
     if (to.name !== 'login' && !auth.isAuthenticated()) {
-      if (to.fullPath === '/') {
-        next({ name: 'login', query: { returnTo: '/home' } })
-      } else {
-        next({ name: 'login', query: { returnTo: to.fullPath } })
-      }
+      next({ name: 'login', query: { returnTo: to.fullPath } })
     } else {
       next()
     }
@@ -176,7 +139,8 @@ export function setupRouter(auth: AuthService) {
   router.afterEach(to => {
     const pos = getScrollPosition(to)
     if (pos) {
-      window.scrollTo(pos.left, pos.top)
+      const offsetTop = Math.max(pos.top - 38, 0)
+      window.scrollTo(pos.left, offsetTop)
     }
   })
 

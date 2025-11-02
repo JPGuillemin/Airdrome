@@ -60,6 +60,7 @@ async function bootstrapApp() {
     { immediate: false }
   )
 
+  window.history.scrollRestoration = 'manual'
   // --- Create App ---
   const app = createApp(AppComponent)
 

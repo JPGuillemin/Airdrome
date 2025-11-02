@@ -1,14 +1,12 @@
 <template>
-  <component :is="layout">
-    <keep-alive max="3">
-      <router-view v-slot="{ Component: ViewComponent }">
-        <transition name="fade" mode="out-in">
-          <component :is="ViewComponent" />
-        </transition>
-      </router-view>
-    </keep-alive>
-    <GlobalLoader />
-  </component>
+  <div>
+    <component :is="layout">
+      <keep-alive max="3">
+        <router-view :key="$route.fullPath" />
+      </keep-alive>
+    </component>
+    <ErrorToast />
+  </div>
 </template>
 
 <script lang="ts">
