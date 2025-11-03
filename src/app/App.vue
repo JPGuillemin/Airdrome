@@ -5,7 +5,7 @@
         <router-view :key="$route.fullPath" />
       </keep-alive>
     </component>
-    <ErrorToast />
+    <GlobalLoader />
   </div>
 </template>
 

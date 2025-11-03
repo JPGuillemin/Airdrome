@@ -12,7 +12,6 @@ import Favourites from '@/library/favourite/Favourites.vue'
 import Playlist from '@/library/playlist/Playlist.vue'
 import PlaylistLibrary from '@/library/playlist/PlaylistLibrary.vue'
 import SearchResult from '@/library/search/SearchResult.vue'
-import Files from '@/library/file/Files.vue'
 import { AuthService } from '@/auth/service'
 import { nextTick } from 'vue'
 
@@ -90,12 +89,6 @@ export function setupRouter(auth: AuthService) {
         name: 'favourites',
         path: '/favourites/:section?',
         component: Favourites,
-        props: true,
-      },
-      {
-        name: 'files',
-        path: '/files/:path*',
-        component: Files,
         props: true,
       },
       {

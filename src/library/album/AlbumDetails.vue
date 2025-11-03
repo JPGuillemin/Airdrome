@@ -226,8 +226,6 @@
           console.warn('No tracks found for this album.')
           return
         }
-        const loader = useLoader()
-        loader.showLoading()
         const cache = await caches.open('airdrome-cache-v2')
         const trackUrls = album.tracks
           .map(t => t.url)
@@ -248,7 +246,6 @@
             params: { ...(this.$route.params || {}) },
             query: { ...(this.$route.query || {}), t: Date.now().toString() }
           })
-          loader.hideLoading()
         }
         console.info(
           `Cleared ${deleted}/${trackUrls.length} cached tracks for album "${album.name}".`

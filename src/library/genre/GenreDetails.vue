@@ -33,8 +33,7 @@
     },
     setup() {
       const playerStore = usePlayerStore()
-      const loader = useLoader()
-      return { playerStore, loader }
+      return { playerStore }
     },
     data() {
       return {
@@ -52,20 +51,11 @@
     },
     methods: {
       async loadAlbums(offset: number): Promise<Album[]> {
-        const loader = useLoader()
-        if (!this.firstLoadDone) loader.showLoading()
-        try {
-          return await this.$api.getAlbumsByGenre(this.id, 30, offset)
-        } finally {
-          if (!this.firstLoadDone) {
-            loader.hideLoading()
-            this.firstLoadDone = true
-          }
-        }
+        return await this.$api.getAlbumsByGenre(this.id, 30, offset)
       },
-
       async shuffleNow(): Promise<void> {
-        this.loader.showLoading()
+        const loader = useLoader()
+        loader.showLoading()
         await new Promise(resolve => setTimeout(resolve, 0)) // give loader a tick
         try {
           const albums: Album[] = await this.$api.getAlbumsByGenre(this.id, 50, 0)
@@ -87,20 +77,9 @@
 
           this.playerStore.shuffleNow(tracks)
         } finally {
-          this.loader.hideLoading()
+          loader.hideLoading()
         }
       }
     }
   })
 </script>
-
-<style scoped>
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-  }
-</style>

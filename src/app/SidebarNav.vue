@@ -38,10 +38,6 @@
       <Icon icon="heart" /> Favourites
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'files'}">
-      <Icon icon="files" /> Files
-    </router-link>
-
     <PlaylistNav />
   </nav>
 </template>
