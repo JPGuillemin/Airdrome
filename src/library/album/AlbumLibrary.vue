@@ -33,7 +33,7 @@
 
     <AlbumList :items="albums" />
     <EmptyIndicator v-if="!loading && albums.length === 0" />
-    <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadAlbums" />
+    <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>
 </template>
 
@@ -63,12 +63,12 @@
       }
     },
     methods: {
-      loadAlbums() {
+      loadMore() {
         this.loading = true
-        return this.$api.getAlbums(this.sort as AlbumSort, 50, this.offset).then(albums => {
+        return this.$api.getAlbums(this.sort as AlbumSort, 30, this.offset).then(albums => {
           this.albums.push(...albums)
           this.offset += albums.length
-          this.hasMore = albums.length >= 50
+          this.hasMore = albums.length >= 30
           this.loading = false
         })
       }

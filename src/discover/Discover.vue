@@ -105,7 +105,7 @@
     methods: {
       async fetchData() {
         const loader = useLoader()
-        const size = 18
+        const size = 15
         loader.showLoading()
         this.loading = true
 
@@ -122,7 +122,7 @@
             this.$api.getAlbums('random', size),
             this.$api.getFavourites(),
             this.$api.getGenres(),
-            this.$api.getAlbums('recently-played', 15),
+            this.$api.getAlbums('recently-played', size),
           ])
 
           const genresWithCovers = await Promise.all(

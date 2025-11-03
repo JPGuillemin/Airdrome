@@ -14,6 +14,7 @@ import PlaylistLibrary from '@/library/playlist/PlaylistLibrary.vue'
 import SearchResult from '@/library/search/SearchResult.vue'
 import Files from '@/library/file/Files.vue'
 import { AuthService } from '@/auth/service'
+import { nextTick } from 'vue'
 
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
@@ -119,28 +120,36 @@ export function setupRouter(auth: AuthService) {
         })
       },
     ],
+
+    // Native scroll restoration logic
+    scrollBehavior(to, from, savedPosition) {
+      const heavyRoutes = ['home', 'albums', 'artists', 'genre']
+      if (savedPosition) {
+        return new Promise(resolve => {
+          nextTick().then(() => {
+            if (heavyRoutes.includes(to.name as string)) {
+              setTimeout(() => { resolve({ left: savedPosition.left, top: Math.max(savedPosition.top - 38, 0) }) }, 500)
+            } else {
+              setTimeout(() => { resolve({ left: savedPosition.left, top: Math.max(savedPosition.top - 38, 0) }) }, 100)
+            }
+          })
+        })
+      }
+      if (to.hash) {
+        return {
+          el: to.hash,
+          behavior: 'smooth',
+        }
+      }
+      return { left: 0, top: 0 }
+    },
   })
 
-  const scrollPositions = new Map<string, { left: number; top: number }>()
-  const saveScrollPosition = (route: any) => {
-    scrollPositions.set(route.fullPath, { left: window.scrollX, top: window.scrollY })
-  }
-  const getScrollPosition = (route: any) => scrollPositions.get(route.fullPath)
-
   router.beforeEach((to, from, next) => {
-    saveScrollPosition(from)
     if (to.name !== 'login' && !auth.isAuthenticated()) {
       next({ name: 'login', query: { returnTo: to.fullPath } })
     } else {
       next()
-    }
-  })
-
-  router.afterEach(to => {
-    const pos = getScrollPosition(to)
-    if (pos) {
-      const offsetTop = Math.max(pos.top - 38, 0)
-      window.scrollTo(pos.left, offsetTop)
     }
   })
 
