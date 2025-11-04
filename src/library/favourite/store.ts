@@ -16,7 +16,13 @@ export const useFavouriteStore = defineStore('favourite', {
         this.tracks = createIdMap(result.tracks)
       })
     },
+    get(type: MediaType, id: string) {
+      console.info('favouriteStore.get(): ', id)
+      const field = getTypeKey(type)
+      return !!this[field][id]
+    },
     toggle(type: MediaType, id: string) {
+      console.info('favouriteStore.toggle(): ', id)
       const field = getTypeKey(type)
       if (this[field][id]) {
         delete this[field][id]

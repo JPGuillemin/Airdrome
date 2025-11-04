@@ -10,6 +10,7 @@
 
     <img
       :src="image || fallbackImage"
+      :title="hover"
       class="album-cover cursor-pointer"
       @click="$emit('click')"
     >
@@ -27,7 +28,8 @@
   export default defineComponent({
     props: {
       image: { type: String, default: null },
-      blur: { type: String, default: '8px' }
+      blur: { type: String, default: '7px' },
+      hover: { type: String, default: null },
     },
     emits: ['click'],
     setup() {

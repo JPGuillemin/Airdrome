@@ -1,7 +1,7 @@
 <template>
   <div v-if="artist" class="main-content">
     <div class="hero-wrapper">
-      <Hero :image="artist.image" class="cursor-pointer" @click="shuffleNow">
+      <Hero :image="artist.image" :hover="'Shuffle'" class="cursor-pointer" @click="shuffleNow">
         <h1 class="display-5 fw-bold hero-title">
           {{ artist.name }}
         </h1>
@@ -87,11 +87,14 @@
         </h3>
         <ArtistList :items="artist.similarArtist" />
       </template>
-      <div class="d-flex justify-content-between mt-5 mb-2">
-        <OverflowFade v-if="artist.description" class="mt-3">
+      <template v-if="artist.description">
+        <h3 class="mt-5">
+          Background info
+        </h3>
+        <span class="d-flex justify-content-between mb-2">
           {{ artist.description }}
-        </OverflowFade>
-      </div>
+        </span>
+      </template>
     </div>
   </div>
 </template>
@@ -101,7 +104,6 @@
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
-  import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { Album } from '@/shared/api'
   import { groupBy, orderBy } from 'lodash-es'
   import { useMainStore } from '@/shared/store'
@@ -117,7 +119,6 @@
       IconLastFm,
       AlbumList,
       ArtistList,
-      OverflowFade,
       TrackList,
     },
     props: {
@@ -137,7 +138,7 @@
     },
     computed: {
       isFavourite(): boolean {
-        return !!this.favouriteStore.artists[this.id]
+        return this.favouriteStore.get('artist', this.id)
       },
       albums(): { releaseType: string, albums: Album[] }[] {
         const sorted: Album[] = orderBy(

@@ -1,7 +1,7 @@
 <template>
   <div v-if="album" class="main-content">
     <div class="hero-wrapper">
-      <Hero :image="album.image" class="cursor-pointer" @click="playNow">
+      <Hero :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <h1 class="display-5 fw-bold hero-title">
           {{ album.name }}
         </h1>
@@ -59,7 +59,7 @@
             <DropdownItem icon="plus" @click="addToQueue">
               Add to queue
             </DropdownItem>
-            <DropdownItem icon="download" @click="downloadAlbum">
+            <DropdownItem icon="download" @click="cacheAlbum">
               Add to cache
             </DropdownItem>
             <DropdownItem icon="trash" @click="clearAlbumCache">
@@ -75,10 +75,13 @@
           <TrackList :tracks="album.tracks || []" no-album />
         </div>
       </div>
-      <div class="row">
-        <OverflowFade v-if="album.description" class="mt-3">
+      <div v-if="album.description" class="row">
+        <h3 class="mt-5">
+          Background info
+        </h3>
+        <span class="d-flex justify-content-between mb-2">
           {{ album.description }}
-        </OverflowFade>
+        </span>
       </div>
     </div>
   </div>
@@ -90,14 +93,13 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
-  import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
   import { sleep } from '@/shared/utils'
+  import { useAlbumCacheStore } from '@/library/album/store'
 
   export default defineComponent({
     components: {
-      OverflowFade,
       IconMusicBrainz,
       IconLastFm,
       TrackList,
@@ -109,6 +111,7 @@
       return {
         favouriteStore: useFavouriteStore(),
         playerStore: usePlayerStore(),
+        albumCacheStore: useAlbumCacheStore(),
       }
     },
     data() {
@@ -118,7 +121,7 @@
     },
     computed: {
       isFavourite(): boolean {
-        return !!this.favouriteStore.albums[this.id]
+        return this.favouriteStore.get('album', this.id)
       },
       isPlaying() { return this.playerStore.isPlaying },
     },
@@ -173,89 +176,28 @@
           return this.playerStore.addToQueue(this.album.tracks!)
         }
       },
-      setFavouriteCache() {
-        if (this.isFavourite) return this.downloadAlbum()
-        return this.clearAlbumCache()
-      },
       async toggleFavourite() {
         this.favouriteStore.toggle('album', this.id)
         await sleep(300)
-        return this.setFavouriteCache()
-      },
-      async downloadAlbum() {
         const album = this.album
-        if (!album?.tracks?.length) {
-          console.warn('No tracks to cache for this album.')
-          return
+        if (!album) return
+        if (this.isFavourite) {
+          await this.albumCacheStore.cacheAlbum(album)
+        } else {
+          await this.albumCacheStore.clearAlbumCache(album)
         }
-        const cache = await caches.open('airdrome-cache-v2')
-        // Filter only valid string URLs
-        const trackUrls = album.tracks
-          .map(t => t.url)
-          .filter((u): u is string => typeof u === 'string' && u.length > 0)
-        const total = trackUrls.length
-        let done = 0
-        console.info(`Caching ${total} tracks for album "${album.name}"...`)
-        for (const url of trackUrls) {
-          try {
-            const match = await cache.match(url)
-            if (!match) {
-              const response = await fetch(url, { mode: 'cors' })
-              if (response.ok) {
-                await cache.put(url, response.clone())
-                done++
-                console.info(`Cached [${done}/${total}] ${url}`)
-                const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
-                window.dispatchEvent(cacheFinishedEvent)
-              } else {
-                console.warn(`Failed to fetch: ${url} (${response.status})`)
-              }
-            } else {
-              console.info(`Already cached: ${url}`)
-            }
-          } catch (err) {
-            console.warn(`Error caching ${url}:`, err)
-          }
-          await sleep(300)
+      },
+      async cacheAlbum() {
+        if (this.album) {
+          await this.albumCacheStore.cacheAlbum(this.album)
         }
-        console.info(`Finished caching album "${album.name}" (${done}/${total})`)
       },
       async clearAlbumCache() {
-        const album = this.album
-        if (!album?.tracks?.length) {
-          console.warn('No tracks found for this album.')
-          return
+        if (this.album) {
+          await this.albumCacheStore.clearAlbumCache(this.album)
         }
-        const cache = await caches.open('airdrome-cache-v2')
-        const trackUrls = album.tracks
-          .map(t => t.url)
-          .filter((u): u is string => typeof u === 'string' && u.length > 0)
-        let deleted = 0
-        for (const url of trackUrls) {
-          try {
-            const success = await cache.delete(url)
-            if (success) {
-              deleted++
-              console.info(`Removed from cache: ${url}`)
-            }
-          } catch (err) {
-            console.warn(`Failed to remove ${url} from cache:`, err)
-          }
-          this.$router.replace({
-            name: this.$route.name as string,
-            params: { ...(this.$route.params || {}) },
-            query: { ...(this.$route.query || {}), t: Date.now().toString() }
-          })
-        }
-        console.info(
-          `Cleared ${deleted}/${trackUrls.length} cached tracks for album "${album.name}".`
-        )
-        const cacheClearedEvent = new CustomEvent('albumCacheCleared', {
-          detail: { albumId: album.id, name: album.name, deleted },
-        })
-        window.dispatchEvent(cacheClearedEvent)
       },
-    }
+    },
   })
 </script>
 <style scoped>

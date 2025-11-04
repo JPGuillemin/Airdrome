@@ -11,10 +11,7 @@
         <strong>{{ item.albumCount }}</strong> albums
       </template>
       <template #context-menu>
-        <DropdownItem
-          :icon="favourites[item.id] ? 'heart-fill' : 'heart'"
-          @click="toggleFavourite(item.id)"
-        >
+        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
           Favourite
         </DropdownItem>
       </template>
@@ -35,15 +32,13 @@
         favouriteStore: useFavouriteStore(),
       }
     },
-    computed: {
-      favourites(): any {
-        return this.favouriteStore.artists
+    methods: {
+      async toggleFavourite(id: string) {
+        this.favouriteStore.toggle('artist', id)
+      },
+      isFavourite(id: string) {
+        return this.favouriteStore.get('artist', id)
       },
     },
-    methods: {
-      toggleFavourite(id: string) {
-        return this.favouriteStore.toggle('artist', id)
-      },
-    }
   })
 </script>

@@ -40,10 +40,7 @@
         <DropdownItem icon="plus" @click="playLater(item.id)">
           Add to queue
         </DropdownItem>
-        <DropdownItem
-          :icon="favourites[item.id] ? 'heart-fill' : 'heart'"
-          @click="toggleFavourite(item.id)"
-        >
+        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
           Favourite
         </DropdownItem>
       </template>
@@ -56,6 +53,8 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import type { Album } from '@/shared/api'
+  import { useAlbumCacheStore } from '@/library/album/store'
+  import { sleep } from '@/shared/utils'
 
   export default defineComponent({
     props: {
@@ -70,16 +69,13 @@
       return {
         favouriteStore: useFavouriteStore(),
         playerStore: usePlayerStore(),
+        albumCacheStore: useAlbumCacheStore(),
       }
     },
 
     computed: {
       validItems(): Album[] {
         return (this.items || []).filter((item): item is Album => !!item?.id)
-      },
-
-      favourites(): any {
-        return this.favouriteStore.albums
       },
     },
 
@@ -96,11 +92,22 @@
         const album = await this.$api.getAlbumDetails(id)
         return this.playerStore.addToQueue(album.tracks!)
       },
-      toggleFavourite(id: string) {
-        return this.favouriteStore.toggle('album', id)
+      async toggleFavourite(id: string) {
+        this.favouriteStore.toggle('album', id)
+        await sleep(300)
+        const album = await this.$api.getAlbumDetails(id)
+        if (!album) return
+        if (this.isFavourite(id)) {
+          await this.albumCacheStore.cacheAlbum(album)
+        } else {
+          await this.albumCacheStore.clearAlbumCache(album)
+        }
       },
       dragstart(id: string, event: DragEvent) {
         event.dataTransfer?.setData('application/x-album-id', id)
+      },
+      isFavourite(id: string) {
+        return this.favouriteStore.get('album', id)
       },
     },
   })

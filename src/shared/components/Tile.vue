@@ -51,16 +51,23 @@
   .tile-img {
     position: relative;
     width: 100%;
-
-    & img {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
   }
+
+  /* make image circular without clipping children */
   .tile-img--circle {
     border-radius: 50%;
-    overflow: hidden;
+    overflow: visible; /* allow dropdowns to escape */
+  }
+
+  /* clip only the image itself, not its children */
+  .tile-img--circle img {
+    clip-path: circle(50%);
+  }
+
+  .tile-img img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 </style>
