@@ -18,7 +18,7 @@
   .tiles {
     display: grid;
     grid-gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(min(100% / 3, 150px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100% / 3, 100px), 1fr));
     font-size: 0.75rem; /* base text size */
   }
 
@@ -36,7 +36,7 @@
     .tiles-hs {
       grid-template-columns: none;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(min(100% / 2 - 1em, 100px), 1fr);
+      grid-auto-columns: minmax(min(100% / 2 - 1em, 85px), 1fr);
       overflow-x: auto;
     }
   }
@@ -46,7 +46,7 @@
     .tiles {
       grid-gap: 6px;
       font-size: 0.65rem;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
     }
 
     /* Text adjustments */

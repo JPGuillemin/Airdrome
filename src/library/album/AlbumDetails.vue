@@ -182,9 +182,9 @@
         const album = this.album
         if (!album) return
         if (this.isFavourite) {
-          await this.albumCacheStore.cacheAlbum(album)
+          await this.cacheAlbum()
         } else {
-          await this.albumCacheStore.clearAlbumCache(album)
+          await this.clearAlbumCache()
         }
       },
       async cacheAlbum() {
@@ -195,6 +195,12 @@
       async clearAlbumCache() {
         if (this.album) {
           await this.albumCacheStore.clearAlbumCache(this.album)
+          // Refresh page
+          this.$router.replace({
+            name: this.$route.name as string,
+            params: { ...(this.$route.params || {}) },
+            query: { ...(this.$route.query || {}), t: Date.now().toString() }
+          })
         }
       },
     },

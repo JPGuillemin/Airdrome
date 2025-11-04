@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'
+import { sleep } from '@/shared/utils'
 
 export const useAlbumCacheStore = defineStore('albumCache', {
+  state: () => ({
+    activeCaching: new Map<string, { cancelled: boolean }>(),
+  }),
+
   actions: {
     async cacheAlbum(album: Album) {
       if (!album?.tracks?.length) {
@@ -9,6 +14,17 @@ export const useAlbumCacheStore = defineStore('albumCache', {
         return
       }
 
+      // Create a unique key (id is best)
+      const key = album.id || album.name
+      if (!key) {
+        console.warn('Album has no identifier.')
+        return
+      }
+
+      // Cancel previous run if any
+      this.activeCaching.set(key, { cancelled: false })
+
+      const session = this.activeCaching.get(key)!
       const cache = await caches.open('airdrome-cache-v2')
       const trackUrls = album.tracks
         .map(t => t.url)
@@ -19,6 +35,12 @@ export const useAlbumCacheStore = defineStore('albumCache', {
       console.info(`Caching ${total} tracks for album "${album.name}"...`)
 
       for (const url of trackUrls) {
+        // Check for cancellation between each iteration
+        if (session.cancelled) {
+          console.info(`Caching for album "${album.name}" was cancelled.`)
+          return
+        }
+
         try {
           const match = await cache.match(url)
           if (!match) {
@@ -47,6 +69,13 @@ export const useAlbumCacheStore = defineStore('albumCache', {
       if (!album?.tracks?.length) {
         console.warn('No tracks found for this album.')
         return
+      }
+
+      const key = album.id || album.name
+      if (key && this.activeCaching.has(key)) {
+        // Mark current caching session as cancelled
+        this.activeCaching.get(key)!.cancelled = true
+        await sleep(2000)
       }
 
       const cache = await caches.open('airdrome-cache-v2')

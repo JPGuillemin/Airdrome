@@ -260,7 +260,7 @@
       shuffleActive() { return this.playerStore.shuffle },
       replayGainMode(): ReplayGainMode { return this.playerStore.replayGainMode },
       isFavourite(): boolean {
-        return !!this.track && !!this.favouriteStore.tracks[this.track.id]
+        return !!this.track && this.favouriteStore.get('track', this.track.id)
       },
       documentTitle(): string {
         return [
