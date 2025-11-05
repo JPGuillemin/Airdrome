@@ -59,10 +59,10 @@
             <DropdownItem icon="plus" @click="addToQueue">
               Add to queue
             </DropdownItem>
-            <DropdownItem icon="download" @click="cacheAlbum">
+            <DropdownItem v-if="!cached" icon="download" @click="cacheAlbum">
               Add to cache
             </DropdownItem>
-            <DropdownItem icon="trash" @click="clearAlbumCache">
+            <DropdownItem v-if="cached" icon="trash" @click="clearAlbumCache">
               Clear from cache
             </DropdownItem>
           </OverflowMenu>
@@ -79,7 +79,7 @@
         <h3 class="mt-5">
           Background info
         </h3>
-        <span class="d-flex justify-content-between mb-2">
+        <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
           {{ album.description }}
         </span>
       </div>
@@ -116,7 +116,8 @@
     },
     data() {
       return {
-        album: null as Album | null
+        album: null as Album | null,
+        cached: false,
       }
     },
     computed: {
@@ -125,10 +126,12 @@
       },
       isPlaying() { return this.playerStore.isPlaying },
     },
-    created() {
-      this.$api.getAlbumDetails(this.id).then(result => {
-        this.album = result
-      })
+    async created() {
+      const result = await this.$api.getAlbumDetails(this.id)
+      this.album = result
+      if (this.album) {
+        this.cached = await this.albumCacheStore.isCached(this.album)
+      }
     },
     methods: {
       playNow() {

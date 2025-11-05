@@ -91,7 +91,7 @@
         <h3 class="mt-5">
           Background info
         </h3>
-        <span class="d-flex justify-content-between mb-2">
+        <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
           {{ artist.description }}
         </span>
       </template>

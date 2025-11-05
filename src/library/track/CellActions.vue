@@ -1,17 +1,17 @@
 <template>
   <td class="text-end" @click.stop="">
-    <OverflowMenu class="on-top">
+    <OverflowMenu>
       <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="setNextInQueue()">
-        Play next
+        Next
       </DropdownItem>
       <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="addToQueue()">
-        Add to queue
+        Queue
       </DropdownItem>
       <DropdownItem v-if="!track.isStream" icon="plus" @click="showPlaylistSelect = true">
-        Add to playlist
+        Playlist
       </DropdownItem>
       <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" @click="toggleFavourite()">
-        Favourite
+        Like
       </DropdownItem>
       <DropdownItem v-if="!track.isStream" icon="download" @click="download()">
         Download

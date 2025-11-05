@@ -58,6 +58,7 @@
   import iconSoundwave from '@iconify-icons/bi/soundwave'
   import iconStack from '@iconify-icons/bi/stack'
   import iconThreeDotsVertical from '@iconify-icons/bi/three-dots-vertical'
+  import iconTrash from '@iconify-icons/bi/trash'
   import iconVolume from '@iconify-icons/bi/volume-up-fill'
   import iconX from '@iconify-icons/bi/x'
 
@@ -104,6 +105,7 @@
     soundwave: iconSoundwave.body,
     stack: iconStack.body,
     'three-dots-vertical': iconThreeDotsVertical.body,
+    trash: iconTrash.body,
     volume: iconVolume.body,
     x: iconX.body,
   } as {[key: string]: string}

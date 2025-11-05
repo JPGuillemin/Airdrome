@@ -22,7 +22,10 @@
     font-size: 0.75rem; /* base text size */
   }
 
-  /* Tile variants */
+  .tiles-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
+
   .tiles-square .tile-img {
     padding-bottom: 100%;
   }
@@ -31,37 +34,24 @@
     padding-bottom: 70%;
   }
 
-  /* Horizontal scroll before breaking to 2 columns */
   @media(max-width: 654px) {
     .tiles-hs {
       grid-template-columns: none;
       grid-auto-flow: column;
       grid-auto-columns: minmax(min(100% / 2 - 1em, 85px), 1fr);
       overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tiles-hs::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Edge */
     }
   }
 
-  /* Mobile adjustments */
   @media(max-width: 442px) {
     .tiles {
       grid-gap: 6px;
       font-size: 0.65rem;
       grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
     }
-
-    /* Text adjustments */
-    .tiles .tile .card-body {
-      font-size: 0.65rem;
-      padding-inline: 4px;
-    }
-    .tiles .tile .text-truncate.fw-bold { font-size: 0.7rem; }
-    .tiles .tile .text-truncate.text-muted { font-size: 0.65rem; }
-
-    /* Preserve squares & circles */
-    .tiles-square .tile-img { padding-bottom: 100%; }
-    .tiles-square .tile-img--circle { border-radius: 50%; overflow: hidden; }
-
-    /* Rectangles shrink slightly */
-    .tiles-rect .tile-img { padding-bottom: 70%; }
   }
 </style>

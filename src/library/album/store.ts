@@ -102,5 +102,16 @@ export const useAlbumCacheStore = defineStore('albumCache', {
         new CustomEvent('albumCacheCleared', { detail: { albumId: album.id, name: album.name, deleted } })
       )
     },
+
+    async isCached(album: Album): Promise<boolean> {
+      if (!album?.tracks?.length) return false
+      const cache = await caches.open('airdrome-cache-v2')
+      for (const track of album.tracks) {
+        if (!track.url) continue
+        const match = await cache.match(track.url)
+        if (match) return true
+      }
+      return false
+    },
   },
 })

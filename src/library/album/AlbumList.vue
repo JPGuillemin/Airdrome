@@ -9,7 +9,6 @@
       draggable="true"
       @dragstart="dragstart(item.id, $event)"
     >
-      <!-- Debugging -->
       <template #title>
         <router-link :to="{ name: 'album', params: { id: item.id } }">
           {{ item.name }}
@@ -34,14 +33,8 @@
         <DropdownItem icon="play" @click="playNow(item.id)">
           Play
         </DropdownItem>
-        <DropdownItem icon="plus" @click="playNext(item.id)">
-          Play next
-        </DropdownItem>
-        <DropdownItem icon="plus" @click="playLater(item.id)">
-          Add to queue
-        </DropdownItem>
         <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
-          Favourite
+          Like
         </DropdownItem>
       </template>
     </Tile>
@@ -83,14 +76,6 @@
       async playNow(id: string) {
         const album = await this.$api.getAlbumDetails(id)
         return this.playerStore.playTrackList(album.tracks!)
-      },
-      async playNext(id: string) {
-        const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.setNextInQueue(album.tracks!)
-      },
-      async playLater(id: string) {
-        const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.addToQueue(album.tracks!)
       },
       async toggleFavourite(id: string) {
         this.favouriteStore.toggle('album', id)

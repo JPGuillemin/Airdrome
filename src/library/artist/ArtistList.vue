@@ -12,7 +12,7 @@
       </template>
       <template #context-menu>
         <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
-          Favourite
+          Like
         </DropdownItem>
       </template>
     </Tile>

@@ -56,3 +56,12 @@
     },
   })
 </script>
+<style>
+  .dropdown-menu {
+    min-width: 3rem !important;
+    z-index: 8888 !important;
+  }
+  .dropdown-menu .dropdown-item {
+    z-index: 9999 !important;
+  }
+</style>
