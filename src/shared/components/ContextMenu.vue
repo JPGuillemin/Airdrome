@@ -59,9 +59,9 @@
 <style>
   .dropdown-menu {
     min-width: 3rem !important;
-    z-index: 8888 !important;
+    z-index: 2999 !important;
   }
   .dropdown-menu .dropdown-item {
-    z-index: 9999 !important;
+    z-index: 3000 !important;
   }
 </style>

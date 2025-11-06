@@ -81,7 +81,7 @@
           <div class="d-flex flex-nowrap justify-content-end pe-3">
             <div class="m-0 d-none d-md-inline-flex align-items-center">
               <b-button
-                title="Favourite"
+                title="Like"
                 variant="transparent" class="m-0"
                 @click="toggleFavourite"
               >
@@ -89,7 +89,7 @@
               </b-button>
               <b-button
                 v-if="track && track.replayGain"
-                title="ReplayGain"
+                title="R.Gain"
                 variant="transparent"
                 class="m-0"
                 :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
@@ -156,14 +156,14 @@
                 </b-button>
               </div>
               <div class="d-flex justify-content-between px-3 py-1">
-                <span>Favourite</span>
+                <span>Like</span>
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                 </b-button>
               </div>
 
               <div v-if="track && track.replayGain" class="d-flex justify-content-between px-3 py-1">
-                <span>Replay Gain</span>
+                <span>R.Gain</span>
                 <b-button
                   title="ReplayGain"
                   variant="transparent"
