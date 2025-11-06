@@ -40,13 +40,13 @@
           </template>
         </div>
         <div class="text-nowrap mt-3">
-          <b-button variant="transparent" class="me-2" title="Shuffle album" @click="shuffleNow">
+          <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />
           </b-button>
           <b-button variant="transparent" class="me-2" title="Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
+          <b-button variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
           <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
@@ -54,16 +54,16 @@
           </b-button>
           <OverflowMenu variant="transparent" class="on-top">
             <DropdownItem icon="plus" @click="setNextInQueue">
-              Play next
+              Next
             </DropdownItem>
             <DropdownItem icon="plus" @click="addToQueue">
-              Add to queue
+              Queue
             </DropdownItem>
             <DropdownItem v-if="!cached" icon="download" @click="cacheAlbum">
-              Add to cache
+              Cache
             </DropdownItem>
             <DropdownItem v-if="cached" icon="trash" @click="clearAlbumCache">
-              Clear from cache
+              Cache
             </DropdownItem>
           </OverflowMenu>
         </div>
