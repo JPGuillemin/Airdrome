@@ -1,4 +1,5 @@
 import { sleep } from '@/shared/utils'
+import { useCacheStore } from '@/player/cache'
 
 export enum ReplayGainMode {
   None,
@@ -48,23 +49,10 @@ export class AudioController {
 
   async setCache(url: string) {
     try {
-      const cache = await caches.open('airdrome-cache-v2')
-      const existing = await cache.match(url)
-      if (!existing) {
-        console.info('setCache(): caching in background', url)
-        const response = await fetch(url, { mode: 'cors', cache: 'force-cache' })
-        if (response.ok) {
-          await cache.put(url, response.clone())
-          const cacheFinishedEvent = new CustomEvent('audioCached', { detail: url })
-          window.dispatchEvent(cacheFinishedEvent)
-        } else {
-          console.warn('setCache(): fetch failed, not caching', url)
-        }
-      } else {
-        console.info('setCache(): already cached', url)
-      }
+      const albumCache = useCacheStore()
+      await albumCache.cacheTrack(url)
     } catch (err) {
-      console.warn('setCache(): cache failed', url, err)
+      console.warn('setCache(): failed', url, err)
     }
   }
 
@@ -98,17 +86,10 @@ export class AudioController {
 
   async deleteCacheEntry(url: string) {
     try {
-      const cache = await caches.open('airdrome-cache-v2')
-      const deleted = await cache.delete(url)
-      if (deleted) {
-        console.info('deleteCacheEntry(): Cache entry deleted for', url)
-        const cacheDeletedEvent = new CustomEvent('audioCacheDeleted', { detail: url })
-        window.dispatchEvent(cacheDeletedEvent)
-      } else {
-        console.warn('deleteCacheEntry(): No matching cache entry found for', url)
-      }
+      const albumCache = useCacheStore()
+      await albumCache.deleteTrack(url)
     } catch (err) {
-      console.error('deleteCacheEntry(): Error deleting cache entry:', err)
+      console.warn('deleteCacheEntry(): failed', url, err)
     }
   }
 

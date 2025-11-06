@@ -96,7 +96,7 @@
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
   import { sleep } from '@/shared/utils'
-  import { useAlbumCacheStore } from '@/library/album/store'
+  import { useCacheStore } from '@/player/cache'
 
   export default defineComponent({
     components: {
@@ -111,7 +111,7 @@
       return {
         favouriteStore: useFavouriteStore(),
         playerStore: usePlayerStore(),
-        albumCacheStore: useAlbumCacheStore(),
+        cacheStore: useCacheStore(),
       }
     },
     data() {
@@ -130,7 +130,7 @@
       const result = await this.$api.getAlbumDetails(this.id)
       this.album = result
       if (this.album) {
-        this.cached = await this.albumCacheStore.isCached(this.album)
+        this.cached = await this.cacheStore.isCached(this.album)
       }
     },
     methods: {
@@ -192,12 +192,12 @@
       },
       async cacheAlbum() {
         if (this.album) {
-          await this.albumCacheStore.cacheAlbum(this.album)
+          await this.cacheStore.cacheAlbum(this.album)
         }
       },
       async clearAlbumCache() {
         if (this.album) {
-          await this.albumCacheStore.clearAlbumCache(this.album)
+          await this.cacheStore.clearAlbumCache(this.album)
           // Refresh page
           this.$router.replace({
             name: this.$route.name as string,

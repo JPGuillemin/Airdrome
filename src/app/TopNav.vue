@@ -102,7 +102,9 @@
           </div>
 
           <hr class="dropdown-divider">
-
+          <div class="px-3 py-2 text-muted small">
+            Cache size: {{ cacheSize }} GB
+          </div>
           <DropdownItem @click="clearAllCache">
             Clear cache
           </DropdownItem>
@@ -126,6 +128,7 @@
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
   import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+  import { useCacheStore } from '@/player/cache'
 
   export default defineComponent({
     components: {
@@ -172,6 +175,18 @@
         localStorage.setItem('streamQuality', String(value))
       }
 
+      const albumCache = useCacheStore()
+      const cacheSize = ref(0)
+
+      async function updateCacheSize() {
+        cacheSize.value = await albumCache.getCacheSizeGB()
+      }
+      updateCacheSize()
+
+      window.addEventListener('audioCached', updateCacheSize)
+      window.addEventListener('audioCacheDeleted', updateCacheSize)
+      window.addEventListener('audioCacheClearedAll', updateCacheSize)
+
       return {
         store,
         auth,
@@ -180,7 +195,9 @@
         setStreamQuality,
         streamQuality,
         setTheme,
-        confirmDialog
+        confirmDialog,
+        cacheSize,
+        updateCacheSize,
       }
     },
     data() {
@@ -238,6 +255,7 @@
           } else {
             alert('No cache found to clear.')
           }
+          await this.updateCacheSize()
           loader.hideLoading()
         } catch (err) {
           console.error('Error clearing cache:', err)

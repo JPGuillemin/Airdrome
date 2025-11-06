@@ -46,7 +46,7 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import type { Album } from '@/shared/api'
-  import { useAlbumCacheStore } from '@/library/album/store'
+  import { useCacheStore } from '@/player/cache'
   import { sleep } from '@/shared/utils'
 
   export default defineComponent({
@@ -62,7 +62,7 @@
       return {
         favouriteStore: useFavouriteStore(),
         playerStore: usePlayerStore(),
-        albumCacheStore: useAlbumCacheStore(),
+        cacheStore: useCacheStore(),
       }
     },
 
@@ -83,9 +83,9 @@
         const album = await this.$api.getAlbumDetails(id)
         if (!album) return
         if (this.isFavourite(id)) {
-          await this.albumCacheStore.cacheAlbum(album)
+          await this.cacheStore.cacheAlbum(album)
         } else {
-          await this.albumCacheStore.clearAlbumCache(album)
+          await this.cacheStore.clearAlbumCache(album)
         }
       },
       dragstart(id: string, event: DragEvent) {

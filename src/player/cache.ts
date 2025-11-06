@@ -7,8 +7,6 @@ const META_DB_NAME = 'airdrome-cache-meta'
 const META_STORE_NAME = 'entries'
 const MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024 * 1024 // 10 GB
 
-// --- IndexedDB Helpers ------------------------------------------------------
-
 function openMetaDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(META_DB_NAME, 1)
@@ -72,12 +70,59 @@ async function enforceCacheLimitFIFO() {
 
 // --- Store Definition -------------------------------------------------------
 
-export const useAlbumCacheStore = defineStore('albumCache', {
+export const useCacheStore = defineStore('albumCache', {
   state: () => ({
     activeCaching: new Map<string, { cancelled: boolean }>(),
   }),
 
   actions: {
+    async cacheTrack(url: string) {
+      if (!url) return
+      try {
+        const cache = await caches.open(CACHE_NAME)
+        const match = await cache.match(url)
+        if (match) {
+          console.info(`[Cache] Track already cached: ${url}`)
+          return
+        }
+
+        const response = await fetch(url, { mode: 'cors', cache: 'force-cache' })
+        if (!response.ok) {
+          console.warn(`[Cache] Failed to fetch track: ${url} (${response.status})`)
+          return
+        }
+
+        const clone = response.clone()
+        const blob = await response.blob()
+
+        await cache.put(url, clone)
+        await putMeta(url, blob.size)
+        await enforceCacheLimitFIFO()
+
+        window.dispatchEvent(new CustomEvent('audioCached', { detail: url }))
+        console.info(`[Cache] Cached track: ${url}`)
+      } catch (err) {
+        console.warn(`[Cache] Error caching track ${url}:`, err)
+      }
+    },
+
+    async deleteTrack(url: string) {
+      if (!url) return
+      try {
+        const cache = await caches.open(CACHE_NAME)
+        const deleted = await cache.delete(url)
+        if (deleted) {
+          await deleteMeta(url)
+          console.info(`[Cache] Track deleted: ${url}`)
+          window.dispatchEvent(new CustomEvent('audioCacheDeleted', { detail: url }))
+        } else {
+          console.info(`[Cache] No matching track to delete: ${url}`)
+        }
+      } catch (err) {
+        console.warn(`[Cache] Error deleting track ${url}:`, err)
+      }
+    },
+
     async cacheAlbum(album: Album) {
       if (!album?.tracks?.length) {
         console.warn('No tracks to cache for this album.')
@@ -186,6 +231,27 @@ export const useAlbumCacheStore = defineStore('albumCache', {
         if (match) return true
       }
       return false
+    },
+    async getCacheSizeGB(): Promise<number> {
+      try {
+        const cache = await caches.open(CACHE_NAME)
+        const keys = await cache.keys()
+        let totalBytes = 0
+
+        for (const request of keys) {
+          const response = await cache.match(request)
+          if (response) {
+            const blob = await response.blob()
+            totalBytes += blob.size
+          }
+        }
+
+        const gb = totalBytes / (1024 ** 3)
+        return Math.round(gb * 10) / 10 // one decimal place, e.g. 3.4
+      } catch (err) {
+        console.warn('[Cache] Failed to measure cache size:', err)
+        return 0
+      }
     },
   },
 })
