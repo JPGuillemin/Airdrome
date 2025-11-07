@@ -1,5 +1,5 @@
 <template>
-  <div class="main-content">
+  <div v-if="details" class="main-content">
     <h1 class="display-5 fw-bold hero-title">
       Favourites
     </h1>

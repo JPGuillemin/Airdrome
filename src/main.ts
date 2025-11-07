@@ -16,6 +16,8 @@ import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import '@/style/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
+const APP_BASE = import.meta.env.BASE_URL
+
 async function bootstrapApp() {
   // --- Theme ---
   function setTheme(color: string) {
@@ -89,7 +91,7 @@ async function bootstrapApp() {
 
   // --- Service Worker ---
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register(`${APP_BASE}service-worker.js`, { scope: APP_BASE })
 
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'UPDATE_READY') {

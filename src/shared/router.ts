@@ -15,9 +15,11 @@ import SearchResult from '@/library/search/SearchResult.vue'
 import { AuthService } from '@/auth/service'
 import { nextTick } from 'vue'
 
+const APP_BASE = import.meta.env.BASE_URL
+
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHistory(APP_BASE),
     linkExactActiveClass: 'active',
     routes: [
       {
@@ -140,7 +142,12 @@ export function setupRouter(auth: AuthService) {
 
   router.beforeEach((to, from, next) => {
     if (to.name !== 'login' && !auth.isAuthenticated()) {
-      next({ name: 'login', query: { returnTo: to.fullPath } })
+      // Remove the base path prefix to keep the redirect relative
+      const full = to.fullPath.startsWith(APP_BASE)
+        ? to.fullPath.slice(APP_BASE.length - 1)
+        : to.fullPath
+
+      next({ name: 'login', query: { returnTo: full } })
     } else {
       next()
     }

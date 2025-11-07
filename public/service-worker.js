@@ -1,11 +1,13 @@
-const CACHE_NAME = 'airdrome-cache-v5'
+const APP_BASE = '/'
+const CACHE_NAME = 'airdrome-cache-v7'
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/icon.png'
+  `${APP_BASE}`, // main entry (index.html will be cached)
+  `${APP_BASE}index.html`,
+  `${APP_BASE}manifest.webmanifest`,
+  `${APP_BASE}icon.png`
 ]
 
+// Install: pre-cache the core app shell
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -14,42 +16,57 @@ self.addEventListener('install', event => {
   )
 })
 
+// Activate: remove old caches and take control immediately
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    (async() => {
+      const keys = await caches.keys()
+      await Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+      await self.clients.claim()
+    })()
   )
 })
 
+// Fetch: handle requests for APP_BASE
 self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Only handle same-origin GET requests
-  if (request.method !== 'GET' || !url.origin.startsWith(self.location.origin)) return
+  // Only handle GET requests from same origin and under /airdrome/
+  if (
+    request.method !== 'GET' ||
+    url.origin !== self.location.origin ||
+    !url.pathname.startsWith(APP_BASE)
+  ) {
+    return
+  }
 
-  // Handle SPA navigations
+  // Handle SPA navigation (Vue Router)
   if (request.mode === 'navigate') {
+    // Fetch a fresh index.html, fallback to cache if offline
     event.respondWith(
-      caches.match('/index.html').then(cached =>
-        cached || fetch('/index.html')
-      )
+      fetch(`${APP_BASE}index.html`, { cache: 'reload' })
+        .then(response => {
+          const copy = response.clone()
+          caches.open(CACHE_NAME).then(cache => cache.put(`${APP_BASE}index.html`, copy))
+          return response
+        })
+        .catch(() => caches.match(`${APP_BASE}index.html`))
     )
     return
   }
 
-  // Handle static assets with cache-first
+  // Cache-first strategy for static assets and API responses
   event.respondWith(
-    caches.match(request).then(cached =>
-      cached ||
-      fetch(request).then(response => {
+    caches.match(request).then(cached => {
+      if (cached) return cached
+      return fetch(request).then(response => {
         const copy = response.clone()
         caches.open(CACHE_NAME).then(cache => cache.put(request, copy))
         return response
       })
-    )
+    })
   )
 })

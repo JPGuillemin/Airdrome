@@ -1,5 +1,5 @@
 <template>
-  <div class="main-content">
+  <div v-if="playlist" class="main-content">
     <Hero :image="playlist.image">
       <small>Playlist</small>
       <h1 class="display-5 fw-bold">

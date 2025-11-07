@@ -39,14 +39,6 @@
 
           <hr class="dropdown-divider">
 
-          <DropdownItem
-            v-if="store?.server"
-            :href="store.server"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Server <Icon icon="link" />
-          </DropdownItem>
           <DropdownItem @click="scan">
             Refresh content
           </DropdownItem>
