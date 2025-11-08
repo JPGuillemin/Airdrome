@@ -25,33 +25,71 @@
       </OverflowFade>
 
       <div class="text-nowrap mt-3">
-        <b-button variant="transparent" :disabled="playlist.tracks.length === 0" title="Play" class="me-2" @click="playNow">
+        <b-button
+          variant="transparent"
+          :disabled="playlist.tracks.length === 0"
+          title="Play"
+          class="me-2"
+          @click="playNow"
+        >
           <Icon icon="play" />
         </b-button>
-        <b-button variant="transparent" class="me-2" :disabled="playlist.tracks.length === 0" title="Shuffle" @click="shuffleNow">
+        <b-button
+          variant="transparent"
+          class="me-2"
+          :disabled="playlist.tracks.length === 0"
+          title="Shuffle"
+          @click="shuffleNow"
+        >
           <Icon icon="shuffle" />
         </b-button>
         <OverflowMenu variant="transparent" class="ms-auto">
-          <DropdownItem icon="edit" :disabled="playlist.isReadOnly" @click="showEditModal = true">
+          <DropdownItem
+            icon="edit"
+            :disabled="playlist.isReadOnly"
+            @click="showEditModal = true"
+          >
             Edit
           </DropdownItem>
           <hr class="dropdown-divider">
-          <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="deletePlaylist()">
+          <DropdownItem
+            icon="x"
+            variant="danger"
+            :disabled="playlist.isReadOnly"
+            @click="deletePlaylist()"
+          >
             Delete
           </DropdownItem>
         </OverflowMenu>
       </div>
     </Hero>
 
-    <TrackList v-if="playlist.tracks.length > 0" :tracks="playlist.tracks" class="mt-3">
-      <template #context-menu="{index}">
+    <!-- Track list with chunked loading -->
+    <TrackList
+      v-if="visibleTracks.length > 0"
+      :tracks="visibleTracks"
+      class="mt-3"
+    >
+      <template #context-menu="{ index }">
         <hr class="dropdown-divider">
-        <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="removeTrack(index)">
+        <DropdownItem
+          icon="x"
+          variant="danger"
+          :disabled="playlist.isReadOnly"
+          @click="removeTrack(index)"
+        >
           Remove
         </DropdownItem>
       </template>
     </TrackList>
-    <EmptyIndicator v-else />
+
+    <EmptyIndicator v-else-if="!loadingTracks" />
+    <InfiniteLoader
+      :loading="loadingTracks"
+      :has-more="hasMore"
+      @load-more="loadMore"
+    />
+
     <EditModal v-model="showEditModal" :item="playlist" @confirm="updatePlaylist">
       <template #title>
         Edit playlist
@@ -73,6 +111,7 @@
     </EditModal>
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
   import TrackList from '@/library/track/TrackList.vue'
@@ -83,6 +122,12 @@
   import { usePlayerStore } from '@/player/store'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
   import { useLoader } from '@/shared/loader'
+  import InfiniteLoader from '@/shared/components/InfiniteLoader.vue'
+  import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
+  import OverflowMenu from '@/shared/components/OverflowMenu.vue'
+  import DropdownItem from '@/shared/components/DropdownItem.vue'
+  import Icon from '@/shared/components/Icon.vue'
+  import Hero from '@/shared/components/Hero.vue'
 
   export default defineComponent({
     components: {
@@ -90,9 +135,15 @@
       SwitchInput,
       TrackList,
       EditModal,
+      InfiniteLoader,
+      EmptyIndicator,
+      OverflowMenu,
+      DropdownItem,
+      Icon,
+      Hero,
     },
     props: {
-      id: { type: String, required: true }
+      id: { type: String, required: true },
     },
     setup() {
       return {
@@ -105,6 +156,13 @@
       return {
         playlist: null as any,
         showEditModal: false,
+
+        // For sliced track loading
+        visibleTracks: [] as any[],
+        nextIndex: 0,
+        chunkSize: 50,
+        hasMore: true,
+        loadingTracks: false,
       }
     },
     watch: {
@@ -115,14 +173,34 @@
           loader.showLoading()
           try {
             this.playlist = null
+            this.visibleTracks = []
+            this.nextIndex = 0
+            this.hasMore = true
+
             this.playlist = await this.$api.getPlaylist(value)
+            this.appendNextChunk()
           } finally {
             loader.hideLoading()
           }
-        }
-      }
+        },
+      },
     },
     methods: {
+      appendNextChunk() {
+        if (!this.playlist?.tracks) return
+        const nextChunk = this.playlist.tracks.slice(this.nextIndex, this.nextIndex + this.chunkSize)
+        this.visibleTracks.push(...nextChunk)
+        this.nextIndex += nextChunk.length
+        this.hasMore = this.nextIndex < this.playlist.tracks.length
+      },
+      loadMore() {
+        if (this.loadingTracks || !this.hasMore) return
+        this.loadingTracks = true
+        setTimeout(() => {
+          this.appendNextChunk()
+          this.loadingTracks = false
+        }, 300)
+      },
       playNow() {
         return this.playerStore.playNow(this.playlist.tracks)
       },
@@ -130,8 +208,10 @@
         return this.playerStore.shuffleNow(this.playlist.tracks)
       },
       removeTrack(index: number) {
-        this.playlist.tracks.splice(index, 1)
-        return this.playlistStore.removeTrack(this.id, index)
+        const globalIndex = index // visibleTracks index matches playlist order
+        this.playlist.tracks.splice(globalIndex, 1)
+        this.visibleTracks.splice(globalIndex, 1)
+        return this.playlistStore.removeTrack(this.id, globalIndex)
       },
       async updatePlaylist(value: any) {
         const loader = useLoader()
@@ -148,6 +228,6 @@
           this.$router.replace({ name: 'playlists' })
         })
       },
-    }
+    },
   })
 </script>
