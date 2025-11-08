@@ -1,5 +1,6 @@
 export BASE_PATH="/airdrome/"
-rm -rf dist
+rm -rf dist docker
+
 # Build the project
 yarn build || exit "error yarn build"
 
@@ -13,12 +14,27 @@ sed -i "s|const APP_BASE.*|const APP_BASE = \'$BASE_PATH\'|g" service-worker.js
 echo "/*    ${BASE_PATH}index.html   200" > _redirects
 )
 
+cp -rf docker.template docker
+(
+cd docker
+sed -i "s|/env.js|${BASE_PATH}env.js|g" docker-entrypoint.sh
+sed -i "s|/env.js|${BASE_PATH}env.js|g" nginx.conf
+sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
+)
+
 # Build the docker image
 docker build -f docker/Dockerfile -t local/airdrome . || exit "error docker build"
 # Build the docker container
-/root/build-airdrome.sh || exit "error build-airdrome.sh"
-
-
+docker stop airdrome
+docker rm airdrome
+docker network create --subnet=172.25.0.0/24 darkstar
+docker run -d \
+	--name=airdrome \
+	--restart on-failure \
+	--network=darkstar \
+	-p 4321:80 \
+	-v /data:/root \
+	local/airdrome:latest || exit "error build-airdrome.sh"
 
 #rm -rf __TMP__
 #mv dist __TMP__
