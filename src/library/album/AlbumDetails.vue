@@ -215,14 +215,14 @@
     width: 100%;
     z-index: 500;
     background: var(--bs-body-bg);
-    overflow: visible; /* allow dropdown to escape */
+    overflow: visible;
   }
 
   /* Default: Desktop layout */
   .content-wrapper {
     position: relative;
     z-index: 100;
-    margin-top: 170px; /* matches desktop Hero height */
+    margin-top: 170px;
     padding: 1rem;
   }
 
@@ -248,11 +248,11 @@
   }
 
   .text-nowrap.mt-3 {
-    position: relative; /* stacking context for the dropdown */
+    position: relative;
   }
 
   .on-top {
-    position: absolute; /* position relative to parent */
+    position: absolute;
     z-index: 3000;
   }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="mw-100">
+  <div v-if="playlists" class="mw-100">
     <small class="sidebar-heading text-muted">
       Playlists
       <button type="button" class="btn btn-link btn-sm p-0 float-end" @click="showAddModal = true">
@@ -7,10 +7,6 @@
       </button>
       <CreatePlaylistModal v-model="showAddModal" />
     </small>
-
-    <router-link class="nav-link" :to="{name: 'playlist', params: { id: 'random' }}">
-      <Icon icon="playlist" class="me-2" /> Random
-    </router-link>
 
     <template v-if="playlists">
       <router-link

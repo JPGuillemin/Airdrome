@@ -31,7 +31,7 @@
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'playlists'}">
-      <Icon icon="list" /> Playlists
+      <Icon icon="playlist" /> Playlists
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'favourites'}">

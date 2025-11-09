@@ -34,10 +34,10 @@
             Play
           </DropdownItem>
           <DropdownItem icon="plus" @click="playNext(item.id)">
-            Play next
+            Next
           </DropdownItem>
           <DropdownItem icon="plus" @click="playLater(item.id)">
-            Add to queue
+            Queue
           </DropdownItem>
         </template>
       </Tile>

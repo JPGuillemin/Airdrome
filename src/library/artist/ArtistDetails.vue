@@ -42,7 +42,7 @@
           <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Favourite" @click="toggleFavourite">
+          <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
           <b-button v-if="artist.similarArtist.length > 0" variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
