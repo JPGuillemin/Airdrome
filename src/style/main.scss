@@ -184,24 +184,6 @@ a.active {
   padding-top: 38px;
 }
 
-.hero-title {
-  padding: 10px;
-  font-size: 1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  display: block;
-}
-
-.genre-icon {
-  width: 32px;
-  height: 32px;
-  object-fit: cover;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 @import './nav-underlined';
+@import './hero';
 @import 'bootstrap/scss/bootstrap';
-@import '@vueform/slider/themes/default.css';

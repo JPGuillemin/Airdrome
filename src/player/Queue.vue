@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class="display-5 fw-bold hero-title">
+      <h1 class="fw-bold hero-title">
         Playing
       </h1>
       <div>
@@ -139,13 +139,5 @@
     display: block;
     opacity: 1;
     right: 0;
-  }
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
   }
 </style>

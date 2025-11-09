@@ -46,15 +46,6 @@
     height: 170px;
   }
 
-  /* On small screens (mobile), add ~160px */
-  @media (max-width: 767.98px) {
-    .hero-container {
-      height: 320px;
-      flex-direction: column;
-      text-align: center;
-    }
-  }
-
   .album-cover {
     display: block;
     width: 160px;
@@ -62,6 +53,30 @@
     object-fit: cover;
     border-radius: 8px;
     flex-shrink: 0;
+  }
+
+  @media (max-width: 767.98px) {
+    .hero-container {
+      height: 320px;
+      flex-direction: column;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+    }
+    .hero-container .album-cover {
+      margin: 0 auto !important;
+    }
+
+    .hero-container .content {
+      align-items: center !important;
+      text-align: center !important;
+      padding-left: 0 !important;
+    }
+
+    .hero-container .hero-title {
+      text-align: center !important;
+      margin: 0 auto !important;
+    }
   }
 
   .backdrop {

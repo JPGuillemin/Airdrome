@@ -81,3 +81,12 @@
     },
   })
 </script>
+<style scoped>
+  .genre-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+</style>

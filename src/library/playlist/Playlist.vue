@@ -2,7 +2,7 @@
   <div v-if="playlist" class="main-content">
     <div class="hero-wrapper">
       <Hero :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <h1 class="display-5 fw-bold hero-title">
+        <h1 class="fw-bold hero-title">
           {{ playlist.name }}
         </h1>
 
@@ -34,7 +34,7 @@
           >
             <Icon icon="shuffle" />
           </b-button>
-          <OverflowMenu variant="transparent" class="ms-auto">
+          <OverflowMenu variant="transparent">
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"
@@ -231,50 +231,3 @@
     },
   })
 </script>
-<style scoped>
-  .hero-wrapper {
-    position: fixed;
-    width: 100%;
-    z-index: 500;
-    background: var(--bs-body-bg);
-    overflow: visible;
-  }
-
-  /* Default: Desktop layout */
-  .content-wrapper {
-    position: relative;
-    z-index: 100;
-    margin-top: 170px;
-    padding: 1rem;
-  }
-
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: visible;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-    color: var(--bs-primary);
-  }
-
-  /* Mobile layout: add ~150px more to match Hero */
-  @media (max-width: 767.98px) {
-    .content-wrapper {
-      margin-top: 320px; /* matches mobile Hero height */
-    }
-    .hero-title {
-      max-width: calc(100% - 160px - 1rem);
-      color: var(--bs-primary);
-    }
-  }
-
-  .text-nowrap.mt-3 {
-    position: relative;
-  }
-
-  .on-top {
-    position: absolute;
-    z-index: 3000;
-  }
-</style>

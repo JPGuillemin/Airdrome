@@ -1,8 +1,8 @@
 <template>
   <div v-if="artist" class="main-content">
     <div class="hero-wrapper">
-      <Hero :image="artist.image" :hover="'Shuffle'" class="cursor-pointer" @click="shuffleNow">
-        <h1 class="display-5 fw-bold hero-title">
+      <Hero :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
+        <h1 class="fw-bold hero-title">
           {{ artist.name }}
         </h1>
         <div class="d-flex flex-wrap align-items-center">
@@ -222,40 +222,3 @@
     }
   })
 </script>
-<style scoped>
-  .hero-wrapper {
-    position: fixed;
-    width: 100%;
-    z-index: 500;
-    background: var(--bs-body-bg);
-  }
-
-  /* Default: Desktop layout */
-  .content-wrapper {
-    position: relative;
-    z-index: 100;
-    margin-top: 170px; /* matches desktop Hero height */
-    padding: 1rem;
-  }
-
-  .hero-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-    color: var(--bs-primary);
-  }
-
-  /* Mobile layout: add ~150px more to match Hero */
-  @media (max-width: 767.98px) {
-    .content-wrapper {
-      margin-top: 320px; /* matches mobile Hero height */
-    }
-    .hero-title {
-      max-width: calc(100% - 160px - 1rem);
-      color: var(--bs-primary);
-    }
-  }
-</style>

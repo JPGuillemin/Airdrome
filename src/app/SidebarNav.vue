@@ -6,7 +6,7 @@
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{name: 'home'}" :exact="true">
+    <router-link class="nav-link" :to="{name: 'home'}">
       <Icon icon="discover" class="" /> Discover
     </router-link>
 
@@ -18,7 +18,11 @@
       Library
     </small>
 
-    <router-link class="nav-link" :to="{name: 'albums-default'}">
+    <router-link
+      class="nav-link"
+      :to="{ name: 'albums-default' }"
+      :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
+    >
       <Icon icon="albums" /> Albums
     </router-link>
 
@@ -45,6 +49,7 @@
   import { defineComponent } from 'vue'
   import PlaylistNav from '@/library/playlist/PlaylistNav.vue'
   import { useMainStore } from '@/shared/store'
+  import { useRoute } from 'vue-router'
 
   export default defineComponent({
     components: {
@@ -53,6 +58,7 @@
     setup() {
       return {
         store: useMainStore(),
+        route: useRoute(),
       }
     },
   })
