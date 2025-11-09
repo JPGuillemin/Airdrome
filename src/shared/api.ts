@@ -621,12 +621,15 @@ export class API {
 
   private getStreamUrl(id: any) {
     const { server, urlParams } = this.auth
-    const maxBitRate = localStorage.getItem('streamQuality') || 128
+    const bitRate = localStorage.getItem('streamQuality') || 128
+    let audioCodec = 'opus'
+    if (bitRate === '0') audioCodec = 'raw'
     return `${server}/rest/stream` +
       `?id=${id}` +
       '&v=1.16.1' +
       `&${urlParams}` +
-      `&maxBitRate=${maxBitRate}` +
+      `&maxBitRate=${bitRate}` +
+      `&format=${audioCodec}` +
       `&c=${this.clientName}`
   }
 }
