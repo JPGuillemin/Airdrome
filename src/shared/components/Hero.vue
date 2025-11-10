@@ -7,14 +7,16 @@
         '--blurAmount': blur
       }"
     />
-    <img
-      :src="image || fallbackImage"
-      :title="hover"
-      class="album-cover cursor-pointer"
-      @click="$emit('click')"
-    >
-    <div class="content">
-      <slot />
+    <div class="hero-content">
+      <img
+        :src="image || fallbackImage"
+        :title="hover"
+        class="album-cover cursor-pointer"
+        @click="$emit('click')"
+      >
+      <div class="content">
+        <slot />
+      </div>
     </div>
   </div>
 </template>
@@ -44,6 +46,16 @@
     align-items: center;
     padding: 1rem 0;
     height: 170px;
+  }
+
+  .hero-content {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .album-cover {
