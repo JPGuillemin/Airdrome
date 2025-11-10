@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="display-5 fw-bold hero-title">
+    <h1 class="display-3 fw-bold hero-title">
       Genres
     </h1>
     <ul class="nav-underlined mb-3">
@@ -88,5 +88,11 @@
     object-fit: cover;
     border-radius: 50%;
     flex-shrink: 0;
+  }
+</style>
+<style scoped>
+  .hero-title {
+    margin-top: 10px;
+    font-size: 1.5rem;
   }
 </style>

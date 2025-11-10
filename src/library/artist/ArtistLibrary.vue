@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="display-5 fw-bold hero-title">
+    <h1 class="display-3 fw-bold hero-title">
       Artists
     </h1>
 
@@ -88,3 +88,9 @@
     },
   })
 </script>
+<style scoped>
+  .hero-title {
+    margin-top: 10px;
+    font-size: 1.5rem;
+  }
+</style>

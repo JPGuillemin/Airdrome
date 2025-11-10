@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="display-5 fw-bold hero-title">
+    <h1 class="display-3 fw-bold hero-title">
       Playlists
     </h1>
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -88,3 +88,9 @@
     }
   })
 </script>
+<style scoped>
+  .hero-title {
+    margin-top: 10px;
+    font-size: 1.5rem;
+  }
+</style>
