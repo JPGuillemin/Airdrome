@@ -56,7 +56,7 @@
   /* make image circular without clipping children */
   .tile-img--circle {
     border-radius: 50%;
-    overflow: visible; /* allow dropdowns to escape */
+    overflow: visible;
   }
 
   /* clip only the image itself, not its children */
@@ -69,5 +69,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 6px;
   }
 </style>
