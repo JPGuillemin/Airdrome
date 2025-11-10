@@ -1,5 +1,5 @@
 <template>
-  <div class="hero-container d-flex flex-column flex-md-row align-items-center position-relative mb-3">
+  <div class="hero-container">
     <div
       class="backdrop"
       :style="{
@@ -7,15 +7,13 @@
         '--blurAmount': blur
       }"
     />
-
     <img
       :src="image || fallbackImage"
       :title="hover"
       class="album-cover cursor-pointer"
       @click="$emit('click')"
     >
-
-    <div class="content d-flex flex-column align-items-center align-items-md-start pt-4 pt-md-0 ps-md-4 pb-1 text-center text-md-start">
+    <div class="content">
       <slot />
     </div>
   </div>
@@ -41,13 +39,14 @@
 <style scoped>
   .hero-container {
     position: relative;
-    overflow: visible;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     padding: 1rem 0;
     height: 170px;
   }
 
   .album-cover {
-    display: block;
     width: 160px;
     height: 160px;
     object-fit: cover;
@@ -55,49 +54,25 @@
     flex-shrink: 0;
   }
 
-  @media (max-width: 767.98px) {
-    .hero-container {
-      height: 320px;
-      flex-direction: column;
-      align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-    }
-    .hero-container .album-cover {
-      margin: 0 auto !important;
-    }
-
-    .hero-container .content {
-      align-items: center !important;
-      text-align: center !important;
-      padding-left: 0 !important;
-    }
-
-    .hero-container .hero-title {
-      text-align: center !important;
-      margin: 0 auto !important;
-    }
-  }
-
   .backdrop {
     position: absolute;
-    z-index: -1;
     top: -10px;
     left: -10px;
     width: calc(100% + 20px);
     height: calc(100% + 20px);
-    filter: blur(var(--blurAmount));
+    z-index: -1;
     opacity: 0.6;
+    filter: blur(var(--blurAmount));
+    background-image: linear-gradient(to bottom, transparent, black), var(--backgroundImage);
     background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-image:
-      linear-gradient(to bottom, transparent, black),
-      var(--backgroundImage);
+    background-position: center;
   }
 
   .content {
-    min-width: 0;
-    flex: 1 1 auto;
-}
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 1rem;
+  }
 </style>

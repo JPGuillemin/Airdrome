@@ -2,38 +2,42 @@
   <div v-if="artist" class="main-content">
     <div class="hero-wrapper">
       <Hero :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
-        <h1 class="fw-bold hero-title">
-          {{ artist.name }}
-        </h1>
-        <div class="d-flex flex-wrap align-items-center">
-          <span class="text-nowrap">
-            <strong>{{ artist.albumCount }}</strong> albums
-          </span>
-          <span class="mx-2">•</span>
-          <span class="text-nowrap">
-            <strong>{{ artist.trackCount }}</strong> tracks
-          </span>
-
-          <template v-if="artist.genres.length > 0">
-            <span class="mx-2">•</span>
-            <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
-              <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'genre', params: { id: genre }}">
-                {{ genre }}
-              </router-link>
+        <div class="hero-title-wrapper">
+          <h1 class="fw-bold hero-title">
+            {{ artist.name }}
+          </h1>
+        </div>
+        <div class="hero-info">
+          <div class="hero-info-top">
+            <span class="text-nowrap">
+              <strong>{{ artist.albumCount }}</strong> albums
             </span>
-          </template>
-          <template v-if="artist.lastFmUrl || artist.musicBrainzUrl">
             <span class="mx-2">•</span>
-            <div class="d-flex flex-nowrap">
-              <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-                <IconLastFm />
-              </ExternalLink>
-              <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-                <IconMusicBrainz />
-              </ExternalLink>
-            </div>
-          </template>
+            <span class="text-nowrap">
+              <strong>{{ artist.trackCount }}</strong> tracks
+            </span>
+            <template v-if="artist.lastFmUrl || artist.musicBrainzUrl">
+              <span class="mx-2">•</span>
+              <span class="d-inline-flex flex-nowrap">
+                <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
+                  <IconLastFm />
+                </ExternalLink>
+                <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+                  <IconMusicBrainz />
+                </ExternalLink>
+              </span>
+            </template>
+          </div>
+          <div class="hero-info-end">
+            <template v-if="artist.genres.length > 0">
+              <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
+                <span v-if="index > 0">, </span>
+                <router-link :to="{name: 'genre', params: { id: genre }}">
+                  {{ genre }}
+                </router-link>
+              </span>
+            </template>
+          </div>
         </div>
         <div class="text-nowrap mt-3">
           <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
@@ -56,7 +60,7 @@
     </div>
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
-        <div class="d-flex justify-content-between mt-5 mb-2">
+        <div class="d-flex justify-content-between mt-3 mb-2">
           <h3 ref="topTracks" class="my-0">
             Top tracks
           </h3>
@@ -67,7 +71,7 @@
         <TrackList :tracks="artist.topTracks" no-artist />
       </template>
       <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
-        <div class="d-flex justify-content-between mt-5 mb-2">
+        <div class="d-flex justify-content-between mt-3 mb-2">
           <h3 class="my-0">
             {{ formatReleaseType(releaseType) }}
           </h3>
@@ -82,13 +86,13 @@
         </AlbumList>
       </div>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="mt-5">
+        <h3 ref="similarArtists" class="mt-3">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" />
       </template>
       <template v-if="artist.description">
-        <h3 class="mt-5">
+        <h3 class="mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">

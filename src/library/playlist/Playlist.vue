@@ -2,11 +2,12 @@
   <div v-if="playlist" class="main-content">
     <div class="hero-wrapper">
       <Hero :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <h1 class="fw-bold hero-title">
-          {{ playlist.name }}
-        </h1>
-
-        <div class="d-flex flex-wrap align-items-center">
+        <div class="hero-title-wrapper">
+          <h1 class="fw-bold hero-title">
+            {{ playlist.name }}
+          </h1>
+        </div>
+        <div class="hero-info">
           <span class="text-nowrap">
             <strong>{{ playlist.trackCount }}</strong> tracks
           </span>

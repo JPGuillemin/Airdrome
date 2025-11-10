@@ -2,43 +2,60 @@
   <div v-if="album" class="main-content">
     <div class="hero-wrapper">
       <Hero :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <h1 class="fw-bold hero-title">
-          {{ album.name }}
-        </h1>
-        <div class="d-flex flex-wrap align-items-center">
-          <div v-if="album.artists?.length">
-            by
-            <span v-for="(artist, index) in album.artists" :key="artist.id">
-              <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'artist', params: { id: artist.id }}">
-                {{ artist.name }}
-              </router-link>
-            </span>
+        <div class="hero-title-wrapper">
+          <h1 class="fw-bold hero-title">
+            {{ album.name }}
+          </h1>
+        </div>
+        <div class="hero-info">
+          <!-- Line 1: Artists, Year, Links -->
+          <div class="hero-info-top">
+            <div v-if="album.artists?.length">
+              <span v-for="(artist, index) in album.artists" :key="artist.id">
+                <span v-if="index > 0">, </span>
+                <router-link :to="{ name: 'artist', params: { id: artist.id }}">
+                  {{ artist.name }}
+                </router-link>
+              </span>
+            </div>
+
+            <template v-if="album.year">
+              <span class="mx-2">•</span> {{ album.year }}
+            </template>
+
+            <template v-if="album.lastFmUrl || album.musicBrainzUrl">
+              <span class="mx-2">•</span>
+              <div class="d-flex flex-nowrap">
+                <ExternalLink
+                  v-if="album.lastFmUrl"
+                  :href="album.lastFmUrl"
+                  class="btn btn-link p-0 me-2"
+                  title="Last.fm"
+                >
+                  <IconLastFm />
+                </ExternalLink>
+                <ExternalLink
+                  v-if="album.musicBrainzUrl"
+                  :href="album.musicBrainzUrl"
+                  class="btn btn-link me-2 p-0"
+                  title="MusicBrainz"
+                >
+                  <IconMusicBrainz />
+                </ExternalLink>
+              </div>
+            </template>
           </div>
-          <template v-if="album.year">
-            <span class="mx-2">•</span> {{ album.year }}
-          </template>
-          <template v-if="album.genres?.length">
-            <span class="mx-2">•</span>
+
+          <div v-if="album.genres?.length" class="hero-info-end">
             <span v-for="({ name: genre }, index) in album.genres" :key="genre">
               <span v-if="index > 0">, </span>
-              <router-link :to="{name: 'genre', params: { id: genre }}">
+              <router-link :to="{ name: 'genre', params: { id: genre }}">
                 {{ genre }}
               </router-link>
             </span>
-          </template>
-          <template v-if="album.lastFmUrl || album.musicBrainzUrl">
-            <span class="mx-2">•</span>
-            <div class="d-flex flex-nowrap">
-              <ExternalLink v-if="album.lastFmUrl" :href="album.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-                <IconLastFm />
-              </ExternalLink>
-              <ExternalLink v-if="album.musicBrainzUrl" :href="album.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-                <IconMusicBrainz />
-              </ExternalLink>
-            </div>
-          </template>
+          </div>
         </div>
+
         <div class="text-nowrap mt-3">
           <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />
@@ -48,9 +65,6 @@
           </b-button>
           <b-button variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-          </b-button>
-          <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
-            <Icon icon="soundwave" />
           </b-button>
           <OverflowMenu variant="transparent" class="on-top">
             <DropdownItem icon="plus" @click="setNextInQueue">
@@ -76,7 +90,7 @@
         </div>
       </div>
       <div v-if="album.description" class="row">
-        <h3 class="mt-5">
+        <h3 class="mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
