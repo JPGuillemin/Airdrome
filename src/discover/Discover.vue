@@ -2,14 +2,18 @@
   <div class="main-content">
     <div v-if="result.played.length > 0" class="mb-4">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="text-muted">
-        <h3>Recently played</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Recently played
+        </h1>
       </router-link>
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
     <div v-if="result.genres.length > 0" class="mb-4">
       <router-link :to="{ name: 'genres' }" class="text-muted">
-        <h3>Genres</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Genres
+        </h1>
       </router-link>
 
       <div
@@ -35,28 +39,36 @@
 
     <div v-if="result.favartists.length > 0" class="mb-4">
       <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="text-muted">
-        <h3>Fav artists</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Fav artists
+        </h1>
       </router-link>
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="mb-4">
       <router-link :to="{ name: 'favourites' }" class="text-muted">
-        <h3>Fav albums</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Fav albums
+        </h1>
       </router-link>
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="mb-4">
       <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="text-muted">
-        <h3>Random</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Random
+        </h1>
       </router-link>
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="mb-4">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="text-muted">
-        <h3>Recently added</h3>
+        <h1 class="display-3 fw-bold hero-title">
+          Recently added
+        </h1>
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />
     </div>
@@ -126,3 +138,9 @@
     },
   })
 </script>
+<style scoped>
+  .hero-title {
+    margin-top: 10px;
+    font-size: 1.5rem;
+  }
+</style>

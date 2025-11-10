@@ -112,7 +112,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from 'vue'
+  import { defineComponent, ref, inject } from 'vue'
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
   import { useMainStore } from '@/shared/store'
@@ -133,20 +133,14 @@
       const auth = useAuth()
       const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 
-      const colors = [
-        { name: 'Blue', value: '#0d6efd' },
-        { name: 'Green', value: '#1db954' },
-        { name: 'Orange', value: '#ff8c00' },
-        { name: 'Purple', value: '#6f42c1' },
-        { name: 'Red', value: '#bf0000' }
-      ]
-
+      const colors = inject('themeColors') as { name: string; value: string }[]
       const currentColor = ref(
         getComputedStyle(document.documentElement).getPropertyValue('--bs-primary')
       )
       function setTheme(color: string) {
         currentColor.value = color
-        // Convert HEX to RGB
+        // Convert HEX to RGB    const colors = inject('themeColors') as { name: string; value: string }[]
+
         const hexToRgb = (hex: string) => {
           const bigint = parseInt(hex.replace('#', ''), 16)
           const r = (bigint >> 16) & 255

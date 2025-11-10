@@ -76,6 +76,17 @@ async function bootstrapApp() {
   app.config.globalProperties.$auth = auth
   app.config.globalProperties.$api = api
 
+  const themeColors = [
+    { name: 'Blue', value: '#0d6efd' },
+    { name: 'Green', value: '#1db954' },
+    { name: 'Orange', value: '#ff8c00' },
+    { name: 'Purple', value: '#6f42c1' },
+    { name: 'Red', value: '#bf0000' }
+  ]
+
+  app.config.globalProperties.$themeColors = themeColors
+  app.provide('themeColors', themeColors)
+
   // --- Register components ---
   Object.entries(components).forEach(([key, value]) => {
     app.component(key, value as any)

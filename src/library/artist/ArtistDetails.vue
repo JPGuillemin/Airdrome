@@ -212,8 +212,8 @@
           const section = this.$refs[refName] as HTMLElement | undefined
           if (!section) return
 
-          // Adjust this to match your fixed header height
-          const heroHeight = window.innerWidth < 768 ? 380 : 230
+          // Adjust this to match hero height
+          const heroHeight = 230
 
           const top = section.getBoundingClientRect().top + window.scrollY - heroHeight
 
