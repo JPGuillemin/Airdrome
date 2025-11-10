@@ -7,8 +7,9 @@
             {{ artist.name }}
           </h1>
         </div>
-        <div class="hero-info">
-          <div class="hero-info-top">
+
+        <div class="hero-info-wrapper">
+          <div class="hero-info-one">
             <span class="text-nowrap">
               <strong>{{ artist.albumCount }}</strong> albums
             </span>
@@ -16,19 +17,9 @@
             <span class="text-nowrap">
               <strong>{{ artist.trackCount }}</strong> tracks
             </span>
-            <template v-if="artist.lastFmUrl || artist.musicBrainzUrl">
-              <span class="mx-2">•</span>
-              <span class="d-inline-flex flex-nowrap">
-                <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-                  <IconLastFm />
-                </ExternalLink>
-                <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-                  <IconMusicBrainz />
-                </ExternalLink>
-              </span>
-            </template>
           </div>
-          <div class="hero-info-end">
+
+          <div class="hero-info-two">
             <template v-if="artist.genres.length > 0">
               <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
                 <span v-if="index > 0">, </span>
@@ -39,6 +30,18 @@
             </template>
           </div>
         </div>
+
+        <div v-if="artist.lastFmUrl || artist.musicBrainzUrl">
+          <span class="d-inline-flex flex-nowrap">
+            <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
+              <IconLastFm />
+            </ExternalLink>
+            <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+              <IconMusicBrainz />
+            </ExternalLink>
+          </span>
+        </div>
+
         <div class="text-nowrap mt-3">
           <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />
@@ -51,9 +54,6 @@
           </b-button>
           <b-button v-if="artist.similarArtist.length > 0" variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
             <Icon icon="artists" />
-          </b-button>
-          <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
-            <Icon icon="soundwave" />
           </b-button>
         </div>
       </Hero>

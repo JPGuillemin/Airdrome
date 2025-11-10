@@ -7,46 +7,26 @@
             {{ album.name }}
           </h1>
         </div>
-        <div class="hero-info">
-          <!-- Line 1: Artists, Year, Links -->
-          <div class="hero-info-top">
-            <div v-if="album.artists?.length">
-              <span v-for="(artist, index) in album.artists" :key="artist.id">
+
+        <div class="hero-info-wrapper">
+          <div class="hero-info-one">
+            <template v-if="album.artists?.length">
+              <span v-for="(artist, index) in album.artists" :key="artist.id" class="d-inline-flex flex-nowrap">
                 <span v-if="index > 0">, </span>
                 <router-link :to="{ name: 'artist', params: { id: artist.id }}">
                   {{ artist.name }}
                 </router-link>
               </span>
-            </div>
-
-            <template v-if="album.year">
-              <span class="mx-2">•</span> {{ album.year }}
             </template>
-
-            <template v-if="album.lastFmUrl || album.musicBrainzUrl">
+            <template v-if="album.year">
               <span class="mx-2">•</span>
-              <div class="d-flex flex-nowrap">
-                <ExternalLink
-                  v-if="album.lastFmUrl"
-                  :href="album.lastFmUrl"
-                  class="btn btn-link p-0 me-2"
-                  title="Last.fm"
-                >
-                  <IconLastFm />
-                </ExternalLink>
-                <ExternalLink
-                  v-if="album.musicBrainzUrl"
-                  :href="album.musicBrainzUrl"
-                  class="btn btn-link me-2 p-0"
-                  title="MusicBrainz"
-                >
-                  <IconMusicBrainz />
-                </ExternalLink>
-              </div>
+              <span class="d-inline-flex flex-nowrap">
+                {{ album.year }}
+              </span>
             </template>
           </div>
 
-          <div v-if="album.genres?.length" class="hero-info-end">
+          <div v-if="album.genres?.length" class="hero-info-two">
             <span v-for="({ name: genre }, index) in album.genres" :key="genre">
               <span v-if="index > 0">, </span>
               <router-link :to="{ name: 'genre', params: { id: genre }}">
@@ -54,6 +34,27 @@
               </router-link>
             </span>
           </div>
+        </div>
+
+        <div v-if="album.lastFmUrl || album.musicBrainzUrl">
+          <span class="d-inline-flex flex-nowrap">
+            <ExternalLink
+              v-if="album.lastFmUrl"
+              :href="album.lastFmUrl"
+              class="btn btn-link p-0 me-2"
+              title="Last.fm"
+            >
+              <IconLastFm />
+            </ExternalLink>
+            <ExternalLink
+              v-if="album.musicBrainzUrl"
+              :href="album.musicBrainzUrl"
+              class="btn btn-link me-2 p-0"
+              title="MusicBrainz"
+            >
+              <IconMusicBrainz />
+            </ExternalLink>
+          </span>
         </div>
 
         <div class="text-nowrap mt-3">

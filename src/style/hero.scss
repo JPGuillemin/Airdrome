@@ -6,65 +6,83 @@
   overflow: visible;
 }
 
+.hero-title-wrapper {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-title {
+  overflow: hidden;
+  display: inline-block;
+  max-width: calc(100% - 160px - 1rem);
+  white-space: nowrap;;
+  text-overflow: ellipsis;
+  margin: 1;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  min-width: 0;
+  flex-shrink: 1;
+  color: var(--bs-primary);
+}
+
+.hero-info-wrapper {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-info-one {
+  overflow: hidden;
+  display: inline-block;
+  max-width: calc(100% - 160px - 1rem);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+  font-size: 1rem;
+}
+
+.hero-info-two {
+  overflow: hidden;
+  display: inline-block;
+  max-width: calc(100% - 160px - 1rem);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+  font-size: 0.9rem;
+}
+
+/* Mobile: slightly smaller font */
+@media (max-width: 767.98px) {
+  .hero-title {
+    max-width: 220px;
+    font-size: 1.2rem !important;
+  }
+  .hero-info-one {
+    display: block;
+    max-width: 220px;
+    font-size: 0.9rem !important;
+  }
+  .hero-info-two {
+    display: block;
+    max-width: 220px;
+    font-size: 0.8rem !important;
+  }
+}
+
 .content-wrapper {
+  max-width: 100%;
   position: relative;
   z-index: 100;
   margin-top: 170px;
   padding: 1rem;
 }
 
-.hero-title-wrapper {
-  max-width: calc(100% - 160px - 1rem);
-  overflow: hidden;
-}
-
-.hero-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 1;
-  font-size: 1.5rem;
-  line-height: 1.5;
-  color: var(--bs-primary);
-}
-
-.text-nowrap.mt-3 {
-  position: relative;
-}
-
 .on-top {
   position: absolute;
   z-index: 3000;
-}
-
-.hero-info {
-  max-width: calc(100% - 160px - 1rem);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.hero-info-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.hero-info-end {
-  display: block;
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-/* Mobile: slightly smaller font */
-@media (max-width: 767.98px) {
-  .hero-title {
-    font-size: 1.1rem !important;
-  }
-  .hero-info {
-    font-size: 0.9rem;
-  }
-  .hero-info-end {
-    font-size: 0.8rem;
-  }
 }
