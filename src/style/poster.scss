@@ -1,4 +1,4 @@
-.hero-wrapper {
+.poster-wrapper {
   position: fixed;
   width: 100%;
   z-index: 500;
@@ -6,13 +6,13 @@
   overflow: visible;
 }
 
-.hero-title-wrapper {
+.poster-title-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.hero-title {
+.poster-title {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -27,20 +27,20 @@
   font-weight: 700;
 }
 
-.hero-title--secondary {
+.poster-title--secondary {
   margin-top: 7px;
   color: var(--bs-secondary);
   font-size: 1.2rem;
   font-weight: 700;
 }
 
-.hero-info-wrapper {
+.poster-info-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.hero-info-one {
+.poster-info-one {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -52,7 +52,7 @@
   font-size: 1rem;
 }
 
-.hero-info-two {
+.poster-info-two {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -66,16 +66,16 @@
 
 /* Mobile: slightly smaller font */
 @media (max-width: 767.98px) {
-  .hero-title {
+  .poster-title {
     max-width: 220px;
     font-size: 1.2rem !important;
   }
-  .hero-info-one {
+  .poster-info-one {
     display: block;
     max-width: 220px;
     font-size: 0.9rem !important;
   }
-  .hero-info-two {
+  .poster-info-two {
     display: block;
     max-width: 220px;
     font-size: 0.8rem !important;

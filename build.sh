@@ -22,6 +22,8 @@ sed -i "s|/env.js|${BASE_PATH}env.js|g" nginx.conf
 sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
 )
 
+mv dist${BASE_PATH}.well-known dist/
+
 # Build the docker image
 docker build -f docker/Dockerfile -t local/airdrome . || exit "error docker build"
 # Build the docker container

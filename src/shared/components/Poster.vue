@@ -1,5 +1,5 @@
 <template>
-  <div class="hero-container">
+  <div class="poster-container">
     <div
       class="backdrop"
       :style="{
@@ -7,7 +7,7 @@
         '--blurAmount': blur
       }"
     />
-    <div class="hero-content">
+    <div class="poster-content">
       <img
         :src="image || fallbackImage"
         :title="hover"
@@ -39,7 +39,7 @@
 </script>
 
 <style scoped>
-  .hero-container {
+  .poster-container {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -48,7 +48,7 @@
     height: 170px;
   }
 
-  .hero-content {
+  .poster-content {
     position: relative;
     display: flex;
     flex-direction: row;

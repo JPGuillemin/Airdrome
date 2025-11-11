@@ -1,13 +1,13 @@
 <template>
   <div v-if="playlist" class="main-content">
-    <div class="hero-wrapper">
-      <Hero :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <div class="hero-title-wrapper">
-          <h1 class=" hero-title">
+    <div class="poster-wrapper">
+      <Poster :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
+        <div class="poster-title-wrapper">
+          <h1 class=" poster-title">
             {{ playlist.name }}
           </h1>
         </div>
-        <div class="hero-info">
+        <div class="poster-info">
           <span class="text-nowrap">
             <strong>{{ playlist.trackCount }}</strong> tracks
           </span>
@@ -54,7 +54,7 @@
             </DropdownItem>
           </OverflowMenu>
         </div>
-      </Hero>
+      </Poster>
     </div>
     <div class="content-wrapper">
       <TrackList
@@ -119,7 +119,7 @@
   import OverflowMenu from '@/shared/components/OverflowMenu.vue'
   import DropdownItem from '@/shared/components/DropdownItem.vue'
   import Icon from '@/shared/components/Icon.vue'
-  import Hero from '@/shared/components/Hero.vue'
+  import Poster from '@/shared/components/Poster.vue'
 
   export default defineComponent({
     components: {
@@ -132,7 +132,7 @@
       OverflowMenu,
       DropdownItem,
       Icon,
-      Hero,
+      Poster,
     },
     props: {
       id: { type: String, required: true },

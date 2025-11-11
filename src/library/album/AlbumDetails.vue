@@ -1,15 +1,15 @@
 <template>
   <div v-if="album" class="main-content">
-    <div class="hero-wrapper">
-      <Hero :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <div class="hero-title-wrapper">
-          <h1 class="hero-title">
+    <div class="poster-wrapper">
+      <Poster :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
+        <div class="poster-title-wrapper">
+          <h1 class="poster-title">
             {{ album.name }}
           </h1>
         </div>
 
-        <div class="hero-info-wrapper">
-          <div class="hero-info-one">
+        <div class="poster-info-wrapper">
+          <div class="poster-info-one">
             <template v-if="album.artists?.length">
               <span v-for="(artist, index) in album.artists" :key="artist.id" class="d-inline-flex flex-nowrap">
                 <span v-if="index > 0">, </span>
@@ -26,7 +26,7 @@
             </template>
           </div>
 
-          <div v-if="album.genres?.length" class="hero-info-two">
+          <div v-if="album.genres?.length" class="poster-info-two">
             <span v-for="({ name: genre }, index) in album.genres" :key="genre">
               <span v-if="index > 0">, </span>
               <router-link :to="{ name: 'genre', params: { id: genre }}">
@@ -82,7 +82,7 @@
             </DropdownItem>
           </OverflowMenu>
         </div>
-      </Hero>
+      </Poster>
     </div>
     <div class="content-wrapper">
       <div class="row">
@@ -91,7 +91,7 @@
         </div>
       </div>
       <div v-if="album.description" class="row">
-        <h3 class="hero-title--secondary mt3">
+        <h3 class="poster-title--secondary mt3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">

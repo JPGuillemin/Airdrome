@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class=" hero-title">
+    <h1 class=" poster-title">
       Playlists
     </h1>
 
@@ -65,7 +65,7 @@
 </script>
 
 <style scoped>
-  .hero-title {
+  .poster-title {
     margin-top: 10px;
     font-size: 1.5rem;
   }

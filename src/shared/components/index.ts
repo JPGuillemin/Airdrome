@@ -4,7 +4,7 @@ import Dropdown from '@/shared/components/Dropdown.vue'
 import DropdownItem from '@/shared/components/DropdownItem.vue'
 import EmptyIndicator from './EmptyIndicator.vue'
 import ExternalLink from './ExternalLink.vue'
-import Hero from './Hero.vue'
+import Poster from './Poster.vue'
 import Icon from './Icon.vue'
 import InfiniteLoader from './InfiniteLoader.vue'
 import OverflowMenu from './OverflowMenu.vue'
@@ -25,7 +25,7 @@ export const components = {
   DropdownItem,
   EmptyIndicator,
   ExternalLink,
-  Hero,
+  Poster,
   Icon,
   InfiniteLoader,
   OverflowMenu,

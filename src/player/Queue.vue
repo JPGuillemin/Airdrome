@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class=" hero-title">
+      <h1 class=" poster-title">
         Playing
       </h1>
       <div>

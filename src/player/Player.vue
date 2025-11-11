@@ -48,28 +48,42 @@
         </div>
 
         <!-- Controls--->
-        <div class="col-auto p-0">
+        <div class="col-auto p-0 d-flex align-items-center">
           <b-button
             title="Shuffle"
             variant="transparent"
-            class="d-none d-md-inline-block"
+            class="d-none d-md-inline-block mx-0.5"
             :class="{ 'theme-primary': shuffleActive }"
             @click="toggleShuffle">
             <Icon icon="shuffle" />
           </b-button>
-          <b-button variant="transparent" class="m-1" @click="previous">
+
+          <b-button
+            variant="transparent"
+            class="mx-0.5"
+            @click="previous">
             <Icon icon="skip-start" />
           </b-button>
-          <b-button variant="transparent" size="lg" class="btn-play m-0" @click="playPause">
+
+          <b-button
+            variant="transparent"
+            size="lg"
+            class="btn-play mx-0"
+            @click="playPause">
             <Icon :icon="isPlaying ? 'pause' : 'play'" />
           </b-button>
-          <b-button variant="transparent" class="m-1" @click="next">
+
+          <b-button
+            variant="transparent"
+            class="mx-0.5"
+            @click="next">
             <Icon icon="skip-end" />
           </b-button>
+
           <b-button
             title="Repeat"
             variant="transparent"
-            class="d-none d-md-inline-block"
+            class="d-none d-md-inline-block mx-0.5"
             :class="{ 'theme-primary': repeatActive }"
             @click="toggleRepeat">
             <Icon icon="repeat" />
@@ -300,11 +314,12 @@
     height: 0;
     max-height: 0;
     transition: max-height 0.5s;
+    background: var(--bs-body-bg);
   }
   .small-cover {
     display: block;
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     object-fit: cover;
     border-radius: 3px;
     flex-shrink: 0;
@@ -325,27 +340,46 @@
   }
   .visible {
     height: auto;
-    max-height: 100px;
+    max-height: 110px;
   }
   .icon {
     display: flex;
     align-items: center;
   }
   .btn-play {
-    --bs-btn-font-size: 1.5rem;
+    --bs-btn-font-size: 1.9rem;
   }
+  .b-button {
+    --bs-btn-font-size: 1.3rem;
+  }
+  .row.align-items-center.m-0.elevated {
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
+
   .playback-slider {
+    --slider-height: 8px;
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--bs-secondary);
-    --slider-handle-size: 18px;
-    --slider-handle-ring-size: 24px;
+    --slider-handle-size: 24px;
+    --slider-handle-ring-size: 32px;
     --slider-handle-ring-opacity: 0;
-    --slider-handle-border: 2px solid var(--bs-primary);
+    --slider-handle-border: 3px solid var(--bs-primary);
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
-    height: 6px !important;
-    margin: 1;
+    height: 8px !important;
+    margin: 0;
+    display: block;
+    background: var(--bs-body-bg);
   }
+
+  .playback-slider .slider-handle {
+    width: var(--slider-handle-size);
+    height: var(--slider-handle-size);
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+  }
+
   .volume-slider {
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--bs-secondary);

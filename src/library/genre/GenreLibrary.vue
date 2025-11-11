@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class=" hero-title">
+    <h1 class="poster-title">
       Genres
     </h1>
     <ul class="nav-underlined mb-3">
@@ -91,7 +91,7 @@
   }
 </style>
 <style scoped>
-  .hero-title {
+  .poster-title {
     margin-top: 10px;
     font-size: 1.5rem;
   }

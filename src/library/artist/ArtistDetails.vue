@@ -1,15 +1,15 @@
 <template>
   <div v-if="artist" class="main-content">
-    <div class="hero-wrapper">
-      <Hero :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
-        <div class="hero-title-wrapper">
-          <h1 class="hero-title">
+    <div class="poster-wrapper">
+      <Poster :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
+        <div class="poster-title-wrapper">
+          <h1 class="poster-title">
             {{ artist.name }}
           </h1>
         </div>
 
-        <div class="hero-info-wrapper">
-          <div class="hero-info-one">
+        <div class="poster-info-wrapper">
+          <div class="poster-info-one">
             <span class="text-nowrap">
               <strong>{{ artist.albumCount }}</strong> albums
             </span>
@@ -19,7 +19,7 @@
             </span>
           </div>
 
-          <div class="hero-info-two">
+          <div class="poster-info-two">
             <template v-if="artist.genres.length > 0">
               <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
                 <span v-if="index > 0">, </span>
@@ -56,12 +56,12 @@
             <Icon icon="artists" />
           </b-button>
         </div>
-      </Hero>
+      </Poster>
     </div>
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 ref="topTracks" class="hero-title--secondary">
+          <h3 ref="topTracks" class="poster-title--secondary">
             Top tracks
           </h3>
           <router-link :to="{name: 'artist-tracks', params: { id }}">
@@ -72,7 +72,7 @@
       </template>
       <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 class="hero-title--secondary">
+          <h3 class="poster-title--secondary">
             {{ formatReleaseType(releaseType) }}
           </h3>
           <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
@@ -86,13 +86,13 @@
         </AlbumList>
       </div>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="hero-title--secondary mt-3">
+        <h3 ref="similarArtists" class="poster-title--secondary mt-3">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" />
       </template>
       <template v-if="artist.description">
-        <h3 class="hero-title--secondary mt-3">
+        <h3 class="poster-title--secondary mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
@@ -212,10 +212,10 @@
           const section = this.$refs[refName] as HTMLElement | undefined
           if (!section) return
 
-          // Adjust this to match hero height
-          const heroHeight = 230
+          // Adjust this to match poster height
+          const posterHeight = 230
 
-          const top = section.getBoundingClientRect().top + window.scrollY - heroHeight
+          const top = section.getBoundingClientRect().top + window.scrollY - posterHeight
 
           window.scrollTo({
             top,

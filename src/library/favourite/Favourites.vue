@@ -1,6 +1,6 @@
 <template>
   <div v-if="details" class="main-content">
-    <h1 class=" hero-title">
+    <h1 class=" poster-title">
       Favourites
     </h1>
     <ul class="nav-underlined mb-3">
@@ -74,7 +74,7 @@
   })
 </script>
 <style scoped>
-  .hero-title {
+  .poster-title {
     margin-top: 10px;
     font-size: 1.5rem;
   }
