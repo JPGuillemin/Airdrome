@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="display-3 fw-bold hero-title">
+    <h1 class=" hero-title">
       Albums
     </h1>
     <ul class="nav-underlined mb-3">

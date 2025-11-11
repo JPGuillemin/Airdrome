@@ -3,7 +3,7 @@
     <div class="hero-wrapper">
       <Hero :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <div class="hero-title-wrapper">
-          <h1 class="fw-bold hero-title">
+          <h1 class=" hero-title">
             {{ playlist.name }}
           </h1>
         </div>

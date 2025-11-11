@@ -16,7 +16,7 @@
     </ContextMenu>
 
     <div class="card-body">
-      <div class="text-truncate fw-bold">
+      <div class="text-truncate ">
         <slot name="title">
           {{ title }}
         </slot>

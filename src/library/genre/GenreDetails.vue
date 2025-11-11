@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="display-5 fw-bold hero-title">
+    <h1 class="display-5  hero-title">
       {{ id }}
     </h1>
     <div class="text-nowrap mt-3">

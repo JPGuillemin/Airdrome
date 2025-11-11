@@ -308,7 +308,7 @@
     object-fit: cover;
     border-radius: 3px;
     flex-shrink: 0;
-    background-color: #000;
+    filter: invert(0) hue-rotate(0deg) brightness(1) contrast(1);
   }
   @media(max-width: 442px) {
     .player {

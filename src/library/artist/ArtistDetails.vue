@@ -3,7 +3,7 @@
     <div class="hero-wrapper">
       <Hero :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
         <div class="hero-title-wrapper">
-          <h1 class="fw-bold hero-title">
+          <h1 class="hero-title">
             {{ artist.name }}
           </h1>
         </div>
@@ -61,7 +61,7 @@
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 ref="topTracks" class="my-0">
+          <h3 ref="topTracks" class="hero-title--secondary">
             Top tracks
           </h3>
           <router-link :to="{name: 'artist-tracks', params: { id }}">
@@ -72,7 +72,7 @@
       </template>
       <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 class="my-0">
+          <h3 class="hero-title--secondary">
             {{ formatReleaseType(releaseType) }}
           </h3>
           <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
@@ -86,13 +86,13 @@
         </AlbumList>
       </div>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="mt-3">
+        <h3 ref="similarArtists" class="hero-title--secondary mt-3">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" />
       </template>
       <template v-if="artist.description">
-        <h3 class="mt-3">
+        <h3 class="hero-title--secondary mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">

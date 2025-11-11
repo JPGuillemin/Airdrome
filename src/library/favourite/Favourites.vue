@@ -1,6 +1,6 @@
 <template>
   <div v-if="details" class="main-content">
-    <h1 class="display-3 fw-bold hero-title">
+    <h1 class=" hero-title">
       Favourites
     </h1>
     <ul class="nav-underlined mb-3">

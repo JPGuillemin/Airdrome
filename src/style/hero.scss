@@ -24,6 +24,14 @@
   min-width: 0;
   flex-shrink: 1;
   color: var(--bs-primary);
+  font-weight: 700;
+}
+
+.hero-title--secondary {
+  margin-top: 7px;
+  color: var(--bs-secondary);
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .hero-info-wrapper {

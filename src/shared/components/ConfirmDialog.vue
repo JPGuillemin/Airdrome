@@ -3,7 +3,7 @@
     <div v-if="visible" class="confirm-overlay">
       <div class="confirm-dialog card shadow-lg border-0">
         <div class="card-body text-center">
-          <h5 class="fw-bold mb-3">
+          <h5 class=" mb-3">
             {{ title }}
           </h5>
           <p class="text-secondary mb-4">

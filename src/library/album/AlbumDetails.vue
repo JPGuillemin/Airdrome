@@ -3,7 +3,7 @@
     <div class="hero-wrapper">
       <Hero :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <div class="hero-title-wrapper">
-          <h1 class="fw-bold hero-title">
+          <h1 class="hero-title">
             {{ album.name }}
           </h1>
         </div>
@@ -91,7 +91,7 @@
         </div>
       </div>
       <div v-if="album.description" class="row">
-        <h3 class="mt-3">
+        <h3 class="hero-title--secondary mt3">
           Background info
         </h3>
         <span class="d-flex justify-content-between mb-2" style="text-align: justify;">

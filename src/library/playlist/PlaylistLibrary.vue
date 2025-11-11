@@ -1,17 +1,18 @@
 <template>
   <div class="main-content">
-    <h1 class="display-3 fw-bold hero-title">
+    <h1 class=" hero-title">
       Playlists
     </h1>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
       <ul class="nav-underlined">
         <li>
-          <router-link :to="{... $route, params: {... $route.params, sort: null }}">
+          <router-link :to="{ ...$route, params: { ...$route.params, sort: null } }">
             Recently added
           </router-link>
         </li>
         <li>
-          <router-link :to="{... $route, params: {... $route.params, sort: 'a-z' }}">
+          <router-link :to="{ ...$route, params: { ...$route.params, sort: 'a-z' } }">
             A-Z
           </router-link>
         </li>
@@ -20,74 +21,49 @@
         <Icon icon="plus" />
       </b-button>
     </div>
-    <Tiles v-if="items.length > 0" square>
-      <Tile
-        v-for="item in items" :key="item.id"
-        :image="item.image"
-        :to="{name: 'playlist', params: { id: item.id } }"
-        :title="item.name">
-        <template #text>
-          <strong>{{ item.trackCount }}</strong> tracks
-        </template>
-        <template #context-menu>
-          <DropdownItem icon="play" @click="playNow(item.id)">
-            Play
-          </DropdownItem>
-          <DropdownItem icon="plus" @click="playNext(item.id)">
-            Next
-          </DropdownItem>
-          <DropdownItem icon="plus" @click="playLater(item.id)">
-            Queue
-          </DropdownItem>
-        </template>
-      </Tile>
-    </Tiles>
+
+    <PlaylistList v-if="items.length > 0" :items="items" />
     <EmptyIndicator v-else />
+
     <CreatePlaylistModal v-model="showAddModal" />
   </div>
 </template>
+
 <script lang="ts">
   import { computed, defineComponent, ref } from 'vue'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
+  import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import { orderBy } from 'lodash-es'
   import { usePlaylistStore } from '@/library/playlist/store'
-  import { usePlayerStore } from '@/player/store'
 
   export default defineComponent({
     components: {
       CreatePlaylistModal,
+      PlaylistList,
     },
     props: {
       sort: { type: String, default: null },
     },
     setup(props) {
       const store = usePlaylistStore()
+
+      const showAddModal = ref(false)
+
+      const items = computed(() =>
+        props.sort === 'a-z'
+          ? orderBy(store.playlists, 'name')
+          : orderBy(store.playlists, 'createdAt', 'desc')
+      )
+
       return {
-        showAddModal: ref(false),
+        showAddModal,
         loading: computed(() => store.playlists === null),
-        items: computed(() =>
-          props.sort === 'a-z'
-            ? orderBy(store.playlists, 'name')
-            : orderBy(store.playlists, 'createdAt', 'desc')),
-        playerStore: usePlayerStore(),
+        items,
       }
     },
-    methods: {
-      async playNow(id: string) {
-        const playlist = await this.$api.getPlaylist(id)
-        return this.playerStore.playTrackList(playlist.tracks!)
-      },
-      async playNext(id: string) {
-        const playlist = await this.$api.getPlaylist(id)
-        return this.playerStore.setNextInQueue(playlist.tracks!)
-      },
-      async playLater(id: string) {
-        const playlist = await this.$api.getPlaylist(id)
-        return this.playerStore.addToQueue(playlist.tracks!)
-      },
-    }
   })
 </script>
+
 <style scoped>
   .hero-title {
     margin-top: 10px;
