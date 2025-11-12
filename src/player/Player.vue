@@ -361,8 +361,8 @@
     --slider-height: 6px;
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--bs-secondary);
-    --slider-handle-width: 16px;
-    --slider-handle-height: 16px;
+    --slider-handle-width: 20px;
+    --slider-handle-height: 20px;
     --slider-handle-ring-size: 24px;
     --slider-handle-ring-opacity: 1%;
     --slider-handle-border: 3px solid var(--bs-primary);
@@ -370,13 +370,6 @@
     --slider-tooltip-bg: var(--bs-primary);
     margin: auto;
     background: var(--bs-body-bg);
-  }
-
-  .playback-slider .slider-handle {
-    width: var(--slider-handle-width);
-    height: var(--slider-handle-height);
-    top: 50% !important;
-    transform: translateY(-50%) !important;
   }
 
   .volume-slider {

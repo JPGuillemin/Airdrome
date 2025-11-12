@@ -51,6 +51,7 @@
   import iconLow from '@iconify-icons/bi/car-front'
   import iconMedium from '@iconify-icons/bi/speaker'
   import iconHigh from '@iconify-icons/bi/headphones'
+  import iconReload from '@iconify-icons/bi/arrow-repeat'
   import iconRepeat from '@iconify-icons/bi/repeat'
   import iconShuffle from '@iconify-icons/bi/shuffle'
   import iconSkipEnd from '@iconify-icons/bi/skip-end-fill'
@@ -98,6 +99,7 @@
     podcast: iconPodcast.body,
     radio: iconRadio.body,
     refresh: iconRefresh.body,
+    reload: iconReload.body,
     repeat: iconRepeat.body,
     shuffle: iconShuffle.body,
     'skip-end': iconSkipEnd.body,

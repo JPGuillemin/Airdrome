@@ -32,21 +32,13 @@
           <template #button-content>
             <Icon icon="gear" color="#4c4c4c" />
           </template>
-
           <div class="px-3 py-1">
             {{ store.username }}
           </div>
-
           <hr class="dropdown-divider">
-
           <DropdownItem @click="scan">
             Refresh content
           </DropdownItem>
-
-          <DropdownItem @click="showAboutModal = true">
-            About
-          </DropdownItem>
-
           <hr class="dropdown-divider">
           <div class="px-3 py-2">
             <div class=" small mb-1">
@@ -66,9 +58,7 @@
               />
             </div>
           </div>
-
           <hr class="dropdown-divider">
-
           <div class="px-3 py-2">
             <div class=" small mb-1">
               Stream quality
@@ -92,7 +82,6 @@
               </button>
             </div>
           </div>
-
           <hr class="dropdown-divider">
           <div class="px-3 py-2 text-muted small">
             Cache size: {{ cacheSize }} GB
@@ -103,9 +92,11 @@
           <DropdownItem @click="logout">
             Log out
           </DropdownItem>
+          <DropdownItem @click="showAboutModal = true">
+            About
+          </DropdownItem>
         </Dropdown>
       </template>
-
       <About :visible="showAboutModal" @close="showAboutModal = false" />
     </div>
   </div>

@@ -31,9 +31,18 @@
             class="me-2"
             :disabled="playlist.tracks.length === 0"
             title="Shuffle"
-            @click="shuffleNow"
+            @click="shuffleNow()"
           >
             <Icon icon="shuffle" />
+          </b-button>
+          <b-button
+            variant="transparent"
+            class="me-2"
+            :disabled="playlist.tracks.length === 0"
+            title="Reload"
+            @click="reloadPlaylist()"
+          >
+            <Icon icon="reload" />
           </b-button>
           <OverflowMenu variant="transparent">
             <DropdownItem
@@ -227,6 +236,13 @@
       deletePlaylist() {
         return this.playlistStore.delete(this.id).then(() => {
           this.$router.replace({ name: 'playlists' })
+        })
+      },
+      reloadPlaylist() {
+        this.$router.replace({
+          name: this.$route.name as string,
+          params: { ...(this.$route.params || {}) },
+          query: { ...(this.$route.query || {}), t: Date.now().toString() }
         })
       },
     },
