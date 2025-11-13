@@ -91,7 +91,7 @@
       />
     </div>
 
-    <EditModal v-model="showEditModal" :item="playlist" @confirm="updatePlaylist">
+    <EditModal v-model="showEditModal" :item="playlist" @confirm="fetchPlaylist">
       <template #title>
         Edit playlist
       </template>
@@ -169,20 +169,8 @@
     watch: {
       id: {
         immediate: true,
-        async handler(value: string) {
-          const loader = useLoader()
-          loader.showLoading()
-          try {
-            this.playlist = null
-            this.visibleTracks = []
-            this.nextIndex = 0
-            this.hasMore = true
-
-            this.playlist = await this.$api.getPlaylist(value)
-            this.appendNextChunk()
-          } finally {
-            loader.hideLoading()
-          }
+        handler(value: string) {
+          this.fetchPlaylist(value)
         },
       },
     },
@@ -223,26 +211,33 @@
         this.visibleTracks.splice(globalIndex, 1)
         return this.playlistStore.removeTrack(this.id, globalIndex)
       },
-      async updatePlaylist(value: any) {
+      async fetchPlaylist(id: string) {
         const loader = useLoader()
         loader.showLoading()
         try {
-          this.playlist = value
-          return await this.playlistStore.update(this.playlist)
+          const data = await this.$api.getPlaylist(id)
+          this.playlist = data
+          this.visibleTracks = []
+          this.nextIndex = 0
+          this.hasMore = true
+          this.appendNextChunk()
+        } catch (err) {
+          console.error('Failed to load playlist:', err)
         } finally {
           loader.hideLoading()
         }
       },
-      deletePlaylist() {
-        return this.playlistStore.delete(this.id).then(() => {
-          this.$router.replace({ name: 'playlists' })
-        })
-      },
-      reloadPlaylist() {
+      async reloadPlaylist() {
+        await this.fetchPlaylist(this.id)
         this.$router.replace({
           name: this.$route.name as string,
           params: { ...(this.$route.params || {}) },
           query: { ...(this.$route.query || {}), t: Date.now().toString() }
+        })
+      },
+      deletePlaylist() {
+        return this.playlistStore.delete(this.id).then(() => {
+          this.$router.replace({ name: 'playlists' })
         })
       },
     },

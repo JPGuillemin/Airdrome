@@ -1,7 +1,7 @@
 <template>
   <div>
     <component :is="layout">
-      <keep-alive max="3">
+      <keep-alive max="3" exclude="playlist">
         <router-view :key="$route.fullPath" />
       </keep-alive>
     </component>
