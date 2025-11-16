@@ -21,7 +21,7 @@
       </li>
     </ul>
     <template v-if="section === 'artists'">
-      <ArtistList v-if="details.artists.length > 0" :items="details.artists" />
+      <ArtistList v-if="details.artists.length > 0" :items="details.artists" :allow-h-scroll="false" />
       <EmptyIndicator v-else />
     </template>
     <template v-else-if="section === 'tracks'">
@@ -29,7 +29,7 @@
       <EmptyIndicator v-else />
     </template>
     <template v-else>
-      <AlbumList v-if="details.albums.length > 0" :items="details.albums" />
+      <AlbumList v-if="details.albums.length > 0" :items="details.albums" :allow-h-scroll="false" />
       <EmptyIndicator v-else />
     </template>
   </div>

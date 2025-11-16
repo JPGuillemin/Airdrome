@@ -22,7 +22,7 @@
       </b-button>
     </div>
 
-    <PlaylistList v-if="items.length > 0" :items="items" />
+    <PlaylistList v-if="items.length > 0" :items="items" :allow-h-scroll="false" />
     <EmptyIndicator v-else />
 
     <CreatePlaylistModal v-model="showAddModal" />

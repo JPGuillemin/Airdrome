@@ -23,13 +23,13 @@
   line-height: 1.5;
   min-width: 0;
   flex-shrink: 1;
-  color: var(--bs-primary);
+  color: var(--theme-text-muted);
   font-weight: 700;
 }
 
 .poster-title--secondary {
   margin-top: 7px;
-  color: var(--bs-secondary);
+  color: var(--theme-text-muted);
   font-size: 1.2rem;
   font-weight: 700;
 }

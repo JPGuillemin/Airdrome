@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="poster-title">
+    <h1 class="poster-title mt-2">
       {{ id }}
     </h1>
     <div class="text-nowrap mt-3">

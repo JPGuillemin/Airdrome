@@ -1,5 +1,5 @@
 <template>
-  <Tiles square :allow-h-scroll="allowHScroll">
+  <Tiles :allow-h-scroll="allowHScroll">
     <Tile
       v-for="(item, index) in validItems"
       :key="item.id || index"

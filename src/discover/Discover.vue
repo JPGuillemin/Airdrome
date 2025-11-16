@@ -1,6 +1,20 @@
 <template>
   <div class="main-content">
-    <div v-if="result.playlists.length > 0" class="mb-2">
+    <div v-if="result.genres.length > 0" class="pb-2 pt-4">
+      <div class="d-flex gap-3 overflow-auto scroll-adapt">
+        <router-link
+          v-for="item in result.genres"
+          :key="item.id"
+          :to="{ name: 'genre', params: { id: item.id } }"
+          class="text-decoration-none"
+          style="color: var(--theme-text-muted); white-space: nowrap; font-weight: bold;"
+        >
+          {{ item.name }}
+        </router-link>
+      </div>
+    </div>
+
+    <div v-if="result.playlists.length > 0" class="pb-2">
       <router-link :to="{ name: 'playlists' }" class="text-muted">
         <h1 class="poster-title">
           Playlists
@@ -9,7 +23,7 @@
       <PlaylistList :items="result.playlists" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="mb-2">
+    <div v-if="result.played.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="text-muted">
         <h1 class=" poster-title">
           Recently played
@@ -18,34 +32,7 @@
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
-    <div v-if="result.genres.length > 0" class="mb-2">
-      <router-link :to="{ name: 'genres' }" class="text-muted">
-        <h1 class="poster-title">
-          Genres
-        </h1>
-      </router-link>
-      <div
-        class="d-flex gap-2 px-2 py-2 px-md-0 flex-nowrap flex-md-wrap overflow-auto overflow-md-visible"
-        style="scrollbar-width: none; -ms-overflow-style: none;"
-      >
-        <span
-          v-for="item in result.genres"
-          :key="item.id"
-          class="text-bg-secondary rounded-pill py-3 px-2 flex-shrink-0 text-truncate text-center align-items-center justify-content-center d-flex"
-          style="width: 150px;"
-        >
-          <router-link
-            :to="{ name: 'genre', params: { id: item.id } }"
-            class="text-decoration-none d-flex align-items-center gap-2 w-100 justify-content-center"
-            style="color: var(--bs-primary) !important;"
-          >
-            <span class="text-truncate">{{ item.name }}</span>
-          </router-link>
-        </span>
-      </div>
-    </div>
-
-    <div v-if="result.favartists.length > 0" class="mb-2">
+    <div v-if="result.favartists.length > 0" class="pb-2">
       <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="text-muted">
         <h1 class="poster-title">
           Fav artists
@@ -54,7 +41,7 @@
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
-    <div v-if="result.favalbums.length > 0" class="mb-2">
+    <div v-if="result.favalbums.length > 0" class="pb-2">
       <router-link :to="{ name: 'favourites' }" class="text-muted">
         <h1 class="poster-title">
           Fav albums
@@ -63,7 +50,7 @@
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
-    <div v-if="result.random.length > 0" class="mb-2">
+    <div v-if="result.random.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="text-muted">
         <h1 class=" poster-title">
           Random
@@ -72,7 +59,7 @@
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
-    <div v-if="result.recent.length > 0" class="mb-2">
+    <div v-if="result.recent.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="text-muted">
         <h1 class=" poster-title">
           Recently added
@@ -158,5 +145,41 @@
   .poster-title {
     margin-top: 10px;
     font-size: 1.5rem;
+  }
+
+  .scroll-adapt {
+    /* Default: show scrollbar on desktop */
+    overflow-x: auto;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
+  }
+
+  /* WebKit browsers (Chrome, Safari, Edge) */
+  .scroll-adapt::-webkit-scrollbar {
+    height: 20px; /* horizontal scrollbar thickness */
+  }
+
+  .scroll-adapt::-webkit-scrollbar-button {
+    display: none; /* remove arrows */
+  }
+
+  .scroll-adapt::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+  }
+
+  .scroll-adapt::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  /* Mobile: hide scrollbar */
+  @media (max-width: 654px) {
+    .scroll-adapt {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE 10+ */
+    }
+    .scroll-adapt::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
   }
 </style>

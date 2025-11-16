@@ -17,7 +17,7 @@
       </li>
     </ul>
 
-    <ArtistList :items="visibleArtists" />
+    <ArtistList :items="visibleArtists" :allow-h-scroll="false" />
     <EmptyIndicator v-if="!loading && visibleArtists.length === 0" />
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>

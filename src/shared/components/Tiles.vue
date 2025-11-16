@@ -1,5 +1,5 @@
 <template>
-  <div :class="['tiles', square ? 'tiles-square' : 'tiles-rect', { 'tiles-hs': allowHScroll }]">
+  <div :class="['tiles', 'tiles-square', { 'tiles-hs': allowHScroll }]">
     <slot />
   </div>
 </template>
@@ -9,7 +9,6 @@
 
   export default defineComponent({
     props: {
-      square: { type: Boolean, default: false },
       allowHScroll: { type: Boolean, default: false },
     },
   })
@@ -18,40 +17,59 @@
   .tiles {
     display: grid;
     grid-gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(min(100% / 3, 100px), 1fr));
+    grid-template-columns: repeat(auto-fit, 100px);
+    justify-content: start;
     font-size: 0.75rem; /* base text size */
   }
 
-  .tiles-container::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
+  /* Horizontal scroll container */
+  .tiles-hs {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 100px;
+    overflow-x: auto;
+
+    /* Desktop scrollbar */
+    scrollbar-color: rgba(0,0,0,0.3) transparent; /* Firefox */
   }
 
-  .tiles-square .tile-img {
-    padding-bottom: 100%;
+  /* Remove arrows on WebKit browsers (Chrome, Safari, Edge) */
+  .tiles-hs::-webkit-scrollbar {
+    height: 20px; /* thickness */
   }
 
-  .tiles-rect .tile-img {
-    padding-bottom: 70%;
+  .tiles-hs::-webkit-scrollbar-button {
+    display: none; /* remove arrows */
+    border-radius: 10px;
   }
 
+  .tiles-hs::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 10px;
+  }
+
+  .tiles-hs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Mobile styles */
   @media(max-width: 654px) {
+    .tiles {
+      grid-gap: 6px;
+      font-size: 0.65rem;
+      grid-template-columns: repeat(auto-fit, 85px);
+    }
     .tiles-hs {
-      grid-template-columns: none;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(min(100% / 2 - 1em, 85px), 1fr);
-      overflow-x: auto;
-      scrollbar-width: none;
+      grid-auto-columns: 85px;
+      scrollbar-width: none; /* Firefox */
     }
     .tiles-hs::-webkit-scrollbar {
       display: none; /* Chrome, Safari, Edge */
     }
   }
 
-  @media(max-width: 442px) {
-    .tiles {
-      grid-gap: 6px;
-      font-size: 0.65rem;
-      grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-    }
+  /* Other styles */
+  .tiles-square .tile-img {
+    padding-bottom: 100%;
   }
 </style>

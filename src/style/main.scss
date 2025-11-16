@@ -23,6 +23,16 @@ $link-hover-decoration: underline;
 $text-muted: $theme-text-muted;
 $border-color: $theme-elevation-2;
 
+:root {
+  --theme-text-muted: #{$theme-text-muted};
+  --theme-text: #{$theme-text};
+  --theme-elevation-0: #{$theme-elevation-0};
+  --theme-elevation-1: #{$theme-elevation-1};
+  --theme-elevation-2: #{$theme-elevation-2};
+  --primary: #{$primary};
+  --secondary: #{$secondary};
+}
+
 .theme-primary {
   background-color: transparent !important;
   border: none !important;
@@ -181,7 +191,7 @@ a.active {
 }
 
 .main-content {
-  padding-top: 38px;
+  padding-top: 40px;
 }
 
 .adapt-text {

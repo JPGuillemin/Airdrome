@@ -2,7 +2,7 @@
   <div class="main-content">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class="poster-title">
+      <h1 class="poster-title mt-2">
         Playing
       </h1>
       <div>
