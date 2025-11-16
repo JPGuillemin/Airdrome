@@ -2,7 +2,7 @@
   <td>
     <button>
       <Icon class="icon" :icon="active ? 'pause' : 'play'" />
-      <span class="number">{{ modelValue ?? '-' }}</span>
+      <span class="number adapt-text">{{ trackNumber ?? '-' }}</span>
     </button>
   </td>
 </template>
@@ -16,7 +16,7 @@
     components: { Icon },
     props: {
       active: { type: Boolean, default: false },
-      modelValue: { type: [Number, String], default: null }
+      trackNumber: { type: [Number, String], default: null }
     }
   })
 </script>

@@ -184,6 +184,16 @@ a.active {
   padding-top: 38px;
 }
 
+.adapt-text {
+  font-size: 1rem; /* normal */
+}
+
+@media (max-width: 768px) {
+  .adapt-text {
+    font-size: 0.8rem; /* small on mobile */
+  }
+}
+
 @import './nav-underlined';
 @import './poster';
 @import 'bootstrap/scss/bootstrap';

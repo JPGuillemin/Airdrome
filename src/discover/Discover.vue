@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <div v-if="result.playlists.length > 0" class="mb-4">
+    <div v-if="result.playlists.length > 0" class="mb-2">
       <router-link :to="{ name: 'playlists' }" class="text-muted">
         <h1 class="poster-title">
           Playlists
@@ -9,7 +9,7 @@
       <PlaylistList :items="result.playlists" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="mb-4">
+    <div v-if="result.played.length > 0" class="mb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="text-muted">
         <h1 class=" poster-title">
           Recently played
@@ -18,7 +18,7 @@
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
-    <div v-if="result.genres.length > 0" class="mb-4">
+    <div v-if="result.genres.length > 0" class="mb-2">
       <router-link :to="{ name: 'genres' }" class="text-muted">
         <h1 class="poster-title">
           Genres
@@ -45,7 +45,7 @@
       </div>
     </div>
 
-    <div v-if="result.favartists.length > 0" class="mb-4">
+    <div v-if="result.favartists.length > 0" class="mb-2">
       <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="text-muted">
         <h1 class="poster-title">
           Fav artists
@@ -54,7 +54,7 @@
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
-    <div v-if="result.favalbums.length > 0" class="mb-4">
+    <div v-if="result.favalbums.length > 0" class="mb-2">
       <router-link :to="{ name: 'favourites' }" class="text-muted">
         <h1 class="poster-title">
           Fav albums
@@ -63,7 +63,7 @@
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
-    <div v-if="result.random.length > 0" class="mb-4">
+    <div v-if="result.random.length > 0" class="mb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="text-muted">
         <h1 class=" poster-title">
           Random
@@ -72,7 +72,7 @@
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
-    <div v-if="result.recent.length > 0" class="mb-4">
+    <div v-if="result.recent.length > 0" class="mb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="text-muted">
         <h1 class=" poster-title">
           Recently added

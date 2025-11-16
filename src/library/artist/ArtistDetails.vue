@@ -68,7 +68,7 @@
             View all
           </router-link>
         </div>
-        <TrackList :tracks="artist.topTracks" no-artist />
+        <TrackList :tracks="artist.topTracks" :no-artist="true" />
       </template>
       <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
         <div class="d-flex justify-content-between mt-3 mb-2">
@@ -95,7 +95,7 @@
         <h3 class="poster-title--secondary mt-3">
           Background info
         </h3>
-        <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
+        <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ artist.description }}
         </span>
       </template>

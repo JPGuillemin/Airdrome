@@ -7,47 +7,55 @@
       <th v-if="!noAlbum" class="text-start d-none d-md-table-cell">
         Album
       </th>
-      <th v-if="!noDuration" class="text-start d-md-table-cell">
-        Time
+      <th v-if="!noDuration" class="text-end d-none d-md-table-cell">
+        Duration
       </th>
     </BaseTableHead>
+
     <tbody>
-      <tr v-for="(item, index) in tracks" :key="index"
-          :class="{'active': item.id === playingTrackId}"
-          :draggable="true" @dragstart="dragstart(item, $event)"
-          @click="play(index)">
+      <tr
+        v-for="(item, index) in tracks"
+        :key="item.id || index"
+        :class="{ active: isActive(item, index) }"
+        draggable="true"
+        @dragstart="dragstart(item, $event)"
+        @click="handlePlay(index)"
+      >
         <CellTrackNumber
-          :active="item.id === playingTrackId && isPlaying"
-          :model-value="item.track || index + 1"
+          :active="isActive(item, index) && isPlaying"
+          :track-number="index + 1"
         />
-        <CellTitle :track="item" />
+        <CellTitle :track="item" :show-image="showImage" />
         <CellArtist v-if="!noArtist" :track="item" />
         <CellAlbum v-if="!noAlbum" :track="item" />
         <CellDuration v-if="!noDuration" :track="item" />
+
         <CellActions :track="item">
-          <slot name="context-menu" :index="index" :item="item" />
+          <slot name="actions" :index="index" :item="item" />
         </CellActions>
       </tr>
     </tbody>
   </BaseTable>
 </template>
+
 <script lang="ts">
   import { defineComponent, PropType } from 'vue'
+  import { Track } from '@/shared/api'
+  import { usePlayerStore } from '@/player/store'
+
+  import BaseTable from '@/library/track/BaseTable.vue'
+  import BaseTableHead from '@/library/track/BaseTableHead.vue'
   import CellDuration from '@/library/track/CellDuration.vue'
   import CellArtist from '@/library/track/CellArtist.vue'
   import CellAlbum from '@/library/track/CellAlbum.vue'
   import CellTrackNumber from '@/library/track/CellTrackNumber.vue'
   import CellActions from '@/library/track/CellActions.vue'
   import CellTitle from '@/library/track/CellTitle.vue'
-  import BaseTable from '@/library/track/BaseTable.vue'
-  import BaseTableHead from '@/library/track/BaseTableHead.vue'
-  import { Track } from '@/shared/api'
-  import { usePlayerStore } from '@/player/store'
 
   export default defineComponent({
     components: {
-      BaseTableHead,
       BaseTable,
+      BaseTableHead,
       CellTitle,
       CellActions,
       CellTrackNumber,
@@ -55,17 +63,33 @@
       CellArtist,
       CellDuration,
     },
+
     props: {
       tracks: { type: Array as PropType<Track[]>, required: true },
-      noAlbum: { type: Boolean, default: false },
-      noArtist: { type: Boolean, default: false },
-      noDuration: { type: Boolean, default: false },
+
+      // Column behavior
+      noAlbum: Boolean,
+      noArtist: Boolean,
+      noDuration: Boolean,
+      showImage: { type: Boolean, default: true },
+
+      // How to determine active track
+      activeBy: {
+        type: String as PropType<'id' | 'index'>,
+        default: 'id',
+      },
+
+      // Custom play handler (used by Queue.vue)
+      playStrategy: {
+        type: Function as PropType<(index: number) => void>,
+        default: null,
+      },
     },
+
     setup() {
-      return {
-        playerStore: usePlayerStore(),
-      }
+      return { playerStore: usePlayerStore() }
     },
+
     computed: {
       isPlaying(): boolean {
         return this.playerStore.isPlaying
@@ -73,20 +97,37 @@
       playingTrackId() {
         return this.playerStore.trackId
       },
+      queueIndex() {
+        return this.playerStore.queueIndex
+      },
     },
+
     methods: {
-      play(index: number) {
+      isActive(item: Track, index: number) {
+        return this.activeBy === 'index'
+          ? index === this.queueIndex
+          : item.id === this.playingTrackId
+      },
+
+      handlePlay(index: number) {
+        if (this.playStrategy) {
+          return this.playStrategy(index)
+        }
+
         this.playerStore.setShuffle(false)
+
         if (this.tracks[index].id === this.playingTrackId) {
           return this.playerStore.playPause()
         }
+
         return this.playerStore.playTrackList(this.tracks, index)
       },
-      dragstart(item: any, event: any) {
+
+      dragstart(item: Track, event: DragEvent) {
         if (!item.isStream) {
-          event.dataTransfer.setData('application/x-track-id', item.id)
+          event.dataTransfer?.setData('application/x-track-id', item.id)
         }
       },
-    }
+    },
   })
 </script>

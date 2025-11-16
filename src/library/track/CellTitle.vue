@@ -1,21 +1,28 @@
 <template>
-  <td>
-    <slot>{{ track.title }}</slot>
-    <div v-if="track.description" class="text-muted">
-      <small>{{ track.description }}</small>
-    </div>
-    <div v-else-if="track.artists.length" class="d-lg-none text-muted">
-      <small>{{ formatArtists(track.artists) }}</small>
+  <td class="d-flex align-items-center gap-2">
+    <!-- Optional thumbnail -->
+    <img
+      v-if="showImage && track.image"
+      :src="track.image"
+      alt="cover"
+      class="rounded"
+      style="width: 28px; height: 28px; object-fit: cover;"
+    >
+
+    <div class="flex-grow-1 adapt-text">
+      <slot>{{ track.title }}</slot>
     </div>
   </td>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { formatArtists } from '@/shared/utils'
 
   export default defineComponent({
     props: {
-      track: { type: Object, required: true }
+      track: { type: Object, required: true },
+      showImage: { type: Boolean, default: false }
     },
     methods: {
       formatArtists

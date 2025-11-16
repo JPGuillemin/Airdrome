@@ -1,6 +1,6 @@
 <template>
   <td class="text-start d-md-table-cell">
-    <div class="d-inline-flex align-items-center justify-content-end">
+    <div class="d-inline-flex adapt-text">
       <span>{{ formattedDuration }}</span>
       <Icon
         v-if="isCached"

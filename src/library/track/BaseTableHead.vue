@@ -2,7 +2,7 @@
   <thead>
     <tr>
       <th>#</th>
-      <th class="text-start">
+      <th class="text-start adapt-text">
         Title
       </th>
       <slot />

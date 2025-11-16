@@ -1,5 +1,5 @@
 <template>
-  <div class="top-nav elevated d-flex justify-content-between align-items-center mb-2">
+  <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
     <ConfirmDialog ref="confirmDialog" />
     <div class="d-flex align-items-center">
       <button

@@ -1,5 +1,5 @@
 <template>
-  <td class="d-none d-lg-table-cell">
+  <td class="d-none d-lg-table-cell adapt-text">
     <span v-for="(artist, index) in track.artists" :key="artist.id">
       <span v-if="index > 0">, </span>
       <router-link

@@ -87,14 +87,14 @@
     <div class="content-wrapper">
       <div class="row">
         <div class="col">
-          <TrackList :tracks="album.tracks || []" no-album />
+          <TrackList :tracks="album.tracks || []" :no-album="true" :show-image="false" :no-artist="true" />
         </div>
       </div>
       <div v-if="album.description" class="row">
         <h3 class="poster-title--secondary mt3">
           Background info
         </h3>
-        <span class="d-flex justify-content-between mb-2" style="text-align: justify;">
+        <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ album.description }}
         </span>
       </div>
