@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class=" poster-title">
+    <h1 class="poster-title">
       Playlists
     </h1>
 
@@ -22,24 +22,58 @@
       </b-button>
     </div>
 
-    <PlaylistList v-if="items.length > 0" :items="items" :allow-h-scroll="false" />
+    <PlaylistList
+      v-if="items.length > 0"
+      :items="items"
+      :allow-h-scroll="false"
+      @edit-playlist="openEditPlaylist"
+      @remove-playlist="deletePlaylist"
+    />
     <EmptyIndicator v-else />
 
-    <CreatePlaylistModal v-model="showAddModal" />
+    <!-- Modal embedded directly -->
+    <div v-if="showAddModal" class="modal-overlay" />
+    <div v-if="showAddModal" class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            {{ editingPlaylist ? 'Edit Playlist' : 'New Playlist' }}
+          </h5>
+          <button class="btn-close" @click="closeModal" />
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input v-model="newPlaylistName" class="form-control" placeholder="Enter playlist name">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <b-button variant="secondary" @click="closeModal">
+            Cancel
+          </b-button>
+          <b-button variant="primary" @click="createPlaylist">
+            {{ editingPlaylist ? 'Save' : 'Create' }}
+          </b-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
   import { computed, defineComponent, ref } from 'vue'
-  import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import { orderBy } from 'lodash-es'
   import { usePlaylistStore } from '@/library/playlist/store'
+  import Icon from '@/shared/components/Icon.vue'
+  import { BButton } from 'bootstrap-vue-3'
+  import type { Playlist } from '@/shared/api'
 
   export default defineComponent({
     components: {
-      CreatePlaylistModal,
       PlaylistList,
+      Icon,
+      BButton,
     },
     props: {
       sort: { type: String, default: null },
@@ -48,6 +82,8 @@
       const store = usePlaylistStore()
 
       const showAddModal = ref(false)
+      const newPlaylistName = ref('')
+      const editingPlaylist = ref<Playlist | null>(null)
 
       const items = computed(() =>
         props.sort === 'a-z'
@@ -55,10 +91,51 @@
           : orderBy(store.playlists, 'createdAt', 'desc')
       )
 
+      const openEditPlaylist = (playlist: Playlist) => {
+        editingPlaylist.value = playlist
+        newPlaylistName.value = playlist.name
+        showAddModal.value = true
+      }
+
+      const deletePlaylist = (id: string) => {
+        store.delete(id)
+      }
+
+      const closeModal = () => {
+        newPlaylistName.value = ''
+        editingPlaylist.value = null
+        showAddModal.value = false
+      }
+
+      const createPlaylist = () => {
+        if (!newPlaylistName.value.trim()) {
+          alert('Please enter a playlist name')
+          return
+        }
+
+        if (editingPlaylist.value) {
+          store.update({
+            ...editingPlaylist.value,
+            name: newPlaylistName.value,
+          })
+        } else {
+          // CREATE
+          store.create(newPlaylistName.value)
+        }
+
+        closeModal()
+      }
+
       return {
         showAddModal,
-        loading: computed(() => store.playlists === null),
+        newPlaylistName,
         items,
+        editingPlaylist,
+        openEditPlaylist,
+        deletePlaylist,
+        closeModal,
+        createPlaylist,
+        loading: computed(() => store.playlists === null),
       }
     },
   })
@@ -68,5 +145,45 @@
   .poster-title {
     margin-top: 10px;
     font-size: 1.5rem;
+  }
+
+  /* Modal overlay (semi-transparent background) */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1000;
+  }
+
+  .modal-dialog {
+    position: fixed; /* fix it relative to viewport */
+    top: 50%;         /* vertical center */
+    left: 50%;        /* horizontal center */
+    transform: translate(-50%, -50%); /* adjust for element’s size */
+    background-color: #000; /* your opaque background */
+    border-radius: 6px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1001;
+    padding: 1rem;
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
   }
 </style>

@@ -30,7 +30,11 @@
         <CellAlbum v-if="!noAlbum" :track="item" />
         <CellDuration v-if="!noDuration" :track="item" />
 
-        <CellActions :track="item">
+        <CellActions
+          :track="item"
+          :is-playlist-view="isPlaylistView"
+          @remove="$emit('remove-track', index)"
+        >
           <slot name="actions" :index="index" :item="item" />
         </CellActions>
       </tr>
@@ -66,14 +70,13 @@
 
     props: {
       tracks: { type: Array as PropType<Track[]>, required: true },
-
-      // Column behavior
+      isPlaylistView: { type: Boolean, default: false },
       noAlbum: Boolean,
       noArtist: Boolean,
       noDuration: Boolean,
       showImage: { type: Boolean, default: true },
 
-      // How to determine active track
+      // Determine active track
       activeBy: {
         type: String as PropType<'id' | 'index'>,
         default: 'id',

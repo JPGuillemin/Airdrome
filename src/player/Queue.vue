@@ -18,11 +18,6 @@
             </div>
           </div>
         </b-button>
-        <OverflowMenu variant="transparent">
-          <DropdownItem icon="plus" @click="savePlaylistModalVisible = true">
-            Save as playlist
-          </DropdownItem>
-        </OverflowMenu>
       </div>
     </div>
 
@@ -53,16 +48,14 @@
 </template>
 
 <script lang='ts'>
-  import { defineComponent, ref } from 'vue'
+  import { defineComponent } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import TrackList from '@/library/track/TrackList.vue'
-  import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
 
   export default defineComponent({
     components: {
       TrackList,
-      CreatePlaylistModal,
       EmptyIndicator,
     },
 
@@ -71,7 +64,6 @@
 
       return {
         playerStore,
-        savePlaylistModalVisible: ref(false),
       }
     },
 

@@ -7,15 +7,32 @@
       <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="addToQueue()">
         Queue
       </DropdownItem>
-      <DropdownItem v-if="!track.isStream" icon="plus" @click="showPlaylistSelect = true">
+
+      <!-- Conditional playlist action -->
+      <DropdownItem
+        v-if="!isPlaylistView && !track.isStream"
+        icon="plus"
+        @click="showPlaylistSelect = true"
+      >
         Playlist
       </DropdownItem>
+
+      <DropdownItem
+        v-if="isPlaylistView"
+        icon="x"
+        variant="danger"
+        @click="$emit('remove')"
+      >
+        Remove
+      </DropdownItem>
+
       <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" @click="toggleFavourite()">
         Like
       </DropdownItem>
       <DropdownItem v-if="!track.isStream" icon="download" @click="download()">
         Download
       </DropdownItem>
+
       <slot :item="track" />
     </OverflowMenu>
     <b-modal v-model="showPlaylistSelect" ok-only ok-variant="transparent" ok-title="Cancel" size="md">
@@ -55,6 +72,7 @@
   export default defineComponent({
     props: {
       track: { type: Object, required: true },
+      isPlaylistView: { type: Boolean, default: false },
     },
     setup() {
       return {

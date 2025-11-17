@@ -20,8 +20,19 @@
 
       <!-- Context Menu -->
       <template #context-menu>
+        <!-- Play -->
         <DropdownItem icon="play" @click="playNow(item.id)">
           Play
+        </DropdownItem>
+
+        <!-- Edit -->
+        <DropdownItem icon="edit" @click="$emit('edit-playlist', item)">
+          Edit
+        </DropdownItem>
+
+        <!-- Remove -->
+        <DropdownItem icon="trash" @click="$emit('remove-playlist', item.id)">
+          Remove
         </DropdownItem>
       </template>
     </Tile>
@@ -58,6 +69,10 @@
       async playNow(id: string) {
         const playlist = await this.$api.getPlaylist(id)
         return this.playerStore.playTrackList(playlist.tracks!)
+      },
+      removePlaylist(id: string) {
+        if (!confirm('Are you sure you want to delete this playlist?')) return
+        this.$emit('remove-playlist', id)
       },
     },
   })

@@ -1,31 +1,35 @@
 <template>
-  <b-modal :visible="visible" @ok="confirm" @change="change">
+  <BModal :model-value="visible" @update:model-value="close">
     <template #modal-header>
       <h5 class="modal-title">
-        New playlist
+        New Playlist
       </h5>
-      <button class="btn-close" @click="change" />
     </template>
+
     <div class="mb-3">
       <label class="form-label">Name</label>
-      <input v-model="name" class="form-control" type="text">
+      <input v-model="name" class="form-control" placeholder="Enter playlist name">
     </div>
+
     <template #modal-footer>
-      <b-button variant="secondary" class="btn-theme-primary" @click="change">
+      <BButton variant="secondary" @click="cancel">
         Cancel
-      </b-button>
-      <b-button variant="primary" class="btn-theme-primary" @click="confirm">
+      </BButton>
+      <BButton variant="primary" @click="confirm">
         Create
-      </b-button>
+      </BButton>
     </template>
-  </b-modal>
+  </BModal>
 </template>
+
 <script lang="ts">
   import { defineComponent, ref, PropType } from 'vue'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { Track } from '@/shared/api'
+  import { BModal, BButton } from 'bootstrap-vue-3'
 
   export default defineComponent({
+    components: { BModal, BButton },
     props: {
       visible: { type: Boolean, required: true },
       tracks: { type: Array as PropType<Track[] | null>, default: null },
@@ -34,16 +38,27 @@
     setup(props, { emit }) {
       const name = ref('')
       const store = usePlaylistStore()
-      return {
-        name,
-        confirm: () => {
-          store.create(name.value, props.tracks?.map(item => item.id))
-        },
-        change: () => {
-          name.value = ''
-          emit('update:visible', false)
-        },
+
+      const close = () => emit('update:visible', false)
+
+      const cancel = () => {
+        name.value = ''
+        close()
       }
+
+      const confirm = () => {
+        if (!name.value) {
+          alert('Please enter a playlist name')
+          return
+        }
+
+        // Call the store to create playlist
+        store.create(name.value, props.tracks?.map(t => t.id))
+        close()
+        name.value = ''
+      }
+
+      return { name, cancel, confirm, close }
     },
   })
 </script>
