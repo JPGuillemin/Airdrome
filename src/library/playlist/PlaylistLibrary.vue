@@ -119,7 +119,6 @@
             name: newPlaylistName.value,
           })
         } else {
-          // CREATE
           store.create(newPlaylistName.value)
         }
 

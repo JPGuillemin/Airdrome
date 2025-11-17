@@ -16,6 +16,14 @@
       >
         <Icon icon="home" class="nav-icon nav-link" />
       </router-link>
+      <router-link
+        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2"
+        :to="{ name: 'queue' }"
+        title="Playing"
+        :exact="true"
+      >
+        <Icon icon="soundwave" class="nav-icon nav-link" />
+      </router-link>
       <button
         class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2 d-none d-md-inline"
         title="Go back"

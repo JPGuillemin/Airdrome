@@ -8,7 +8,6 @@ import Poster from './Poster.vue'
 import Icon from './Icon.vue'
 import InfiniteLoader from './InfiniteLoader.vue'
 import OverflowMenu from './OverflowMenu.vue'
-import Slider from './Slider.vue'
 import Tiles from './Tiles.vue'
 import Tile from './Tile.vue'
 import {
@@ -29,7 +28,6 @@ export const components = {
   Icon,
   InfiniteLoader,
   OverflowMenu,
-  Slider,
   Tile,
   Tiles,
 }

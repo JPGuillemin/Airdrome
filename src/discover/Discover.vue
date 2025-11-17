@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <div v-if="result.genres.length > 0" class="pb-2 pt-4">
+    <div v-if="result.genres.length > 0" class="pb-2 pt-3">
       <div class="d-flex gap-3 overflow-auto scroll-adapt">
         <router-link
           v-for="item in result.genres"

@@ -41,20 +41,14 @@
     <router-link class="nav-link" :to="{name: 'favourites'}">
       <Icon icon="heart" /> Favourites
     </router-link>
-
-    <PlaylistNav />
   </nav>
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import PlaylistNav from '@/library/playlist/PlaylistNav.vue'
   import { useMainStore } from '@/shared/store'
   import { useRoute } from 'vue-router'
 
   export default defineComponent({
-    components: {
-      PlaylistNav,
-    },
     setup() {
       return {
         store: useMainStore(),

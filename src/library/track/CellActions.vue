@@ -26,7 +26,7 @@
         Remove
       </DropdownItem>
 
-      <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" @click="toggleFavourite()">
+      <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite()">
         Like
       </DropdownItem>
       <DropdownItem v-if="!track.isStream" icon="download" @click="download()">
@@ -35,31 +35,18 @@
 
       <slot :item="track" />
     </OverflowMenu>
-    <b-modal v-model="showPlaylistSelect" ok-only ok-variant="transparent" ok-title="Cancel" size="md">
-      <template #modal-header>
-        <h5 class="modal-title">
-          Add to playlist
-        </h5>
-        <button class="btn-close" @click="showPlaylistSelect = false" />
-      </template>
-      <div class="list-group list-group-flush">
-        <button
-          v-for="item in playlistStore.playlists" :key="item.id"
-          type="button" class="list-group-item list-group-item-action text-truncate"
+    <div v-if="showPlaylistSelect" class="playlist-dialog" @click.self="showPlaylistSelect = false">
+      <div class="playlist-box">
+        <div
+          v-for="item in playlistStore.playlists"
+          :key="item.id"
+          class="playlist-item"
           @click="addToPlaylist(item.id)"
         >
           {{ item.name }}
-        </button>
+        </div>
       </div>
-      <template #modal-footer>
-        <b-button
-          variant="transparent"
-          class="btn-theme-primary"
-          @click="showPlaylistSelect = false">
-          Cancel
-        </b-button>
-      </template>
-    </b-modal>
+    </div>
   </td>
 </template>
 <script lang="ts">
@@ -115,5 +102,40 @@
   .on-top {
     position: absolute;
     z-index: 3000 !important;
+  }
+  .playlist-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw; /* covers full screen for click-away */
+    height: 100vh;
+    background: rgba(0,0,0,0.15); /* optional semi-transparent overlay */
+  }
+
+  .playlist-box {
+    background: var(--bs-body-bg);
+    border-radius: 12px;
+    min-width: 260px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 8px 0;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+  }
+
+  .playlist-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .playlist-item:hover {
+    background-color: var(--bs-gray-200);
   }
 </style>
