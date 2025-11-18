@@ -26,6 +26,7 @@
       v-if="items.length > 0"
       :items="items"
       :allow-h-scroll="false"
+      :is-playlist-view="true"
       @edit-playlist="openEditPlaylist"
       @remove-playlist="deletePlaylist"
     />

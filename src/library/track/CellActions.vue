@@ -10,7 +10,7 @@
 
       <!-- Conditional playlist action -->
       <DropdownItem
-        v-if="!isPlaylistView && !track.isStream"
+        v-if="!isPlaylistView"
         icon="plus"
         @click="showPlaylistSelect = true"
       >

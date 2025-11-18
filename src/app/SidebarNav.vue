@@ -2,7 +2,7 @@
   <nav class="nav flex-column">
     <div class="sidebar-brand d-flex justify-content-between align-items-end">
       <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
-        <Icon icon="x" />
+        <Icon icon="goback" />
       </button>
     </div>
 

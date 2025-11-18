@@ -25,13 +25,19 @@
           Play
         </DropdownItem>
 
-        <!-- Edit -->
-        <DropdownItem icon="edit" @click="$emit('edit-playlist', item)">
+        <DropdownItem
+          v-if="isPlaylistView"
+          icon="edit"
+          @click="$emit('edit-playlist', item)"
+        >
           Edit
         </DropdownItem>
 
-        <!-- Remove -->
-        <DropdownItem icon="trash" @click="$emit('remove-playlist', item.id)">
+        <DropdownItem
+          v-if="isPlaylistView"
+          icon="trash"
+          @click="$emit('remove-playlist', item.id)"
+        >
           Remove
         </DropdownItem>
       </template>
@@ -51,6 +57,7 @@
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
+      isPlaylistView: { type: Boolean, default: false },
     },
 
     setup() {

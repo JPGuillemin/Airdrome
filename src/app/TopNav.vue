@@ -3,13 +3,13 @@
     <ConfirmDialog ref="confirmDialog" />
     <div class="d-flex align-items-center">
       <button
-        class="btn btn-transparent flex-grow-1 flex-md-grow-0 ms-auto me-2"
+        class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
         @click="store.showMenu"
       >
         <img width="36" height="36" src="@/shared/assets/logo.svg">
       </button>
       <router-link
-        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2"
+        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
         :to="{ name: 'home' }"
         title="Home panel"
         :exact="true"
@@ -17,7 +17,7 @@
         <Icon icon="home" class="nav-icon nav-link" />
       </router-link>
       <router-link
-        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2"
+        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
         :to="{ name: 'queue' }"
         title="Playing"
         :exact="true"
@@ -25,7 +25,7 @@
         <Icon icon="soundwave" class="nav-icon nav-link" />
       </router-link>
       <button
-        class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 ms-auto me-2 d-none d-md-inline"
+        class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2 d-none d-md-inline"
         title="Go back"
         @click="$router.back()"
       >
@@ -34,7 +34,7 @@
     </div>
 
     <div class="d-flex align-items-center">
-      <SearchForm class="flex-grow-1 flex-md-grow-0 ms-auto me-2" />
+      <SearchForm class="flex-grow-1 flex-md-grow-0 mx-2" />
       <template v-if="store.username">
         <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
           <template #button-content>

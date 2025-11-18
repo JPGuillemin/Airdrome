@@ -39,7 +39,7 @@
 
   .sidebar-container .sidebar-fixed {
     padding-bottom: 100px;
-    width: 180px;
+    width: 170px;
     position: sticky;
     top: 46px;
     max-height: 100vh;
@@ -51,6 +51,18 @@
   .offcanvas {
     z-index: 1100;
   }
+
+  @media (max-width: 654px) {
+    .offcanvas.offcanvas-start {
+      width: 50% !important; /* half the screen */
+    }
+
+    .offcanvas.offcanvas-start {
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(6px);
+    }
+  }
+
   .sidebar-container .sidebar-fixed::-webkit-scrollbar {
     display: none;
   }
