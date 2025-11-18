@@ -1,4 +1,4 @@
-export BASE_PATH="/airdrome/"
+export BASE_PATH="/"
 rm -rf dist docker
 
 # Build the project

@@ -35,7 +35,7 @@
 
       <slot :item="track" />
     </OverflowMenu>
-    <div v-if="showPlaylistSelect" class="playlist-dialog" @click.self="showPlaylistSelect = false">
+    <div v-if="showPlaylistSelect" class="playlist-dialog p-3" @click.self="showPlaylistSelect = false">
       <div class="playlist-box">
         <div
           v-for="item in playlistStore.playlists"
@@ -105,10 +105,10 @@
   }
   .playlist-dialog {
     position: fixed;
-    top: 50%;
+    top: 65%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 3000;
+    z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -118,16 +118,19 @@
   }
 
   .playlist-box {
-    background: var(--bs-body-bg);
+    background: var(--theme-elevation-1);
     border-radius: 12px;
-    min-width: 260px;
+    min-width: 160px;
+    max-width: 90vw;
     max-height: 70vh;
     overflow-y: auto;
     padding: 8px 0;
     box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+    text-align: left;
   }
 
   .playlist-item {
+    text-align: left;
     padding: 10px 16px;
     cursor: pointer;
     white-space: nowrap;

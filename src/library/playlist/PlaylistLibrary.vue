@@ -34,25 +34,25 @@
 
     <!-- Modal embedded directly -->
     <div v-if="showAddModal" class="modal-overlay" />
-    <div v-if="showAddModal" class="modal-dialog">
+    <div v-if="showAddModal" class="modal-dialog p-3">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header mb-3">
           <h5 class="modal-title">
             {{ editingPlaylist ? 'Edit Playlist' : 'New Playlist' }}
           </h5>
           <button class="btn-close" @click="closeModal" />
         </div>
-        <div class="modal-body">
+        <div>
           <div class="mb-3">
             <label class="form-label">Name</label>
             <input v-model="newPlaylistName" class="form-control" placeholder="Enter playlist name">
           </div>
         </div>
-        <div class="modal-footer">
-          <b-button variant="secondary" @click="closeModal">
+        <div class="modal-footer mb-3">
+          <b-button variant="secondary" class="mx-2" @click="closeModal">
             Cancel
           </b-button>
-          <b-button variant="primary" @click="createPlaylist">
+          <b-button variant="primary" class="mx-2" @click="createPlaylist">
             {{ editingPlaylist ? 'Save' : 'Create' }}
           </b-button>
         </div>
@@ -160,18 +160,17 @@
     top: 50%;         /* vertical center */
     left: 50%;        /* horizontal center */
     transform: translate(-50%, -50%); /* adjust for element’s size */
-    background-color: #000; /* your opaque background */
+    background: var(--theme-elevation-1);
     border-radius: 6px;
-    max-width: 500px;
-    width: 100%;
+    max-width: 600px;
+    width: auto;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    z-index: 1001;
+    z-index: 9999;
     padding: 1rem;
   }
 
   .modal-header,
   .modal-footer {
-    padding: 1rem;
     display: flex;
     align-items: center;
     justify-content: space-between;

@@ -88,15 +88,15 @@
     </div>
 
     <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal" />
-    <div v-if="showEditModal" class="modal-dialog">
+    <div v-if="showEditModal" class="modal-dialog p-3">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header mb-3">
           <h5 class="modal-title">
             Edit Playlist
           </h5>
           <button class="btn-close" @click="closeEditModal" />
         </div>
-        <div class="modal-body">
+        <div>
           <div class="mb-3">
             <label class="form-label">Name</label>
             <input v-model="editPlaylist.name" type="text" class="form-control">
@@ -111,10 +111,10 @@
           </div>
         </div>
         <div class="modal-footer">
-          <b-button variant="secondary" @click="closeEditModal">
+          <b-button variant="secondary" class="mx-2" @click="closeEditModal">
             Cancel
           </b-button>
-          <b-button variant="primary" @click="confirmEdit">
+          <b-button variant="primary" class="mx-2" @click="confirmEdit">
             Save
           </b-button>
         </div>
@@ -276,7 +276,7 @@
   })
 </script>
 
-<style>
+<style scoped>
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -289,17 +289,16 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #fff;
+    background-color: var(--theme-elevation-1);
     border-radius: 6px;
-    max-width: 500px;
-    width: 100%;
-    z-index: 1001;
+    max-width: 600px;
+    width: auto;
+    z-index: 9999;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }
 
   .modal-header,
   .modal-footer {
-    padding: 1rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
