@@ -3,12 +3,9 @@
     <h1 class="poster-title mt-2">
       {{ id }}
     </h1>
-    <div class="text-nowrap mt-3">
+    <div class="text-nowrap my-2">
       <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
         <Icon icon="radio" />
-      </b-button>
-      <b-button variant="transparent" class="me-2 d-md-none" title="Playing" @click="$router.push({ name: 'queue' })">
-        <Icon icon="soundwave" />
       </b-button>
     </div>
     <InfiniteList v-slot="{ items }" key="albums" :load="loadAlbums">
