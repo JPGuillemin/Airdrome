@@ -1,13 +1,13 @@
 <template>
   <div v-if="playlist" class="main-content">
-    <div class="poster-wrapper">
-      <Poster :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <div class="poster-title-wrapper">
-          <h1 class="poster-title">
+    <div class="custom-wrapper">
+      <Custom :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
+        <div class="custom-title-wrapper">
+          <h1 class="custom-title">
             {{ playlist.name }}
           </h1>
         </div>
-        <div class="poster-info">
+        <div class="custom-info">
           <span class="text-nowrap">
             <strong>{{ playlist.trackCount }}</strong> tracks
           </span>
@@ -42,7 +42,7 @@
           >
             <Icon icon="reload" />
           </b-button>
-          <OverflowMenu variant="transparent">
+          <OverflowMenu variant="transparent" class="on-top">
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"
@@ -61,7 +61,7 @@
             </DropdownItem>
           </OverflowMenu>
         </div>
-      </Poster>
+      </Custom>
     </div>
 
     <div class="content-wrapper">
@@ -133,7 +133,7 @@
   import OverflowMenu from '@/shared/components/OverflowMenu.vue'
   import DropdownItem from '@/shared/components/DropdownItem.vue'
   import Icon from '@/shared/components/Icon.vue'
-  import Poster from '@/shared/components/Poster.vue'
+  import Custom from '@/shared/components/Custom.vue'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
@@ -150,7 +150,7 @@
       OverflowMenu,
       DropdownItem,
       Icon,
-      Poster,
+      Custom,
       BButton,
     },
     props: { id: { type: String, required: true } },
@@ -302,10 +302,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
-
-  .modal-body {
-    padding: 1rem;
   }
 
   .btn-close {

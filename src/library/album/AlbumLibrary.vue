@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="poster-title">
+    <h1 class="custom-title mt-3">
       Albums
     </h1>
     <ul class="nav-underlined mb-3">
@@ -75,9 +75,3 @@
     }
   })
 </script>
-<style scoped>
-  .poster-title {
-    margin-top: 10px;
-    font-size: 1.5rem;
-  }
-</style>

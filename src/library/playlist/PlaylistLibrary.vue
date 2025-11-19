@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="poster-title">
+    <h1 class="custom-title">
       Playlists
     </h1>
 
@@ -142,11 +142,6 @@
 </script>
 
 <style scoped>
-  .poster-title {
-    margin-top: 10px;
-    font-size: 1.5rem;
-  }
-
   /* Modal overlay (semi-transparent background) */
   .modal-overlay {
     position: fixed;
@@ -156,10 +151,10 @@
   }
 
   .modal-dialog {
-    position: fixed; /* fix it relative to viewport */
-    top: 50%;         /* vertical center */
-    left: 50%;        /* horizontal center */
-    transform: translate(-50%, -50%); /* adjust for element’s size */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: var(--theme-elevation-1);
     border-radius: 6px;
     max-width: 600px;
@@ -174,10 +169,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
-
-  .modal-body {
-    padding: 1rem;
   }
 
   .btn-close {

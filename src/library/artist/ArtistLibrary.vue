@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class=" poster-title">
+    <h1 class=" custom-title mt-3">
       Artists
     </h1>
 
@@ -88,9 +88,3 @@
     },
   })
 </script>
-<style scoped>
-  .poster-title {
-    margin-top: 10px;
-    font-size: 1.5rem;
-  }
-</style>

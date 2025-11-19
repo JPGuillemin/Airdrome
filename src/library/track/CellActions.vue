@@ -1,6 +1,6 @@
 <template>
   <td class="text-end" @click.stop="">
-    <OverflowMenu>
+    <OverflowMenu variant="transparent" class="on-top">
       <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="setNextInQueue()">
         Next
       </DropdownItem>
@@ -99,10 +99,6 @@
   })
 </script>
 <style scoped>
-  .on-top {
-    position: absolute;
-    z-index: 3000 !important;
-  }
   .playlist-dialog {
     position: fixed;
     top: 65%;

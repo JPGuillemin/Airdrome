@@ -1,4 +1,4 @@
-.poster-wrapper {
+.custom-wrapper {
   position: fixed;
   width: 100%;
   z-index: 500;
@@ -6,13 +6,13 @@
   overflow: visible;
 }
 
-.poster-title-wrapper {
+.custom-title-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.poster-title {
+.custom-title {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -27,20 +27,20 @@
   font-weight: 700;
 }
 
-.poster-title--secondary {
+.custom-title--secondary {
   margin-top: 7px;
   color: var(--theme-text-muted);
   font-size: 1.2rem;
   font-weight: 700;
 }
 
-.poster-info-wrapper {
+.custom-info-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.poster-info-one {
+.custom-info-one {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -52,7 +52,7 @@
   font-size: 1rem;
 }
 
-.poster-info-two {
+.custom-info-two {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -66,16 +66,16 @@
 
 /* Mobile: slightly smaller font */
 @media (max-width: 767.98px) {
-  .poster-title {
+  .custom-title {
     max-width: 220px;
     font-size: 1.2rem !important;
   }
-  .poster-info-one {
+  .custom-info-one {
     display: block;
     max-width: 220px;
     font-size: 0.9rem !important;
   }
-  .poster-info-two {
+  .custom-info-two {
     display: block;
     max-width: 220px;
     font-size: 0.8rem !important;

@@ -1,15 +1,15 @@
 <template>
   <div v-if="artist" class="main-content">
-    <div class="poster-wrapper">
-      <Poster :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
-        <div class="poster-title-wrapper">
-          <h1 class="poster-title">
+    <div class="custom-wrapper">
+      <Custom :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
+        <div class="custom-title-wrapper">
+          <h1 class="custom-title mt-3">
             {{ artist.name }}
           </h1>
         </div>
 
-        <div class="poster-info-wrapper">
-          <div class="poster-info-one">
+        <div class="custom-info-wrapper">
+          <div class="custom-info-one">
             <span class="text-nowrap">
               <strong>{{ artist.albumCount }}</strong> albums
             </span>
@@ -19,7 +19,7 @@
             </span>
           </div>
 
-          <div class="poster-info-two">
+          <div class="custom-info-two">
             <template v-if="artist.genres.length > 0">
               <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
                 <span v-if="index > 0">, </span>
@@ -56,12 +56,12 @@
             <Icon icon="artists" />
           </b-button>
         </div>
-      </Poster>
+      </Custom>
     </div>
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 ref="topTracks" class="poster-title--secondary">
+          <h3 ref="topTracks" class="custom-title--secondary">
             Top tracks
           </h3>
           <router-link :to="{name: 'artist-tracks', params: { id }}">
@@ -72,7 +72,7 @@
       </template>
       <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 class="poster-title--secondary">
+          <h3 class="custom-title--secondary">
             {{ formatReleaseType(releaseType) }}
           </h3>
           <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
@@ -86,13 +86,13 @@
         </AlbumList>
       </div>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="poster-title--secondary mt-3">
+        <h3 ref="similarArtists" class="custom-title--secondary mt-3">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" />
       </template>
       <template v-if="artist.description">
-        <h3 class="poster-title--secondary mt-3">
+        <h3 class="custom-title--secondary mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
@@ -212,10 +212,10 @@
           const section = this.$refs[refName] as HTMLElement | undefined
           if (!section) return
 
-          // Adjust this to match poster height
-          const posterHeight = 230
+          // Adjust this to match custom height
+          const customHeight = 230
 
-          const top = section.getBoundingClientRect().top + window.scrollY - posterHeight
+          const top = section.getBoundingClientRect().top + window.scrollY - customHeight
 
           window.scrollTo({
             top,

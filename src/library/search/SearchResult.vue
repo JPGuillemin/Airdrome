@@ -1,32 +1,29 @@
 <template>
   <div class="main-content">
-    <div v-if="result.albums.length > 0" class="mb-5">
-      <h3 v-if="!type">
-        Albums
-        <router-link v-if="!type" :to="{params: {type: 'album'}, query: $route.query}" class="text-muted">
-          <Icon icon="chevron-right" />
-        </router-link>
-      </h3>
+    <div v-if="result.albums.length > 0" class="pb-2 pt-3">
+      <router-link v-if="!type" :to="{params: {type: 'album'}, query: $route.query}" class="text-muted">
+        <h1 class="custom-title">
+          Albums
+        </h1>
+      </router-link>
       <AlbumList :items="result.albums" />
     </div>
 
-    <div v-if="result.artists.length > 0" class="mb-5">
-      <h3 v-if="!type">
-        Artists
-        <router-link v-if="!type" :to="{params: {type: 'artist'}, query: $route.query}" class="text-muted">
-          <Icon icon="chevron-right" />
-        </router-link>
-      </h3>
+    <div v-if="result.artists.length > 0" class="pb-2 pt-3">
+      <router-link v-if="!type" :to="{params: {type: 'artist'}, query: $route.query}" class="text-muted">
+        <h1 class="custom-title">
+          Artists
+        </h1>
+      </router-link>
       <ArtistList :items="result.artists" />
     </div>
 
-    <div v-if="result.tracks.length > 0">
-      <h3 v-if="!type">
-        Tracks
-        <router-link :to="{params: {type: 'track'}, query: $route.query}" class="text-muted">
-          <Icon icon="chevron-right" />
-        </router-link>
-      </h3>
+    <div v-if="result.tracks.length > 0" class="pb-2 pt-3">
+      <router-link :to="{params: {type: 'track'}, query: $route.query}" class="text-muted">
+        <h1 class="custom-title">
+          Tracks
+        </h1>
+      </router-link>
       <TrackList :tracks="result.tracks" />
     </div>
 

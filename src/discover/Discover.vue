@@ -16,7 +16,7 @@
 
     <div v-if="result.playlists.length > 0" class="pb-2">
       <router-link :to="{ name: 'playlists' }" class="text-muted">
-        <h1 class="poster-title">
+        <h1 class="custom-title">
           Playlists
         </h1>
       </router-link>
@@ -25,7 +25,7 @@
 
     <div v-if="result.played.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="text-muted">
-        <h1 class=" poster-title">
+        <h1 class=" custom-title">
           Recently played
         </h1>
       </router-link>
@@ -34,7 +34,7 @@
 
     <div v-if="result.favartists.length > 0" class="pb-2">
       <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="text-muted">
-        <h1 class="poster-title">
+        <h1 class="custom-title">
           Fav artists
         </h1>
       </router-link>
@@ -43,7 +43,7 @@
 
     <div v-if="result.favalbums.length > 0" class="pb-2">
       <router-link :to="{ name: 'favourites' }" class="text-muted">
-        <h1 class="poster-title">
+        <h1 class="custom-title">
           Fav albums
         </h1>
       </router-link>
@@ -52,7 +52,7 @@
 
     <div v-if="result.random.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="text-muted">
-        <h1 class=" poster-title">
+        <h1 class=" custom-title">
           Random
         </h1>
       </router-link>
@@ -61,7 +61,7 @@
 
     <div v-if="result.recent.length > 0" class="pb-2">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="text-muted">
-        <h1 class=" poster-title">
+        <h1 class=" custom-title">
           Recently added
         </h1>
       </router-link>
@@ -142,7 +142,7 @@
 </script>
 
 <style scoped>
-  .poster-title {
+  .custom-title {
     margin-top: 10px;
     font-size: 1.5rem;
   }

@@ -131,7 +131,7 @@
                 />
               </Dropdown>
             </div>
-            <OverflowMenu class="d-md-none" variant="transparent" direction="up">
+            <OverflowMenu class="d-md-none on-top" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
                 <span>Volume</span>
                 <Slider
