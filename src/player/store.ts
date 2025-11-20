@@ -274,7 +274,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
-    api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
+    api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
     playerStore.setMediaSessionPosition(playerStore.duration, pauseRate, 0.0)
   })
 
@@ -423,9 +423,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
 
       const now = performance.now()
-      if (now - lastUpdate < 300) return
+      if (now - lastUpdate < 5000) return
       lastUpdate = now
-
+      api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
       playerStore.setMediaSessionPosition()
 
       if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
@@ -439,7 +439,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     () => {
       if (playerStore.track) {
         api.updateNowPlaying(playerStore.track.id)
-        api.savePlayQueue(playerStore.queue!, playerStore.track, 0.0)
+        api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
       }
     })
 }
