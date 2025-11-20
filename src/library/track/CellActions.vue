@@ -1,10 +1,10 @@
 <template>
   <td class="text-end" @click.stop="">
-    <OverflowMenu variant="transparent" class="on-top">
-      <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="setNextInQueue()">
+    <OverflowMenu variant="transparent">
+      <DropdownItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
         Next
       </DropdownItem>
-      <DropdownItem v-if="!track.isUnavailable" icon="plus" @click="addToQueue()">
+      <DropdownItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="addToQueue()">
         Queue
       </DropdownItem>
 
@@ -12,6 +12,7 @@
       <DropdownItem
         v-if="!isPlaylistView"
         icon="plus"
+        class="on-top"
         @click="showPlaylistSelect = true"
       >
         Playlist
@@ -21,15 +22,16 @@
         v-if="isPlaylistView"
         icon="x"
         variant="danger"
+        class="on-top"
         @click="$emit('remove')"
       >
         Remove
       </DropdownItem>
 
-      <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite()">
+      <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
         Like
       </DropdownItem>
-      <DropdownItem v-if="!track.isStream" icon="download" @click="download()">
+      <DropdownItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
         Download
       </DropdownItem>
 

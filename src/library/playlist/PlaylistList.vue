@@ -20,14 +20,14 @@
 
       <!-- Context Menu -->
       <template #context-menu>
-        <!-- Play -->
-        <DropdownItem icon="play" @click="playNow(item.id)">
+        <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
           Play
         </DropdownItem>
 
         <DropdownItem
           v-if="isPlaylistView"
           icon="edit"
+          class="on-top"
           @click="$emit('edit-playlist', item)"
         >
           Edit
@@ -36,6 +36,7 @@
         <DropdownItem
           v-if="isPlaylistView"
           icon="trash"
+          class="on-top"
           @click="$emit('remove-playlist', item.id)"
         >
           Remove

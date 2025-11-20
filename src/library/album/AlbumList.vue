@@ -30,10 +30,10 @@
 
       <!-- Context Menu -->
       <template #context-menu>
-        <DropdownItem icon="play" @click="playNow(item.id)">
+        <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
           Play
         </DropdownItem>
-        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
+        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </DropdownItem>
       </template>

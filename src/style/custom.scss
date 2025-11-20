@@ -1,3 +1,11 @@
+.main-content {
+  padding-top: 38px;
+}
+
+.adapt-text {
+  font-size: 1rem; /* normal */
+}
+
 .custom-wrapper {
   position: fixed;
   width: 100%;
@@ -91,6 +99,7 @@
 }
 
 .on-top {
-  position: absolute;
+  position: relative;
   z-index: 3000;
+  background: var(--theme-elevation-1);
 }

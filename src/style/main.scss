@@ -1,11 +1,13 @@
 $theme-elevation-0: #000000;
 $theme-elevation-1: #151515;
 $theme-elevation-2: #2e2e2e;
+$theme-elevation-3: #4c4c4c;
+$theme-elevation-4: #7d7d7d;
 $theme-text: #cccccc;
-$theme-text-muted: #999999;
+$theme-text-muted: #7d7d7d;
 
 // Bootstrap overrides
-$primary: #888888;
+$primary: #7d7d7d;
 $danger: #ff4141;
 $secondary: $theme-elevation-2;
 
@@ -29,6 +31,8 @@ $border-color: $theme-elevation-2;
   --theme-elevation-0: #{$theme-elevation-0};
   --theme-elevation-1: #{$theme-elevation-1};
   --theme-elevation-2: #{$theme-elevation-2};
+  --theme-elevation-3: #{$theme-elevation-3};
+  --theme-elevation-4: #{$theme-elevation-4};
   --primary: #{$primary};
   --secondary: #{$secondary};
 }
@@ -93,7 +97,7 @@ $border-color: $theme-elevation-2;
   --bs-btn-hover-color: #ffffff;
   --bs-btn-hover-bg: #ffffff1f;
 
-  --bs-btn-focus-shadow-rgb: #7d7d7d;
+  --bs-btn-focus-shadow-rgb: $theme-elevation-4;
 
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
@@ -188,14 +192,6 @@ a.active {
 
 .btn-link:focus {
   box-shadow: none !important;
-}
-
-.main-content {
-  padding-top: 38px;
-}
-
-.adapt-text {
-  font-size: 1rem; /* normal */
 }
 
 @media (max-width: 768px) {

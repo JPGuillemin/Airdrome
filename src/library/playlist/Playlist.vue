@@ -42,10 +42,11 @@
           >
             <Icon icon="reload" />
           </b-button>
-          <OverflowMenu variant="transparent" class="on-top">
+          <OverflowMenu variant="transparent">
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"
+              class="on-top"
               @click="openEditModal"
             >
               Edit
@@ -55,6 +56,7 @@
               icon="x"
               variant="danger"
               :disabled="playlist.isReadOnly"
+              class="on-top"
               @click="deletePlaylist()"
             >
               Delete
@@ -111,9 +113,6 @@
           </div>
         </div>
         <div class="modal-footer">
-          <b-button variant="secondary" class="mx-2" @click="closeEditModal">
-            Cancel
-          </b-button>
           <b-button variant="primary" class="mx-2" @click="confirmEdit">
             Save
           </b-button>
@@ -294,6 +293,7 @@
     max-width: 600px;
     width: auto;
     z-index: 9999;
+    border: 1px solid var(--theme-elevation-2);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }
 
@@ -302,6 +302,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .btn-close {

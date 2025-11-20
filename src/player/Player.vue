@@ -131,8 +131,8 @@
                 />
               </Dropdown>
             </div>
-            <OverflowMenu class="d-md-none on-top" variant="transparent" direction="up">
-              <div class="d-flex justify-content-between align-items-center px-3 py-1">
+            <OverflowMenu class="d-md-none" direction="up">
+              <div class="d-flex justify-content-between align-items-center px-3 py-1 on-top">
                 <span>Volume</span>
                 <Slider
                   v-model="playerStore.volume"
@@ -147,7 +147,7 @@
                   @update="playerStore.setVolume"
                 />
               </div>
-              <div class="d-flex justify-content-between px-3 py-1">
+              <div class="d-flex justify-content-between px-3 py-1 on-top">
                 <span>Repeat</span>
                 <b-button
                   title="Repeat"
@@ -158,7 +158,7 @@
                   <Icon icon="repeat" />
                 </b-button>
               </div>
-              <div class="d-flex justify-content-between px-3 py-1">
+              <div class="d-flex justify-content-between px-3 py-1 on-top">
                 <span>Shuffle</span>
                 <b-button
                   title="Shuffle"
@@ -169,14 +169,14 @@
                   <Icon icon="shuffle" />
                 </b-button>
               </div>
-              <div class="d-flex justify-content-between px-3 py-1">
+              <div class="d-flex justify-content-between px-3 py-1 on-top">
                 <span>Like</span>
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                 </b-button>
               </div>
 
-              <div v-if="track && track.replayGain" class="d-flex justify-content-between px-3 py-1">
+              <div v-if="track && track.replayGain" class="d-flex justify-content-between px-3 py-1 on-top">
                 <span>R.Gain</span>
                 <b-button
                   title="ReplayGain"

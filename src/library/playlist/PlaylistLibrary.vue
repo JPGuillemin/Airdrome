@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <h1 class="custom-title">
+    <h1 class="custom-title mt-3">
       Playlists
     </h1>
 
@@ -33,7 +33,7 @@
     <EmptyIndicator v-else />
 
     <!-- Modal embedded directly -->
-    <div v-if="showAddModal" class="modal-overlay" />
+    <div v-if="showAddModal" class="modal-overlay" @click="closeModal" />
     <div v-if="showAddModal" class="modal-dialog p-3">
       <div class="modal-content">
         <div class="modal-header mb-3">
@@ -49,9 +49,6 @@
           </div>
         </div>
         <div class="modal-footer mb-3">
-          <b-button variant="secondary" class="mx-2" @click="closeModal">
-            Cancel
-          </b-button>
           <b-button variant="primary" class="mx-2" @click="createPlaylist">
             {{ editingPlaylist ? 'Save' : 'Create' }}
           </b-button>
@@ -160,6 +157,7 @@
     max-width: 600px;
     width: auto;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: 1px solid var(--theme-elevation-2);
     z-index: 9999;
     padding: 1rem;
   }
@@ -169,6 +167,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .btn-close {

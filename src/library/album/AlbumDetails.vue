@@ -67,17 +67,17 @@
           <b-button variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <OverflowMenu variant="transparent" class="on-top">
-            <DropdownItem icon="plus" @click="setNextInQueue">
+          <OverflowMenu variant="transparent">
+            <DropdownItem icon="plus" class="on-top" @click="setNextInQueue">
               Next
             </DropdownItem>
-            <DropdownItem icon="plus" @click="addToQueue">
+            <DropdownItem icon="plus" class="on-top" @click="addToQueue">
               Queue
             </DropdownItem>
-            <DropdownItem v-if="!cached" icon="download" @click="cacheAlbum">
+            <DropdownItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
               Cache
             </DropdownItem>
-            <DropdownItem v-if="cached" icon="trash" @click="clearAlbumCache">
+            <DropdownItem v-if="cached" icon="trash" class="on-top" @click="clearAlbumCache">
               Cache
             </DropdownItem>
           </OverflowMenu>

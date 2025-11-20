@@ -11,7 +11,7 @@
         <strong>{{ item.albumCount }}</strong> albums
       </template>
       <template #context-menu>
-        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" @click.stop="toggleFavourite(item.id)">
+        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </DropdownItem>
       </template>

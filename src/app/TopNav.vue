@@ -38,17 +38,13 @@
       <template v-if="store.username">
         <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
           <template #button-content>
-            <Icon icon="gear" color="#4c4c4c" />
+            <Icon icon="gear" color="var(--theme-elevation-4)" />
           </template>
-          <div class="px-3 py-1">
+          <div class="px-3 py-1 small">
             {{ store.username }}
           </div>
           <hr class="dropdown-divider">
-          <DropdownItem @click="scan">
-            Refresh content
-          </DropdownItem>
-          <hr class="dropdown-divider">
-          <div class="px-3 py-2">
+          <div class="on-top px-3 py-2">
             <div class=" small mb-1">
               Theme color
             </div>
@@ -67,7 +63,7 @@
             </div>
           </div>
           <hr class="dropdown-divider">
-          <div class="px-3 py-2">
+          <div class="on-top px-3 py-2">
             <div class=" small mb-1">
               Stream quality
             </div>
@@ -91,16 +87,19 @@
             </div>
           </div>
           <hr class="dropdown-divider">
-          <div class="px-3 py-2 text-muted small">
+          <div class="on-top px-3 py-2 text-muted small">
             Cache size: {{ cacheSize }} GB
           </div>
-          <DropdownItem @click="clearAllCache">
+          <DropdownItem class="on-top small" @click="scan">
+            Refresh content
+          </DropdownItem>
+          <DropdownItem class="on-top small" @click="clearAllCache">
             Clear cache
           </DropdownItem>
-          <DropdownItem @click="logout">
+          <DropdownItem class="on-top small" @click="logout">
             Log out
           </DropdownItem>
-          <DropdownItem @click="showAboutModal = true">
+          <DropdownItem class="on-top small" @click="showAboutModal = true">
             About
           </DropdownItem>
         </Dropdown>
@@ -267,7 +266,7 @@
   }
 
   .nav-link .nav-icon {
-    color: #4c4c4c;
+    color: var(--theme-elevation-3);
   }
 
   .nav-link.router-link-active .nav-icon {
