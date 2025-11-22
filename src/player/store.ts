@@ -270,7 +270,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   audio.ondurationchange = (value: number) => {
     playerStore.duration = value
-    playerStore.setMediaSessionPosition(playerStore.duration, undefined, undefined)
   }
 
   window.addEventListener('beforeunload', () => {
@@ -410,11 +409,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  let lastUpdate = 0
+  let timer1 = 0
+  let timer2 = 0
   watch(
     () => [playerStore.currentTime],
     () => {
       if (!playerStore.track || !playerStore.isPlaying) return
+
+      const now = performance.now()
 
       const remaining = playerStore.duration - playerStore.currentTime
       if (remaining <= 0.10 && playerStore.hasNext) {
@@ -423,15 +425,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         audio.loadTrack({ ...playerStore.track, nextUrl: playerStore.getNextUrl() })
       }
 
-      const now = performance.now()
-      if (now - lastUpdate < 5000) return
-      lastUpdate = now
-      api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
-      playerStore.setMediaSessionPosition()
-
-      if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
-        playerStore.scrobbled = true
-        api.scrobble(playerStore.track.id)
+      if (now - timer1 > 300) {
+        timer1 = now
+        playerStore.setMediaSessionPosition()
+        if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
+          playerStore.scrobbled = true
+          api.scrobble(playerStore.track.id)
+        }
+        if (now - timer2 > 5000) {
+          timer2 = now
+          api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
+        }
       }
     })
 
@@ -439,6 +443,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     () => [playerStore.duration],
     () => {
       if (playerStore.track) {
+        playerStore.setMediaSessionPosition()
         api.updateNowPlaying(playerStore.track.id)
         api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
       }
