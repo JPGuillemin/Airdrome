@@ -280,7 +280,7 @@
     position: fixed;
     inset: 0;
     background-color: rgba(0,0,0,0.5);
-    z-index: 1000;
+    z-index: 3000;
   }
 
   .modal-dialog {
@@ -292,7 +292,7 @@
     border-radius: 6px;
     max-width: 600px;
     width: auto;
-    z-index: 9999;
+    z-index: 3000;
     border: 1px solid var(--theme-elevation-2);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }

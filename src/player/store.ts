@@ -270,6 +270,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   audio.ondurationchange = (value: number) => {
     playerStore.duration = value
+    playerStore.setMediaSessionPosition(playerStore.duration, undefined, undefined)
   }
 
   window.addEventListener('beforeunload', () => {

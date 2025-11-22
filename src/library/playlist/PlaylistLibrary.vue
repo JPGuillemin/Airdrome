@@ -144,7 +144,7 @@
     position: fixed;
     inset: 0;
     background-color: rgba(0,0,0,0.5);
-    z-index: 1000;
+    z-index: 3000;
   }
 
   .modal-dialog {
@@ -158,7 +158,7 @@
     width: auto;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     border: 1px solid var(--theme-elevation-2);
-    z-index: 9999;
+    z-index: 3000;
     padding: 1rem;
   }
 

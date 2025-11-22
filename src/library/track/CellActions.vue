@@ -37,18 +37,20 @@
 
       <slot :item="track" />
     </OverflowMenu>
-    <div v-if="showPlaylistSelect" class="playlist-dialog p-3" @click.self="showPlaylistSelect = false">
-      <div class="playlist-box">
-        <div
-          v-for="item in playlistStore.playlists"
-          :key="item.id"
-          class="playlist-item"
-          @click="addToPlaylist(item.id)"
-        >
-          {{ item.name }}
+    <Teleport to="body">
+      <div v-if="showPlaylistSelect" class="playlist-dialog p-3" @click.self="showPlaylistSelect = false">
+        <div class="playlist-box">
+          <div
+            v-for="item in playlistStore.playlists"
+            :key="item.id"
+            class="playlist-item"
+            @click="addToPlaylist(item.id)"
+          >
+            {{ item.name }}
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </td>
 </template>
 <script lang="ts">
@@ -103,16 +105,11 @@
 <style scoped>
   .playlist-dialog {
     position: fixed;
-    top: 65%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
+    inset: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100vw; /* covers full screen for click-away */
-    height: 100vh;
-    background: rgba(0,0,0,0.15); /* optional semi-transparent overlay */
+    z-index: 3000; /* why not */
   }
 
   .playlist-box {
@@ -120,11 +117,27 @@
     border-radius: 12px;
     min-width: 160px;
     max-width: 90vw;
-    max-height: 70vh;
+    max-height: 200px;
     overflow-y: auto;
+    scrollbar-color: rgba(0,0,0,0.3) transparent;
     padding: 8px 0;
-    box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+    border: 1px solid var(--theme-elevation-2);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     text-align: left;
+  }
+
+  .playlist-box::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .playlist-box::-webkit-scrollbar-button {
+    display: none; /* remove arrows */
+    border-radius: 10px;
+  }
+
+  .playlist-box::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 10px;
   }
 
   .playlist-item {
