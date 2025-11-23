@@ -38,15 +38,21 @@
       <slot :item="track" />
     </OverflowMenu>
     <Teleport to="body">
-      <div v-if="showPlaylistSelect" class="playlist-dialog p-3" @click.self="showPlaylistSelect = false">
-        <div class="playlist-box">
-          <div
-            v-for="item in playlistStore.playlists"
-            :key="item.id"
-            class="playlist-item"
-            @click="addToPlaylist(item.id)"
-          >
-            {{ item.name }}
+      <div v-if="showPlaylistSelect">
+        <!-- Overlay -->
+        <div class="modal-overlay" @click="showPlaylistSelect = false" />
+
+        <!-- Dialog box -->
+        <div class="playlist-dialog">
+          <div class="playlist-box">
+            <div
+              v-for="item in playlistStore.playlists"
+              :key="item.id"
+              class="playlist-item"
+              @click="addToPlaylist(item.id)"
+            >
+              {{ item.name }}
+            </div>
           </div>
         </div>
       </div>
@@ -103,13 +109,19 @@
   })
 </script>
 <style scoped>
-  .playlist-dialog {
+  .modal-overlay {
     position: fixed;
     inset: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 3000; /* why not */
+    background-color: rgba(0,0,0,0.5); /* same as modal */
+    z-index: 3000;
+  }
+
+  .playlist-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3001; /* above overlay */
   }
 
   .playlist-box {

@@ -11,7 +11,7 @@
         :format="formatter"
         orientation="horizontal"
         :lazy="true"
-        class="playback-slider"
+        class="playback-slider px-1"
         @start="onSliderDragStart"
         @end="onSliderDragEnd"
         @change="onSliderUpdate"
@@ -50,15 +50,6 @@
         <!-- Controls--->
         <div class="col-auto p-0 d-flex align-items-center">
           <b-button
-            title="Shuffle"
-            variant="transparent"
-            class="d-none d-md-inline-block mx-0.5"
-            :class="{ 'theme-primary': shuffleActive }"
-            @click="toggleShuffle">
-            <Icon icon="shuffle" />
-          </b-button>
-
-          <b-button
             variant="transparent"
             class="mx-0.5"
             @click="previous">
@@ -79,15 +70,6 @@
             @click="next">
             <Icon icon="skip-end" />
           </b-button>
-
-          <b-button
-            title="Repeat"
-            variant="transparent"
-            class="d-none d-md-inline-block mx-0.5"
-            :class="{ 'theme-primary': repeatActive }"
-            @click="toggleRepeat">
-            <Icon icon="repeat" />
-          </b-button>
         </div>
 
         <!-- Controls right --->
@@ -101,6 +83,7 @@
               >
                 <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
               </b-button>
+
               <b-button
                 v-if="track && track.replayGain"
                 title="R.Gain"
@@ -113,25 +96,9 @@
                 <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
                 <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
               </b-button>
-              <Dropdown variant="transparent" align="center" direction="up" menu-style="min-width:0px;" title="Volume">
-                <template #button-content>
-                  <Icon :icon="isMuted ? 'mute' : 'volume'" />
-                </template>
-                <Slider
-                  v-model="playerStore.volume"
-                  orientation="vertical"
-                  direction="rtl"
-                  :min="0"
-                  :max="1"
-                  :step="0.01"
-                  :tooltips="false"
-                  show-tooltip="never"
-                  class="volume-slider"
-                  @update="playerStore.setVolume"
-                />
-              </Dropdown>
             </div>
-            <OverflowMenu class="d-md-none" direction="up">
+
+            <OverflowMenu direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1 on-top">
                 <span>Volume</span>
                 <Slider
@@ -143,7 +110,7 @@
                   :step="0.01"
                   :tooltips="false"
                   show-tooltip="never"
-                  class="volume-slider"
+                  class="volume-slider py-1"
                   @update="playerStore.setVolume"
                 />
               </div>
@@ -169,14 +136,14 @@
                   <Icon icon="shuffle" />
                 </b-button>
               </div>
-              <div class="d-flex justify-content-between px-3 py-1 on-top">
+              <div class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
                 <span>Like</span>
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                 </b-button>
               </div>
 
-              <div v-if="track && track.replayGain" class="d-flex justify-content-between px-3 py-1 on-top">
+              <div v-if="track && track.replayGain" class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
                 <span>R.Gain</span>
                 <b-button
                   title="ReplayGain"
@@ -203,7 +170,6 @@
   import { ReplayGainMode } from './audio'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
-  import Dropdown from '@/shared/components/Dropdown.vue'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
   import IconReplayGainTrack from '@/shared/components/IconReplayGainTrack.vue'
   import IconReplayGainAlbum from '@/shared/components/IconReplayGainAlbum.vue'
@@ -215,7 +181,6 @@
   export default defineComponent({
     name: 'Player',
     components: {
-      Dropdown,
       IconReplayGain,
       IconReplayGainTrack,
       IconReplayGainAlbum,

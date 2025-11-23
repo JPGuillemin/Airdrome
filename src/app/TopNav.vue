@@ -104,7 +104,9 @@
           </DropdownItem>
         </Dropdown>
       </template>
-      <About :visible="showAboutModal" @close="showAboutModal = false" />
+      <Teleport to="body">
+        <About :visible="showAboutModal" @close="showAboutModal = false" />
+      </Teleport>
     </div>
   </div>
 </template>

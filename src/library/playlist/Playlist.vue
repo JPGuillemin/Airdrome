@@ -88,44 +88,21 @@
       <EmptyIndicator v-else-if="!loadingTracks" />
       <InfiniteLoader :loading="loadingTracks" :has-more="hasMore" @load-more="loadMore" />
     </div>
-
-    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal" />
-    <div v-if="showEditModal" class="modal-dialog p-3">
-      <div class="modal-content">
-        <div class="modal-header mb-3">
-          <h5 class="modal-title">
-            Edit Playlist
-          </h5>
-          <button class="btn-close" @click="closeEditModal" />
-        </div>
-        <div>
-          <div class="mb-3">
-            <label class="form-label">Name</label>
-            <input v-model="editPlaylist.name" type="text" class="form-control">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Comment</label>
-            <textarea v-model="editPlaylist.comment" class="form-control" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Public</label>
-            <SwitchInput v-model="editPlaylist.isPublic" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <b-button variant="primary" class="mx-2" @click="confirmEdit">
-            Save
-          </b-button>
-        </div>
-      </div>
-    </div>
+    <Teleport to="body">
+      <EditPlaylistModal
+        v-if="showEditModal"
+        :playlist="playlist"
+        @update-playlist="applyPlaylistUpdate"
+        @close="showEditModal = false"
+      />
+    </Teleport>
   </div>
 </template>
 
 <script lang="ts">
   import { defineComponent } from 'vue'
   import TrackList from '@/library/track/TrackList.vue'
-  import SwitchInput from '@/shared/components/SwitchInput.vue'
+  import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
   import InfiniteLoader from '@/shared/components/InfiniteLoader.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
@@ -142,7 +119,7 @@
   export default defineComponent({
     components: {
       TrackList,
-      SwitchInput,
+      EditPlaylistModal,
       OverflowFade,
       InfiniteLoader,
       EmptyIndicator,
@@ -153,6 +130,7 @@
       BButton,
     },
     props: { id: { type: String, required: true } },
+
     setup() {
       return {
         playlistStore: usePlaylistStore(),
@@ -160,6 +138,7 @@
         formatDuration,
       }
     },
+
     data() {
       return {
         playlist: null as any,
@@ -168,10 +147,12 @@
         chunkSize: 50,
         hasMore: true,
         loadingTracks: false,
+
+        // modal visibility only
         showEditModal: false,
-        editPlaylist: {} as any,
       }
     },
+
     watch: {
       id: {
         immediate: true,
@@ -180,6 +161,7 @@
         },
       },
     },
+
     methods: {
       appendNextChunk() {
         if (!this.playlist?.tracks) return
@@ -188,6 +170,7 @@
         this.nextIndex += nextChunk.length
         this.hasMore = this.nextIndex < this.playlist.tracks.length
       },
+
       loadMore() {
         if (this.loadingTracks || !this.hasMore) return
         this.loadingTracks = true
@@ -196,6 +179,7 @@
           this.loadingTracks = false
         }, 300)
       },
+
       playNow() {
         if (!this.playlist?.tracks?.length) return
         const currentTrack = this.playerStore.track
@@ -204,14 +188,17 @@
         }
         return this.playerStore.playNow(this.playlist.tracks)
       },
+
       shuffleNow() {
         return this.playerStore.shuffleNow(this.playlist.tracks)
       },
+
       removeTrack(index: number) {
         this.playlist.tracks.splice(index, 1)
         this.visibleTracks.splice(index, 1)
         return this.playlistStore.removeTrack(this.id, index)
       },
+
       async fetchPlaylist(id: string) {
         const loader = useLoader()
         loader.showLoading()
@@ -228,6 +215,7 @@
           loader.hideLoading()
         }
       },
+
       async reloadPlaylist() {
         await this.fetchPlaylist(this.id)
         this.$router.replace({
@@ -236,6 +224,7 @@
           query: { ...(this.$route.query || {}), t: Date.now().toString() },
         })
       },
+
       deletePlaylist() {
         return this.playlistStore.delete(this.id).then(() => {
           this.$router.replace({ name: 'playlists' })
@@ -244,75 +233,16 @@
 
       // --- Edit Modal ---
       openEditModal() {
-        // Make a shallow copy for editing
-        this.editPlaylist = {
-          name: this.playlist.name,
-          comment: this.playlist.comment,
-          isPublic: this.playlist.isPublic,
-        }
         this.showEditModal = true
       },
-      closeEditModal() {
-        this.showEditModal = false
-      },
-      confirmEdit() {
-        if (!this.editPlaylist.name?.trim()) {
-          alert('Name cannot be empty')
-          return
-        }
 
-        // Apply changes to the local playlist
-        this.playlist.name = this.editPlaylist.name
-        this.playlist.comment = this.editPlaylist.comment
-        this.playlist.isPublic = this.editPlaylist.isPublic
+      applyPlaylistUpdate(updated: any) {
+        // update local playlist
+        this.playlist = { ...this.playlist, ...updated }
 
-        // Persist to store / backend
-        this.playlistStore.update(this.playlist) // <-- pass full object
-
-        this.showEditModal = false
+        // persist
+        this.playlistStore.update(this.playlist)
       },
     },
   })
 </script>
-
-<style scoped>
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.5);
-    z-index: 3000;
-  }
-
-  .modal-dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--theme-elevation-1);
-    border-radius: 6px;
-    max-width: 600px;
-    width: auto;
-    z-index: 3000;
-    border: 1px solid var(--theme-elevation-2);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  }
-
-  .modal-header,
-  .modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-  }
-</style>

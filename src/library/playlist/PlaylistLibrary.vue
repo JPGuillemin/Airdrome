@@ -17,7 +17,7 @@
           </router-link>
         </li>
       </ul>
-      <b-button variant="link" @click="showAddModal = true">
+      <b-button variant="link" @click="startCreate">
         <Icon icon="plus" />
       </b-button>
     </div>
@@ -31,36 +31,23 @@
       @remove-playlist="deletePlaylist"
     />
     <EmptyIndicator v-else />
-
-    <!-- Modal embedded directly -->
-    <div v-if="showAddModal" class="modal-overlay" @click="closeModal" />
-    <div v-if="showAddModal" class="modal-dialog p-3">
-      <div class="modal-content">
-        <div class="modal-header mb-3">
-          <h5 class="modal-title">
-            {{ editingPlaylist ? 'Edit Playlist' : 'New Playlist' }}
-          </h5>
-          <button class="btn-close" @click="closeModal" />
-        </div>
-        <div>
-          <div class="mb-3">
-            <label class="form-label">Name</label>
-            <input v-model="newPlaylistName" class="form-control" placeholder="Enter playlist name">
-          </div>
-        </div>
-        <div class="modal-footer mb-3">
-          <b-button variant="primary" class="mx-2" @click="createPlaylist">
-            {{ editingPlaylist ? 'Save' : 'Create' }}
-          </b-button>
-        </div>
-      </div>
-    </div>
+    <Teleport to="body">
+      <EditPlaylistModal
+        v-if="showAddModal"
+        :playlist="editingPlaylist"
+        :mode="editingPlaylist ? 'edit' : 'create'"
+        @create-playlist="createPlaylist"
+        @update-playlist="updatePlaylist"
+        @close="closeModal"
+      />
+    </Teleport>
   </div>
 </template>
 
 <script lang="ts">
   import { computed, defineComponent, ref } from 'vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
+  import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import { orderBy } from 'lodash-es'
   import { usePlaylistStore } from '@/library/playlist/store'
   import Icon from '@/shared/components/Icon.vue'
@@ -72,15 +59,17 @@
       PlaylistList,
       Icon,
       BButton,
+      EditPlaylistModal,
     },
+
     props: {
       sort: { type: String, default: null },
     },
+
     setup(props) {
       const store = usePlaylistStore()
 
       const showAddModal = ref(false)
-      const newPlaylistName = ref('')
       const editingPlaylist = ref<Playlist | null>(null)
 
       const items = computed(() =>
@@ -89,95 +78,50 @@
           : orderBy(store.playlists, 'createdAt', 'desc')
       )
 
+      // ---- OPEN MODALS ----
+      const startCreate = () => {
+        editingPlaylist.value = null
+        showAddModal.value = true
+      }
+
       const openEditPlaylist = (playlist: Playlist) => {
         editingPlaylist.value = playlist
-        newPlaylistName.value = playlist.name
         showAddModal.value = true
+      }
+
+      // ---- ACTION HANDLERS ----
+      const createPlaylist = (name: string) => {
+        store.create(name)
+        closeModal()
+      }
+
+      const updatePlaylist = (playlist: Playlist) => {
+        store.update(playlist)
+        closeModal()
       }
 
       const deletePlaylist = (id: string) => {
         store.delete(id)
       }
 
+      // ---- CLOSE ----
       const closeModal = () => {
-        newPlaylistName.value = ''
         editingPlaylist.value = null
         showAddModal.value = false
       }
 
-      const createPlaylist = () => {
-        if (!newPlaylistName.value.trim()) {
-          alert('Please enter a playlist name')
-          return
-        }
-
-        if (editingPlaylist.value) {
-          store.update({
-            ...editingPlaylist.value,
-            name: newPlaylistName.value,
-          })
-        } else {
-          store.create(newPlaylistName.value)
-        }
-
-        closeModal()
-      }
-
       return {
-        showAddModal,
-        newPlaylistName,
         items,
-        editingPlaylist,
+        startCreate,
         openEditPlaylist,
         deletePlaylist,
-        closeModal,
         createPlaylist,
+        updatePlaylist,
+        showAddModal,
+        editingPlaylist,
+        closeModal,
         loading: computed(() => store.playlists === null),
       }
     },
   })
 </script>
-
-<style scoped>
-  /* Modal overlay (semi-transparent background) */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.5);
-    z-index: 3000;
-  }
-
-  .modal-dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--theme-elevation-1);
-    border-radius: 6px;
-    max-width: 600px;
-    width: auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    border: 1px solid var(--theme-elevation-2);
-    z-index: 3000;
-    padding: 1rem;
-  }
-
-  .modal-header,
-  .modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-  }
-</style>
