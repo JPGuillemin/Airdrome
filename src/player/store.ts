@@ -4,6 +4,7 @@ import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shar
 import { API, Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
+import { throttle } from 'lodash-es'
 
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -278,11 +279,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.setMediaSessionPosition(playerStore.duration, pauseRate, 0.0)
   })
 
-  // setInterval(() => {
-  // if (!playerStore.track || !playerStore.isPlaying) return
-  // playerStore.setMediaSessionPosition()
-  // }, 500)
-
   audio.onended = async() => {
     const { hasNext, repeat } = playerStore
 
@@ -409,35 +405,58 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  let timer1 = 0
-  let timer2 = 0
   watch(
-    () => [playerStore.currentTime],
-    () => {
+    () => playerStore.currentTime,
+    (t) => {
       if (!playerStore.track || !playerStore.isPlaying) return
 
-      const now = performance.now()
-
-      const remaining = playerStore.duration - playerStore.currentTime
-      if (remaining <= 0.10 && playerStore.hasNext) {
+      const remaining = playerStore.duration - t
+      if (remaining <= 0.15 && playerStore.hasNext) {
         playerStore.queueIndex++
         playerStore.setQueueIndex(playerStore.queueIndex)
-        audio.loadTrack({ ...playerStore.track, nextUrl: playerStore.getNextUrl() })
+        audio.loadTrack({
+          ...playerStore.track,
+          nextUrl: playerStore.getNextUrl()
+        })
       }
+    }
+  )
 
-      if (now - timer1 > 300) {
-        timer1 = now
+  watch(
+    () => playerStore.currentTime,
+    throttle(() => {
+      if (playerStore.track) {
         playerStore.setMediaSessionPosition()
-        if (playerStore.scrobbled === false && playerStore.currentTime / playerStore.duration > 0.7) {
-          playerStore.scrobbled = true
-          api.scrobble(playerStore.track.id)
-        }
-        if (now - timer2 > 5000) {
-          timer2 = now
-          api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
-        }
       }
-    })
+    }, 300)
+  )
+
+  watch(
+    () => playerStore.currentTime / playerStore.duration,
+    (progress) => {
+      if (!playerStore.scrobbled &&
+          progress > 0.7 &&
+          playerStore.track &&
+          playerStore.isPlaying
+      ) {
+        playerStore.scrobbled = true
+        api.scrobble(playerStore.track.id)
+      }
+    }
+  )
+
+  watch(
+    () => playerStore.currentTime,
+    throttle(() => {
+      if (!playerStore.track) return
+
+      api.savePlayQueue(
+        playerStore.queue!,
+        playerStore.track,
+        Math.trunc(playerStore.currentTime)
+      )
+    }, 10000)
+  )
 
   watch(
     () => [playerStore.duration],
@@ -445,7 +464,12 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (playerStore.track) {
         playerStore.setMediaSessionPosition()
         api.updateNowPlaying(playerStore.track.id)
-        api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
+        api.savePlayQueue(
+          playerStore.queue!,
+          playerStore.track,
+          Math.trunc(playerStore.currentTime)
+        )
       }
-    })
+    }
+  )
 }

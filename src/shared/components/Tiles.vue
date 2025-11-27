@@ -17,7 +17,7 @@
   .tiles {
     display: grid;
     grid-gap: 12px;
-    grid-template-columns: repeat(auto-fit, 100px);
+    grid-template-columns: repeat(auto-fit, 110px);
     justify-content: start;
     font-size: 0.75rem; /* base text size */
   }
@@ -26,7 +26,7 @@
   .tiles-hs {
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: 100px;
+    grid-auto-columns: 110px;
     overflow-x: auto;
 
     /* Desktop scrollbar */
@@ -57,10 +57,10 @@
     .tiles {
       grid-gap: 6px;
       font-size: 0.65rem;
-      grid-template-columns: repeat(auto-fit, 85px);
+      grid-template-columns: repeat(auto-fit, 90px);
     }
     .tiles-hs {
-      grid-auto-columns: 85px;
+      grid-auto-columns: 90px;
       scrollbar-width: none; /* Firefox */
     }
     .tiles-hs::-webkit-scrollbar {
