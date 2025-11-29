@@ -445,18 +445,15 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }
   )
 
-  watch(
-    () => playerStore.currentTime,
-    throttle(() => {
-      if (!playerStore.track) return
+  setInterval(() => {
+    if (!playerStore.track) return
 
-      api.savePlayQueue(
-        playerStore.queue!,
-        playerStore.track,
-        Math.trunc(playerStore.currentTime)
-      )
-    }, 10000)
-  )
+    api.savePlayQueue(
+      playerStore.queue!,
+      playerStore.track,
+      Math.trunc(playerStore.currentTime)
+    )
+  }, 10000)
 
   watch(
     () => [playerStore.duration],
