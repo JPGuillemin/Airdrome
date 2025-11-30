@@ -1,18 +1,17 @@
 <template>
   <transition name="fade">
-    <div v-if="visible" class="confirm-overlay">
-      <div class="confirm-dialog card shadow-lg border-0">
-        <div class="card-body text-center">
-          <h5 class=" mb-3">
+    <div v-if="visible">
+      <div class="modal-overlay" @click="cancel" />
+      <div class="modal-dialog p-3">
+        <div class="text-center mb-3">
+          <h5 class="mb-3">
             {{ title }}
           </h5>
           <p class="text-secondary mb-4">
             {{ message }}
           </p>
+
           <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-outline-secondary px-4" @click="cancel">
-              Cancel
-            </button>
             <button class="btn btn-primary px-4" @click="confirm">
               Confirm
             </button>
@@ -61,39 +60,32 @@
 </script>
 
 <style scoped>
-  .confirm-overlay {
+  .modal-overlay {
     position: fixed;
     inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.5); /* Dim background */
-    backdrop-filter: blur(2px);
-    z-index: 2000;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
   }
 
-  /* Dialog box */
-  .confirm-dialog {
-    background-color: var(--bs-body-bg, #fff);
-    color: var(--bs-body-color, #000);
-    border-radius: 1rem;
-    max-width: 400px;
-    width: 90%;
-    transition: all 0.2s ease;
+  .modal-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--theme-elevation-1, #fff);
+    border-radius: 12px;
+    max-width: 90vw;
+    width: auto;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: 1px solid var(--theme-elevation-2, #ddd);
+    z-index: 9999;
   }
 
-  /* Dark mode adaptation */
-  @media (prefers-color-scheme: dark) {
-    .confirm-dialog {
-      background-color: #1e1e1e;
-      color: #f1f1f1;
-    }
-  }
-
-  /* Fade animation */
+  /* Transition fade */
   .fade-enter-active,
   .fade-leave-active {
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
   }
   .fade-enter-from,
   .fade-leave-to {

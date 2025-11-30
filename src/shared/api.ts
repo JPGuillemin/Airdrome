@@ -252,7 +252,7 @@ export class API {
     const artist = await this.fetch('rest/getArtist', { id }).then(r => r.artist)
     const topSongs = await this.fetch('rest/getTopSongs', { artist: artist.name }).then(r => r.topSongs?.song)
     const info2 = await info2Promise
-    return this.normalizeArtist({ ...artist, ...info2, topSongs })
+    return this.normalizeArtist({ ...info2, ...artist, album: artist.album, topSongs })
   }
 
   async * getTracksByArtist(id: string): AsyncGenerator<Track[]> {

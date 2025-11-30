@@ -70,26 +70,17 @@
         </div>
         <TrackList :tracks="artist.topTracks" :no-artist="true" />
       </template>
-      <div v-for="({ releaseType, albums: releaseTypeAlbums }) in albums" :key="releaseType">
-        <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 class="custom-title--secondary">
-            {{ formatReleaseType(releaseType) }}
-          </h3>
-          <b-button variant="link" class="p-0" @click="toggleAlbumSortOrder">
-            <Icon icon="arrow-up-down" />
-          </b-button>
-        </div>
-        <AlbumList :items="releaseTypeAlbums">
-          <template #text="{ year }">
-            {{ year || 'Unknown' }}
-          </template>
-        </AlbumList>
-      </div>
+      <template v-if="artist.albums.length > 0">
+        <h3 class="custom-title--secondary">
+          Albums
+        </h3>
+        <AlbumList :items="artist.albums" allow-h-scroll />
+      </template>
       <template v-if="artist.similarArtist.length > 0">
         <h3 ref="similarArtists" class="custom-title--secondary mt-3">
           Similar artists
         </h3>
-        <ArtistList :items="artist.similarArtist" />
+        <ArtistList :items="artist.similarArtist" :tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.description">
         <h3 class="custom-title--secondary mt-3">
@@ -108,8 +99,6 @@
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
-  import { Album } from '@/shared/api'
-  import { groupBy, orderBy } from 'lodash-es'
   import { useMainStore } from '@/shared/store'
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
@@ -144,23 +133,6 @@
       isFavourite(): boolean {
         return this.favouriteStore.get('artist', this.id)
       },
-      albums(): { releaseType: string, albums: Album[] }[] {
-        const sorted: Album[] = orderBy(
-          this.artist?.albums ?? [],
-          ['year', 'name'],
-          [this.mainStore.artistAlbumSortOrder, this.mainStore.artistAlbumSortOrder]
-        )
-        const grouped = groupBy(sorted, 'releaseType')
-        const groupOrder = ['ALBUM', 'EP', 'SINGLE']
-        const groups = Object.entries(grouped).sort(([aType], [bType]) => {
-          const [a, b] = [groupOrder.indexOf(aType), groupOrder.indexOf(bType)]
-          if (a === -1 && b === -1) return 0
-          if (a === -1) return 1
-          if (b === -1) return -1
-          return a - b
-        })
-        return groups.map(([releaseType, albums]) => ({ releaseType, albums: albums || [] }))
-      },
     },
     created() {
       this.$api.getArtistDetails(this.id).then(result => {
@@ -168,15 +140,6 @@
       })
     },
     methods: {
-      formatReleaseType(value: string) {
-        switch (value.toUpperCase()) {
-        case 'ALBUM': return 'Albums'
-        case 'EP': return 'EPs'
-        case 'SINGLE': return 'Singles'
-        case 'COMPILATION': return 'Compilations'
-        default: return value
-        }
-      },
       async shuffleNow() {
         const loader = useLoader()
         loader.showLoading()

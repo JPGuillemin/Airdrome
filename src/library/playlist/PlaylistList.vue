@@ -1,11 +1,12 @@
 <template>
-  <Tiles :allow-h-scroll="allowHScroll">
+  <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll">
     <Tile
       v-for="(item, index) in validItems"
       :key="item.id || index"
       :to="{ name: 'playlist', params: { id: item.id } }"
       :title="item.name || 'Untitled Playlist'"
       :image="item.image || ''"
+      :circle="true"
     >
       <template #title>
         <router-link :to="{ name: 'playlist', params: { id: item.id } }">
@@ -59,6 +60,7 @@
       },
       allowHScroll: { type: Boolean, default: false },
       isPlaylistView: { type: Boolean, default: false },
+      tileSize: { type: Number, default: 110 },
     },
 
     setup() {

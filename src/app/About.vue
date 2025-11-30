@@ -28,12 +28,6 @@
           </div>
         </div>
       </div>
-
-      <div class="d-flex justify-content-end mt-4">
-        <button class="btn btn-secondary" @click="$emit('close')">
-          Close
-        </button>
-      </div>
     </div>
   </div>
 </template>

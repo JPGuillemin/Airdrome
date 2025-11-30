@@ -1,5 +1,5 @@
 <template>
-  <Tiles :allow-h-scroll="allowHScroll">
+  <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll">
     <Tile
       v-for="(item, index) in validItems"
       :key="item.id || index"
@@ -56,6 +56,7 @@
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
+      tileSize: { type: Number, default: 110 },
     },
 
     setup() {

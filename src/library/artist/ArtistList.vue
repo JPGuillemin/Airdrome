@@ -1,5 +1,5 @@
 <template>
-  <Tiles :allow-h-scroll="allowHScroll">
+  <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll">
     <Tile
       v-for="item in items" :key="item.id"
       :to="{name: 'artist', params: { id: item.id } }"
@@ -26,6 +26,7 @@
     props: {
       items: { type: Array, required: true },
       allowHScroll: { type: Boolean, default: false },
+      tileSize: { type: Number, default: 110 },
     },
     setup() {
       return {
