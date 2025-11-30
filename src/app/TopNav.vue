@@ -1,6 +1,8 @@
 <template>
   <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
-    <ConfirmDialog ref="confirmDialog" />
+    <Teleport to="body">
+      <ConfirmDialog ref="confirmDialog" />
+    </Teleport>
     <div class="d-flex align-items-center">
       <button
         class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
