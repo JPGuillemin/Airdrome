@@ -37,12 +37,6 @@ $border-color: $theme-elevation-2;
   --secondary: #{$secondary};
 }
 
-body {
-    padding-top: env(safe-area-inset-top);  // Adjust for notch or status bar
-    height: 100vh;  // Ensure body takes full screen height
-    margin: 0; // Remove default body margin, if needed
-}
-
 .theme-primary {
   background-color: transparent !important;
   border: none !important;
