@@ -75,6 +75,7 @@
 
     methods: {
       async playNow(id: string) {
+        this.playerStore.setShuffle(false)
         const album = await this.$api.getAlbumDetails(id)
         return this.playerStore.playTrackList(album.tracks!)
       },

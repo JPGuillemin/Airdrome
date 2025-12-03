@@ -81,6 +81,7 @@
 
     methods: {
       play(index: number) {
+        this.playerStore.setShuffle(false)
         if (index === this.queueIndex) return this.playerStore.playPause()
         return this.playerStore.playTrackListIndex(index)
       },

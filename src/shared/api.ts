@@ -73,29 +73,6 @@ export interface SearchResult {
   tracks: Track[]
 }
 
-export interface RadioStation {
-  id: string
-  title: string
-  description: string
-  url: string
-}
-
-export interface PodcastEpisode {
-  id: string
-  title: string
-  description: string
-}
-
-export interface Directory {
-  id: string
-  name: string
-  tracks: Track[]
-  directories: {
-    id: string
-    name: string
-  }[]
-}
-
 export interface Playlist {
   id: string
   name: string
@@ -220,7 +197,6 @@ export class API {
       offset,
     }
 
-    // getSimilarSongs2 returns normalized song objects (with artist/album info)
     const response = await this.fetch('rest/getSimilarSongs2', params)
     return (response.similarSongs2?.song || []).map(this.normalizeTrack, this)
   }
@@ -256,16 +232,12 @@ export class API {
   }
 
   async * getTracksByArtist(id: string): AsyncGenerator<Track[]> {
-    const artist = await this
-      .fetch('rest/getArtist', { id })
-      .then(r => r.artist)
-
+    const artist = await this.fetch('rest/getArtist', { id }).then(r => r.artist)
     const albumIds = orderBy(artist.album || [], x => x.year || 0, 'desc').map(x => x.id)
-    for (const id of albumIds) {
-      const { tracks } = await this.getAlbumDetails(id)
-      if (tracks && tracks.length > 0) {
-        yield tracks
-      }
+    const pending = albumIds.map(albumId => this.getAlbumDetails(albumId))
+    for (const promise of pending) {
+      const { tracks } = await promise
+      if (tracks?.length) yield tracks
     }
   }
 
@@ -372,10 +344,27 @@ export class API {
     }
   }
 
-  async getRandomSongs(): Promise<Track[]> {
-    const params = {
-      size: 200,
+  async getRandomSongs(
+    {
+      size = 200,
+      genre,
+      fromYear,
+      toYear,
+    }: {
+      size?: number
+      genre?: string
+      fromYear?: number
+      toYear?: number
+    } = {}
+  ): Promise<Track[]> {
+    const params: Record<string, any> = {
+      size,
     }
+
+    if (genre !== undefined) params.genre = genre
+    if (fromYear !== undefined) params.fromYear = fromYear
+    if (toYear !== undefined) params.toYear = toYear
+
     const response = await this.fetch('rest/getRandomSongs', params)
     return (response.randomSongs?.song || []).map(this.normalizeTrack, this)
   }
@@ -422,55 +411,6 @@ export class API {
       albums: (data.searchResult3.album || []).map(this.normalizeAlbum, this),
       artists: (data.searchResult3.artist || []).map(this.normalizeArtist, this),
       tracks: (data.searchResult3.song || []).map(this.normalizeTrack, this),
-    }
-  }
-
-  async getDirectory(path: string): Promise<Directory> {
-    const parts = path.split('/')
-    const musicFolderId = parts[0]
-    const id = parts.length > 1 ? parts[parts.length - 1] : ''
-
-    if (musicFolderId === '') {
-      const response = await this.fetch('rest/getMusicFolders')
-      const items = response?.musicFolders?.musicFolder ?? []
-      return {
-        id: '',
-        name: '',
-        tracks: [],
-        directories: items.map((item: any) => ({ id: `${item?.id}`, name: item?.name, })),
-      }
-    }
-
-    if (id === '') {
-      const response = await this.fetch('rest/getIndexes', { musicFolderId })
-      const directories = (response?.indexes?.index ?? []).flatMap((item: any) => [
-        ...(item?.artist || []).map((i: any) => ({ id: i.id, name: i.name }))
-      ])
-      const tracks = (response?.indexes?.child ?? []).map(this.normalizeTrack, this)
-      return {
-        id: musicFolderId,
-        name: musicFolderId,
-        tracks,
-        directories
-      }
-    }
-
-    const response = await this.fetch('rest/getMusicDirectory', { id })
-    const items = response?.directory?.child ?? []
-
-    const directories = items
-      .filter((item: any) => item.isDir)
-      .map((item: any) => ({ id: item.id, name: item.title }))
-
-    const tracks = items
-      .filter((item: any) => !item.isDir && item.type === 'music' && item?.duration > 0)
-      .map(this.normalizeTrack, this)
-
-    return {
-      id: response.directory.id,
-      name: response.directory.name,
-      tracks,
-      directories,
     }
   }
 

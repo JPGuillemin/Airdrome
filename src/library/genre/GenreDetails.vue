@@ -20,7 +20,7 @@
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
-  import type { Album, Track } from '@/shared/api' // adjust path if necessary
+  import type { Album } from '@/shared/api' // adjust path if necessary
 
   export default defineComponent({
     components: { AlbumList, InfiniteList },
@@ -53,25 +53,13 @@
       async shuffleNow(): Promise<void> {
         const loader = useLoader()
         loader.showLoading()
-        await new Promise(resolve => setTimeout(resolve, 0)) // give loader a tick
+        await new Promise(resolve => setTimeout(resolve, 0)) // let loader render
         try {
-          const albums: Album[] = await this.$api.getAlbumsByGenre(this.id, 50, 0)
-          if (!albums.length) return
-
-          const selectedAlbums: Album[] = []
-          const copy: Album[] = [...albums]
-          for (let i = 0; i < 5 && copy.length; i++) {
-            const idx = Math.floor(Math.random() * copy.length)
-            selectedAlbums.push(copy.splice(idx, 1)[0])
-          }
-
-          const albumDetails: Album[] = await Promise.all(
-            selectedAlbums.map(album => this.$api.getAlbumDetails(album.id))
-          )
-
-          const tracks: Track[] = albumDetails.flatMap(album => album.tracks || [])
+          const tracks = await this.$api.getRandomSongs({
+            genre: this.id,
+            size: 200, // or 50 if you prefer smaller
+          })
           if (!tracks.length) return
-
           this.playerStore.shuffleNow(tracks)
         } finally {
           loader.hideLoading()
