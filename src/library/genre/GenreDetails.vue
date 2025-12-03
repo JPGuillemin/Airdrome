@@ -60,7 +60,7 @@
             size: 200, // or 50 if you prefer smaller
           })
           if (!tracks.length) return
-          this.playerStore.shuffleNow(tracks)
+          this.playerStore.playNow(tracks)
         } finally {
           loader.hideLoading()
         }
