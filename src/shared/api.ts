@@ -186,19 +186,22 @@ export class API {
     return (response.songsByGenre?.song || []).map(this.normalizeTrack, this)
   }
 
-  async getSimilarTracksByArtist(
-    id: string,
-    maxTracks: number,
-    offset = 0
-  ): Promise<Track[]> {
-    const params = {
-      id,
-      count: maxTracks,
-      offset,
+  async getSimilarTracksByArtist(id: string, size = 50): Promise<Track[]> {
+    const artist = await this.getArtistDetails(id)
+    const albums = artist.albums || []
+    if (!albums.length) return []
+    const genreWeightMap: Record<string, number> = {}
+    for (const alb of albums) {
+      for (const g of alb.genres || []) {
+        genreWeightMap[g.name] = (genreWeightMap[g.name] || 0) + 1
+      }
     }
-
-    const response = await this.fetch('rest/getSimilarSongs2', params)
-    return (response.similarSongs2?.song || []).map(this.normalizeTrack, this)
+    const weightedGenres = Object.entries(genreWeightMap)
+      .flatMap(([genre, count]) => Array(count).fill(genre))
+    if (!weightedGenres.length) return []
+    const chosenGenre =
+      weightedGenres[Math.floor(Math.random() * weightedGenres.length)]
+    return this.getRandomTracks({ genre: chosenGenre, size })
   }
 
   async getArtists(): Promise<Artist[]> {
@@ -257,7 +260,7 @@ export class API {
 
   async getPlaylist(id: string): Promise<Playlist> {
     if (id === 'random') {
-      const tracks = await this.getRandomSongs()
+      const tracks = await this.getRandomTracks()
       const duration = sumBy(tracks, 'duration')
       return {
         id,
@@ -344,7 +347,7 @@ export class API {
     }
   }
 
-  async getRandomSongs(
+  async getRandomTracks(
     {
       size = 200,
       genre,

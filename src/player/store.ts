@@ -307,7 +307,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
 
       // 2. Fetch random tracks by genre
-      const randomTracks = await api.getRandomSongs({ genre: genreName, size: 50 })
+      const randomTracks = await api.getRandomTracks({ genre: genreName, size: 50 })
 
       if (!randomTracks?.length) {
         console.warn(`No random tracks found for genre "${genreName}"`)

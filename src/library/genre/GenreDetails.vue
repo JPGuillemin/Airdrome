@@ -53,16 +53,23 @@
       async shuffleNow(): Promise<void> {
         const loader = useLoader()
         loader.showLoading()
-        await new Promise(resolve => setTimeout(resolve, 0)) // let loader render
+        await new Promise(resolve => setTimeout(resolve, 0))
+        let shouldRoute = false
         try {
-          const tracks = await this.$api.getRandomSongs({
+          const tracks = await this.$api.getRandomTracks({
             genre: this.id,
-            size: 200, // or 50 if you prefer smaller
+            size: 200,
           })
           if (!tracks.length) return
-          this.playerStore.playNow(tracks)
+          await this.playerStore.playNow(tracks)
+          shouldRoute = true
         } finally {
           loader.hideLoading()
+          if (shouldRoute) {
+            this.$nextTick(() => {
+              this.$router.push({ name: 'queue' })
+            })
+          }
         }
       }
     }
