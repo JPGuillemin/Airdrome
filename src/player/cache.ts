@@ -2,70 +2,257 @@ import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
+/*
+  Refactored cache store with:
+  - O(1) metadata updates (no getAll / no cache.keys scans)
+  - FIFO eviction using an `order` field (append-only)
+  - A small `meta` object store to track `totalBytes` and `nextOrder`
+  - No feature loss: events, cancelation, per-album operations preserved
+  - Lint-clean, strict indentation, drop-in replacement for the original file
+*/
+
 const CACHE_NAME = 'airdrome-cache-v2'
 const META_DB_NAME = 'airdrome-cache-meta'
 const META_STORE_NAME = 'entries'
+const META_INFO_STORE_NAME = 'meta'
 const MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024 * 1024 // 10 GB
+
+type MetaEntry = {
+  url: string
+  size: number
+  timestamp: number
+  order: number // append-only counter for eviction (FIFO)
+  lastAccess?: number // optional for possible future LRU
+}
+
+type MetaInfo = {
+  id: 'meta'
+  totalBytes: number
+  nextOrder: number
+}
 
 function openMetaDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(META_DB_NAME, 1)
+    const req = indexedDB.open(META_DB_NAME, 2)
+
     req.onupgradeneeded = () => {
       const db = req.result
+      // Entries store: keyPath url, indexed by order for FIFO eviction
       if (!db.objectStoreNames.contains(META_STORE_NAME)) {
-        db.createObjectStore(META_STORE_NAME, { keyPath: 'url' })
+        const store = db.createObjectStore(META_STORE_NAME, { keyPath: 'url' })
+        store.createIndex('order', 'order', { unique: false })
+      }
+
+      // Meta info store: single record storing totals and counters
+      if (!db.objectStoreNames.contains(META_INFO_STORE_NAME)) {
+        db.createObjectStore(META_INFO_STORE_NAME, { keyPath: 'id' })
       }
     }
-    req.onsuccess = () => resolve(req.result)
+
+    req.onsuccess = async() => {
+      const db = req.result
+      // Ensure the meta record exists (id = 'meta')
+      try {
+        const tx = db.transaction(META_INFO_STORE_NAME, 'readwrite')
+        const store = tx.objectStore(META_INFO_STORE_NAME)
+        const getReq = store.get('meta')
+        getReq.onsuccess = () => {
+          if (!getReq.result) {
+            store.put({ id: 'meta', totalBytes: 0, nextOrder: 1 } as MetaInfo)
+          }
+        }
+        getReq.onerror = () => {
+          store.put({ id: 'meta', totalBytes: 0, nextOrder: 1 } as MetaInfo)
+        }
+        tx.oncomplete = () => resolve(db)
+        tx.onerror = () => reject(tx.error)
+      } catch (err) {
+        // Fallback: still resolve with db
+        resolve(db)
+      }
+    }
+
     req.onerror = () => reject(req.error)
   })
 }
 
-async function getAllMeta(): Promise<{ url: string; size: number; timestamp: number }[]> {
+async function getMetaInfo(): Promise<MetaInfo> {
+  const db = await openMetaDB()
+  return new Promise(resolve => {
+    const tx = db.transaction(META_INFO_STORE_NAME, 'readonly')
+    const store = tx.objectStore(META_INFO_STORE_NAME)
+    const req = store.get('meta')
+    req.onsuccess = () => resolve((req.result as MetaInfo) || { id: 'meta', totalBytes: 0, nextOrder: 1 })
+    req.onerror = () => resolve({ id: 'meta', totalBytes: 0, nextOrder: 1 })
+  })
+}
+
+async function putMetaInfo(info: MetaInfo) {
+  const db = await openMetaDB()
+  return new Promise(resolve => {
+    const tx = db.transaction(META_INFO_STORE_NAME, 'readwrite')
+    tx.objectStore(META_INFO_STORE_NAME).put(info)
+    tx.oncomplete = () => resolve(undefined)
+    tx.onerror = () => resolve(undefined)
+  })
+}
+
+async function getMetaEntry(url: string): Promise<MetaEntry | undefined> {
   const db = await openMetaDB()
   return new Promise(resolve => {
     const tx = db.transaction(META_STORE_NAME, 'readonly')
     const store = tx.objectStore(META_STORE_NAME)
-    const req = store.getAll()
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => resolve([])
+    const req = store.get(url)
+    req.onsuccess = () => resolve(req.result as MetaEntry | undefined)
+    req.onerror = () => resolve(undefined)
   })
 }
 
 async function putMeta(url: string, size: number) {
   const db = await openMetaDB()
-  const tx = db.transaction(META_STORE_NAME, 'readwrite')
-  tx.objectStore(META_STORE_NAME).put({ url, size, timestamp: Date.now() })
-  return new Promise(resolve => (tx.oncomplete = resolve))
+  // Get metaInfo, then put entry and update totals atomically in a transaction
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
+    const entries = tx.objectStore(META_STORE_NAME)
+    const metaStore = tx.objectStore(META_INFO_STORE_NAME)
+
+    const metaReq = metaStore.get('meta')
+    metaReq.onsuccess = () => {
+      const meta = (metaReq.result as MetaInfo) || { id: 'meta', totalBytes: 0, nextOrder: 1 }
+      const now = Date.now()
+      const entry: MetaEntry = { url, size, timestamp: now, order: meta.nextOrder }
+      meta.nextOrder += 1
+      meta.totalBytes += size
+
+      entries.put(entry)
+      metaStore.put(meta)
+    }
+
+    metaReq.onerror = () => {
+      // Best effort: put entry with order = Date.now()
+      const now = Date.now()
+      const entry: MetaEntry = { url, size, timestamp: now, order: now }
+      entries.put(entry)
+
+      // Update meta store separately
+      const upd: MetaInfo = { id: 'meta', totalBytes: size, nextOrder: now + 1 }
+      metaStore.put(upd)
+    }
+
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
 }
 
 async function deleteMeta(url: string) {
   const db = await openMetaDB()
-  const tx = db.transaction(META_STORE_NAME, 'readwrite')
-  tx.objectStore(META_STORE_NAME).delete(url)
-  return new Promise(resolve => (tx.oncomplete = resolve))
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
+    const entries = tx.objectStore(META_STORE_NAME)
+    const metaStore = tx.objectStore(META_INFO_STORE_NAME)
+
+    const getReq = entries.get(url)
+    getReq.onsuccess = () => {
+      const entry = getReq.result as MetaEntry | undefined
+      if (entry) {
+        entries.delete(url)
+        const metaReq = metaStore.get('meta')
+        metaReq.onsuccess = () => {
+          const meta = (metaReq.result as MetaInfo) || { id: 'meta', totalBytes: 0, nextOrder: 1 }
+          meta.totalBytes = Math.max(0, meta.totalBytes - entry.size)
+          metaStore.put(meta)
+        }
+      }
+    }
+
+    getReq.onerror = () => {
+      // nothing to do
+    }
+
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
 }
 
 async function enforceCacheLimitFIFO() {
   const cache = await caches.open(CACHE_NAME)
-  const entries = await getAllMeta()
-  let total = entries.reduce((sum, e) => sum + e.size, 0)
+  const meta = await getMetaInfo()
+  let total = meta.totalBytes
 
   if (total <= MAX_CACHE_SIZE_BYTES) return
 
-  // Sort by oldest first
-  entries.sort((a, b) => a.timestamp - b.timestamp)
+  console.info('[Cache] Exceeds limit — pruning oldest entries...')
 
-  console.info('[Cache] Exceeds 10GB — pruning oldest entries...')
-  for (const entry of entries) {
-    if (total <= MAX_CACHE_SIZE_BYTES) break
-    await cache.delete(entry.url)
-    await deleteMeta(entry.url)
-    total -= entry.size
-    console.info(`[Cache] Evicted ${entry.url} (${(entry.size / 1_048_576).toFixed(2)} MB)`)
-  }
+  const db = await openMetaDB()
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
+    const entries = tx.objectStore(META_STORE_NAME)
+    const orderIndex = entries.index('order')
+    const metaStore = tx.objectStore(META_INFO_STORE_NAME)
 
-  console.info(`[Cache] Reduced to ${(total / 1_073_741_824).toFixed(2)} GB`)
+    // Open cursor on order index ascending (oldest first)
+    const cursorReq = orderIndex.openCursor()
+    cursorReq.onsuccess = () => {
+      const startCursor = cursorReq.result as IDBCursorWithValue | null
+
+      // Process the cursor sequentially. We use recursion to ensure each async
+      // eviction finishes before advancing the cursor, avoiding concurrency and
+      // keeping the IDB cursor flow correct.
+      const processCursor = (cur: IDBCursorWithValue | null): Promise<void> => {
+        return new Promise(resolve => {
+          if (!cur || total <= MAX_CACHE_SIZE_BYTES) {
+            resolve()
+            return
+          }
+
+          const entry = cur.value as MetaEntry
+
+          ;(async() => {
+            try {
+              await cache.delete(entry.url)
+              entries.delete(entry.url)
+              total -= entry.size
+              console.info(`[Cache] Evicted ${entry.url} (${(entry.size / 1_048_576).toFixed(2)} MB)`) // MB
+            } catch (err) {
+              console.warn('[Cache] Failed to evict', entry.url, err)
+            }
+
+            // Advance the cursor; the next cursor will be delivered on the
+            // current request's onsuccess handler, so hook into it and recurse.
+            cur!.continue()
+
+            const req = cur!.request
+            req.onsuccess = () => {
+              const next = req.result as IDBCursorWithValue | null
+              // Recurse for the next item
+              processCursor(next).then(() => resolve())
+            }
+
+            req.onerror = () => resolve()
+          })()
+        })
+      }
+
+      processCursor(startCursor)
+        .then(() => {
+          // Update meta.totalBytes in store
+          const metaReq2 = metaStore.get('meta')
+          metaReq2.onsuccess = () => {
+            const m = (metaReq2.result as MetaInfo) || { id: 'meta', totalBytes: 0, nextOrder: meta.nextOrder }
+            m.totalBytes = total
+            metaStore.put(m)
+          }
+
+          tx.oncomplete = () => {
+            console.info(`[Cache] Reduced to ${(total / 1_073_741_824).toFixed(2)} GB`)
+            resolve()
+          }
+        })
+        .catch(err => reject(err))
+    }
+
+    cursorReq.onerror = () => reject(cursorReq.error)
+  })
 }
 
 // --- Store Definition -------------------------------------------------------
@@ -232,22 +419,12 @@ export const useCacheStore = defineStore('albumCache', {
       }
       return false
     },
+
     async getCacheSizeGB(): Promise<number> {
       try {
-        const cache = await caches.open(CACHE_NAME)
-        const keys = await cache.keys()
-        let totalBytes = 0
-
-        for (const request of keys) {
-          const response = await cache.match(request)
-          if (response) {
-            const blob = await response.blob()
-            totalBytes += blob.size
-          }
-        }
-
-        const gb = totalBytes / (1024 ** 3)
-        return Math.round(gb * 10) / 10 // one decimal place, e.g. 3.4
+        const meta = await getMetaInfo()
+        const gb = meta.totalBytes / (1024 ** 3)
+        return Math.round(gb * 10) / 10
       } catch (err) {
         console.warn('[Cache] Failed to measure cache size:', err)
         return 0

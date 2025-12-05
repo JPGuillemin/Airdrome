@@ -7,8 +7,8 @@
       <th v-if="!noAlbum" class="text-start d-none d-md-table-cell">
         Album
       </th>
-      <th v-if="!noDuration" class="text-end d-none d-md-table-cell">
-        Duration
+      <th v-if="!noDuration" class="text-start d-md-table-cell">
+        Time
       </th>
     </BaseTableHead>
 
