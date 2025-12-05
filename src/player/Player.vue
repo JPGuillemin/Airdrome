@@ -1,28 +1,31 @@
 <template>
   <div :class="{'visible': track}" class="player d-flex">
     <div class="flex-fill">
-      <Slider
-        v-model="sliderValue"
-        :min="0"
-        :max="playerStore.duration"
-        :step="0.1"
-        :tooltips="true"
-        show-tooltip="drag"
-        :format="formatter"
-        orientation="horizontal"
-        :lazy="true"
-        class="playback-slider px-1"
-        @start="onSliderDragStart"
-        @end="onSliderDragEnd"
-        @change="onSliderUpdate"
-      />
+      <div class="slider-click-zone" @click="onSliderClick($event)">
+        <Slider
+          v-model="sliderValue"
+          :min="0"
+          :max="playerStore.duration"
+          :step="0.1"
+          :tooltips="true"
+          show-tooltip="drag"
+          :format="formatter"
+          orientation="horizontal"
+          :lazy="true"
+          class="playback-slider px-1 real-slider"
+          @start="onSliderDragStart"
+          @end="onSliderDragEnd"
+          @change="onSliderUpdate"
+        />
+      </div>
       <div class="row align-items-center m-0 elevated">
         <!-- Track info --->
         <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start" style="width: 0; min-width: 0">
           <template v-if="track">
             <div
               v-if="track.albumId"
-              style="padding: 12px; cursor: pointer"
+              class="pt-0 pb-3 ps-3 pe-2"
+              style="cursor: pointer"
               @click="onAlbumClick"
             >
               <img v-if="track.image" :src="track.image" class="small-cover cursor-pointer">
@@ -32,7 +35,7 @@
               <div class="title-text">
                 {{ track.title }}
               </div>
-              <div class="text-truncate text-muted">
+              <div class="text-truncate text-muted pb-3">
                 <template v-if="track.artists.length > 0">
                   <span v-for="(artist, index) in track.artists" :key="artist.id">
                     <span v-if="index > 0">, </span>
@@ -48,7 +51,7 @@
         </div>
 
         <!-- Controls--->
-        <div class="col-auto p-0 d-flex align-items-center">
+        <div class="col-auto pb-3 d-flex align-items-center">
           <b-button
             variant="transparent"
             class="mx-0.5"
@@ -229,7 +232,14 @@
       const formatter = (value: number) => {
         return `${formatDuration(value)} / ${formatDuration(playerStore.duration)}`
       }
-      return { onAlbumClick, formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
+      const onSliderClick = (e: MouseEvent) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const ratio = x / rect.width
+        const newTime = ratio * playerStore.duration
+        playerStore.seek(newTime)
+      }
+      return { onSliderClick, onAlbumClick, formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
     },
     computed: {
       track() { return this.playerStore.track },
@@ -279,14 +289,14 @@
     height: 0;
     max-height: 0;
     transition: max-height 0.5s;
-    background: var(--bs-body-bg);
+    background: var(--theme-elevation-1);
   }
   .small-cover {
     display: block;
-    width: 62px;
-    height: 62px;
+    width: 58px;
+    height: 58px;
     object-fit: cover;
-    border-radius: 3px;
+    border-radius: 5px;
     flex-shrink: 0;
     filter: invert(0) hue-rotate(0deg) brightness(1) contrast(1);
   }
@@ -323,18 +333,12 @@
   }
 
   .playback-slider {
-    --slider-height: 6px;
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--bs-secondary);
-    --slider-handle-width: 20px;
-    --slider-handle-height: 20px;
-    --slider-handle-ring-size: 24px;
-    --slider-handle-ring-opacity: 1%;
-    --slider-handle-border: 3px solid var(--bs-primary);
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
     margin: auto;
-    background: var(--bs-body-bg);
+    background: transparent;
   }
 
   .volume-slider {
@@ -370,5 +374,21 @@
       0% { transform: translateX(35%); }
       100% { transform: translateX(-65%); }
     }
+  }
+
+  .slider-click-zone {
+    position: relative;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    cursor: pointer;
+    background: var(--theme-elevation-1) !important;
+  }
+
+  .slider-click-zone .real-slider {
+    pointer-events: none; /* so clicks go to wrapper instead */
+  }
+
+  .slider-click-zone .real-slider * {
+    pointer-events: auto; /* but slider handles still work */
   }
 </style>
