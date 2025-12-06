@@ -47,6 +47,11 @@ export function formatArtists(artists: { name: string }[]): string {
   return artists.map(ar => ar.name).join(', ')
 }
 
+export function formatTitle(title: string): string {
+  if (!title) return ''
+  return title.length > 40 ? title.slice(0, 37) + '…' : title
+}
+
 export function toQueryString(params: Record<string, string | string[]>): string {
   const list = Object.entries(params)
     .filter(([, value]) => value !== undefined)

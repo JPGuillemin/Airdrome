@@ -194,12 +194,6 @@ a.active {
   box-shadow: none !important;
 }
 
-@media (max-width: 768px) {
-  .adapt-text {
-    font-size: 0.8rem; /* small on mobile */
-  }
-}
-
 @import './nav-underlined';
 @import './custom';
 @import 'bootstrap/scss/bootstrap';

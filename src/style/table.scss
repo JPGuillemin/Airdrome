@@ -12,19 +12,23 @@ table.table {
   th {
     color: var(--bs-secondary-color);
   }
+
   tr {
     cursor: pointer;
   }
+
   tr.active {
     td, td a, td button.dropdown-toggle {
       color: var(--bs-primary);
     }
   }
+
   tr.disabled {
     cursor: default;
     td, td a, td button.dropdown-toggle {
       color: var(--bs-secondary-color);
     }
+  
     button {
       cursor: default;
     }
@@ -40,6 +44,7 @@ table.table-numbered {
     text-align: center;
     color: var(--bs-secondary-color);
   }
+
   tr td:first-child button {
     border: none;
     background: none;
@@ -49,14 +54,17 @@ table.table-numbered {
     .number { display: inline; white-space: nowrap; }
     .icon { display: none; }
   }
+
   tr.active td:first-child button {
     .number { display: none;}
     .icon { display: inline;}
   }
+
   tr:hover td:first-child button {
     .number { display: none; }
     .icon { display: inline; }
   }
+
   tr.disabled:hover td:first-child button {
     .number { display: inline;}
     .icon { display: none;}

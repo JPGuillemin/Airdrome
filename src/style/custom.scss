@@ -103,3 +103,20 @@
   z-index: 3000;
   background: var(--theme-elevation-1);
 }
+
+.adapt-text {
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .adapt-text {
+    font-size: 0.8rem;
+  }
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 100px;
+}

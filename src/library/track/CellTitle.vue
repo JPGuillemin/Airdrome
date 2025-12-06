@@ -10,14 +10,14 @@
     >
 
     <div class="flex-grow-1 adapt-text">
-      <slot>{{ track.title }}</slot>
+      <slot>{{ formatTitle(track.title) }}</slot>
     </div>
   </td>
 </template>
 
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import { formatArtists } from '@/shared/utils'
+  import { formatArtists, formatTitle } from '@/shared/utils'
 
   export default defineComponent({
     props: {
@@ -25,7 +25,8 @@
       showImage: { type: Boolean, default: false }
     },
     methods: {
-      formatArtists
+      formatArtists,
+      formatTitle
     }
   })
 </script>
