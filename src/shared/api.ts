@@ -506,19 +506,32 @@ export class API {
   }
 
   private normalizeArtist(item: any): Artist {
+    const rawAlbums = item.album
+      ? (Array.isArray(item.album) ? item.album : [item.album])
+      : []
+    const getAlbumTime = (a: any) => {
+      const released = a?.released ? Date.parse(a.released) : NaN
+      if (!isNaN(released)) return released
+      const year = Number(a?.year)
+      if (!isNaN(year)) return new Date(year, 0, 1).getTime()
+      return Number.MIN_SAFE_INTEGER
+    }
+    const sortedAlbums = [...rawAlbums].sort(
+      (a, b) => getAlbumTime(b) - getAlbumTime(a)
+    )
     return {
       id: item.id,
       name: item.name,
       description: (item.biography || '').replace(/<a[^>]*>.*?<\/a>/gm, ''),
-      genres: uniqBy([...(item.album || []).flatMap(this.normalizeGenres, this)], 'name'),
+      genres: uniqBy(sortedAlbums.flatMap(this.normalizeGenres, this), 'name'),
       albumCount: item.albumCount,
-      trackCount: (item.album || []).reduce((acc: number, album: any) => acc + (album.songCount || 0), 0),
+      trackCount: rawAlbums.reduce((acc, a) => acc + (a.songCount || 0), 0),
       favourite: !!item.starred,
       lastFmUrl: item.lastFmUrl,
       musicBrainzUrl: item.musicBrainzId
         ? `https://musicbrainz.org/artist/${item.musicBrainzId}`
         : undefined,
-      albums: (item.album || []).map(this.normalizeAlbum, this),
+      albums: sortedAlbums.map(a => this.normalizeAlbum(a)),
       similarArtist: (item.similarArtist || []).map(this.normalizeArtist, this),
       topTracks: (item.topSongs || []).slice(0, 5).map(this.normalizeTrack, this),
       image: item.coverArt ? this.getCoverArtUrl(item) : item.artistImageUrl
