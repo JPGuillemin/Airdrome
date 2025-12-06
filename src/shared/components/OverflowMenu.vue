@@ -3,7 +3,8 @@
     align="end"
     :direction="direction"
     :variant="variant"
-    :toggle-class="variant === 'link' ? 'p-0' : ''"
+    :class="p-0"
+    :toggle-class="p-0"
     :disabled="disabled"
   >
     <template #button-content>

@@ -20,7 +20,7 @@
       </div>
       <div class="row align-items-center m-0 elevated">
         <!-- Track info --->
-        <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start" style="width: 0; min-width: 0">
+        <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
           <template v-if="track">
             <div
               v-if="track.albumId"
@@ -54,7 +54,7 @@
         <div class="col-auto pb-3 d-flex align-items-center">
           <b-button
             variant="transparent"
-            class="mx-0.5"
+            class="mx-0"
             @click="previous">
             <Icon icon="skip-start" />
           </b-button>
@@ -69,14 +69,14 @@
 
           <b-button
             variant="transparent"
-            class="mx-0.5"
+            class="mx-0"
             @click="next">
             <Icon icon="skip-end" />
           </b-button>
         </div>
 
         <!-- Controls right --->
-        <div class="col-auto col-md p-0">
+        <div class="col-auto pb-3">
           <div class="d-flex flex-nowrap justify-content-end pe-3">
             <div class="m-0 d-none d-md-inline-flex align-items-center">
               <b-button
@@ -103,7 +103,6 @@
 
             <OverflowMenu direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1 on-top">
-                <span>Volume</span>
                 <Slider
                   v-model="playerStore.volume"
                   orientation="vertical"
@@ -118,7 +117,6 @@
                 />
               </div>
               <div class="d-flex justify-content-between px-3 py-1 on-top">
-                <span>Repeat</span>
                 <b-button
                   title="Repeat"
                   variant="transparent"
@@ -129,7 +127,6 @@
                 </b-button>
               </div>
               <div class="d-flex justify-content-between px-3 py-1 on-top">
-                <span>Shuffle</span>
                 <b-button
                   title="Shuffle"
                   variant="transparent"
@@ -140,14 +137,12 @@
                 </b-button>
               </div>
               <div class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
-                <span>Like</span>
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                 </b-button>
               </div>
 
               <div v-if="track && track.replayGain" class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
-                <span>R.Gain</span>
                 <b-button
                   title="ReplayGain"
                   variant="transparent"
@@ -291,6 +286,7 @@
     transition: max-height 0.5s;
     background: var(--theme-elevation-1);
   }
+
   .small-cover {
     display: block;
     width: 58px;
@@ -300,33 +296,29 @@
     flex-shrink: 0;
     filter: invert(0) hue-rotate(0deg) brightness(1) contrast(1);
   }
-  @media(max-width: 442px) {
-    .player {
-      font-size: 0.7rem;
-      position: fixed;
-      z-index: 2000;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 0;
-      max-height: 0;
-      transition: max-height 0.5s;
-    }
+
+  .col {
+    min-width: 0;
   }
+
   .visible {
     height: auto;
     max-height: 110px;
   }
+
   .icon {
     display: flex;
     align-items: center;
   }
+
   .btn-play {
     --bs-btn-font-size: 1.9rem;
   }
+
   .b-button {
     --bs-btn-font-size: 1.3rem;
   }
+
   .row.align-items-center.m-0.elevated {
     padding-top: 1px;
     padding-bottom: 1px;
@@ -350,32 +342,6 @@
     margin: auto;
   }
 
-  @media (min-width: 768px) {
-    .title-text {
-      color: var(--bs-primary);
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .title-text {
-      color: var(--bs-primary);
-      display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      animation: slide-text 10s linear infinite;
-      animation-delay: 0s;
-    }
-
-    @keyframes slide-text {
-      0% { transform: translateX(35%); }
-      100% { transform: translateX(-65%); }
-    }
-  }
-
   .slider-click-zone {
     position: relative;
     padding-top: 10px;
@@ -390,5 +356,67 @@
 
   .slider-click-zone .real-slider * {
     pointer-events: auto; /* but slider handles still work */
+  }
+
+  @media(max-width: 768px) {
+    .player {
+      font-size: 0.7rem;
+      position: fixed;
+      z-index: 2000;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      max-height: 0;
+      transition: max-height 0.5s;
+    }
+
+    .visible {
+      height: auto;
+      max-height: 110px;
+    }
+
+    .title-text {
+      color: var(--bs-primary);
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      animation: slide-text 10s linear infinite;
+      animation-delay: 0s;
+    }
+
+    @keyframes slide-text {
+      0% { transform: translateX(35%); }
+      100% { transform: translateX(-65%); }
+    }
+
+    /* Reduce padding of right column */
+    .col-auto.col-md.pb-3 {
+      padding-right: 4px !important;
+      padding-left: 0 !important;
+    }
+
+    /* Reduce spacing of the button container */
+    .d-flex.flex-nowrap.justify-content-end.pe-3 {
+      padding-right: 2px !important;
+    }
+
+    /* Reduce spacing inside the overflow menu items */
+    .on-top {
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+
+    /* Reduce space between prev/play/next */
+    .col-auto.pb-3.d-flex.align-items-center .btn {
+      margin: 0 2px !important;
+      padding-left: 4px !important;
+      padding-right: 4px !important;
+    }
+
+    /* Reduce play button size */
+    .col-auto.pb-3.d-flex.align-items-center .btn-play {
+      --bs-btn-font-size: 1.5rem;
+    }
   }
 </style>
