@@ -1,15 +1,15 @@
 <template>
   <div v-if="artist" class="main-content">
-    <div class="custom-wrapper">
+    <div class="header-wrapper">
       <Custom :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
-        <div class="custom-title-wrapper">
-          <h1 class="custom-title mt-3">
+        <div class="header-title-wrapper">
+          <h1 class="header-title mt-3">
             {{ artist.name }}
           </h1>
         </div>
 
-        <div class="custom-info-wrapper">
-          <div class="custom-info-one">
+        <div class="header-info-wrapper">
+          <div class="header-info-one">
             <span class="text-nowrap">
               <strong>{{ artist.albumCount }}</strong> albums
             </span>
@@ -19,7 +19,7 @@
             </span>
           </div>
 
-          <div class="custom-info-two">
+          <div class="header-info-two">
             <template v-if="artist.genres.length > 0">
               <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
                 <span v-if="index > 0">, </span>
@@ -61,29 +61,29 @@
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 ref="topTracks" class="custom-title--secondary">
+          <h3 ref="topTracks" class="header-title--secondary">
             Top tracks
           </h3>
-          <router-link :to="{name: 'artist-tracks', params: { id }}">
-            View all
-          </router-link>
         </div>
-        <TrackList :tracks="artist.topTracks" :no-artist="true" />
+        <TrackList
+          :tracks="artist.topTracks"
+          :no-artist="true"
+        />
       </template>
       <template v-if="artist.albums.length > 0">
-        <h3 class="custom-title--secondary">
+        <h3 class="header-title--secondary">
           Albums
         </h3>
         <AlbumList :items="artist.albums" allow-h-scroll />
       </template>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="custom-title--secondary mt-3">
+        <h3 ref="similarArtists" class="header-title--secondary mt-3">
           Similar artists
         </h3>
         <ArtistList :items="artist.similarArtist" :tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.description">
-        <h3 class="custom-title--secondary mt-3">
+        <h3 class="header-title--secondary mt-3">
           Background info
         </h3>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">

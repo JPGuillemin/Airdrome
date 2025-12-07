@@ -1,8 +1,8 @@
 <template>
   <div class="main-content">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h1 class="custom-title mt-2">
+    <div class="d-flex justify-content-between align-items-center my-2">
+      <h1 class="main-title">
         Playing
       </h1>
       <div>
@@ -40,10 +40,7 @@
         </DropdownItem>
       </template>
     </TrackList>
-
     <EmptyIndicator v-else />
-
-    <CreatePlaylistModal v-model="savePlaylistModalVisible" :tracks="tracks" />
   </div>
 </template>
 

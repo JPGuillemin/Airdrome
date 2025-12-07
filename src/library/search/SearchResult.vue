@@ -2,7 +2,7 @@
   <div class="main-content">
     <div v-if="result.albums.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'album'}, query: $route.query}" class="text-muted">
-        <h1 class="custom-title">
+        <h1 class="header-title">
           Albums
         </h1>
       </router-link>
@@ -11,7 +11,7 @@
 
     <div v-if="result.artists.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'artist'}, query: $route.query}" class="text-muted">
-        <h1 class="custom-title">
+        <h1 class="header-title">
           Artists
         </h1>
       </router-link>
@@ -20,7 +20,7 @@
 
     <div v-if="result.tracks.length > 0" class="pb-2 pt-3">
       <router-link :to="{params: {type: 'track'}, query: $route.query}" class="text-muted">
-        <h1 class="custom-title">
+        <h1 class="header-title">
           Tracks
         </h1>
       </router-link>

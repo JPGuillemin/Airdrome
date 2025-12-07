@@ -1,36 +1,27 @@
 <template>
   <div class="main-content">
-    <h1 class="custom-title mt-3">
-      Albums
-    </h1>
-    <ul class="nav-underlined mb-3">
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'recently-added' } }">
-          Recently added
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'recently-played' } }">
-          Recently played
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'most-played' } }">
-          Most played
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'a-z' } }">
-          A-Z
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'random' } }">
-          Random
-        </router-link>
-      </li>
-    </ul>
-
+    <div class="d-flex align-items-center justify-content-between my-3">
+      <h1 class="main-title">
+        Albums
+      </h1>
+      <ul class="nav-underlined adapt-text">
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'recently-added' } }">
+            Recently added
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'a-z' } }">
+            A-Z
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'random' } }">
+            Random
+          </router-link>
+        </li>
+      </ul>
+    </div>
     <AlbumList :items="albums" :allow-h-scroll="false" />
     <EmptyIndicator v-if="!loading && albums.length === 0" />
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />

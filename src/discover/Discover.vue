@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
-    <div v-if="result.genres.length > 0" class="pb-2 pt-3">
-      <div class="d-flex gap-3 overflow-auto scroll-adapt">
+    <div v-if="result.genres.length > 0" class="section-wrapper pt-3">
+      <div class="d-flex gap-3 overflow-auto custom-scroll">
         <router-link
           v-for="item in result.genres"
           :key="item.id"
@@ -14,56 +14,44 @@
       </div>
     </div>
 
-    <div v-if="result.playlists.length > 0" class="pb-2">
-      <router-link :to="{ name: 'playlists' }" class="text-muted">
-        <h1 class="custom-title">
-          Playlists
-        </h1>
+    <div v-if="result.playlists.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'playlists' }" class="header-title">
+        Playlists
       </router-link>
       <PlaylistList :items="result.playlists" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="pb-2">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="text-muted">
-        <h1 class=" custom-title">
-          Recently played
-        </h1>
+    <div v-if="result.played.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="header-title">
+        Recently played
       </router-link>
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
-    <div v-if="result.favartists.length > 0" class="pb-2">
-      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="text-muted">
-        <h1 class="custom-title">
-          Fav artists
-        </h1>
+    <div v-if="result.favartists.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="header-title">
+        Fav artists
       </router-link>
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
-    <div v-if="result.favalbums.length > 0" class="pb-2">
-      <router-link :to="{ name: 'favourites' }" class="text-muted">
-        <h1 class="custom-title">
-          Fav albums
-        </h1>
+    <div v-if="result.favalbums.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'favourites' }" class="header-title">
+        Fav albums
       </router-link>
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
-    <div v-if="result.random.length > 0" class="pb-2">
-      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="text-muted">
-        <h1 class=" custom-title">
-          Random
-        </h1>
+    <div v-if="result.random.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="header-title">
+        Random
       </router-link>
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
-    <div v-if="result.recent.length > 0" class="pb-2">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="text-muted">
-        <h1 class=" custom-title">
-          Recently added
-        </h1>
+    <div v-if="result.recent.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="header-title">
+        Recently added
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />
     </div>
@@ -142,44 +130,8 @@
 </script>
 
 <style scoped>
-  .custom-title {
+  .header-title {
     margin-top: 10px;
     font-size: 1.5rem;
-  }
-
-  .scroll-adapt {
-    /* Default: show scrollbar on desktop */
-    overflow-x: auto;
-    scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
-  }
-
-  /* WebKit browsers (Chrome, Safari, Edge) */
-  .scroll-adapt::-webkit-scrollbar {
-    height: 20px; /* horizontal scrollbar thickness */
-  }
-
-  .scroll-adapt::-webkit-scrollbar-button {
-    display: none; /* remove arrows */
-  }
-
-  .scroll-adapt::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-  }
-
-  .scroll-adapt::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-  }
-
-  /* Mobile: hide scrollbar */
-  @media (max-width: 654px) {
-    .scroll-adapt {
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE 10+ */
-    }
-    .scroll-adapt::-webkit-scrollbar {
-      display: none; /* Chrome, Safari, Opera */
-    }
   }
 </style>

@@ -5,7 +5,7 @@
     </div>
     <div v-else class="mx-auto card" style="width: 22rem">
       <fieldset :disabled="busy">
-        <div class="card-body">
+        <div>
           <form @submit.prevent="login">
             <div class="d-flex justify-content-center mb-3">
               <img width="100" height="100" src="@/shared/assets/logo.svg">

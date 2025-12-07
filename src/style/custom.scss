@@ -1,12 +1,9 @@
 .main-content {
   padding-top: 38px;
+  z-index: auto;
 }
 
-.adapt-text {
-  font-size: 1rem; /* normal */
-}
-
-.custom-wrapper {
+.header-wrapper {
   position: fixed;
   width: 100%;
   z-index: 500;
@@ -14,13 +11,27 @@
   overflow: visible;
 }
 
-.custom-title-wrapper {
+.header-title-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.custom-title {
+.main-title {
+  overflow: hidden;
+  display: inline-block;
+  max-width: calc(100% - 160px - 1rem);
+  white-space: nowrap;;
+  margin: 1;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  min-width: 0;
+  flex-shrink: 1;
+  color: var(--theme-text-muted);
+  font-weight: 700;
+}
+
+.header-title {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -35,20 +46,20 @@
   font-weight: 700;
 }
 
-.custom-title--secondary {
+.header-title--secondary {
   margin-top: 7px;
   color: var(--theme-text-muted);
   font-size: 1.2rem;
   font-weight: 700;
 }
 
-.custom-info-wrapper {
+.header-info-wrapper {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.custom-info-one {
+.header-info-one {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -60,7 +71,7 @@
   font-size: 1rem;
 }
 
-.custom-info-two {
+.header-info-two {
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
@@ -74,16 +85,20 @@
 
 /* Mobile: slightly smaller font */
 @media (max-width: 767.98px) {
-  .custom-title {
+  .main-title {
     max-width: 220px;
     font-size: 1.2rem !important;
   }
-  .custom-info-one {
+  .header-title {
+    max-width: 220px;
+    font-size: 1.2rem !important;
+  }
+  .header-info-one {
     display: block;
     max-width: 220px;
     font-size: 0.9rem !important;
   }
-  .custom-info-two {
+  .header-info-two {
     display: block;
     max-width: 220px;
     font-size: 0.8rem !important;
@@ -93,9 +108,16 @@
 .content-wrapper {
   max-width: 100%;
   position: relative;
-  z-index: 100;
+  z-index: auto;
   margin-top: 170px;
   padding: 1rem;
+}
+
+.section-wrapper {
+  max-width: 100%;
+  position: relative;
+  z-index: auto;
+  padding-bottom: 1.2rem;
 }
 
 .on-top {
@@ -119,4 +141,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 100px;
+}
+
+.custom-scroll {
+  /* Default: show scrollbar on desktop */
+  overflow-x: auto;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.custom-scroll::-webkit-scrollbar {
+  height: 20px; /* horizontal scrollbar thickness */
+}
+
+.custom-scroll::-webkit-scrollbar-button {
+  display: none; /* remove arrows */
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Mobile: hide scrollbar */
+@media (max-width: 768px) {
+  .custom-scroll {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+  .custom-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }

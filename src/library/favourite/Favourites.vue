@@ -1,25 +1,27 @@
 <template>
   <div v-if="details" class="main-content">
-    <h1 class=" custom-title mt-3">
-      Favourites
-    </h1>
-    <ul class="nav-underlined mb-3">
-      <li>
-        <router-link :to="{... $route, params: { }}">
-          Albums
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{... $route, params: { section: 'artists' }}">
-          Artists
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{... $route, params: { section: 'tracks' }}">
-          Tracks
-        </router-link>
-      </li>
-    </ul>
+    <div class="d-flex align-items-center justify-content-between my-3">
+      <h1 class="main-title">
+        Favourites
+      </h1>
+      <ul class="nav-underlined adapt-text">
+        <li>
+          <router-link :to="{... $route, params: { }}">
+            Albums
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{... $route, params: { section: 'artists' }}">
+            Artists
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{... $route, params: { section: 'tracks' }}">
+            Tracks
+          </router-link>
+        </li>
+      </ul>
+    </div>
     <template v-if="section === 'artists'">
       <ArtistList v-if="details.artists.length > 0" :items="details.artists" :allow-h-scroll="false" />
       <EmptyIndicator v-else />

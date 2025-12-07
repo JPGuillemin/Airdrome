@@ -1,15 +1,15 @@
 <template>
   <div v-if="album" class="main-content">
-    <div class="custom-wrapper">
+    <div class="header-wrapper">
       <Custom :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <div class="custom-title-wrapper">
-          <h1 class="custom-title">
+        <div class="header-title-wrapper">
+          <h1 class="header-title">
             {{ album.name }}
           </h1>
         </div>
 
-        <div class="custom-info-wrapper">
-          <div class="custom-info-one">
+        <div class="header-info-wrapper">
+          <div class="header-info-one">
             <template v-if="album.artists?.length">
               <span v-for="(artist, index) in album.artists" :key="artist.id" class="d-inline-flex flex-nowrap">
                 <span v-if="index > 0">, </span>
@@ -26,7 +26,7 @@
             </template>
           </div>
 
-          <div v-if="album.genres?.length" class="custom-info-two">
+          <div v-if="album.genres?.length" class="header-info-two">
             <span v-for="({ name: genre }, index) in album.genres" :key="genre">
               <span v-if="index > 0">, </span>
               <router-link :to="{ name: 'genre', params: { id: genre }}">
@@ -67,7 +67,7 @@
           <b-button variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <OverflowMenu variant="transparent">
+          <OverflowMenu direction="up" variant="transparent">
             <DropdownItem icon="plus" class="on-top" @click="setNextInQueue">
               Next
             </DropdownItem>
@@ -85,13 +85,14 @@
       </Custom>
     </div>
     <div class="content-wrapper">
-      <div class="row">
-        <div class="col">
-          <TrackList :tracks="album.tracks || []" :no-album="true" :show-image="false" :no-artist="true" />
-        </div>
-      </div>
+      <TrackList
+        :tracks="album.tracks || []"
+        :no-album="true"
+        :show-image="false"
+        :no-artist="true"
+      />
       <div v-if="album.description" class="row">
-        <h3 class="custom-title--secondary mt3">
+        <h3 class="header-title--secondary mt3">
           Background info
         </h3>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">

@@ -1,25 +1,26 @@
 <template>
   <div class="main-content">
-    <h1 class="custom-title mt-3">
-      Playlists
-    </h1>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <ul class="nav-underlined">
+    <div class="d-flex justify-content-between align-items-center my-3">
+      <h1 class="main-title">
+        Playlists
+      </h1>
+      <ul class="nav-underlined adapt-text">
         <li>
-          <router-link :to="{ ...$route, params: { ...$route.params, sort: null } }">
+          <router-link :to="{ ... $route, params: {} }">
             Recently added
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { ...$route.params, sort: 'a-z' } }">
+          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' } }">
             A-Z
           </router-link>
         </li>
+        <li>
+          <b-button variant="link" class="mx-2" @click="startCreate">
+            <Icon icon="plus" />
+          </b-button>
+        </li>
       </ul>
-      <b-button variant="link" @click="startCreate">
-        <Icon icon="plus" />
-      </b-button>
     </div>
 
     <PlaylistList

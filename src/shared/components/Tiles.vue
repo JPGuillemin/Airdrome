@@ -1,6 +1,6 @@
 <template>
   <div
-    :class="['tiles', 'tiles-square', { 'tiles-hs': allowHScroll }]"
+    :class="['tiles', 'tiles-square', { 'tiles-scroll': allowHScroll, 'custom-scroll': allowHScroll }]"
     :style="{
       '--tile-size': tileSize + 'px',
       '--tile-size-mobile': tileSizeMobile + 'px'
@@ -33,10 +33,11 @@
     grid-template-columns: repeat(auto-fit, var(--tile-size));
     justify-content: start;
     font-size: 0.75rem;
+    z-index: auto;
   }
 
   /* Horizontal scroll container */
-  .tiles-hs {
+  .tiles-scroll {
     grid-template-columns: none;
     grid-auto-flow: column;
     grid-auto-columns: var(--tile-size);
@@ -44,39 +45,6 @@
     scrollbar-color: rgba(0,0,0,0.3) transparent;
   }
 
-  /* Remove arrows on WebKit browsers */
-  .tiles-hs::-webkit-scrollbar {
-    height: 20px;
-  }
-  .tiles-hs::-webkit-scrollbar-button {
-    display: none;
-    border-radius: 10px;
-  }
-  .tiles-hs::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.3);
-    border-radius: 10px;
-  }
-  .tiles-hs::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  /* Mobile styles */
-  @media(max-width: 654px) {
-    .tiles {
-      grid-gap: 6px;
-      font-size: 0.65rem;
-      grid-template-columns: repeat(auto-fit, var(--tile-size-mobile));
-    }
-    .tiles-hs {
-      grid-auto-columns: var(--tile-size-mobile);
-      scrollbar-width: none;
-    }
-    .tiles-hs::-webkit-scrollbar {
-      display: none;
-    }
-  }
-
-  /* Other styles */
   .tiles-square .tile-img {
     padding-bottom: 100%;
   }

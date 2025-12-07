@@ -1,13 +1,13 @@
 <template>
   <div v-if="playlist" class="main-content">
-    <div class="custom-wrapper">
+    <div class="header-wrapper">
       <Custom :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
-        <div class="custom-title-wrapper">
-          <h1 class="custom-title">
+        <div class="header-title-wrapper">
+          <h1 class="header-title">
             {{ playlist.name }}
           </h1>
         </div>
-        <div class="custom-info">
+        <div class="header-info">
           <span class="text-nowrap">
             <strong>{{ playlist.trackCount }}</strong> tracks
           </span>
@@ -42,7 +42,7 @@
           >
             <Icon icon="reload" />
           </b-button>
-          <OverflowMenu variant="transparent">
+          <OverflowMenu direction="up" variant="transparent">
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"

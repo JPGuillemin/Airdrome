@@ -1,9 +1,9 @@
 <template>
   <div class="main-content">
-    <h1 class="custom-title  mt-3">
-      {{ id }}
-    </h1>
-    <div class="text-nowrap my-2">
+    <div class="d-flex align-items-center justify-content-between my-3">
+      <h1 class="main-title">
+        {{ id }}
+      </h1>
       <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
         <Icon icon="radio" />
       </b-button>
@@ -20,7 +20,7 @@
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
-  import type { Album } from '@/shared/api' // adjust path if necessary
+  import type { Album } from '@/shared/api'
 
   export default defineComponent({
     components: { AlbumList, InfiniteList },

@@ -1,37 +1,48 @@
 <template>
   <div class="main-content">
-    <h1 class="custom-title mt-3">
-      Genres
-    </h1>
-    <ul class="nav-underlined mb-3">
-      <li>
-        <router-link :to="{ ...$route, params: { sort: null } }">
-          Most albums
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { sort: 'a-z' } }">
-          A-Z
-        </router-link>
-      </li>
-    </ul>
-    <div v-if="sortedItems.length > 0" class="d-flex flex-wrap justify-content-center gap-2 px-2 py-2 px-md-0">
-      <span
+    <div class="d-flex align-items-center justify-content-between my-3">
+      <h1 class="main-title">
+        Genres
+      </h1>
+      <ul class="nav-underlined adapt-text">
+        <li>
+          <router-link :to="{ ... $route, params: {} }">
+            Most albums
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ... $route, params: { sort: 'a-z' } }">
+            A-Z
+          </router-link>
+        </li>
+      </ul>
+    </div>
+    <div v-if="sortedItems.length > 0">
+      <div
         v-for="item in sortedItems"
         :key="item.id"
-        class="text-bg-secondary rounded-pill py-3 px-2 text-truncate text-center d-flex align-items-center justify-content-center gap-2"
-        style="width: 160px;"
+        class="section-wrapper"
       >
-        <router-link
-          :to="{ name: 'genre', params: { id: item.id } }"
-          class="text-decoration-none d-flex align-items-center gap-2"
-          style="color: var(--bs-primary) !important;"
-        >
-          <img :src="item.cover" alt="" class="genre-icon">
-          <span class="text-truncate">{{ item.name }}</span>
-        </router-link>
-      </span>
+        <div class="d-flex align-items-center justify-content-between">
+          <router-link
+            :to="{ name: 'genre', params: { id: item.id } }"
+            class="header-title"
+          >
+            {{ item.name }}
+          </router-link>
+          <b-button
+            variant="transparent"
+            class="me-2"
+            title="Radio"
+            @click="shuffleNow(item.id)"
+          >
+            <Icon icon="radio" />
+          </b-button>
+        </div>
+        <AlbumList :items="item.albums" allow-h-scroll />
+      </div>
     </div>
+
     <EmptyIndicator v-else />
   </div>
 </template>
@@ -39,18 +50,37 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import { orderBy } from 'lodash-es'
-  import fallbackImage from '@/shared/assets/fallback.svg'
+  import type { Album } from '@/shared/api'
+  import AlbumList from '@/library/album/AlbumList.vue'
+  import { useLoader } from '@/shared/loader'
+  import { usePlayerStore } from '@/player/store'
+
+  interface GenreWithAlbums {
+    id: string
+    name: string
+    albumCount: number
+    albums: Album[]
+  }
 
   export default defineComponent({
-    props: { sort: { type: String, default: null } },
+    components: {
+      AlbumList,
+    },
+    setup() {
+      return {
+        playerStore: usePlayerStore(),
+      }
+    },
     data() {
       return {
-        items: [] as any[],
+        items: [] as GenreWithAlbums[],
         loading: true,
+        sort: this.$route.params.sort || null,
       }
     },
     computed: {
-      sortedItems(): any[] {
+      sortedItems(): GenreWithAlbums[] {
+        if (!this.items.length) return []
         return this.sort === 'a-z'
           ? orderBy(this.items, 'name')
           : orderBy(this.items, 'albumCount', 'desc')
@@ -59,7 +89,8 @@
     watch: {
       '$route.params.sort': {
         immediate: true,
-        handler() {
+        handler(newSort) {
+          this.sort = newSort || null
           this.loadGenres()
         },
       },
@@ -67,26 +98,54 @@
     methods: {
       async loadGenres() {
         this.loading = true
-        const genres = await this.$api.getGenres()
-        const genresWithCovers = await Promise.all(
-          genres.map(async(genre: any) => {
-            const albums = await this.$api.getAlbumsByGenre(genre.id, 1)
-            const cover = albums[0]?.image || fallbackImage
-            return { ...genre, cover }
+        const loader = useLoader()
+        loader.showLoading()
+        try {
+          const genres = await this.$api.getGenres()
+          const genresWithAlbums = await Promise.all(
+            genres.map(async(genre: any) => {
+              const albums = (await this.$api.getAlbumsByGenre(
+                genre.id,
+                15
+              )) as Album[]
+              return {
+                id: genre.id,
+                name: genre.name,
+                albumCount: genre.albumCount,
+                albums,
+              }
+            })
+          )
+          this.items = genresWithAlbums
+        } catch (error) {
+          console.error('Failed to load genres or albums:', error)
+        } finally {
+          this.loading = false
+          loader.hideLoading()
+        }
+      },
+      async shuffleNow(id): Promise<void> {
+        const loader = useLoader()
+        loader.showLoading()
+        await new Promise(resolve => setTimeout(resolve, 0))
+        let shouldRoute = false
+        try {
+          const tracks = await this.$api.getRandomTracks({
+            genre: id,
+            size: 200,
           })
-        )
-        this.loading = false
-        this.items = genresWithCovers
+          if (!tracks.length) return
+          await this.playerStore.playNow(tracks)
+          shouldRoute = true
+        } finally {
+          loader.hideLoading()
+          if (shouldRoute) {
+            this.$nextTick(() => {
+              this.$router.push({ name: 'queue' })
+            })
+          }
+        }
       },
     },
   })
 </script>
-<style scoped>
-  .genre-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: cover;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-</style>

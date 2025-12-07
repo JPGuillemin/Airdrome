@@ -1,22 +1,22 @@
 <template>
   <div class="main-content">
-    <h1 class=" custom-title mt-3">
-      Artists
-    </h1>
-
-    <ul class="nav-underlined mb-3">
-      <li>
-        <router-link :to="{ ...$route, params: { ...$route.params, sort: null } }">
-          Most albums
-        </router-link>
-      </li>
-      <li>
-        <router-link :to="{ ...$route, params: { ...$route.params, sort: 'a-z' } }">
-          A-Z
-        </router-link>
-      </li>
-    </ul>
-
+    <div class="d-flex align-items-center justify-content-between my-3">
+      <h1 class="main-title">
+        Artists
+      </h1>
+      <ul class="nav-underlined adapt-text">
+        <li>
+          <router-link :to="{ ... $route, params: {} }">
+            Most albums
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' } }">
+            A-Z
+          </router-link>
+        </li>
+      </ul>
+    </div>
     <ArtistList :items="visibleArtists" :allow-h-scroll="false" />
     <EmptyIndicator v-if="!loading && visibleArtists.length === 0" />
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
