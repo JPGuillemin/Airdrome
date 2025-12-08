@@ -26,9 +26,10 @@
         <div class="d-flex align-items-center justify-content-between">
           <router-link
             :to="{ name: 'genre', params: { id: item.id } }"
-            class="header-title"
+            class="header-title d-inline-flex align-items-center"
           >
-            {{ item.name }}
+            {{ item.name }} - {{ item.albumCount }}
+            <Icon icon="albums" class="ms-1" />
           </router-link>
           <b-button
             variant="transparent"
@@ -42,8 +43,6 @@
         <AlbumList :items="item.albums" allow-h-scroll />
       </div>
     </div>
-
-    <EmptyIndicator v-else />
   </div>
 </template>
 
@@ -98,30 +97,22 @@
     methods: {
       async loadGenres() {
         this.loading = true
-        const loader = useLoader()
-        loader.showLoading()
         try {
           const genres = await this.$api.getGenres()
-          const genresWithAlbums = await Promise.all(
-            genres.map(async(genre: any) => {
-              const albums = (await this.$api.getAlbumsByGenre(
-                genre.id,
-                15
-              )) as Album[]
-              return {
-                id: genre.id,
-                name: genre.name,
-                albumCount: genre.albumCount,
-                albums,
-              }
-            })
-          )
-          this.items = genresWithAlbums
+          const genrePromises = genres.map(async(genre: any) => {
+            const albumsPromise = this.$api.getAlbumsByGenre(genre.id, 15) // fetch albums
+            return albumsPromise.then((albums: Album[]) => ({
+              id: genre.id,
+              name: genre.name,
+              albumCount: genre.albumCount,
+              albums,
+            }))
+          })
+          this.items = await Promise.all(genrePromises)
         } catch (error) {
           console.error('Failed to load genres or albums:', error)
         } finally {
           this.loading = false
-          loader.hideLoading()
         }
       },
       async shuffleNow(id): Promise<void> {
