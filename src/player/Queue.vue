@@ -1,17 +1,16 @@
 <template>
   <div class="main-content">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center my-2">
+    <div class="d-flex justify-content-between align-items-center my-3">
       <h1 class="main-title">
         Playing
       </h1>
       <div>
         <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="shuffle">
-          <Icon icon="shuffle" /> Shuffle
+          <Icon icon="shuffle" />
         </b-button>
         <b-button variant="transparent" class="clear-btn" :disabled="!tracks?.length" @click="clear">
-          <Icon icon="x" /> Clear
-
+          <Icon icon="x" />
           <div v-if="tracks?.length === 1" class="tooltip bs-tooltip-bottom">
             <div class="tooltip-inner">
               Click again to clear current track

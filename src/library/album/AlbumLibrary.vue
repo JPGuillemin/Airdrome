@@ -7,17 +7,27 @@
       <ul class="nav-underlined adapt-text">
         <li>
           <router-link :to="{ ...$route, params: { sort: 'recently-added' } }">
-            Recently added
+            <Icon icon="new" />
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'most-played' } }">
+            <Icon icon="most" />
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'recently-played' } }">
+            <Icon icon="recent" />
           </router-link>
         </li>
         <li>
           <router-link :to="{ ...$route, params: { sort: 'a-z' } }">
-            A-Z
+            A-z
           </router-link>
         </li>
         <li>
           <router-link :to="{ ...$route, params: { sort: 'random' } }">
-            Random
+            <Icon icon="random" />
           </router-link>
         </li>
       </ul>
@@ -35,7 +45,7 @@
 
   export default defineComponent({
     components: { AlbumList },
-    props: { sort: { type: String, required: true } },
+    props: { sort: { type: String, default: 'recently-added' } },
     data() {
       return {
         albums: [] as | Album[],

@@ -7,12 +7,12 @@
       <ul class="nav-underlined adapt-text">
         <li>
           <router-link :to="{ ... $route, params: {} }">
-            Most albums
+            <Icon icon="most" />
           </router-link>
         </li>
         <li>
           <router-link :to="{ ... $route, params: { sort: 'a-z' } }">
-            A-Z
+            A-z
           </router-link>
         </li>
       </ul>

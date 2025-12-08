@@ -7,17 +7,17 @@
       <ul class="nav-underlined adapt-text">
         <li>
           <router-link :to="{... $route, params: { }}">
-            Albums
+            <Icon icon="albums" />
           </router-link>
         </li>
         <li>
           <router-link :to="{... $route, params: { section: 'artists' }}">
-            Artists
+            <Icon icon="artists" />
           </router-link>
         </li>
         <li>
           <router-link :to="{... $route, params: { section: 'tracks' }}">
-            Tracks
+            <Icon icon="tracks" />
           </router-link>
         </li>
       </ul>

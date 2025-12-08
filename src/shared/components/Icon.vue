@@ -17,7 +17,7 @@
 </template>
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import iconAlbum from '@iconify-icons/bi/vinyl'
+  import iconAlbum from '@iconify-icons/bi/disc'
   import iconArrowUpDown from '@iconify-icons/bi/arrow-up-down'
   import iconArtist from '@iconify-icons/bi/incognito'
   import iconCheck from '@iconify-icons/bi/check'
@@ -29,28 +29,32 @@
   import iconFolder from '@iconify-icons/bi/folder'
   import iconGear from '@iconify-icons/bi/gear-fill'
   import iconGenre from '@iconify-icons/bi/palette'
-  import iconGoBack from '@iconify-icons/bi/caret-left'
+  import iconGoBack from '@iconify-icons/bi/caret-left-fill'
   import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
+  import iconHigh from '@iconify-icons/bi/headphones'
   import iconHome from '@iconify-icons/bi/house-fill'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
   import iconList from '@iconify-icons/bi/list-ul'
+  import iconLow from '@iconify-icons/bi/car-front'
+  import iconMedium from '@iconify-icons/bi/speaker'
+  import iconMost from '@iconify-icons/bi/graph-up-arrow'
+  import iconMusicNote from '@iconify-icons/bi/music-note'
+  import iconMusicNoteBeamed from '@iconify-icons/bi/music-note-beamed'
   import iconMute from '@iconify-icons/bi/volume-mute-fill'
   import iconNav from '@iconify-icons/bi/list'
   import iconPause from '@iconify-icons/bi/pause-fill'
   import iconPerson from '@iconify-icons/bi/person-fill'
   import iconPlay from '@iconify-icons/bi/play-fill'
   import iconPlaylist from '@iconify-icons/bi/music-note-list'
-  import iconMusicNote from '@iconify-icons/bi/music-note'
-  import iconMusicNoteBeamed from '@iconify-icons/bi/music-note-beamed'
   import iconPlus from '@iconify-icons/bi/plus'
   import iconPodcast from '@iconify-icons/bi/rss'
   import iconRadio from '@iconify-icons/bi/broadcast'
+  import iconRandom from '@iconify-icons/bi/dice-3'
+  import iconRecent from '@iconify-icons/bi/clock-history'
+  import iconNew from '@iconify-icons/bi/clock-fill'
   import iconRefresh from '@iconify-icons/bi/arrow-counterclockwise'
-  import iconLow from '@iconify-icons/bi/car-front'
-  import iconMedium from '@iconify-icons/bi/speaker'
-  import iconHigh from '@iconify-icons/bi/headphones'
   import iconReload from '@iconify-icons/bi/arrow-repeat'
   import iconRepeat from '@iconify-icons/bi/repeat'
   import iconShuffle from '@iconify-icons/bi/shuffle'
@@ -59,11 +63,16 @@
   import iconSoundwave from '@iconify-icons/bi/soundwave'
   import iconStack from '@iconify-icons/bi/stack'
   import iconThreeDotsVertical from '@iconify-icons/bi/three-dots-vertical'
+  import iconTracks from '@iconify-icons/bi/list-check'
   import iconTrash from '@iconify-icons/bi/trash'
   import iconVolume from '@iconify-icons/bi/volume-up-fill'
   import iconX from '@iconify-icons/bi/x'
 
   const icons = {
+    recent: iconRecent.body,
+    most: iconMost.body,
+    random: iconRandom.body,
+    tracks: iconTracks.body,
     albums: iconAlbum.body,
     'arrow-up-down': iconArrowUpDown.body,
     artists: iconArtist.body,
@@ -91,6 +100,7 @@
     high: iconHigh.body,
     mute: iconMute.body,
     nav: iconNav.body,
+    new: iconNew.body,
     pause: iconPause.body,
     person: iconPerson.body,
     play: iconPlay.body,

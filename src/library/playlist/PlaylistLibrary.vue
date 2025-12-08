@@ -7,12 +7,12 @@
       <ul class="nav-underlined adapt-text">
         <li>
           <router-link :to="{ ... $route, params: {} }">
-            Recently added
+            <Icon icon="recent" />
           </router-link>
         </li>
         <li>
           <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' } }">
-            A-Z
+            A-z
           </router-link>
         </li>
         <li>
