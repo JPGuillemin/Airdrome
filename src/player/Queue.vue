@@ -12,8 +12,8 @@
         <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="shuffle">
           <Icon icon="random" />
         </b-button>
-        <b-button variant="transparent" class="clear-btn" :disabled="!allTracks.length" @click="clear">
-          <Icon icon="x" />
+        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="clear">
+          <Icon icon="trash" />
         </b-button>
       </div>
     </div>

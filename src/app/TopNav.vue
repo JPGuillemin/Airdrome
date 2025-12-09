@@ -93,16 +93,16 @@
             Cache size: {{ cacheSize }} GB
           </div>
           <DropdownItem class="on-top small" @click="scan">
-            Refresh content
+            Refresh content<Icon icon="refresh" class="me-1" />
           </DropdownItem>
           <DropdownItem class="on-top small" @click="clearAllCache">
-            Clear cache
+            Clear cache<Icon icon="trash" class="me-1" />
           </DropdownItem>
           <DropdownItem class="on-top small" @click="logout">
-            Log out
+            Log out<Icon icon="logout" class="me-1" />
           </DropdownItem>
           <DropdownItem class="on-top small" @click="showAboutModal = true">
-            About
+            About<Icon icon="info" class="me-1" />
           </DropdownItem>
         </Dropdown>
       </template>

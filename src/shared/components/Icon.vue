@@ -29,14 +29,16 @@
   import iconFolder from '@iconify-icons/bi/folder'
   import iconGear from '@iconify-icons/bi/gear-fill'
   import iconGenre from '@iconify-icons/bi/palette'
-  import iconGoBack from '@iconify-icons/bi/caret-left-fill'
+  import iconGoBack from '@iconify-icons/bi/arrow-left-circle'
   import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
   import iconHigh from '@iconify-icons/bi/headphones'
   import iconHome from '@iconify-icons/bi/house-fill'
+  import iconInfo from '@iconify-icons/bi/info-circle'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
   import iconList from '@iconify-icons/bi/list-ul'
+  import iconLogout from '@iconify-icons/bi/escape'
   import iconLow from '@iconify-icons/bi/car-front'
   import iconMedium from '@iconify-icons/bi/speaker'
   import iconMost from '@iconify-icons/bi/graph-up-arrow'
@@ -63,16 +65,12 @@
   import iconSoundwave from '@iconify-icons/bi/soundwave'
   import iconStack from '@iconify-icons/bi/stack'
   import iconThreeDotsVertical from '@iconify-icons/bi/three-dots-vertical'
-  import iconTracks from '@iconify-icons/bi/list-check'
+  import iconTracks from '@iconify-icons/bi/list-task'
   import iconTrash from '@iconify-icons/bi/trash'
   import iconVolume from '@iconify-icons/bi/volume-up-fill'
   import iconX from '@iconify-icons/bi/x'
 
   const icons = {
-    recent: iconRecent.body,
-    most: iconMost.body,
-    random: iconRandom.body,
-    tracks: iconTracks.body,
     albums: iconAlbum.body,
     'arrow-up-down': iconArrowUpDown.body,
     artists: iconArtist.body,
@@ -90,11 +88,14 @@
     heart: iconHeart.body,
     'heart-fill': iconHeartFill.body,
     home: iconHome.body,
+    info: iconInfo.body,
     library: iconLibrary.body,
     link: iconLink.body,
     list: iconList.body,
+    logout: iconLogout.body,
     low: iconLow.body,
     medium: iconMedium.body,
+    most: iconMost.body,
     'music-note': iconMusicNote.body,
     'music-note-beamed': iconMusicNoteBeamed.body,
     high: iconHigh.body,
@@ -108,6 +109,8 @@
     plus: iconPlus.body,
     podcast: iconPodcast.body,
     radio: iconRadio.body,
+    random: iconRandom.body,
+    recent: iconRecent.body,
     refresh: iconRefresh.body,
     reload: iconReload.body,
     repeat: iconRepeat.body,
@@ -117,6 +120,7 @@
     soundwave: iconSoundwave.body,
     stack: iconStack.body,
     'three-dots-vertical': iconThreeDotsVertical.body,
+    tracks: iconTracks.body,
     trash: iconTrash.body,
     volume: iconVolume.body,
     x: iconX.body,
