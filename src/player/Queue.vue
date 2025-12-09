@@ -6,23 +6,21 @@
         Playing
       </div>
       <div>
-        <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="play">
+        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="play">
           <Icon icon="play" />
         </b-button>
-        <b-button variant="transparent" class="clear-btn" :disabled="!tracks?.length" @click="clear">
+        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="shuffle">
+          <Icon icon="random" />
+        </b-button>
+        <b-button variant="transparent" class="clear-btn" :disabled="!allTracks.length" @click="clear">
           <Icon icon="x" />
-          <div v-if="tracks?.length === 1" class="tooltip bs-tooltip-bottom">
-            <div class="tooltip-inner">
-              Click again to clear current track
-            </div>
-          </div>
         </b-button>
       </div>
     </div>
 
     <TrackList
-      v-if="tracks?.length"
-      :tracks="tracks"
+      v-if="visibleTracks.length"
+      :tracks="visibleTracks"
       active-by="index"
       :show-image="true"
       :play-strategy="play"
@@ -39,7 +37,13 @@
         </DropdownItem>
       </template>
     </TrackList>
+
     <EmptyIndicator v-else />
+    <InfiniteLoader
+      :loading="loading"
+      :has-more="hasMore"
+      @load-more="loadMore"
+    />
   </div>
 </template>
 
@@ -54,41 +58,70 @@
       TrackList,
       EmptyIndicator,
     },
-
     setup() {
       const playerStore = usePlayerStore()
-
+      return { playerStore }
+    },
+    data() {
       return {
-        playerStore,
+        loading: false,
+        visibleTracks: [] as any[],
+        chunkSize: 20,
+        nextIndex: 0,
+        hasMore: true,
       }
     },
-
     computed: {
-      tracks() {
+      allTracks() {
         return this.playerStore.queue
       },
       queueIndex() {
         return this.playerStore.queueIndex
       },
-      isPlaying() {
-        return this.playerStore.isPlaying
+    },
+    watch: {
+      allTracks: {
+        immediate: true,
+        handler() {
+          this.reset()
+          this.appendNextChunk()
+        },
       },
     },
-
     methods: {
+      reset() {
+        this.visibleTracks = []
+        this.nextIndex = 0
+        this.hasMore = true
+      },
+
+      loadMore() {
+        this.appendNextChunk()
+      },
+      appendNextChunk() {
+        const nextChunk = this.allTracks.slice(
+          this.nextIndex,
+          this.nextIndex + this.chunkSize
+        )
+        this.visibleTracks.push(...nextChunk)
+        this.nextIndex += nextChunk.length
+        this.hasMore = this.nextIndex < this.allTracks.length
+      },
       play(index: number) {
         this.playerStore.setShuffle(false)
-        if (index === this.queueIndex) return this.playerStore.playPause()
+        if (index === this.queueIndex) {
+          return this.playerStore.playPause()
+        }
         return this.playerStore.playTrackListIndex(index)
       },
-      remove(idx: number) {
-        return this.playerStore.removeFromQueue(idx)
+      remove(index: number) {
+        this.playerStore.removeFromQueue(index)
       },
       clear() {
-        return this.playerStore.clearQueue()
+        this.playerStore.clearQueue()
       },
       shuffle() {
-        return this.playerStore.shuffleQueue()
+        this.playerStore.shuffleQueue()
       },
     },
   })

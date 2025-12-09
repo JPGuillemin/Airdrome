@@ -138,7 +138,7 @@
   })
 </script>
 <style>
-  .btn .icon.bi,
+  .icon.bi,
   .dropdown-item .icon.bi,
   .dropdown-toggle .icon.bi,
   .input-group-text .icon.bi,

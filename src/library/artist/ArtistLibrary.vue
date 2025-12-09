@@ -37,7 +37,7 @@
         loading: true,
         allArtists: [] as Artist[],
         visibleArtists: [] as Artist[],
-        chunkSize: 30,
+        chunkSize: 15,
         nextIndex: 0,
         hasMore: true,
       }
