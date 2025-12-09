@@ -3,9 +3,9 @@
     <div class="header-wrapper">
       <Custom :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
         <div class="header-title-wrapper">
-          <h1 class="header-title mt-3">
+          <div class="header-title mt-3">
             {{ artist.name }}
-          </h1>
+          </div>
         </div>
 
         <div class="header-info-wrapper">
@@ -61,9 +61,9 @@
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <h3 ref="topTracks" class="header-title--secondary">
+          <div ref="topTracks" class="section-title">
             Top tracks
-          </h3>
+          </div>
         </div>
         <TrackList
           :tracks="artist.topTracks"
@@ -71,21 +71,21 @@
         />
       </template>
       <template v-if="artist.albums.length > 0">
-        <h3 class="header-title--secondary">
+        <div class="section-title">
           Albums
-        </h3>
+        </div>
         <AlbumList :items="artist.albums" allow-h-scroll />
       </template>
       <template v-if="artist.similarArtist.length > 0">
-        <h3 ref="similarArtists" class="header-title--secondary mt-3">
+        <div ref="similarArtists" class="section-title mt-3">
           Similar artists
-        </h3>
+        </div>
         <ArtistList :items="artist.similarArtist" :tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.description">
-        <h3 class="header-title--secondary mt-3">
+        <div class="section-title mt-3">
           Background info
-        </h3>
+        </div>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ artist.description }}
         </span>

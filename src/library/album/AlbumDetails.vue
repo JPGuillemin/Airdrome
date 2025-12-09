@@ -3,9 +3,9 @@
     <div class="header-wrapper">
       <Custom :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <div class="header-title-wrapper">
-          <h1 class="header-title">
+          <div class="header-title">
             {{ album.name }}
-          </h1>
+          </div>
         </div>
 
         <div class="header-info-wrapper">
@@ -92,9 +92,9 @@
         :no-artist="true"
       />
       <div v-if="album.description" class="row">
-        <h3 class="header-title--secondary mt3">
+        <div class="section-title mt3">
           Background info
-        </h3>
+        </div>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ album.description }}
         </span>

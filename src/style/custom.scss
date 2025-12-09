@@ -22,7 +22,8 @@
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
   white-space: nowrap;;
-  margin: 1;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
   font-size: 1.5rem;
   line-height: 1.5;
   min-width: 0;
@@ -37,7 +38,8 @@
   max-width: calc(100% - 160px - 1rem);
   white-space: nowrap;;
   text-overflow: ellipsis;
-  margin: 1;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
   font-size: 1.5rem;
   line-height: 1.5;
   min-width: 0;
@@ -50,6 +52,22 @@
   margin-top: 7px;
   color: var(--theme-text-muted);
   font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.section-title {
+  overflow: hidden;
+  display: inline-block;
+  max-width: calc(100% - 160px - 1rem);
+  white-space: nowrap;;
+  text-overflow: ellipsis;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
+  font-size: 1.3rem;
+  line-height: 1.3;
+  min-width: 0;
+  flex-shrink: 1;
+  color: var(--theme-text-muted);
   font-weight: 700;
 }
 
@@ -143,38 +161,6 @@
   min-width: 100px;
 }
 
-.custom-scroll {
-  /* Default: show scrollbar on desktop */
-  overflow-x: auto;
-  scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
-}
-
-/* WebKit browsers (Chrome, Safari, Edge) */
-.custom-scroll::-webkit-scrollbar {
-  height: 20px; /* horizontal scrollbar thickness */
-}
-
-.custom-scroll::-webkit-scrollbar-button {
-  display: none; /* remove arrows */
-}
-
-.custom-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-}
-
-.custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 10px;
-}
-
-/* Mobile: hide scrollbar */
-@media (max-width: 768px) {
-  .custom-scroll {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-  }
-  .custom-scroll::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
+.bold {
+  font-weight: 700;
 }

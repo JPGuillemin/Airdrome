@@ -1,10 +1,10 @@
 <template>
   <div class="main-content">
     <div class="d-flex justify-content-between align-items-center my-3">
-      <h1 class="main-title">
+      <div class="main-title">
         Playlists
-      </h1>
-      <ul class="nav-underlined adapt-text">
+      </div>
+      <ul class="nav adapt-text">
         <li>
           <router-link :to="{ ... $route, params: {} }">
             <Icon icon="recent" />

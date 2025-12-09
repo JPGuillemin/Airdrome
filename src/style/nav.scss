@@ -3,8 +3,9 @@ ul.nav-underlined {
   overflow-x: auto;
   scrollbar-width: none;
   padding-left: 0;
+  padding-right: 0;
   margin-bottom: 0;
-
+  font-weight: normal;
   li {
     display: inline-block;
     float: none;
@@ -26,5 +27,33 @@ ul.nav-underlined {
 }
 
 ul.nav-underlined::-webkit-scrollbar {
+  display: none;
+}
+
+ul.nav {
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 0;
+  font-weight: normal;
+  li {
+    display: inline-block;
+    float: none;
+    a {
+      display: block;
+      padding: 0.5rem 1rem;
+    }
+    a:hover, a:focus {
+      text-decoration: none;
+    }
+    a.active:hover {
+      color: var(--bs-primary);
+    }
+  }
+}
+
+ul.nav::-webkit-scrollbar {
   display: none;
 }

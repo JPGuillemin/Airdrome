@@ -1,9 +1,9 @@
 <template>
   <div class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">
-      <h1 class="main-title">
+      <div class="main-title">
         {{ id }}
-      </h1>
+      </div>
       <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
         <Icon icon="radio" />
       </b-button>

@@ -2,12 +2,12 @@
   <div class="main-content">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center my-3">
-      <h1 class="main-title">
+      <div class="main-title">
         Playing
-      </h1>
+      </div>
       <div>
-        <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="shuffle">
-          <Icon icon="shuffle" />
+        <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="play">
+          <Icon icon="play" />
         </b-button>
         <b-button variant="transparent" class="clear-btn" :disabled="!tracks?.length" @click="clear">
           <Icon icon="x" />

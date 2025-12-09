@@ -15,42 +15,42 @@
     </div>
 
     <div v-if="result.playlists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'playlists' }" class="header-title">
+      <router-link :to="{ name: 'playlists' }" class="section-title">
         Playlists
       </router-link>
       <PlaylistList :items="result.playlists" allow-h-scroll />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="header-title">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="section-title">
         Recently played
       </router-link>
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="header-title">
+      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="section-title">
         Fav artists
       </router-link>
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites' }" class="header-title">
+      <router-link :to="{ name: 'favourites' }" class="section-title">
         Fav albums
       </router-link>
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="header-title">
+      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="section-title">
         Random
       </router-link>
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="header-title">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="section-title">
         Recently added
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />

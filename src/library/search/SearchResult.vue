@@ -2,27 +2,27 @@
   <div class="main-content">
     <div v-if="result.albums.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'album'}, query: $route.query}" class="text-muted">
-        <h1 class="header-title">
+        <div class="section-title">
           Albums
-        </h1>
+        </div>
       </router-link>
       <AlbumList :items="result.albums" />
     </div>
 
     <div v-if="result.artists.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'artist'}, query: $route.query}" class="text-muted">
-        <h1 class="header-title">
+        <div class="section-title">
           Artists
-        </h1>
+        </div>
       </router-link>
       <ArtistList :items="result.artists" />
     </div>
 
     <div v-if="result.tracks.length > 0" class="pb-2 pt-3">
       <router-link :to="{params: {type: 'track'}, query: $route.query}" class="text-muted">
-        <h1 class="header-title">
+        <div class="section-title">
           Tracks
-        </h1>
+        </div>
       </router-link>
       <TrackList :tracks="result.tracks" />
     </div>

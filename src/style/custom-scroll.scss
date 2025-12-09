@@ -1,0 +1,35 @@
+.custom-scroll {
+  /* Default: show scrollbar on desktop */
+  overflow-x: auto;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.custom-scroll::-webkit-scrollbar {
+  height: 20px; /* horizontal scrollbar thickness */
+}
+
+.custom-scroll::-webkit-scrollbar-button {
+  display: none; /* remove arrows */
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Mobile: hide scrollbar */
+@media (max-width: 768px) {
+  .custom-scroll {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+  .custom-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}

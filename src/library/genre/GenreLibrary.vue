@@ -1,10 +1,10 @@
 <template>
   <div class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">
-      <h1 class="main-title">
+      <div class="main-title">
         Genres
-      </h1>
-      <ul class="nav-underlined adapt-text">
+      </div>
+      <ul class="nav adapt-text">
         <li>
           <router-link :to="{ ... $route, params: {} }">
             <Icon icon="most" />
@@ -26,7 +26,7 @@
         <div class="d-flex align-items-center justify-content-between">
           <router-link
             :to="{ name: 'genre', params: { id: item.id } }"
-            class="header-title d-inline-flex align-items-center"
+            class="section-title d-inline-flex align-items-center"
           >
             {{ item.name }} - {{ item.albumCount }}
             <Icon icon="albums" class="ms-1" />
@@ -97,18 +97,32 @@
     methods: {
       async loadGenres() {
         this.loading = true
+        this.items = []
         try {
           const genres = await this.$api.getGenres()
-          const genrePromises = genres.map(async(genre: any) => {
-            const albumsPromise = this.$api.getAlbumsByGenre(genre.id, 15) // fetch albums
-            return albumsPromise.then((albums: Album[]) => ({
+          const createGenreWithAlbums = async(genre: any) => {
+            const albums = await this.$api.getAlbumsByGenre(genre.id, 15)
+            return {
               id: genre.id,
               name: genre.name,
               albumCount: genre.albumCount,
               albums,
-            }))
+            }
+          }
+          // Load first 3 genres
+          const firstBatch = genres.slice(0, 3)
+          const firstItems = await Promise.all(
+            firstBatch.map(createGenreWithAlbums)
+          )
+          // render immediately
+          this.items = firstItems
+          // Load the rest in background
+          const rest = genres.slice(3)
+          Promise.all(
+            rest.map(createGenreWithAlbums)
+          ).then((restItems) => {
+            this.items.push(...restItems)
           })
-          this.items = await Promise.all(genrePromises)
         } catch (error) {
           console.error('Failed to load genres or albums:', error)
         } finally {

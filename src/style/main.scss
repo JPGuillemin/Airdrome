@@ -194,6 +194,7 @@ a.active {
   box-shadow: none !important;
 }
 
-@import './nav-underlined';
+@import './nav';
 @import './custom';
+@import './custom-scroll';
 @import 'bootstrap/scss/bootstrap';

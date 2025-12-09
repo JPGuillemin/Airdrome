@@ -3,9 +3,9 @@
     <div class="header-wrapper">
       <Custom :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <div class="header-title-wrapper">
-          <h1 class="header-title">
+          <div class="header-title">
             {{ playlist.name }}
-          </h1>
+          </div>
         </div>
         <div class="header-info">
           <span class="text-nowrap">
