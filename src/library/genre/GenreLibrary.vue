@@ -1,8 +1,11 @@
 <template>
   <div class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">
-      <div class="main-title">
-        Genres
+      <div class="d-inline-flex align-items-center">
+        <Icon icon="genres" class="title-color me-2" />
+        <span class="main-title">
+          Genres
+        </span>
       </div>
       <ul class="nav adapt-text">
         <li>
@@ -26,10 +29,12 @@
         <div class="d-flex align-items-center justify-content-between">
           <router-link
             :to="{ name: 'genre', params: { id: item.id } }"
-            class="section-title d-inline-flex align-items-center"
+            class="d-inline-flex align-items-center"
           >
-            {{ item.name }} - {{ item.albumCount }}
-            <Icon icon="albums" class="ms-1" />
+            <span class="section-title">
+              {{ item.name }}  -  {{ item.albumCount }}
+            </span>
+            <Icon icon="albums" class="title-color xsmall ms-1" />
           </router-link>
           <b-button
             variant="transparent"

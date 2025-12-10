@@ -18,16 +18,11 @@
 }
 
 .main-title {
-  overflow: hidden;
   display: inline-block;
-  max-width: calc(100% - 160px - 1rem);
-  white-space: nowrap;;
   margin-block-start: 0.67em;
   margin-block-end: 0.67em;
   font-size: 1.5rem;
   line-height: 1.5;
-  min-width: 0;
-  flex-shrink: 1;
   color: var(--theme-text-muted);
   font-weight: 700;
 }
@@ -36,7 +31,7 @@
   overflow: hidden;
   display: inline-block;
   max-width: calc(100% - 160px - 1rem);
-  white-space: nowrap;;
+  white-space: nowrap;
   text-overflow: ellipsis;
   margin-block-start: 0.67em;
   margin-block-end: 0.67em;
@@ -56,17 +51,11 @@
 }
 
 .section-title {
-  overflow: hidden;
   display: inline-block;
-  max-width: calc(100% - 160px - 1rem);
-  white-space: nowrap;;
-  text-overflow: ellipsis;
   margin-block-start: 0.67em;
   margin-block-end: 0.67em;
-  font-size: 1.3rem;
-  line-height: 1.3;
-  min-width: 0;
-  flex-shrink: 1;
+  font-size: 1.2rem;
+  line-height: 1.2;
   color: var(--theme-text-muted);
   font-weight: 700;
 }
@@ -110,6 +99,10 @@
   .header-title {
     max-width: 220px;
     font-size: 1.2rem !important;
+  }
+  .section-title {
+    max-width: 220px;
+    font-size: 1.1rem !important;
   }
   .header-info-one {
     display: block;
@@ -163,4 +156,24 @@
 
 .bold {
   font-weight: 700;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.xsmall {
+  font-size: 0.6rem;
+}
+
+.primary-color {
+  color: var(--bs-primary);
+}
+
+.title-color {
+  color: var(--theme-text-muted);
+}
+
+.background-color {
+  background: var(--theme-elevation-1);
 }

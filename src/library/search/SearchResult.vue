@@ -2,8 +2,11 @@
   <div class="main-content">
     <div v-if="result.albums.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'album'}, query: $route.query}" class="text-muted">
-        <div class="section-title">
-          Albums
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="albums" class="title-color me-2" />
+          <span class="section-title">
+            Albums
+          </span>
         </div>
       </router-link>
       <AlbumList :items="result.albums" />
@@ -11,8 +14,11 @@
 
     <div v-if="result.artists.length > 0" class="pb-2 pt-3">
       <router-link v-if="!type" :to="{params: {type: 'artist'}, query: $route.query}" class="text-muted">
-        <div class="section-title">
-          Artists
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="artists" class="title-color me-2" />
+          <span class="section-title">
+            Artists
+          </span>
         </div>
       </router-link>
       <ArtistList :items="result.artists" />
@@ -20,8 +26,11 @@
 
     <div v-if="result.tracks.length > 0" class="pb-2 pt-3">
       <router-link :to="{params: {type: 'track'}, query: $route.query}" class="text-muted">
-        <div class="section-title">
-          Tracks
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="tracks" class="title-color me-2" />
+          <span class="section-title">
+            Tracks
+          </span>
         </div>
       </router-link>
       <TrackList :tracks="result.tracks" />

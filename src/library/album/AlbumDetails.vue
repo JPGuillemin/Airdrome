@@ -92,8 +92,11 @@
         :no-artist="true"
       />
       <div v-if="album.description" class="row">
-        <div class="section-title mt3">
-          Background info
+        <div class="d-inline-flex align-items-center mt3">
+          <Icon icon="info" class="title-color me-2" />
+          <span class="section-title">
+            Background info
+          </span>
         </div>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ album.description }}

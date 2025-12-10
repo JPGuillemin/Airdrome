@@ -1,8 +1,11 @@
 <template>
   <div class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">
-      <div class="main-title">
-        Albums
+      <div class="d-inline-flex align-items-center">
+        <Icon icon="albums" class="title-color me-2" />
+        <span class="main-title">
+          Albums
+        </span>
       </div>
       <ul class="nav adapt-text">
         <li>

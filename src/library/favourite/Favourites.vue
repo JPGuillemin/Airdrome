@@ -1,8 +1,11 @@
 <template>
   <div v-if="details" class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">
-      <div class="main-title">
-        Favourites
+      <div class="d-inline-flex align-items-center">
+        <Icon icon="heart" class="title-color me-2" />
+        <span class="main-title">
+          Favourites
+        </span>
       </div>
       <ul class="nav adapt-text">
         <li>

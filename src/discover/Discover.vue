@@ -15,43 +15,61 @@
     </div>
 
     <div v-if="result.playlists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'playlists' }" class="section-title">
-        Playlists
+      <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
+        <Icon icon="playlist" class="title-color me-2" />
+        <span class="section-title">
+          Playlists
+        </span>
       </router-link>
       <PlaylistList :items="result.playlists" allow-h-scroll />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="section-title">
-        Recently played
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
+        <Icon icon="recent" class="title-color me-2" />
+        <span class="section-title">
+          Recently played
+        </span>
       </router-link>
       <AlbumList :items="result.played" allow-h-scroll />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="section-title">
-        Fav artists
+      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
+        <Icon icon="heart" class="title-color me-2" />
+        <span class="section-title">
+          Fav artists
+        </span>
       </router-link>
       <ArtistList :items="result.favartists" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites' }" class="section-title">
-        Fav albums
+      <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
+        <Icon icon="heart" class="title-color me-2" />
+        <span class="section-title">
+          Fav albums
+        </span>
       </router-link>
       <AlbumList :items="result.favalbums" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="section-title">
-        Random
+      <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="d-inline-flex align-items-center">
+        <Icon icon="random" class="title-color me-2" />
+        <span class="section-title">
+          Random
+        </span>
       </router-link>
       <AlbumList :items="result.random" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="section-title">
-        Recently added
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
+        <Icon icon="new" class="title-color me-2" />
+        <span class="section-title">
+          Recently added
+        </span>
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />
     </div>

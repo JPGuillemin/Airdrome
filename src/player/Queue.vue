@@ -2,8 +2,11 @@
   <div class="main-content">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center my-3">
-      <div class="main-title">
-        Playing
+      <div class="d-inline-flex align-items-center">
+        <Icon icon="soundwave" class="title-color me-2" />
+        <span class="main-title">
+          Playing
+        </span>
       </div>
       <div>
         <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="play">

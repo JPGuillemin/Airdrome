@@ -61,8 +61,11 @@
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
         <div class="d-flex justify-content-between mt-3 mb-2">
-          <div ref="topTracks" class="section-title">
-            Top tracks
+          <div class="d-inline-flex align-items-center">
+            <Icon icon="tracks" class="title-color me-2" />
+            <span class="section-title">
+              Top tracks
+            </span>
           </div>
         </div>
         <TrackList
@@ -71,20 +74,29 @@
         />
       </template>
       <template v-if="artist.albums.length > 0">
-        <div class="section-title">
-          Albums
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="albums" class="title-color me-2" />
+          <span class="section-title">
+            Albums
+          </span>
         </div>
         <AlbumList :items="artist.albums" allow-h-scroll />
       </template>
       <template v-if="artist.similarArtist.length > 0">
-        <div ref="similarArtists" class="section-title mt-3">
-          Similar artists
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="artists" class="title-color me-2" />
+          <span class="section-title">
+            Similar artists
+          </span>
         </div>
         <ArtistList :items="artist.similarArtist" :tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.description">
-        <div class="section-title mt-3">
-          Background info
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="info" class="title-color me-2" />
+          <span class="section-title">
+            Background info
+          </span>
         </div>
         <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
           {{ artist.description }}
