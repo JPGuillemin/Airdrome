@@ -73,6 +73,16 @@
       </router-link>
       <AlbumList :items="result.recent" allow-h-scroll />
     </div>
+
+    <div v-if="result.recent.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'most-played' } }" class="d-inline-flex align-items-center">
+        <Icon icon="most" class="title-color me-2" />
+        <span class="section-title">
+          Most Played
+        </span>
+      </router-link>
+      <AlbumList :items="result.most" allow-h-scroll />
+    </div>
   </div>
 </template>
 
@@ -97,6 +107,7 @@
           recent: [] as Album[],
           played: [] as Album[],
           random: [] as Album[],
+          most: [] as Album[],
           favalbums: [] as Album[],
           favartists: [] as Artist[],
           genres: [] as Genre[],
@@ -114,31 +125,37 @@
     },
     methods: {
       async fetchData() {
-        const size = 15
         if (this.loading) return
         this.loading = true
+        const size = 15
         try {
-          const [recent, played, random, favourites, genres, playlists] = await Promise.all([
-            this.$api.getAlbums('recently-added', size),
-            this.$api.getAlbums('recently-played', size),
-            this.$api.getAlbums('random', size),
-            this.$api.getFavourites(),
-            this.$api.getGenres(),
-            this.$api.getPlaylists(),
-          ])
-
-          const genreNames = genres.map((genre: Genre) => ({
-            ...genre,
-            id: genre.name,
-          }))
-
-          this.result.recent = recent
-          this.result.played = played
-          this.result.random = random
-          this.result.favalbums = favourites.albums.slice(0, size)
-          this.result.favartists = favourites.artists.slice(0, size)
-          this.result.genres = orderBy(genreNames, 'albumCount', 'desc')
+          const playlists = await this.$api.getPlaylists()
           this.result.playlists = playlists.slice(0, size)
+          // Priority 2: RECENTLY PLAYED (background, but near-top)
+          this.$api.getAlbums('recently-played', size).then(played => {
+            this.result.played = played
+          })
+          this.$api.getFavourites().then(favourites => {
+            this.result.favartists = favourites.artists.slice(0, size)
+            // Priority 5 (depends on same API): FAVOURITE ALBUMS
+            this.result.favalbums = favourites.albums.slice(0, size)
+          })
+          this.$api.getGenres().then(genres => {
+            const genreNames = genres.map((genre: Genre) => ({
+              ...genre,
+              id: genre.name,
+            }))
+            this.result.genres = orderBy(genreNames, 'albumCount', 'desc')
+          })
+          this.$api.getAlbums('random', size).then(random => {
+            this.result.random = random
+          })
+          this.$api.getAlbums('recently-added', size).then(recent => {
+            this.result.recent = recent
+          })
+          this.$api.getAlbums('most-played', size).then(most => {
+            this.result.most = most
+          })
         } finally {
           this.loading = false
         }
