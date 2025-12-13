@@ -105,6 +105,10 @@
       }
 
       const deletePlaylist = (id: string) => {
+        const userConfirmed = window.confirm(
+          'About to remove playlist...\nContinue?'
+        )
+        if (!userConfirmed) return
         store.delete(id)
       }
 

@@ -42,7 +42,7 @@
           >
             <Icon icon="reload" />
           </b-button>
-          <OverflowMenu direction="up" variant="transparent">
+          <OverflowMenu direction="up" variant="transparent" @click.stop>
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"
@@ -57,7 +57,7 @@
               variant="danger"
               :disabled="playlist.isReadOnly"
               class="on-top"
-              @click="deletePlaylist()"
+              @click.stop.prevent="deletePlaylist()"
             >
               Delete
             </DropdownItem>
@@ -226,6 +226,10 @@
       },
 
       deletePlaylist() {
+        const userConfirmed = window.confirm(
+          'About to remove playlist...\nContinue?'
+        )
+        if (!userConfirmed) return
         return this.playlistStore.delete(this.id).then(() => {
           this.$router.replace({ name: 'playlists' })
         })

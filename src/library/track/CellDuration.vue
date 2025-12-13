@@ -16,19 +16,20 @@
   import { defineComponent, computed, ref, watchEffect, onMounted, onUnmounted } from 'vue'
   import Icon from '@/shared/components/Icon.vue'
   import { Track } from '@/shared/api'
+  import { useCacheStore } from '@/player/cache'
 
   export default defineComponent({
     components: { Icon },
     props: { track: { type: Object as () => Track, required: true } },
     setup(props) {
       const isCached = ref(false)
+      const cacheStore = useCacheStore()
 
       // Re-check whenever track.url changes
       watchEffect(async() => {
         const url = props.track?.url
         if (!url) return (isCached.value = false)
-        const cache = await caches.open('airdrome-cache-v2')
-        isCached.value = !!(await cache.match(url))
+        isCached.value = await cacheStore.hasTrack(url)
       })
 
       // Event-based cache update
@@ -40,6 +41,17 @@
           }
         }
         window.addEventListener('audioCached', handler)
+
+        const clearHandler = async() => {
+          const url = props.track?.url
+          if (!url) {
+            isCached.value = false
+            return
+          }
+          isCached.value = await cacheStore.hasTrack(url)
+        }
+
+        window.addEventListener('audioCacheClearedAll', clearHandler)
 
         // Cleanup
         onUnmounted(() => {

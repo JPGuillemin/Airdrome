@@ -1,31 +1,28 @@
 <template>
-  <div>
-    <div v-if="visible" class="modal-overlay" @click="$emit('close')" />
-    <div v-if="visible" class="modal-dialog p-3">
-      <div class="d-flex justify-content-center mb-3">
-        <img width="100" height="100" src="@/shared/assets/logo.svg">
-      </div>
-      <div class="text-center">
-        <ExternalLink :href="url">
-          GitHub <Icon icon="link" />
-        </ExternalLink>
-        <p>Licensed under the AGPLv3 license.</p>
-        <div>Build: {{ build }}</div>
-        <div>Build date: {{ buildDate }}</div>
+  <div v-if="visible" class="modal-dialog p-3" @click.stop>
+    <div class="d-flex justify-content-center mb-3">
+      <img width="100" height="100" src="@/shared/assets/logo.svg">
+    </div>
+    <div class="text-center" @click.stop>
+      <ExternalLink :href="url">
+        {{ url }}
+      </ExternalLink>
+      <p>Licensed under the AGPLv3 license.</p>
+      <div>Build: {{ build }}</div>
+      <div>Build date: {{ buildDate }}</div>
 
-        <div class="mt-4">
-          <div>Server name: {{ auth.serverInfo?.name }}</div>
-          <div>Server version: {{ auth.serverInfo?.version }}</div>
-          <div>
-            Server URL:
-            <ExternalLink :href="auth.server">
-              {{ auth.server }}
-            </ExternalLink>
-          </div>
-          <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
-          <div v-if="auth.serverInfo?.openSubsonic">
-            OpenSubsonic extensions: {{ auth.serverInfo?.extensions?.join(', ') }}
-          </div>
+      <div class="mt-4">
+        <div>Server name: {{ auth.serverInfo?.name }}</div>
+        <div>Server version: {{ auth.serverInfo?.version }}</div>
+        <div>
+          Server URL:
+          <ExternalLink :href="auth.server">
+            {{ auth.server }}
+          </ExternalLink>
+        </div>
+        <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
+        <div v-if="auth.serverInfo?.openSubsonic">
+          OpenSubsonic extensions: {{ auth.serverInfo?.extensions?.join(', ') }}
         </div>
       </div>
     </div>
@@ -40,7 +37,6 @@
     props: {
       visible: { type: Boolean, required: true },
     },
-    emits: ['close'],
     setup() {
       const auth = useAuth()
       const url = 'https://github.com/JPGuillemin/Airdrome'
@@ -58,16 +54,6 @@
 </script>
 
 <style scoped>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-  }
-
   .modal-dialog {
     position: fixed;
     top: 50%;

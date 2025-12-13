@@ -1,8 +1,5 @@
 <template>
   <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
-    <Teleport to="body">
-      <ConfirmDialog ref="confirmDialog" />
-    </Teleport>
     <div class="d-flex align-items-center">
       <button
         class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
@@ -106,8 +103,9 @@
           </DropdownItem>
         </Dropdown>
       </template>
+      <div v-if="showAboutModal" class="modal-overlay" @click="showAboutModal = false" />
       <Teleport to="body">
-        <About :visible="showAboutModal" @close="showAboutModal = false" />
+        <About :visible="showAboutModal" />
       </Teleport>
     </div>
   </div>
@@ -121,19 +119,16 @@
   import { useAuth } from '@/auth/service'
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
-  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { useCacheStore } from '@/player/cache'
 
   export default defineComponent({
     components: {
       About,
       SearchForm,
-      ConfirmDialog
     },
     setup() {
       const store = useMainStore()
       const auth = useAuth()
-      const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 
       const colors = inject('themeColors') as { name: string; value: string }[]
       const currentColor = ref(
@@ -163,11 +158,11 @@
         localStorage.setItem('streamQuality', String(value))
       }
 
-      const albumCache = useCacheStore()
+      const cacheStore = useCacheStore()
       const cacheSize = ref(0)
 
       async function updateCacheSize() {
-        cacheSize.value = await albumCache.getCacheSizeGB()
+        cacheSize.value = await cacheStore.getCacheSizeGB()
       }
       updateCacheSize()
 
@@ -177,13 +172,13 @@
 
       return {
         store,
+        cacheStore,
         auth,
         colors,
         currentColor,
         setStreamQuality,
         streamQuality,
         setTheme,
-        confirmDialog,
         cacheSize,
         updateCacheSize,
       }
@@ -207,8 +202,6 @@
             await sleep(1000)
             scanning = await this.$api.getScanStatus()
           } while (scanning)
-
-          // Refresh page
           this.$router.replace({
             name: this.$route.name as string,
             params: { ...(this.$route.params || {}) },
@@ -219,22 +212,21 @@
           this.isScanning = false
         }
       },
-      async clearAllCache() {
+      async clearAllCache(event: MouseEvent) {
+        event.preventDefault()
+        event.stopPropagation()
         try {
-          const dialog = this.$refs.confirmDialog as InstanceType<typeof ConfirmDialog>
-          const userConfirmed = await dialog.open(
-            'Clear all cache?',
-            'This will delete all cached audio files. Continue?'
+          const userConfirmed = window.confirm(
+            'About to delete all cached audio files...\nContinue?'
           )
           if (!userConfirmed) return
           const loader = useLoader()
           loader.showLoading()
-          const success = await caches.delete('airdrome-cache-v2')
+          const success = await this.cacheStore.clearAllAudioCache()
+          console.info(`is Success: "${success}"`)
           if (success) {
             console.info('All audio cache cleared successfully.')
-            // alert('All cached audio files have been deleted.')
             window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
-            // Refresh page
             this.$router.replace({
               name: this.$route.name as string,
               params: { ...(this.$route.params || {}) },
@@ -289,5 +281,15 @@
   .btn-outline-primary.active {
     background-color: rgba(var(--bs-primary-rgb), 0.15);
     border-color: var(--bs-primary);
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
   }
 </style>

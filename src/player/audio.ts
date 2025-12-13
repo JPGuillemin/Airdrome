@@ -22,7 +22,7 @@ export class AudioController {
   private statsListener : any = null
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
-
+  private cachingQueue: Promise<void> = Promise.resolve()
   private context = new AudioContext()
   private pipeline = creatPipeline(this.context, {})
 
@@ -48,49 +48,28 @@ export class AudioController {
   }
 
   async setCache(url: string) {
-    try {
-      const albumCache = useCacheStore()
-      await albumCache.cacheTrack(url)
-    } catch (err) {
-      console.warn('setCache(): failed', url, err)
-    }
+    this.cachingQueue = this.cachingQueue
+      .catch(() => {})
+      .then(async() => {
+        try {
+          const albumCache = useCacheStore()
+          await albumCache.cacheTrack(url)
+          window.dispatchEvent(new CustomEvent('audioCached', { detail: url }))
+        } catch (err) {
+          console.warn('setCache(): failed', url, err)
+        }
+      })
+    return this.cachingQueue
   }
 
-  async setBuffer(url: string, sleeptime = 0) {
-    if (sleeptime > 0) await sleep(sleeptime)
+  async setBuffer(url: string) {
     this.buffer = null
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
     this.buffer.src = url // start streaming immediately
-
     this.setCache(url)
-
     try { this.buffer.load() } catch { /* ignore */ }
-  }
-
-  async clearCache() {
-    try {
-      const success = await caches.delete('airdrome-cache-v2')
-      if (success) {
-        console.info('clearCache(): All cached audio files deleted.')
-        const cacheClearedEvent = new CustomEvent('audioCacheCleared')
-        window.dispatchEvent(cacheClearedEvent)
-      } else {
-        console.warn('clearCache(): No cache found or failed to delete.')
-      }
-    } catch (err) {
-      console.error('clearCache(): Error clearing cache:', err)
-    }
-  }
-
-  async deleteCacheEntry(url: string) {
-    try {
-      const albumCache = useCacheStore()
-      await albumCache.deleteTrack(url)
-    } catch (err) {
-      console.warn('deleteCacheEntry(): failed', url, err)
-    }
   }
 
   setVolume(value: number) {
@@ -149,31 +128,19 @@ export class AudioController {
 
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
+    this.setBuffer(options.url!)
     let pipeline: ReturnType<typeof creatPipeline> | undefined
-    let buffered = false
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
 
     this.replayGain = options.replayGain || null
-
-    if (this.buffer && this.buffer.src === options.url) {
-      buffered = true
-      console.info('loadTrack(): Using pre-buffer for ', options.url)
-      pipeline = creatPipeline(this.context, {
-        audio: this.buffer,
-        volume: this.pipeline.volumeNode.gain.value,
-        replayGain: this.replayGainFactor(),
-      })
-    } else {
-      console.info('loadTrack(): Fetching cache or server for ', options.url)
-      this.setCache(options.url!)
-      pipeline = creatPipeline(this.context, {
-        url: options.url,
-        volume: this.pipeline.volumeNode.gain.value,
-        replayGain: this.replayGainFactor(),
-      })
-    }
+    console.info('loadTrack(): Launching pipeline for ', options.url)
+    pipeline = creatPipeline(this.context, {
+      audio: this.buffer!,
+      volume: this.pipeline.volumeNode.gain.value,
+      replayGain: this.replayGainFactor(),
+    })
 
     if (token === this.changeToken) {
       this.pipeline.disconnect()
@@ -208,11 +175,7 @@ export class AudioController {
         }
       }
       if (options.nextUrl) {
-        if (buffered) {
-          this.setBuffer(options.nextUrl, 0)
-        } else {
-          this.setBuffer(options.nextUrl, 10000)
-        }
+        this.setCache(options.nextUrl)
         console.info('loadTrack(): buffering ', options.nextUrl)
       }
     } else {
@@ -282,17 +245,12 @@ export class AudioController {
 
 function creatPipeline(
   context: AudioContext,
-  options: { url?: string; audio?: HTMLAudioElement; volume?: number; replayGain?: number }
+  options: { audio?: HTMLAudioElement; volume?: number; replayGain?: number }
 ) {
   let audio: HTMLAudioElement
 
   if (options.audio) {
     audio = options.audio
-  } else if (options.url) {
-    audio = new Audio()
-    audio.crossOrigin = 'anonymous'
-    audio.preload = 'auto'
-    audio.src = options.url! // start streaming immediately
   } else {
     audio = new Audio()
   }

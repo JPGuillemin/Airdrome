@@ -120,7 +120,13 @@
       remove(index: number) {
         this.playerStore.removeFromQueue(index)
       },
-      clear() {
+      clear(event: Event) {
+        event.preventDefault()
+        event.stopPropagation()
+        const userConfirmed = window.confirm(
+          'About to clear the play queue...\nContinue?'
+        )
+        if (!userConfirmed) return
         this.playerStore.clearQueue()
       },
       shuffle() {

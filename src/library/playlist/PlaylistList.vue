@@ -38,7 +38,7 @@
           v-if="isPlaylistView"
           icon="trash"
           class="on-top"
-          @click="$emit('remove-playlist', item.id)"
+          @click.stop.prevent="$emit('remove-playlist', item.id)"
         >
           Remove
         </DropdownItem>
@@ -80,10 +80,6 @@
         this.playerStore.setShuffle(false)
         const playlist = await this.$api.getPlaylist(id)
         return this.playerStore.playTrackList(playlist.tracks!)
-      },
-      removePlaylist(id: string) {
-        if (!confirm('Are you sure you want to delete this playlist?')) return
-        this.$emit('remove-playlist', id)
       },
     },
   })

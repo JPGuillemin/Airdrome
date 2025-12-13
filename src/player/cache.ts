@@ -2,15 +2,6 @@ import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
-/*
-  Refactored cache store with:
-  - O(1) metadata updates (no getAll / no cache.keys scans)
-  - FIFO eviction using an `order` field (append-only)
-  - A small `meta` object store to track `totalBytes` and `nextOrder`
-  - No feature loss: events, cancelation, per-album operations preserved
-  - Lint-clean, strict indentation, drop-in replacement for the original file
-*/
-
 const CACHE_NAME = 'airdrome-cache-v2'
 const META_DB_NAME = 'airdrome-cache-meta'
 const META_STORE_NAME = 'entries'
@@ -84,27 +75,6 @@ async function getMetaInfo(): Promise<MetaInfo> {
     const req = store.get('meta')
     req.onsuccess = () => resolve((req.result as MetaInfo) || { id: 'meta', totalBytes: 0, nextOrder: 1 })
     req.onerror = () => resolve({ id: 'meta', totalBytes: 0, nextOrder: 1 })
-  })
-}
-
-async function putMetaInfo(info: MetaInfo) {
-  const db = await openMetaDB()
-  return new Promise(resolve => {
-    const tx = db.transaction(META_INFO_STORE_NAME, 'readwrite')
-    tx.objectStore(META_INFO_STORE_NAME).put(info)
-    tx.oncomplete = () => resolve(undefined)
-    tx.onerror = () => resolve(undefined)
-  })
-}
-
-async function getMetaEntry(url: string): Promise<MetaEntry | undefined> {
-  const db = await openMetaDB()
-  return new Promise(resolve => {
-    const tx = db.transaction(META_STORE_NAME, 'readonly')
-    const store = tx.objectStore(META_STORE_NAME)
-    const req = store.get(url)
-    req.onsuccess = () => resolve(req.result as MetaEntry | undefined)
-    req.onerror = () => resolve(undefined)
   })
 }
 
@@ -263,6 +233,12 @@ export const useCacheStore = defineStore('albumCache', {
   }),
 
   actions: {
+    async hasTrack(url: string): Promise<boolean> {
+      if (!url) return false
+      const cache = await caches.open(CACHE_NAME)
+      return !!(await cache.match(url))
+    },
+
     async cacheTrack(url: string) {
       if (!url) return
       try {
@@ -308,6 +284,14 @@ export const useCacheStore = defineStore('albumCache', {
       } catch (err) {
         console.warn(`[Cache] Error deleting track ${url}:`, err)
       }
+    },
+
+    async clearAllAudioCache() {
+      await caches.delete('airdrome-cache-v2')
+      indexedDB.deleteDatabase('airdrome-cache-meta')
+      window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
+      console.info('[Cache] Cache deleted')
+      return true
     },
 
     async cacheAlbum(album: Album) {
