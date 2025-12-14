@@ -111,7 +111,7 @@
         if (!confirmDialog.value) return
 
         const userConfirmed = await confirmDialog.value.open(
-          'Clear the play queue?',
+          'Clear the play queue',
           'About to clear the play queue : continue?'
         )
         if (!userConfirmed) return

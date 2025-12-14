@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <ConfirmDialog ref="confirmDialog" />
     <div class="d-flex justify-content-between align-items-center my-3">
       <div class="d-inline-flex align-items-center">
         <Icon icon="playlist" class="title-color me-2" />
@@ -58,6 +59,7 @@
   import Icon from '@/shared/components/Icon.vue'
   import { BButton } from 'bootstrap-vue-3'
   import type { Playlist } from '@/shared/api'
+  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
 
   export default defineComponent({
     components: {
@@ -65,6 +67,7 @@
       Icon,
       BButton,
       EditPlaylistModal,
+      ConfirmDialog,
     },
 
     props: {
@@ -76,7 +79,7 @@
 
       const showAddModal = ref(false)
       const editingPlaylist = ref<Playlist | null>(null)
-
+      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const items = computed(() =>
         props.sort === 'a-z'
           ? orderBy(store.playlists, 'name')
@@ -105,9 +108,12 @@
         closeModal()
       }
 
-      const deletePlaylist = (id: string) => {
-        const userConfirmed = window.confirm(
-          'About to remove playlist...\nContinue?'
+      const deletePlaylist = async(id: string) => {
+        if (!confirmDialog.value) return
+
+        const userConfirmed = await confirmDialog.value.open(
+          'Remove',
+          'About to remove playlist : continue?'
         )
         if (!userConfirmed) return
         store.delete(id)
@@ -129,6 +135,7 @@
         showAddModal,
         editingPlaylist,
         closeModal,
+        confirmDialog,
         loading: computed(() => store.playlists === null),
       }
     },

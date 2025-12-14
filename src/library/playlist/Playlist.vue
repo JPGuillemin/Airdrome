@@ -1,5 +1,6 @@
 <template>
   <div v-if="playlist" class="main-content">
+    <ConfirmDialog ref="confirmDialog" />
     <div class="header-wrapper">
       <Custom :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
         <div class="header-title-wrapper">
@@ -115,6 +116,8 @@
   import { useLoader } from '@/shared/loader'
   import { formatDuration } from '@/shared/utils'
   import { BButton } from 'bootstrap-vue-3'
+  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import { useRouter, useRoute } from 'vue-router'
 
   export default defineComponent({
     components: {
@@ -128,6 +131,7 @@
       Icon,
       Custom,
       BButton,
+      ConfirmDialog,
     },
     props: { id: { type: String, required: true } },
 
@@ -141,9 +145,11 @@
       const hasMore = ref(true)
       const loadingTracks = ref(false)
       const showEditModal = ref(false)
-
+      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const api = inject('$api') as any
       const loader = useLoader()
+      const router = useRouter()
+      const route = useRoute()
 
       const appendNextChunk = () => {
         if (!playlist.value?.tracks) return
@@ -197,19 +203,23 @@
 
       const reloadPlaylist = async() => {
         await fetchPlaylist(props.id)
-        api.$router.replace({
-          name: api.$route.name as string,
-          params: { ...(api.$route.params || {}) },
-          query: { ...(api.$route.query || {}), t: Date.now().toString() },
+        router.replace({
+          name: route.name as string,
+          params: { ...route.params },
+          query: { ...route.query, t: Date.now().toString() },
         })
       }
 
-      const deletePlaylist = () => {
-        const userConfirmed = window.confirm('About to remove playlist...\nContinue?')
+      const deletePlaylist = async() => {
+        if (!confirmDialog.value) return
+
+        const userConfirmed = await confirmDialog.value.open(
+          'Remove',
+          'About to remove playlist : continue?'
+        )
         if (!userConfirmed) return
-        return playlistStore.delete(props.id).then(() => {
-          api.$router.replace({ name: 'playlists' })
-        })
+        await playlistStore.delete(props.id)
+        router.replace({ name: 'playlists' })
       }
 
       const openEditModal = () => {
@@ -231,7 +241,6 @@
         playlistStore,
         playerStore,
         formatDuration,
-
         playlist,
         visibleTracks,
         nextIndex,
@@ -239,7 +248,7 @@
         hasMore,
         loadingTracks,
         showEditModal,
-
+        confirmDialog,
         appendNextChunk,
         loadMore,
         playNow,

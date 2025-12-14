@@ -1,111 +1,114 @@
 <template>
-  <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
-    <div class="d-flex align-items-center">
-      <button
-        class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
-        @click="store.showMenu"
-      >
-        <img width="36" height="36" src="@/shared/assets/logo.svg">
-      </button>
-      <router-link
-        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
-        :to="{ name: 'home' }"
-        title="Home panel"
-        :exact="true"
-      >
-        <Icon icon="home" class="nav-icon nav-link" />
-      </router-link>
-      <router-link
-        class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
-        :to="{ name: 'queue' }"
-        title="Playing"
-        :exact="true"
-      >
-        <Icon icon="soundwave" class="nav-icon nav-link" />
-      </router-link>
-      <button
-        class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2 d-none d-md-inline"
-        title="Go back"
-        @click="$router.back()"
-      >
-        <Icon icon="goback" class="nav-icon nav-link" />
-      </button>
-    </div>
+  <div>
+    <ConfirmDialog ref="confirmDialog" />
+    <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
+      <div class="d-flex align-items-center">
+        <button
+          class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
+          @click="store.showMenu"
+        >
+          <img width="36" height="36" src="@/shared/assets/logo.svg">
+        </button>
+        <router-link
+          class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
+          :to="{ name: 'home' }"
+          title="Home panel"
+          :exact="true"
+        >
+          <Icon icon="home" class="nav-icon nav-link" />
+        </router-link>
+        <router-link
+          class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
+          :to="{ name: 'queue' }"
+          title="Playing"
+          :exact="true"
+        >
+          <Icon icon="soundwave" class="nav-icon nav-link" />
+        </router-link>
+        <button
+          class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2 d-none d-md-inline"
+          title="Go back"
+          @click="$router.back()"
+        >
+          <Icon icon="goback" class="nav-icon nav-link" />
+        </button>
+      </div>
 
-    <div class="d-flex align-items-center">
-      <SearchForm class="flex-grow-1 flex-md-grow-0 mx-2" />
-      <template v-if="store.username">
-        <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
-          <template #button-content>
-            <Icon icon="gear" color="var(--theme-elevation-4)" />
-          </template>
-          <div class="px-3 py-1 small">
-            {{ store.username }}
-          </div>
-          <hr class="dropdown-divider">
-          <div class="on-top px-3 py-2">
-            <div class=" small mb-1">
-              Theme color
+      <div class="d-flex align-items-center">
+        <SearchForm class="flex-grow-1 flex-md-grow-0 mx-2" />
+        <template v-if="store.username">
+          <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
+            <template #button-content>
+              <Icon icon="gear" color="var(--theme-elevation-4)" />
+            </template>
+            <div class="px-3 py-1 small">
+              {{ store.username }}
             </div>
-            <div class="d-flex gap-2">
-              <button
-                v-for="color in colors"
-                :key="color.value"
-                class="theme-swatch"
-                :style="{
-                  backgroundColor: color.value,
-                  border: currentColor === color.value ? '2px solid #333' : '1px solid #ccc'
-                }"
-                :title="color.name"
-                @click="setTheme(color.value)"
-              />
-            </div>
-          </div>
-          <hr class="dropdown-divider">
-          <div class="on-top px-3 py-2">
-            <div class=" small mb-1">
-              Stream quality
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-              <button
-                v-for="option in [
-                  { icon: 'music-note', value: 128, shade: 0.6 },
-                  { icon: 'music-note', value: 192, shade: 0.9 },
-                  { icon: 'music-note-beamed', value: 1000, shade: 0.9 }
-                ]"
-                :key="option.value"
-                class="btn btn-sm"
-                :class="streamQuality === option.value ? 'btn-outline-primary active' : 'btn-outline-secondary'"
-                @click="setStreamQuality(option.value)"
-              >
-                <Icon
-                  :icon="option.icon"
-                  :style="{ color: `rgba(var(--bs-primary-rgb), ${option.shade})` }"
+            <hr class="dropdown-divider">
+            <div class="on-top px-3 py-2">
+              <div class=" small mb-1">
+                Theme color
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  v-for="color in colors"
+                  :key="color.value"
+                  class="theme-swatch"
+                  :style="{
+                    backgroundColor: color.value,
+                    border: currentColor === color.value ? '2px solid #333' : '1px solid #ccc'
+                  }"
+                  :title="color.name"
+                  @click="setTheme(color.value)"
                 />
-              </button>
+              </div>
             </div>
-          </div>
-          <hr class="dropdown-divider">
-          <div class="on-top px-3 py-2 text-muted small">
-            Cache size: {{ cacheSize }} GB
-          </div>
-          <DropdownItem class="on-top small" @click="scan">
-            Refresh content<Icon icon="refresh" class="me-1" />
-          </DropdownItem>
-          <DropdownItem class="on-top small" @click="clearAllCache">
-            Clear cache<Icon icon="trash" class="me-1" />
-          </DropdownItem>
-          <DropdownItem class="on-top small" @click="logout">
-            Log out<Icon icon="logout" class="me-1" />
-          </DropdownItem>
-          <DropdownItem class="on-top small" @click="showAboutModal = true">
-            About<Icon icon="info" class="me-1" />
-          </DropdownItem>
-        </Dropdown>
-      </template>
-      <Teleport to="body">
-        <About :visible="showAboutModal" @close="showAboutModal = false" />
-      </Teleport>
+            <hr class="dropdown-divider">
+            <div class="on-top px-3 py-2">
+              <div class=" small mb-1">
+                Stream quality
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button
+                  v-for="option in [
+                    { icon: 'music-note', value: 128, shade: 0.6 },
+                    { icon: 'music-note', value: 192, shade: 0.9 },
+                    { icon: 'music-note-beamed', value: 1000, shade: 0.9 }
+                  ]"
+                  :key="option.value"
+                  class="btn btn-sm"
+                  :class="streamQuality === option.value ? 'btn-outline-primary active' : 'btn-outline-secondary'"
+                  @click="setStreamQuality(option.value)"
+                >
+                  <Icon
+                    :icon="option.icon"
+                    :style="{ color: `rgba(var(--bs-primary-rgb), ${option.shade})` }"
+                  />
+                </button>
+              </div>
+            </div>
+            <hr class="dropdown-divider">
+            <div class="on-top px-3 py-2 text-muted small">
+              Cache size: {{ cacheSize }} GB
+            </div>
+            <DropdownItem class="on-top small" @click="scan">
+              Refresh content<Icon icon="refresh" class="me-1" />
+            </DropdownItem>
+            <DropdownItem class="on-top small" @click="clearAllCache">
+              Clear cache<Icon icon="trash" class="me-1" />
+            </DropdownItem>
+            <DropdownItem class="on-top small" @click="logout">
+              Log out<Icon icon="logout" class="me-1" />
+            </DropdownItem>
+            <DropdownItem class="on-top small" @click="showAboutModal = true">
+              About<Icon icon="info" class="me-1" />
+            </DropdownItem>
+          </Dropdown>
+        </template>
+        <Teleport to="body">
+          <About :visible="showAboutModal" @close="showAboutModal = false" />
+        </Teleport>
+      </div>
     </div>
   </div>
 </template>
@@ -121,11 +124,13 @@
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
   import { useCacheStore } from '@/player/cache'
+  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
 
   export default defineComponent({
     components: {
       About,
       SearchForm,
+      ConfirmDialog,
     },
     setup() {
       const store = useMainStore()
@@ -134,7 +139,7 @@
 
       const router = useRouter()
       const route = useRoute()
-
+      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const { proxy } = getCurrentInstance()!
       const api = proxy!.$api as {
         scan(): Promise<void>
@@ -218,12 +223,12 @@
         }
       }
 
-      async function clearAllCache(event: MouseEvent) {
-        event.preventDefault()
-        event.stopPropagation()
+      async function clearAllCache() {
+        if (!confirmDialog.value) return
 
-        const userConfirmed = window.confirm(
-          'About to delete all cached audio files...\nContinue?'
+        const userConfirmed = await confirmDialog.value.open(
+          'Delete cache',
+          'About to delete all cached audio files : continue?'
         )
         if (!userConfirmed) return
 
@@ -270,6 +275,7 @@
         scan,
         clearAllCache,
         logout,
+        confirmDialog,
       }
     },
   })
