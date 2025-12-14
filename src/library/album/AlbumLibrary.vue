@@ -35,7 +35,7 @@
         </li>
       </ul>
     </div>
-    <AlbumList :items="albums" :allow-h-scroll="false" />
+    <AlbumList :items="albums" tile-size="120" :allow-h-scroll="false" />
     <EmptyIndicator v-if="!loading && albums.length === 0" />
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>

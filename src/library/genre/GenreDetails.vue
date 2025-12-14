@@ -9,7 +9,7 @@
       </b-button>
     </div>
     <InfiniteList v-slot="{ items }" key="albums" :load="loadAlbums">
-      <AlbumList :items="items" />
+      <AlbumList :items="items" tile-size="120" />
     </InfiniteList>
   </div>
 </template>

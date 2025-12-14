@@ -20,7 +20,7 @@
         </li>
       </ul>
     </div>
-    <ArtistList :items="visibleArtists" :allow-h-scroll="false" />
+    <ArtistList :items="visibleArtists" tile-size="120" :allow-h-scroll="false" />
     <EmptyIndicator v-if="!loading && visibleArtists.length === 0" />
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>

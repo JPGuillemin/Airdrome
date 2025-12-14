@@ -45,7 +45,7 @@
             <Icon icon="radio" />
           </b-button>
         </div>
-        <AlbumList :items="item.albums" allow-h-scroll />
+        <AlbumList :items="item.albums" tile-size="80" allow-h-scroll />
       </div>
     </div>
   </div>
@@ -100,11 +100,11 @@
               albums,
             }
           }
-          const firstBatch = genres.slice(0, 3)
+          const firstBatch = genres.slice(0, 4)
           const firstItems = await Promise.all(firstBatch.map(createGenreWithAlbums))
           items.value = firstItems
 
-          const rest = genres.slice(3)
+          const rest = genres.slice(4)
           Promise.all(rest.map(createGenreWithAlbums)).then(restItems => {
             items.value.push(...restItems)
           })

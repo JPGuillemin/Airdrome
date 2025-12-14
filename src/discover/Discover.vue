@@ -21,7 +21,7 @@
           Playlists
         </span>
       </router-link>
-      <PlaylistList :items="result.playlists" allow-h-scroll />
+      <PlaylistList :items="result.playlists" tile-size="120" allow-h-scroll />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
@@ -31,7 +31,7 @@
           Recently played
         </span>
       </router-link>
-      <AlbumList :items="result.played" allow-h-scroll />
+      <AlbumList :items="result.played" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
@@ -41,7 +41,7 @@
           Fav artists
         </span>
       </router-link>
-      <ArtistList :items="result.favartists" allow-h-scroll />
+      <ArtistList :items="result.favartists" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
@@ -51,7 +51,7 @@
           Fav albums
         </span>
       </router-link>
-      <AlbumList :items="result.favalbums" allow-h-scroll />
+      <AlbumList :items="result.favalbums" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="section-wrapper">
@@ -61,7 +61,7 @@
           Random
         </span>
       </router-link>
-      <AlbumList :items="result.random" allow-h-scroll />
+      <AlbumList :items="result.random" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
@@ -71,7 +71,7 @@
           Recently added
         </span>
       </router-link>
-      <AlbumList :items="result.recent" allow-h-scroll />
+      <AlbumList :items="result.recent" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
@@ -81,7 +81,7 @@
           Most Played
         </span>
       </router-link>
-      <AlbumList :items="result.most" allow-h-scroll />
+      <AlbumList :items="result.most" tile-size="90" allow-h-scroll />
     </div>
   </div>
 </template>
