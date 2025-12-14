@@ -106,7 +106,7 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, onMounted, inject } from 'vue'
+  import { defineComponent, ref, onMounted, inject, computed } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
@@ -137,7 +137,7 @@
       const api = inject('$api') as any
       const loader = useLoader()
 
-      const isFavourite = () => favouriteStore.get('artist', props.id)
+      const isFavourite = computed(() => favouriteStore.get('artist', props.id))
 
       const shuffleNow = async() => {
         loader.showLoading()
