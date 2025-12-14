@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <ConfirmDialog ref="confirmDialog" />
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center my-3">
       <div class="d-inline-flex align-items-center">
@@ -55,11 +56,12 @@
   import { usePlayerStore } from '@/player/store'
   import TrackList from '@/library/track/TrackList.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
-
+  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   export default defineComponent({
     components: {
       TrackList,
       EmptyIndicator,
+      ConfirmDialog,
     },
     setup() {
       const playerStore = usePlayerStore()
@@ -69,7 +71,7 @@
       const chunkSize = ref(20)
       const nextIndex = ref(0)
       const hasMore = ref(true)
-
+      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const allTracks = computed(() => playerStore.queue)
       const queueIndex = computed(() => playerStore.queueIndex)
 
@@ -105,11 +107,12 @@
         playerStore.removeFromQueue(index)
       }
 
-      function clear(event: Event) {
-        event.preventDefault()
-        event.stopPropagation()
-        const userConfirmed = window.confirm(
-          'About to clear the play queue...\nContinue?'
+      async function clear() {
+        if (!confirmDialog.value) return
+
+        const userConfirmed = await confirmDialog.value.open(
+          'Clear the play queue?',
+          'About to clear the play queue : continue?'
         )
         if (!userConfirmed) return
         playerStore.clearQueue()
@@ -130,16 +133,14 @@
 
       return {
         playerStore,
-
         loading,
         visibleTracks,
         chunkSize,
         nextIndex,
         hasMore,
-
         allTracks,
         queueIndex,
-
+        confirmDialog,
         reset,
         loadMore,
         appendNextChunk,

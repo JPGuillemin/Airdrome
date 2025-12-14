@@ -94,6 +94,13 @@ export class AudioController {
     console.info('setReplayGainMode():', this.replayGainFactor())
   }
 
+  async stop() {
+    this.changeToken++
+    if (this.pipeline?.audio) {
+      this.pipeline.disconnect()
+    }
+  }
+
   async pause() {
     await this.fadeOut(this.fadeTime)
     this.pipeline.audio.pause()
@@ -127,6 +134,11 @@ export class AudioController {
   }
 
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
+    if (!options.url) {
+      console.warn('loadTrack(): no url, aborting')
+      this.stop()
+      return
+    }
     const token = ++this.changeToken
     this.setBuffer(options.url!)
     let pipeline: ReturnType<typeof creatPipeline> | undefined

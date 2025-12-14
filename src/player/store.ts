@@ -126,8 +126,17 @@ export const usePlayerStore = defineStore('player', {
       this.setPaused()
     },
     async resetQueue() {
+      if (!this.queue.length || !this.track?.url) {
+        this.setQueueIndex(-1)
+        this.setPaused()
+        return
+      }
       this.setQueueIndex(0)
-      await audio.loadTrack({ ...this.track, nextUrl: this.getNextUrl(), paused: true })
+      await audio.loadTrack({
+        url: this.track.url,
+        nextUrl: this.getNextUrl(),
+        paused: true
+      })
       this.setPaused()
     },
     async clearQueue() {
@@ -140,7 +149,7 @@ export const usePlayerStore = defineStore('player', {
       } else {
         this.setQueue([])
         this.setQueueIndex(-1)
-        await audio.loadTrack({ })
+        await audio.stop()
         this.setPaused()
       }
     },
@@ -284,7 +293,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
     // Normal behavior
     if (hasNext || repeat) return playerStore.next()
-    if (!playerStore.track) return
+    if (!playerStore.track || !playerStore.track?.url) return
 
     const lastTrack = playerStore.track
 
@@ -401,12 +410,11 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   watch(
     () => playerStore.currentTime,
     (t) => {
-      if (!playerStore.track || !playerStore.isPlaying) return
+      if (!playerStore.track || !playerStore.isPlaying || playerStore.queue.length === 0) return
 
       const remaining = playerStore.duration - t
       if (remaining <= 0.15 && playerStore.hasNext) {
-        playerStore.queueIndex++
-        playerStore.setQueueIndex(playerStore.queueIndex)
+        playerStore.setQueueIndex(playerStore.queueIndex + 1)
         audio.loadTrack({
           ...playerStore.track,
           nextUrl: playerStore.getNextUrl()
