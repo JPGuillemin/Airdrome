@@ -76,21 +76,50 @@
       noDuration: Boolean,
       showImage: { type: Boolean, default: true },
 
-      // Determine active track
       activeBy: {
         type: String as PropType<'id' | 'index'>,
         default: 'id',
       },
 
-      // Custom play handler (used by Queue.vue)
       playStrategy: {
         type: Function as PropType<(index: number) => void>,
         default: null,
       },
     },
 
-    setup() {
-      return { playerStore: usePlayerStore() }
+    setup(props) {
+      const playerStore = usePlayerStore()
+
+      const isActive = (item: Track, index: number) => {
+        return props.activeBy === 'index'
+          ? index === playerStore.queueIndex
+          : item.id === playerStore.trackId
+      }
+
+      const handlePlay = (index: number) => {
+        if (props.playStrategy) return props.playStrategy(index)
+
+        playerStore.setShuffle(false)
+
+        if (props.tracks[index].id === playerStore.trackId) {
+          return playerStore.playPause()
+        }
+
+        return playerStore.playTrackList(props.tracks, index)
+      }
+
+      const dragstart = (item: Track, event: DragEvent) => {
+        if (!item.isStream) {
+          event.dataTransfer?.setData('application/x-track-id', item.id)
+        }
+      }
+
+      return {
+        playerStore,
+        isActive,
+        handlePlay,
+        dragstart,
+      }
     },
 
     computed: {
@@ -102,34 +131,6 @@
       },
       queueIndex() {
         return this.playerStore.queueIndex
-      },
-    },
-
-    methods: {
-      isActive(item: Track, index: number) {
-        return this.activeBy === 'index'
-          ? index === this.queueIndex
-          : item.id === this.playingTrackId
-      },
-
-      handlePlay(index: number) {
-        if (this.playStrategy) {
-          return this.playStrategy(index)
-        }
-
-        this.playerStore.setShuffle(false)
-
-        if (this.tracks[index].id === this.playingTrackId) {
-          return this.playerStore.playPause()
-        }
-
-        return this.playerStore.playTrackList(this.tracks, index)
-      },
-
-      dragstart(item: Track, event: DragEvent) {
-        if (!item.isStream) {
-          event.dataTransfer?.setData('application/x-track-id', item.id)
-        }
       },
     },
   })

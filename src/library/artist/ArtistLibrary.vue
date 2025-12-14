@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
   import ArtistList from './ArtistList.vue'
   import { Artist } from '@/shared/api'
@@ -35,59 +35,75 @@
   export default defineComponent({
     components: { ArtistList },
     props: { sort: { type: String, default: null } },
-    data() {
-      return {
-        loading: true,
-        allArtists: [] as Artist[],
-        visibleArtists: [] as Artist[],
-        chunkSize: 15,
-        nextIndex: 0,
-        hasMore: true,
+
+    setup(props) {
+      const api = inject('$api') as any
+
+      const loading = ref(true)
+      const allArtists = ref<Artist[]>([])
+      const visibleArtists = ref<Artist[]>([])
+      const chunkSize = ref(15)
+      const nextIndex = ref(0)
+      const hasMore = ref(true)
+
+      const sortedAll = computed(() => {
+        return props.sort === 'a-z'
+          ? orderBy(allArtists.value, 'name')
+          : orderBy(allArtists.value, 'albumCount', 'desc')
+      })
+
+      const reset = () => {
+        loading.value = true
+        allArtists.value = []
+        visibleArtists.value = []
+        nextIndex.value = 0
+        hasMore.value = true
       }
-    },
-    computed: {
-      sortedAll(): Artist[] {
-        return this.sort === 'a-z'
-          ? orderBy(this.allArtists, 'name')
-          : orderBy(this.allArtists, 'albumCount', 'desc')
-      },
-    },
-    watch: {
-      sort: {
-        immediate: true,
-        handler() {
-          this.reset()
-          this.fetchArtists()
-        },
-      },
-    },
-    methods: {
-      reset() {
-        this.loading = true
-        this.allArtists = []
-        this.visibleArtists = []
-        this.nextIndex = 0
-        this.hasMore = true
-      },
-      async fetchArtists() {
+
+      const appendNextChunk = () => {
+        const sorted = sortedAll.value
+        const nextChunk = sorted.slice(nextIndex.value, nextIndex.value + chunkSize.value)
+        visibleArtists.value.push(...nextChunk)
+        nextIndex.value += nextChunk.length
+        hasMore.value = nextIndex.value < sorted.length
+      }
+
+      const fetchArtists = async() => {
         try {
-          const result = await this.$api.getArtists()
-          this.allArtists = result
-          this.appendNextChunk()
+          const result = await api.getArtists()
+          allArtists.value = result
+          appendNextChunk()
         } finally {
-          this.loading = false
+          loading.value = false
         }
-      },
-      loadMore() {
-        this.appendNextChunk()
-      },
-      appendNextChunk() {
-        const sorted = this.sortedAll
-        const nextChunk = sorted.slice(this.nextIndex, this.nextIndex + this.chunkSize)
-        this.visibleArtists.push(...nextChunk)
-        this.nextIndex += nextChunk.length
-        this.hasMore = this.nextIndex < sorted.length
-      },
+      }
+
+      const loadMore = () => {
+        appendNextChunk()
+      }
+
+      watch(
+        () => props.sort,
+        () => {
+          reset()
+          fetchArtists()
+        },
+        { immediate: true }
+      )
+
+      return {
+        loading,
+        allArtists,
+        visibleArtists,
+        chunkSize,
+        nextIndex,
+        hasMore,
+        sortedAll,
+        reset,
+        appendNextChunk,
+        fetchArtists,
+        loadMore,
+      }
     },
   })
 </script>

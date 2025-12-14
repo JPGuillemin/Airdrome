@@ -5,30 +5,28 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent, PropType } from 'vue'
+  import { defineComponent, ref, PropType } from 'vue'
 
   export default defineComponent({
     props: {
       load: { type: Function as PropType<(offset: number) => Promise<any[]>>, required: true },
     },
-    data() {
-      return {
-        items: [] as any[],
-        loading: false,
-        offset: 0 as number,
-        hasMore: true,
+    setup(props) {
+      const items = ref<any[]>([])
+      const loading = ref(false)
+      const offset = ref(0)
+      const hasMore = ref(true)
+
+      const loadMore = async() => {
+        loading.value = true
+        const newItems = await props.load(offset.value)
+        items.value.push(...newItems)
+        offset.value += newItems.length
+        hasMore.value = newItems.length > 0
+        loading.value = false
       }
-    },
-    methods: {
-      loadMore() {
-        this.loading = true
-        return this.load(this.offset).then((items: any[]) => {
-          this.items.push(...items)
-          this.offset += items.length
-          this.hasMore = items.length > 0
-          this.loading = false
-        })
-      }
+
+      return { items, loading, offset, hasMore, loadMore }
     }
   })
 </script>

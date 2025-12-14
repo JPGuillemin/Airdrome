@@ -60,7 +60,7 @@
   </td>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, computed, inject } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
@@ -71,43 +71,50 @@
       track: { type: Object, required: true },
       isPlaylistView: { type: Boolean, default: false },
     },
-    setup() {
+
+    setup(props) {
+      const favouriteStore = useFavouriteStore()
+      const playlistStore = usePlaylistStore()
+      const playerStore = usePlayerStore()
+      const $api = inject('$api') as any
+
+      const showPlaylistSelect = ref(false)
+
+      const isFavourite = computed(() => !!favouriteStore.tracks[props.track.id])
+
+      const toggleFavourite = () => favouriteStore.toggle('track', props.track.id)
+
+      const download = () => {
+        if (!$api) {
+          console.error('$api is not available')
+          return
+        }
+        window.location.href = $api.getDownloadUrl(props.track.id)
+      }
+
+      const setNextInQueue = () => playerStore.setNextInQueue([props.track as Track])
+      const addToQueue = () => playerStore.addToQueue([props.track as Track])
+      const addToPlaylist = (playlistId: string) => {
+        showPlaylistSelect.value = false
+        return playlistStore.addTracks(playlistId, [props.track.id])
+      }
+
       return {
-        favouriteStore: useFavouriteStore(),
-        playlistStore: usePlaylistStore(),
-        playerStore: usePlayerStore(),
+        favouriteStore,
+        playlistStore,
+        playerStore,
+        showPlaylistSelect,
+        isFavourite,
+        toggleFavourite,
+        download,
+        setNextInQueue,
+        addToQueue,
+        addToPlaylist,
       }
     },
-    data() {
-      return {
-        showPlaylistSelect: false,
-      }
-    },
-    computed: {
-      isFavourite(): boolean {
-        return !!this.favouriteStore.tracks[this.track.id]
-      },
-    },
-    methods: {
-      toggleFavourite() {
-        return this.favouriteStore.toggle('track', this.track.id)
-      },
-      download() {
-        window.location.href = this.$api.getDownloadUrl(this.track.id)
-      },
-      setNextInQueue() {
-        return this.playerStore.setNextInQueue([this.track as Track])
-      },
-      addToQueue() {
-        return this.playerStore.addToQueue([this.track as Track])
-      },
-      addToPlaylist(playlistId: string) {
-        this.showPlaylistSelect = false
-        return this.playlistStore.addTracks(playlistId, [this.track.id])
-      },
-    }
   })
 </script>
+
 <style scoped>
   .modal-overlay {
     position: fixed;

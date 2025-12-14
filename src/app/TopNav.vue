@@ -103,16 +103,17 @@
           </DropdownItem>
         </Dropdown>
       </template>
-      <div v-if="showAboutModal" class="modal-overlay" @click="showAboutModal = false" />
       <Teleport to="body">
-        <About :visible="showAboutModal" />
+        <About :visible="showAboutModal" @close="showAboutModal = false" />
       </Teleport>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, inject } from 'vue'
+  import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
   import { useMainStore } from '@/shared/store'
@@ -129,14 +130,25 @@
     setup() {
       const store = useMainStore()
       const auth = useAuth()
+      const cacheStore = useCacheStore()
+
+      const router = useRouter()
+      const route = useRoute()
+
+      const { proxy } = getCurrentInstance()!
+      const api = proxy!.$api as {
+        scan(): Promise<void>
+        getScanStatus(): Promise<boolean>
+      }
 
       const colors = inject('themeColors') as { name: string; value: string }[]
+
       const currentColor = ref(
         getComputedStyle(document.documentElement).getPropertyValue('--bs-primary')
       )
+
       function setTheme(color: string) {
         currentColor.value = color
-        // Convert HEX to RGB    const colors = inject('themeColors') as { name: string; value: string }[]
 
         const hexToRgb = (hex: string) => {
           const bigint = parseInt(hex.replace('#', ''), 16)
@@ -145,6 +157,7 @@
           const b = bigint & 255
           return `${r}, ${g}, ${b}`
         }
+
         const rgb = hexToRgb(color)
         document.documentElement.style.setProperty('--bs-primary', color)
         document.documentElement.style.setProperty('--bs-primary-rgb', rgb)
@@ -158,95 +171,107 @@
         localStorage.setItem('streamQuality', String(value))
       }
 
-      const cacheStore = useCacheStore()
       const cacheSize = ref(0)
 
       async function updateCacheSize() {
         cacheSize.value = await cacheStore.getCacheSizeGB()
       }
-      updateCacheSize()
 
-      window.addEventListener('audioCached', updateCacheSize)
-      window.addEventListener('audioCacheDeleted', updateCacheSize)
-      window.addEventListener('audioCacheClearedAll', updateCacheSize)
+      onMounted(() => {
+        updateCacheSize()
+        window.addEventListener('audioCached', updateCacheSize)
+        window.addEventListener('audioCacheDeleted', updateCacheSize)
+        window.addEventListener('audioCacheClearedAll', updateCacheSize)
+      })
 
-      return {
-        store,
-        cacheStore,
-        auth,
-        colors,
-        currentColor,
-        setStreamQuality,
-        streamQuality,
-        setTheme,
-        cacheSize,
-        updateCacheSize,
-      }
-    },
-    data() {
-      return {
-        isScanning: false,
-        showAboutModal: false,
-      }
-    },
-    methods: {
-      async scan() {
-        if (this.isScanning) return
+      onBeforeUnmount(() => {
+        window.removeEventListener('audioCached', updateCacheSize)
+        window.removeEventListener('audioCacheDeleted', updateCacheSize)
+        window.removeEventListener('audioCacheClearedAll', updateCacheSize)
+      })
+
+      const isScanning = ref(false)
+      const showAboutModal = ref(false)
+
+      async function scan() {
+        if (isScanning.value) return
         const loader = useLoader()
         loader.showLoading()
-        this.isScanning = true
+        isScanning.value = true
+
         try {
-          await this.$api.scan()
+          await api.scan()
           let scanning = false
           do {
             await sleep(1000)
-            scanning = await this.$api.getScanStatus()
+            scanning = await api.getScanStatus()
           } while (scanning)
-          this.$router.replace({
-            name: this.$route.name as string,
-            params: { ...(this.$route.params || {}) },
-            query: { ...(this.$route.query || {}), t: Date.now().toString() }
+
+          router.replace({
+            name: route.name as string,
+            params: { ...(route.params || {}) },
+            query: { ...(route.query || {}), t: Date.now().toString() },
           })
         } finally {
           loader.hideLoading()
-          this.isScanning = false
+          isScanning.value = false
         }
-      },
-      async clearAllCache(event: MouseEvent) {
+      }
+
+      async function clearAllCache(event: MouseEvent) {
         event.preventDefault()
         event.stopPropagation()
+
+        const userConfirmed = window.confirm(
+          'About to delete all cached audio files...\nContinue?'
+        )
+        if (!userConfirmed) return
+
         try {
-          const userConfirmed = window.confirm(
-            'About to delete all cached audio files...\nContinue?'
-          )
-          if (!userConfirmed) return
           const loader = useLoader()
           loader.showLoading()
-          const success = await this.cacheStore.clearAllAudioCache()
-          console.info(`is Success: "${success}"`)
+
+          const success = await cacheStore.clearAllAudioCache()
           if (success) {
-            console.info('All audio cache cleared successfully.')
             window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
-            this.$router.replace({
-              name: this.$route.name as string,
-              params: { ...(this.$route.params || {}) },
-              query: { ...(this.$route.query || {}), t: Date.now().toString() }
+            router.replace({
+              name: route.name as string,
+              params: { ...(route.params || {}) },
+              query: { ...(route.query || {}), t: Date.now().toString() },
             })
           } else {
             alert('No cache found to clear.')
           }
-          await this.updateCacheSize()
+
+          await updateCacheSize()
           loader.hideLoading()
         } catch (err) {
           console.error('Error clearing cache:', err)
-          // alert('Failed to clear cache. Check console for details.')
         }
-      },
-      logout() {
-        this.auth.logout()
-        this.$router.go(0)
-      },
-    }
+      }
+
+      function logout() {
+        auth.logout()
+        router.go(0)
+      }
+
+      return {
+        store,
+        auth,
+        colors,
+        currentColor,
+        setTheme,
+        streamQuality,
+        setStreamQuality,
+        cacheSize,
+        updateCacheSize,
+        isScanning,
+        showAboutModal,
+        scan,
+        clearAllCache,
+        logout,
+      }
+    },
   })
 </script>
 
@@ -281,15 +306,5 @@
   .btn-outline-primary.active {
     background-color: rgba(var(--bs-primary-rgb), 0.15);
     border-color: var(--bs-primary);
-  }
-
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
   }
 </style>

@@ -39,74 +39,62 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, computed, onMounted } from 'vue'
   import { config } from '@/shared/config'
   import { useMainStore } from '@/shared/store'
   import { useAuth } from '@/auth/service'
+  import { useRouter } from 'vue-router'
 
   export default defineComponent({
     name: 'Login',
     props: {
-      returnTo: {
-        type: String,
-        default: '/home'
-      },
+      returnTo: { type: String, default: '/home' }
     },
-    setup() {
+    setup(props) {
       const store = useMainStore()
       const auth = useAuth()
+      const router = useRouter()
 
-      return { store, auth }
-    },
-    data() {
-      return {
-        server: '',
-        username: '',
-        password: '',
-        busy: false,
-        error: null as null | Error,
-        displayForm: false,
-      }
-    },
-    computed: {
-      hasError(): boolean {
-        return this.error !== null
-      },
-      config: () => config
-    },
-    async mounted() {
-      // Load saved credentials if any
-      this.server = this.auth.server
-      this.username = this.auth.username
+      const server = ref(auth.server || '')
+      const username = ref(auth.username || '')
+      const password = ref('')
+      const busy = ref(false)
+      const error = ref<Error | null>(null)
+      const displayForm = ref(false)
 
-      const success = await this.auth.autoLogin()
-      if (success) {
-        this.store.setLoginSuccess(this.username, this.server)
-        await this.$router.replace(this.returnTo)
-      } else {
-        this.displayForm = true
-      }
-    },
-    methods: {
-      async login() {
-        this.error = null
-        this.busy = true
+      const hasError = computed(() => error.value !== null)
 
-        this.server = this.server.trim()
-        if (!this.server.startsWith('http://') && !this.server.startsWith('https://')) {
-          this.server = `https://${this.server}`
+      onMounted(async() => {
+        const success = await auth.autoLogin()
+        if (success) {
+          store.setLoginSuccess(auth.username, auth.server)
+          await router.replace(props.returnTo)
+        } else {
+          displayForm.value = true
+        }
+      })
+
+      const login = async() => {
+        error.value = null
+        busy.value = true
+
+        let serverValue = server.value.trim()
+        if (!serverValue.startsWith('http://') && !serverValue.startsWith('https://')) {
+          serverValue = `https://${serverValue}`
         }
 
         try {
-          await this.auth.loginWithPassword(this.server, this.username, this.password)
-          this.store.setLoginSuccess(this.username, this.server)
-          await this.$router.replace(this.returnTo)
+          await auth.loginWithPassword(serverValue, username.value, password.value)
+          store.setLoginSuccess(username.value, serverValue)
+          await router.replace(props.returnTo)
         } catch (err: any) {
-          this.error = err
+          error.value = err
         } finally {
-          this.busy = false
+          busy.value = false
         }
       }
+
+      return { server, username, password, busy, error, displayForm, hasError, config, login }
     }
   })
 </script>

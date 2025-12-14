@@ -164,7 +164,7 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent, watch, ref } from 'vue'
+  import { defineComponent, watch, ref, computed } from 'vue'
   import { ReplayGainMode } from './audio'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
@@ -189,13 +189,13 @@
       const route = useRoute()
       const playerStore = usePlayerStore()
       const favouriteStore = useFavouriteStore()
+
       const sliderValue = ref(0)
       const dragging = ref(false)
 
       watch(
         () => playerStore.currentTime,
         (current) => {
-          // Only update slider if user is not dragging
           if (!dragging.value) {
             sliderValue.value = current
           }
@@ -203,30 +203,63 @@
         { immediate: true }
       )
 
-      const onAlbumClick = () => {
-        const track = playerStore.track
-        if (!track?.albumId) return
+      const track = computed(() => playerStore.track)
+      const isPlaying = computed(() => playerStore.isPlaying)
+      const isMuted = computed(() => playerStore.volume <= 0)
+      const repeatActive = computed(() => playerStore.repeat)
+      const shuffleActive = computed(() => playerStore.shuffle)
+      const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
 
-        if (route.name === 'album' && String(route.params.id) === String(track.albumId)) {
+      const isFavourite = computed<boolean>(() => {
+        return !!track.value && favouriteStore.get('track', track.value.id)
+      })
+
+      const documentTitle = computed<string>(() => {
+        return [
+          track.value?.title,
+          track.value?.artists?.map(a => a.name).join(', ') || track.value?.album,
+          'Airdrome',
+        ]
+          .filter(Boolean)
+          .join(' • ')
+      })
+
+      watch(
+        documentTitle,
+        (value) => {
+          document.title = value
+        },
+        { immediate: true }
+      )
+
+      const onAlbumClick = () => {
+        const t = playerStore.track
+        if (!t?.albumId) return
+
+        if (route.name === 'album' && String(route.params.id) === String(t.albumId)) {
           router.back()
         } else {
-          router.push({ name: 'album', params: { id: track.albumId } })
+          router.push({ name: 'album', params: { id: t.albumId } })
         }
       }
 
       const onSliderDragStart = () => {
         dragging.value = true
       }
+
       const onSliderDragEnd = () => {
         dragging.value = false
       }
+
       const onSliderUpdate = (value: number) => {
         playerStore.seek(value)
         dragging.value = false
       }
+
       const formatter = (value: number) => {
         return `${formatDuration(value)} / ${formatDuration(playerStore.duration)}`
       }
+
       const onSliderClick = (e: MouseEvent) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
         const x = e.clientX - rect.left
@@ -234,43 +267,51 @@
         const newTime = ratio * playerStore.duration
         playerStore.seek(newTime)
       }
-      return { onSliderClick, onAlbumClick, formatter, ReplayGainMode, favouriteStore, sliderValue, onSliderUpdate, playerStore, dragging, onSliderDragEnd, onSliderDragStart, }
-    },
-    computed: {
-      track() { return this.playerStore.track },
-      isPlaying() { return this.playerStore.isPlaying },
-      isMuted() { return this.playerStore.volume <= 0 },
-      repeatActive() { return this.playerStore.repeat },
-      shuffleActive() { return this.playerStore.shuffle },
-      replayGainMode(): ReplayGainMode { return this.playerStore.replayGainMode },
-      isFavourite(): boolean {
-        return !!this.track && this.favouriteStore.get('track', this.track.id)
-      },
-      documentTitle(): string {
-        return [
-          this.track?.title,
-          this.track?.artists?.map(a => a.name).join(', ') || this.track?.album,
-          'Airdrome'
-        ].filter(Boolean).join(' • ')
-      },
-    },
-    watch: {
-      documentTitle: {
-        immediate: true,
-        handler(value: string) {
-          document.title = value
+
+      function playPause() { playerStore.playPause() }
+      function next() { playerStore.next() }
+      function previous() { playerStore.previous() }
+      function toggleReplayGain() { playerStore.toggleReplayGain() }
+      function toggleRepeat() { playerStore.toggleRepeat() }
+      function toggleShuffle() { playerStore.toggleShuffle() }
+      function toggleFavourite() {
+        if (track.value) {
+          favouriteStore.toggle('track', track.value.id)
         }
       }
+
+      return {
+        ReplayGainMode,
+        favouriteStore,
+        playerStore,
+
+        sliderValue,
+        dragging,
+
+        track,
+        isPlaying,
+        isMuted,
+        repeatActive,
+        shuffleActive,
+        replayGainMode,
+        isFavourite,
+
+        onAlbumClick,
+        onSliderDragStart,
+        onSliderDragEnd,
+        onSliderUpdate,
+        onSliderClick,
+        formatter,
+
+        playPause,
+        next,
+        previous,
+        toggleReplayGain,
+        toggleRepeat,
+        toggleShuffle,
+        toggleFavourite,
+      }
     },
-    methods: {
-      playPause() { this.playerStore.playPause() },
-      next() { this.playerStore.next() },
-      previous() { this.playerStore.previous() },
-      toggleReplayGain() { this.playerStore.toggleReplayGain() },
-      toggleRepeat() { this.playerStore.toggleRepeat() },
-      toggleShuffle() { this.playerStore.toggleShuffle() },
-      toggleFavourite() { this.favouriteStore.toggle('track', this.track!.id) },
-    }
   })
 </script>
 

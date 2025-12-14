@@ -33,7 +33,6 @@
       }
 
       watch(query, (newVal, oldVal) => {
-        // debounce auto-reload when input is cleared
         if (oldVal && newVal.trim() === '') {
           if (clearTimeoutId) clearTimeout(clearTimeoutId)
           clearTimeoutId = window.setTimeout(() => {
@@ -43,6 +42,6 @@
       })
 
       return { query, search }
-    }
+    },
   })
 </script>

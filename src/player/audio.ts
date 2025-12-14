@@ -68,8 +68,8 @@ export class AudioController {
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
     this.buffer.src = url // start streaming immediately
-    this.setCache(url)
     try { this.buffer.load() } catch { /* ignore */ }
+    this.setCache(url)
   }
 
   setVolume(value: number) {

@@ -106,125 +106,140 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
-  import TrackList from '@/library/track/TrackList.vue'
-  import { Album } from '@/shared/api'
+  import { defineComponent, ref, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
-  import IconLastFm from '@/shared/components/IconLastFm.vue'
-  import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useCacheStore } from '@/player/cache'
   import { useLoader } from '@/shared/loader'
   import { sleep } from '@/shared/utils'
-  import { useCacheStore } from '@/player/cache'
+  import { Album } from '@/shared/api'
+  import TrackList from '@/library/track/TrackList.vue'
+  import IconLastFm from '@/shared/components/IconLastFm.vue'
+  import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
+  import { useRouter, useRoute } from 'vue-router'
 
   export default defineComponent({
-    components: {
-      IconMusicBrainz,
-      IconLastFm,
-      TrackList,
-    },
-    props: {
-      id: { type: String, required: true }
-    },
-    setup() {
-      return {
-        favouriteStore: useFavouriteStore(),
-        playerStore: usePlayerStore(),
-        cacheStore: useCacheStore(),
-      }
-    },
-    data() {
-      return {
-        album: null as Album | null,
-        cached: false,
-      }
-    },
-    computed: {
-      isFavourite(): boolean {
-        return this.favouriteStore.get('album', this.id)
-      },
-      isPlaying() { return this.playerStore.isPlaying },
-    },
-    async created() {
-      const result = await this.$api.getAlbumDetails(this.id)
-      this.album = result
-      if (this.album) {
-        this.cached = await this.cacheStore.isCached(this.album)
-      }
-    },
-    methods: {
-      playNow() {
-        const album = this.album
-        if (!album) return
-        const currentTrack = this.playerStore.track
-        const isAlbumTrack =
-          !!currentTrack && (currentTrack.albumId === album.id || album.tracks?.some(t => t.id === currentTrack.id))
-        if (isAlbumTrack) return this.playerStore.playPause()
-        if (album.tracks?.length) return this.playerStore.playNow(album.tracks)
-      },
-      shuffleNow() {
-        const album = this.album
-        if (!album || !album.tracks?.length) return
-        return this.playerStore.shuffleNow(album.tracks)
-      },
-      async RadioNow() {
-        const album = this.album
-        if (!album || !album.artists?.length) {
-          console.warn('No album or artist information available for radio mode.')
-          return
-        }
-        this.playerStore.setShuffle(false)
-        const loader = useLoader()
+    components: { TrackList, IconLastFm, IconMusicBrainz },
+    props: { id: { type: String, required: true } },
+    setup(props) {
+      const favouriteStore = useFavouriteStore()
+      const playerStore = usePlayerStore()
+      const cacheStore = useCacheStore()
+      const api = inject('$api') as any
+      const loader = useLoader()
+      const router = useRouter()
+      const route = useRoute()
+
+      const album = ref<Album | null>(null)
+      const cached = ref(false)
+
+      const isFavourite = computed(() => favouriteStore.get('album', props.id))
+      const isPlaying = computed(() => playerStore.isPlaying)
+
+      // Fetch album details
+      const fetchAlbum = async() => {
         loader.showLoading()
         try {
-          const artistId = album.artists[0].id
-          const tracks = await this.$api.getSimilarTracksByArtist(artistId, 50)
-          if (!tracks?.length) {
-            console.warn(`No similar tracks found for artist ${album.artists[0].name}`)
-            return
+          const result = await api.getAlbumDetails(props.id)
+          album.value = result
+          if (album.value) {
+            cached.value = await cacheStore.isCached(album.value)
           }
-          return this.playerStore.playNow(tracks)
         } finally {
           loader.hideLoading()
         }
-      },
-      setNextInQueue() {
-        if (this.album) {
-          return this.playerStore.setNextInQueue(this.album.tracks!)
+      }
+
+      const playNow = () => {
+        if (!album.value) return
+        const currentTrack = playerStore.track
+        const isAlbumTrack =
+          !!currentTrack &&
+          (currentTrack.albumId === album.value.id ||
+            album.value.tracks?.some(t => t.id === currentTrack.id))
+        if (isAlbumTrack) return playerStore.playPause()
+        if (album.value.tracks?.length) return playerStore.playNow(album.value.tracks)
+      }
+
+      const shuffleNow = () => {
+        if (!album.value || !album.value.tracks?.length) return
+        return playerStore.shuffleNow(album.value.tracks)
+      }
+
+      const RadioNow = async() => {
+        if (!album.value || !album.value.artists?.length) return
+        playerStore.setShuffle(false)
+        loader.showLoading()
+        try {
+          const artistId = album.value.artists[0].id
+          const tracks = await api.getSimilarTracksByArtist(artistId, 50)
+          if (!tracks?.length) return
+          return playerStore.playNow(tracks)
+        } finally {
+          loader.hideLoading()
         }
-      },
-      addToQueue() {
-        if (this.album) {
-          return this.playerStore.addToQueue(this.album.tracks!)
+      }
+
+      const setNextInQueue = () => {
+        if (album.value) {
+          return playerStore.setNextInQueue(album.value.tracks!)
         }
-      },
-      async toggleFavourite() {
-        this.favouriteStore.toggle('album', this.id)
+      }
+
+      const addToQueue = () => {
+        if (album.value) {
+          return playerStore.addToQueue(album.value.tracks!)
+        }
+      }
+
+      const toggleFavourite = async() => {
+        favouriteStore.toggle('album', props.id)
         await sleep(300)
-        const album = this.album
-        if (!album) return
-        if (this.isFavourite) {
-          await this.cacheAlbum()
+        if (!album.value) return
+        if (isFavourite.value) {
+          await cacheAlbum()
         } else {
-          await this.clearAlbumCache()
+          await clearAlbumCache()
         }
-      },
-      async cacheAlbum() {
-        if (this.album) {
-          await this.cacheStore.cacheAlbum(this.album)
+      }
+
+      const cacheAlbum = async() => {
+        if (album.value) {
+          await cacheStore.cacheAlbum(album.value)
+          cached.value = true
         }
-      },
-      async clearAlbumCache() {
-        if (this.album) {
-          await this.cacheStore.clearAlbumCache(this.album)
-          // Refresh page
-          this.$router.replace({
-            name: this.$route.name as string,
-            params: { ...(this.$route.params || {}) },
-            query: { ...(this.$route.query || {}), t: Date.now().toString() }
-          })
-        }
-      },
+      }
+
+      const clearAlbumCache = async() => {
+        if (!album.value) return
+        await cacheStore.clearAlbumCache(album.value)
+        cached.value = false
+        router.replace({
+          name: route.name as string,
+          params: { ...(route.params || {}) },
+          query: { ...(route.query || {}), t: Date.now().toString() },
+        })
+      }
+
+      fetchAlbum()
+
+      return {
+        album,
+        cached,
+        favouriteStore,
+        playerStore,
+        cacheStore,
+        isFavourite,
+        isPlaying,
+        playNow,
+        shuffleNow,
+        RadioNow,
+        setNextInQueue,
+        addToQueue,
+        toggleFavourite,
+        cacheAlbum,
+        clearAlbumCache,
+      }
     },
   })
 </script>

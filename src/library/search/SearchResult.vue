@@ -42,70 +42,59 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, inject, ref, computed, watch } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
 
   export default defineComponent({
-    components: {
-      AlbumList,
-      ArtistList,
-      TrackList,
-    },
+    components: { AlbumList, ArtistList, TrackList },
     props: {
       query: { type: String, required: true },
       type: { type: String, default: null },
     },
-    data() {
-      return {
-        result: {
-          albums: [] as any[],
-          artists: [] as any[],
-          tracks: [] as any[],
-        },
-        loading: false,
-        offset: 0 as number,
-        hasMore: true,
-      }
-    },
-    computed: {
-      key(): string {
-        return '' + this.type + this.query
-      },
-      hasResult(): boolean {
-        return this.result.albums.length > 0 ||
-          this.result.artists.length > 0 ||
-          this.result.tracks.length > 0
-      },
-    },
-    watch: {
-      key: {
-        immediate: true,
-        handler() {
-          this.result.artists = []
-          this.result.albums = []
-          this.result.tracks = []
-          this.offset = 0
-          this.hasMore = true
-          this.loading = false
-        }
-      },
-    },
-    methods: {
-      async loadMore() {
-        this.loading = true
-        const result = await this.$api.search(this.query, this.type, 20, this.offset)
-        const size = result.albums.length + result.artists.length + result.tracks.length
+    setup(props) {
+      const api = inject('$api') as any
+      const result = ref({
+        albums: [] as any[],
+        artists: [] as any[],
+        tracks: [] as any[],
+      })
+      const loading = ref(false)
+      const offset = ref(0)
+      const hasMore = ref(true)
 
-        this.result.albums.push(...result.albums)
-        this.result.artists.push(...result.artists)
-        this.result.tracks.push(...result.tracks)
+      const key = computed(() => '' + props.type + props.query)
+      const hasResult = computed(() =>
+        result.value.albums.length > 0 ||
+        result.value.artists.length > 0 ||
+        result.value.tracks.length > 0
+      )
 
-        this.offset += size
-        this.hasMore = size >= 20
-        this.loading = false
+      watch(key, () => {
+        result.value.albums = []
+        result.value.artists = []
+        result.value.tracks = []
+        offset.value = 0
+        hasMore.value = true
+        loading.value = false
+      }, { immediate: true })
+
+      async function loadMore() {
+        loading.value = true
+        const res = await api.search(props.query, props.type, 20, offset.value)
+        const size = res.albums.length + res.artists.length + res.tracks.length
+
+        result.value.albums.push(...res.albums)
+        result.value.artists.push(...res.artists)
+        result.value.tracks.push(...res.tracks)
+
+        offset.value += size
+        hasMore.value = size >= 20
+        loading.value = false
       }
-    }
+
+      return { result, loading, offset, hasMore, key, hasResult, loadMore }
+    },
   })
 </script>

@@ -42,60 +42,70 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, PropType } from 'vue'
+  import { defineComponent, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
-  import type { Album } from '@/shared/api'
   import { useCacheStore } from '@/player/cache'
+  import type { Album } from '@/shared/api'
   import { sleep } from '@/shared/utils'
 
   export default defineComponent({
     props: {
       items: {
-        type: Array as PropType<Album[]>,
+        type: Array as () => Album[],
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
       tileSize: { type: Number, default: 110 },
     },
 
-    setup() {
-      return {
-        favouriteStore: useFavouriteStore(),
-        playerStore: usePlayerStore(),
-        cacheStore: useCacheStore(),
+    setup(props) {
+      const favouriteStore = useFavouriteStore()
+      const playerStore = usePlayerStore()
+      const cacheStore = useCacheStore()
+      const api = inject('$api') as any
+
+      const validItems = computed(() => {
+        return (props.items || []).filter((item): item is Album => !!item?.id)
+      })
+
+      const playNow = async(id: string) => {
+        playerStore.setShuffle(false)
+        const album = await api.getAlbumDetails(id)
+        return playerStore.playTrackList(album.tracks!)
       }
-    },
 
-    computed: {
-      validItems(): Album[] {
-        return (this.items || []).filter((item): item is Album => !!item?.id)
-      },
-    },
-
-    methods: {
-      async playNow(id: string) {
-        this.playerStore.setShuffle(false)
-        const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.playTrackList(album.tracks!)
-      },
-      async toggleFavourite(id: string) {
-        this.favouriteStore.toggle('album', id)
+      const toggleFavourite = async(id: string) => {
+        favouriteStore.toggle('album', id)
         await sleep(300)
-        const album = await this.$api.getAlbumDetails(id)
+        const album = await api.getAlbumDetails(id)
         if (!album) return
-        if (this.isFavourite(id)) {
-          await this.cacheStore.cacheAlbum(album)
+        if (isFavourite(id)) {
+          await cacheStore.cacheAlbum(album)
         } else {
-          await this.cacheStore.clearAlbumCache(album)
+          await cacheStore.clearAlbumCache(album)
         }
-      },
-      dragstart(id: string, event: DragEvent) {
+      }
+
+      const dragstart = (id: string, event: DragEvent) => {
         event.dataTransfer?.setData('application/x-album-id', id)
-      },
-      isFavourite(id: string) {
-        return this.favouriteStore.get('album', id)
-      },
+      }
+
+      const isFavourite = (id: string) => {
+        return favouriteStore.get('album', id)
+      }
+
+      return {
+        favouriteStore,
+        playerStore,
+        cacheStore,
+        api,
+        validItems,
+        playNow,
+        toggleFavourite,
+        dragstart,
+        isFavourite,
+      }
     },
   })
 </script>

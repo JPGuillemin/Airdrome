@@ -106,17 +106,17 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, onMounted, inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { useMainStore } from '@/shared/store'
+  import { usePlayerStore } from '@/player/store'
+  import { useLoader } from '@/shared/loader'
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
-  import { usePlayerStore } from '@/player/store'
   import type { Track } from '@/shared/api'
-  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -127,77 +127,69 @@
       TrackList,
     },
     props: {
-      id: { type: String, required: true }
+      id: { type: String, required: true },
     },
-    setup() {
-      return {
-        mainStore: useMainStore(),
-        favouriteStore: useFavouriteStore(),
-        playerStore: usePlayerStore(),
-      }
-    },
-    data() {
-      return {
-        artist: null as any,
-      }
-    },
-    computed: {
-      isFavourite(): boolean {
-        return this.favouriteStore.get('artist', this.id)
-      },
-    },
-    created() {
-      this.$api.getArtistDetails(this.id).then(result => {
-        this.artist = result
-      })
-    },
-    methods: {
-      async shuffleNow() {
-        const loader = useLoader()
+    setup(props) {
+      const mainStore = useMainStore()
+      const favouriteStore = useFavouriteStore()
+      const playerStore = usePlayerStore()
+      const artist = ref<any>(null)
+      const api = inject('$api') as any
+      const loader = useLoader()
+
+      const isFavourite = () => favouriteStore.get('artist', props.id)
+
+      const shuffleNow = async() => {
         loader.showLoading()
         try {
           const tracks: Track[] = []
-          for await (const batch of this.$api.getTracksByArtist(this.id)) {
+          for await (const batch of api.getTracksByArtist(props.id)) {
             tracks.push(...batch)
           }
-          return this.playerStore.shuffleNow(tracks)
+          return playerStore.shuffleNow(tracks)
         } finally {
           loader.hideLoading()
         }
-      },
-      async RadioNow() {
-        this.playerStore.setShuffle(false)
-        const loader = useLoader()
+      }
+
+      const RadioNow = async() => {
+        playerStore.setShuffle(false)
         loader.showLoading()
         try {
-          const tracks = await this.$api.getSimilarTracksByArtist(this.id, 50)
-          return this.playerStore.playNow(tracks)
+          const tracks = await api.getSimilarTracksByArtist(props.id, 50)
+          return playerStore.playNow(tracks)
         } finally {
           loader.hideLoading()
         }
-      },
-      toggleFavourite() {
-        return this.favouriteStore.toggle('artist', this.id)
-      },
-      toggleAlbumSortOrder() {
-        this.mainStore.toggleArtistAlbumSortOrder()
-      },
-      scrollToSection(refName: string) {
-        this.$nextTick(() => {
-          const section = this.$refs[refName] as HTMLElement | undefined
-          if (!section) return
+      }
 
-          // Adjust this to match custom height
-          const customHeight = 230
+      const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
+      const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()
 
-          const top = section.getBoundingClientRect().top + window.scrollY - customHeight
+      const scrollToSection = (refName: string) => {
+        const section = (document.querySelector(`[ref="${refName}"]`) as HTMLElement)
+        if (!section) return
+        const customHeight = 230
+        const top = section.getBoundingClientRect().top + window.scrollY - customHeight
+        window.scrollTo({ top, behavior: 'smooth' })
+      }
 
-          window.scrollTo({
-            top,
-            behavior: 'smooth',
-          })
-        })
-      },
-    }
+      onMounted(async() => {
+        artist.value = await api.getArtistDetails(props.id)
+      })
+
+      return {
+        mainStore,
+        favouriteStore,
+        playerStore,
+        artist,
+        isFavourite,
+        shuffleNow,
+        RadioNow,
+        toggleFavourite,
+        toggleAlbumSortOrder,
+        scrollToSection,
+      }
+    },
   })
 </script>

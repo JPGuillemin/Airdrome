@@ -29,17 +29,19 @@
       tileSize: { type: Number, default: 110 },
     },
     setup() {
-      return {
-        favouriteStore: useFavouriteStore(),
+      const favouriteStore = useFavouriteStore()
+
+      const toggleFavourite = async(id: string) => {
+        favouriteStore.toggle('artist', id)
       }
-    },
-    methods: {
-      async toggleFavourite(id: string) {
-        this.favouriteStore.toggle('artist', id)
-      },
-      isFavourite(id: string) {
-        return this.favouriteStore.get('artist', id)
-      },
+
+      const isFavourite = (id: string) => favouriteStore.get('artist', id)
+
+      return {
+        favouriteStore,
+        toggleFavourite,
+        isFavourite,
+      }
     },
   })
 </script>

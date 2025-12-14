@@ -37,7 +37,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, watch } from 'vue'
   import SwitchInput from '@/shared/components/SwitchInput.vue'
   import { BButton } from 'bootstrap-vue-3'
   import type { Playlist } from '@/shared/api'
@@ -53,48 +53,48 @@
 
     emits: ['close', 'update-playlist', 'create-playlist'],
 
-    data() {
-      return {
-        // in create mode: start empty
-        // in edit mode: clone the existing object
-        local: this.playlist
-          ? { ...this.playlist }
+    setup(props, { emit }) {
+      const local = ref(
+        props.playlist
+          ? { ...props.playlist }
           : { name: '', comment: '', isPublic: false }
-      }
-    },
+      )
 
-    watch: {
-      playlist: {
-        immediate: true,
-        handler(newVal) {
-          // Update local copy when parent switches playlist (edit another one)
-          this.local = newVal
+      watch(
+        () => props.playlist,
+        (newVal) => {
+          local.value = newVal
             ? { ...newVal }
             : { name: '', comment: '', isPublic: false }
-        }
-      }
-    },
+        },
+        { immediate: true }
+      )
 
-    methods: {
-      save() {
-        if (!this.local.name?.trim()) {
+      const close = () => {
+        emit('close')
+      }
+
+      const save = () => {
+        if (!local.value.name?.trim()) {
           alert('Name cannot be empty')
           return
         }
 
-        if (this.mode === 'edit') {
-          this.$emit('update-playlist', { ...this.local })
+        if (props.mode === 'edit') {
+          emit('update-playlist', { ...local.value })
         } else {
-          this.$emit('create-playlist', this.local.name)
+          emit('create-playlist', local.value.name)
         }
 
-        this.close()
-      },
-
-      close() {
-        this.$emit('close')
+        close()
       }
-    }
+
+      return {
+        local,
+        save,
+        close,
+      }
+    },
   })
 </script>
 

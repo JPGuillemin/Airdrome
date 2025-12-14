@@ -100,7 +100,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, watch, inject } from 'vue'
   import TrackList from '@/library/track/TrackList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
@@ -131,122 +131,126 @@
     },
     props: { id: { type: String, required: true } },
 
-    setup() {
-      return {
-        playlistStore: usePlaylistStore(),
-        playerStore: usePlayerStore(),
-        formatDuration,
+    setup(props) {
+      const playlistStore = usePlaylistStore()
+      const playerStore = usePlayerStore()
+      const playlist = ref<any>(null)
+      const visibleTracks = ref<any[]>([])
+      const nextIndex = ref(0)
+      const chunkSize = ref(50)
+      const hasMore = ref(true)
+      const loadingTracks = ref(false)
+      const showEditModal = ref(false)
+
+      const api = inject('$api') as any
+      const loader = useLoader()
+
+      const appendNextChunk = () => {
+        if (!playlist.value?.tracks) return
+        const nextChunk = playlist.value.tracks.slice(nextIndex.value, nextIndex.value + chunkSize.value)
+        visibleTracks.value.push(...nextChunk)
+        nextIndex.value += nextChunk.length
+        hasMore.value = nextIndex.value < playlist.value.tracks.length
       }
-    },
 
-    data() {
-      return {
-        playlist: null as any,
-        visibleTracks: [] as any[],
-        nextIndex: 0,
-        chunkSize: 50,
-        hasMore: true,
-        loadingTracks: false,
-
-        // modal visibility only
-        showEditModal: false,
-      }
-    },
-
-    watch: {
-      id: {
-        immediate: true,
-        handler(value: string) {
-          this.fetchPlaylist(value)
-        },
-      },
-    },
-
-    methods: {
-      appendNextChunk() {
-        if (!this.playlist?.tracks) return
-        const nextChunk = this.playlist.tracks.slice(this.nextIndex, this.nextIndex + this.chunkSize)
-        this.visibleTracks.push(...nextChunk)
-        this.nextIndex += nextChunk.length
-        this.hasMore = this.nextIndex < this.playlist.tracks.length
-      },
-
-      loadMore() {
-        if (this.loadingTracks || !this.hasMore) return
-        this.loadingTracks = true
+      const loadMore = () => {
+        if (loadingTracks.value || !hasMore.value) return
+        loadingTracks.value = true
         setTimeout(() => {
-          this.appendNextChunk()
-          this.loadingTracks = false
+          appendNextChunk()
+          loadingTracks.value = false
         }, 300)
-      },
+      }
 
-      playNow() {
-        if (!this.playlist?.tracks?.length) return
-        const currentTrack = this.playerStore.track
-        if (currentTrack && this.playlist.tracks.some(t => t.id === currentTrack.id)) {
-          return this.playerStore.playPause()
+      const playNow = () => {
+        if (!playlist.value?.tracks?.length) return
+        const currentTrack = playerStore.track
+        if (currentTrack && playlist.value.tracks.some((t: any) => t.id === currentTrack.id)) {
+          return playerStore.playPause()
         }
-        return this.playerStore.playNow(this.playlist.tracks)
-      },
+        return playerStore.playNow(playlist.value.tracks)
+      }
 
-      shuffleNow() {
-        return this.playerStore.shuffleNow(this.playlist.tracks)
-      },
+      const shuffleNow = () => playerStore.shuffleNow(playlist.value.tracks)
 
-      removeTrack(index: number) {
-        this.playlist.tracks.splice(index, 1)
-        this.visibleTracks.splice(index, 1)
-        return this.playlistStore.removeTrack(this.id, index)
-      },
+      const removeTrack = (index: number) => {
+        playlist.value.tracks.splice(index, 1)
+        visibleTracks.value.splice(index, 1)
+        return playlistStore.removeTrack(props.id, index)
+      }
 
-      async fetchPlaylist(id: string) {
-        const loader = useLoader()
+      const fetchPlaylist = async(id: string) => {
         loader.showLoading()
         try {
-          const data = await this.$api.getPlaylist(id)
-          this.playlist = data
-          this.visibleTracks = []
-          this.nextIndex = 0
-          this.hasMore = true
-          this.appendNextChunk()
+          const data = await api.getPlaylist(id)
+          playlist.value = data
+          visibleTracks.value = []
+          nextIndex.value = 0
+          hasMore.value = true
+          appendNextChunk()
         } catch (err) {
           console.error(err)
         } finally {
           loader.hideLoading()
         }
-      },
+      }
 
-      async reloadPlaylist() {
-        await this.fetchPlaylist(this.id)
-        this.$router.replace({
-          name: this.$route.name as string,
-          params: { ...(this.$route.params || {}) },
-          query: { ...(this.$route.query || {}), t: Date.now().toString() },
+      const reloadPlaylist = async() => {
+        await fetchPlaylist(props.id)
+        api.$router.replace({
+          name: api.$route.name as string,
+          params: { ...(api.$route.params || {}) },
+          query: { ...(api.$route.query || {}), t: Date.now().toString() },
         })
-      },
+      }
 
-      deletePlaylist() {
-        const userConfirmed = window.confirm(
-          'About to remove playlist...\nContinue?'
-        )
+      const deletePlaylist = () => {
+        const userConfirmed = window.confirm('About to remove playlist...\nContinue?')
         if (!userConfirmed) return
-        return this.playlistStore.delete(this.id).then(() => {
-          this.$router.replace({ name: 'playlists' })
+        return playlistStore.delete(props.id).then(() => {
+          api.$router.replace({ name: 'playlists' })
         })
-      },
+      }
 
-      // --- Edit Modal ---
-      openEditModal() {
-        this.showEditModal = true
-      },
+      const openEditModal = () => {
+        showEditModal.value = true
+      }
 
-      applyPlaylistUpdate(updated: any) {
-        // update local playlist
-        this.playlist = { ...this.playlist, ...updated }
+      const applyPlaylistUpdate = (updated: any) => {
+        playlist.value = { ...playlist.value, ...updated }
+        playlistStore.update(playlist.value)
+      }
 
-        // persist
-        this.playlistStore.update(this.playlist)
-      },
+      watch(
+        () => props.id,
+        (value) => fetchPlaylist(value),
+        { immediate: true }
+      )
+
+      return {
+        playlistStore,
+        playerStore,
+        formatDuration,
+
+        playlist,
+        visibleTracks,
+        nextIndex,
+        chunkSize,
+        hasMore,
+        loadingTracks,
+        showEditModal,
+
+        appendNextChunk,
+        loadMore,
+        playNow,
+        shuffleNow,
+        removeTrack,
+        fetchPlaylist,
+        reloadPlaylist,
+        deletePlaylist,
+        openEditModal,
+        applyPlaylistUpdate,
+      }
     },
   })
 </script>

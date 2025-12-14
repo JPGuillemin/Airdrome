@@ -42,40 +42,45 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, watch, inject } from 'vue'
   import AlbumList from './AlbumList.vue'
   import { Album, AlbumSort } from '@/shared/api'
 
   export default defineComponent({
     components: { AlbumList },
     props: { sort: { type: String, default: 'recently-added' } },
-    data() {
-      return {
-        albums: [] as | Album[],
-        loading: true,
-        offset: 0 as number,
-        hasMore: true,
-      }
-    },
-    watch: {
-      sort: {
-        handler() {
-          this.albums = []
-          this.offset = 0
-          this.hasMore = true
+    setup(props) {
+      const albums = ref<Album[]>([])
+      const loading = ref(true)
+      const offset = ref(0)
+      const hasMore = ref(true)
+      const api = inject('$api') as any
+
+      watch(
+        () => props.sort,
+        () => {
+          albums.value = []
+          offset.value = 0
+          hasMore.value = true
         }
+      )
+
+      const loadMore = async() => {
+        loading.value = true
+        const newAlbums = await api.getAlbums(props.sort as AlbumSort, 30, offset.value)
+        albums.value.push(...newAlbums)
+        offset.value += newAlbums.length
+        hasMore.value = newAlbums.length >= 30
+        loading.value = false
+      }
+
+      return {
+        albums,
+        loading,
+        offset,
+        hasMore,
+        loadMore,
       }
     },
-    methods: {
-      loadMore() {
-        this.loading = true
-        return this.$api.getAlbums(this.sort as AlbumSort, 30, this.offset).then(albums => {
-          this.albums.push(...albums)
-          this.offset += albums.length
-          this.hasMore = albums.length >= 30
-          this.loading = false
-        })
-      }
-    }
   })
 </script>

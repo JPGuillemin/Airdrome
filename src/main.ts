@@ -71,6 +71,7 @@ async function bootstrapApp() {
   app.use(auth)
   app.use(api)
   app.use(createBootstrap())
+  app.provide('$api', api)
 
   // --- Global properties ---
   app.config.globalProperties.$auth = auth

@@ -48,9 +48,10 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, PropType } from 'vue'
+  import { defineComponent, computed, inject } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import type { Playlist } from '@/shared/api'
+  import type { PropType } from 'vue'
 
   export default defineComponent({
     props: {
@@ -63,24 +64,21 @@
       tileSize: { type: Number, default: 110 },
     },
 
-    setup() {
-      return {
-        playerStore: usePlayerStore(),
+    setup(props) {
+      const playerStore = usePlayerStore()
+      const api = inject('$api') as any
+
+      const validItems = computed(() =>
+        (props.items || []).filter((item): item is Playlist => !!item?.id)
+      )
+
+      const playNow = async(id: string) => {
+        playerStore.setShuffle(false)
+        const playlist = await api.getPlaylist(id)
+        return playerStore.playTrackList(playlist.tracks!)
       }
-    },
 
-    computed: {
-      validItems(): Playlist[] {
-        return (this.items || []).filter((item): item is Playlist => !!item?.id)
-      },
-    },
-
-    methods: {
-      async playNow(id: string) {
-        this.playerStore.setShuffle(false)
-        const playlist = await this.$api.getPlaylist(id)
-        return this.playerStore.playTrackList(playlist.tracks!)
-      },
+      return { playerStore, validItems, playNow }
     },
   })
 </script>

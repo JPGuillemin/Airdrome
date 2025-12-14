@@ -24,9 +24,8 @@
       track: { type: Object, required: true },
       showImage: { type: Boolean, default: false }
     },
-    methods: {
-      formatArtists,
-      formatTitle
+    setup() {
+      return { formatArtists, formatTitle }
     }
   })
 </script>

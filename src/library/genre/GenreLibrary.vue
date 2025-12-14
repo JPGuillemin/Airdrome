@@ -52,12 +52,13 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, computed, watch, inject, nextTick } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import { orderBy } from 'lodash-es'
-  import type { Album } from '@/shared/api'
   import AlbumList from '@/library/album/AlbumList.vue'
   import { useLoader } from '@/shared/loader'
   import { usePlayerStore } from '@/player/store'
+  import type { Album } from '@/shared/api'
 
   interface GenreWithAlbums {
     id: string
@@ -67,46 +68,31 @@
   }
 
   export default defineComponent({
-    components: {
-      AlbumList,
-    },
+    components: { AlbumList },
     setup() {
-      return {
-        playerStore: usePlayerStore(),
-      }
-    },
-    data() {
-      return {
-        items: [] as GenreWithAlbums[],
-        loading: true,
-        sort: this.$route.params.sort || null,
-      }
-    },
-    computed: {
-      sortedItems(): GenreWithAlbums[] {
-        if (!this.items.length) return []
-        return this.sort === 'a-z'
-          ? orderBy(this.items, 'name')
-          : orderBy(this.items, 'albumCount', 'desc')
-      },
-    },
-    watch: {
-      '$route.params.sort': {
-        immediate: true,
-        handler(newSort) {
-          this.sort = newSort || null
-          this.loadGenres()
-        },
-      },
-    },
-    methods: {
-      async loadGenres() {
-        this.loading = true
-        this.items = []
+      const playerStore = usePlayerStore()
+      const api = inject('$api') as any
+      const route = useRoute()
+      const router = useRouter()
+
+      const items = ref<GenreWithAlbums[]>([])
+      const loading = ref(true)
+      const sort = ref<string | null>(route.params.sort as string || null)
+
+      const sortedItems = computed(() => {
+        if (!items.value.length) return []
+        return sort.value === 'a-z'
+          ? orderBy(items.value, 'name')
+          : orderBy(items.value, 'albumCount', 'desc')
+      })
+
+      const loadGenres = async() => {
+        loading.value = true
+        items.value = []
         try {
-          const genres = await this.$api.getGenres()
+          const genres = await api.getGenres()
           const createGenreWithAlbums = async(genre: any) => {
-            const albums = await this.$api.getAlbumsByGenre(genre.id, 15)
+            const albums = await api.getAlbumsByGenre(genre.id, 15)
             return {
               id: genre.id,
               name: genre.name,
@@ -114,48 +100,54 @@
               albums,
             }
           }
-          // Load first 3 genres
           const firstBatch = genres.slice(0, 3)
-          const firstItems = await Promise.all(
-            firstBatch.map(createGenreWithAlbums)
-          )
-          // render immediately
-          this.items = firstItems
-          // Load the rest in background
+          const firstItems = await Promise.all(firstBatch.map(createGenreWithAlbums))
+          items.value = firstItems
+
           const rest = genres.slice(3)
-          Promise.all(
-            rest.map(createGenreWithAlbums)
-          ).then((restItems) => {
-            this.items.push(...restItems)
+          Promise.all(rest.map(createGenreWithAlbums)).then(restItems => {
+            items.value.push(...restItems)
           })
         } catch (error) {
           console.error('Failed to load genres or albums:', error)
         } finally {
-          this.loading = false
+          loading.value = false
         }
-      },
-      async shuffleNow(id): Promise<void> {
+      }
+
+      const shuffleNow = async(id: string) => {
         const loader = useLoader()
         loader.showLoading()
         await new Promise(resolve => setTimeout(resolve, 0))
         let shouldRoute = false
         try {
-          const tracks = await this.$api.getRandomTracks({
+          const tracks = await api.getRandomTracks({
             genre: id,
             size: 200,
           })
           if (!tracks.length) return
-          await this.playerStore.playNow(tracks)
+          await playerStore.playNow(tracks)
           shouldRoute = true
         } finally {
           loader.hideLoading()
           if (shouldRoute) {
-            this.$nextTick(() => {
-              this.$router.push({ name: 'queue' })
+            nextTick(() => {
+              router.push({ name: 'queue' })
             })
           }
         }
-      },
-    },
+      }
+
+      watch(
+        () => route.params.sort,
+        (newSort) => {
+          sort.value = newSort as string || null
+          loadGenres()
+        },
+        { immediate: true }
+      )
+
+      return { items, sortedItems, loading, sort, loadGenres, shuffleNow, playerStore, api }
+    }
   })
 </script>

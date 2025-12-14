@@ -87,7 +87,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref, computed, onMounted, inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
@@ -100,66 +100,72 @@
       ArtistList,
       PlaylistList,
     },
-    data() {
-      return {
-        loading: false,
-        result: {
-          recent: [] as Album[],
-          played: [] as Album[],
-          random: [] as Album[],
-          most: [] as Album[],
-          favalbums: [] as Album[],
-          favartists: [] as Artist[],
-          genres: [] as Genre[],
-          playlists: [] as Playlist[],
-        },
-      }
-    },
-    computed: {
-      empty() {
-        return Object.values(this.result).findIndex(x => x.length > 0) === -1
-      },
-    },
-    mounted() {
-      this.fetchData()
-    },
-    methods: {
-      async fetchData() {
-        if (this.loading) return
-        this.loading = true
+
+    setup() {
+      const api = inject('$api') as any
+
+      const loading = ref(false)
+      const result = ref({
+        recent: [] as Album[],
+        played: [] as Album[],
+        random: [] as Album[],
+        most: [] as Album[],
+        favalbums: [] as Album[],
+        favartists: [] as Artist[],
+        genres: [] as Genre[],
+        playlists: [] as Playlist[],
+      })
+
+      const empty = computed(() =>
+        Object.values(result.value).findIndex(x => x.length > 0) === -1
+      )
+
+      const fetchData = async() => {
+        if (loading.value) return
+        loading.value = true
         const size = 15
         try {
-          const playlists = await this.$api.getPlaylists()
-          this.result.playlists = playlists.slice(0, size)
-          // Priority 2: RECENTLY PLAYED (background, but near-top)
-          this.$api.getAlbums('recently-played', size).then(played => {
-            this.result.played = played
+          const playlists = await api.getPlaylists()
+          result.value.playlists = playlists.slice(0, size)
+
+          api.getAlbums('recently-played', size).then(played => {
+            result.value.played = played
           })
-          this.$api.getFavourites().then(favourites => {
-            this.result.favartists = favourites.artists.slice(0, size)
-            // Priority 5 (depends on same API): FAVOURITE ALBUMS
-            this.result.favalbums = favourites.albums.slice(0, size)
+
+          api.getFavourites().then(favourites => {
+            result.value.favartists = favourites.artists.slice(0, size)
+            result.value.favalbums = favourites.albums.slice(0, size)
           })
-          this.$api.getGenres().then(genres => {
-            const genreNames = genres.map((genre: Genre) => ({
-              ...genre,
-              id: genre.name,
-            }))
-            this.result.genres = orderBy(genreNames, 'albumCount', 'desc')
+
+          api.getGenres().then((genres: Genre[]) => {
+            const genreNames = genres.map((genre: Genre) => ({ ...genre, id: genre.name }))
+            result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
           })
-          this.$api.getAlbums('random', size).then(random => {
-            this.result.random = random
+
+          api.getAlbums('random', size).then(random => {
+            result.value.random = random
           })
-          this.$api.getAlbums('recently-added', size).then(recent => {
-            this.result.recent = recent
+
+          api.getAlbums('recently-added', size).then(recent => {
+            result.value.recent = recent
           })
-          this.$api.getAlbums('most-played', size).then(most => {
-            this.result.most = most
+
+          api.getAlbums('most-played', size).then(most => {
+            result.value.most = most
           })
         } finally {
-          this.loading = false
+          loading.value = false
         }
-      },
+      }
+
+      onMounted(fetchData)
+
+      return {
+        result,
+        loading,
+        empty,
+        fetchData,
+      }
     },
   })
 </script>
