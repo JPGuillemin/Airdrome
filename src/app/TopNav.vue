@@ -255,7 +255,14 @@
         }
       }
 
-      function logout() {
+      async function logout() {
+        if (!confirmDialog.value) return
+
+        const userConfirmed = await confirmDialog.value.open(
+          'Logout',
+          'About to end Airdrome session : continue?'
+        )
+        if (!userConfirmed) return
         auth.logout()
         router.go(0)
       }
