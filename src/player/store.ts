@@ -410,7 +410,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   watch(
     () => playerStore.currentTime,
     (t) => {
-      if (!playerStore.track || !playerStore.isPlaying || playerStore.queue.length === 0) return
+      if (!playerStore.track || !playerStore.isPlaying) return
 
       const remaining = playerStore.duration - t
       if (remaining <= 0.15 && playerStore.hasNext) {

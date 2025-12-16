@@ -111,7 +111,6 @@
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/player/cache'
   import { useLoader } from '@/shared/loader'
-  import { sleep } from '@/shared/utils'
   import { Album } from '@/shared/api'
   import TrackList from '@/library/track/TrackList.vue'
   import IconLastFm from '@/shared/components/IconLastFm.vue'
@@ -194,13 +193,6 @@
 
       const toggleFavourite = async() => {
         favouriteStore.toggle('album', props.id)
-        await sleep(300)
-        if (!album.value) return
-        if (isFavourite.value) {
-          await cacheAlbum()
-        } else {
-          await clearAlbumCache()
-        }
       }
 
       const cacheAlbum = async() => {

@@ -134,11 +134,6 @@ export class AudioController {
   }
 
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
-    if (!options.url) {
-      console.warn('loadTrack(): no url, aborting')
-      this.stop()
-      return
-    }
     const token = ++this.changeToken
     this.setBuffer(options.url!)
     let pipeline: ReturnType<typeof creatPipeline> | undefined
