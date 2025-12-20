@@ -135,15 +135,16 @@ export class AudioController {
 
   async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
     const token = ++this.changeToken
-    this.setBuffer(options.url!)
-    let pipeline: ReturnType<typeof creatPipeline> | undefined
+
     if (this.pipeline.audio) {
       endPlayback(this.context, this.pipeline)
     }
 
     this.replayGain = options.replayGain || null
     console.info('loadTrack(): Launching pipeline for ', options.url)
-    pipeline = creatPipeline(this.context, {
+    let newPipeline: ReturnType<typeof creatPipeline> | undefined
+    this.setBuffer(options.url!)
+    newPipeline = creatPipeline(this.context, {
       audio: this.buffer!,
       volume: this.pipeline.volumeNode.gain.value,
       replayGain: this.replayGainFactor(),
@@ -151,17 +152,17 @@ export class AudioController {
 
     if (token === this.changeToken) {
       this.pipeline.disconnect()
-      this.pipeline = pipeline!
+      this.pipeline = newPipeline!
       this.setReplayGainMode(this.replayGainMode)
 
-      const audio = pipeline.audio
+      const audio = this.pipeline.audio
 
       audio.onerror = () => this.onerror(audio.error)
       audio.onended = () => this.onended()
       audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
       audio.onpause = () => this.onpause()
 
-      this.setupDurationListener(pipeline.audio)
+      this.setupDurationListener(this.pipeline.audio)
 
       if (audio.readyState < 1) {
         try {
@@ -186,7 +187,7 @@ export class AudioController {
         console.info('loadTrack(): buffering ', options.nextUrl)
       }
     } else {
-      pipeline!.disconnect()
+      newPipeline!.disconnect()
     }
   }
 
