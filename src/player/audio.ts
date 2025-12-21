@@ -29,6 +29,7 @@ export class AudioController {
   ontimeupdate: (value: number) => void = () => { /* do nothing */ }
   ondurationchange: (value: number) => void = () => { /* do nothing */ }
   onpause: () => void = () => { /* do nothing */ }
+  onplay: () => void = () => { /* do nothing */ }
   onended: () => void = () => { /* do nothing */ }
   onerror: (err: MediaError | null) => void = () => { /* do nothing */ }
   onfocus: () => void = () => { /* do nothing */ }
@@ -112,12 +113,9 @@ export class AudioController {
         await this.context.resume()
       }
       await this.pipeline.audio.play()
-      this.fadeIn(this.fadeTime)
+      await this.fadeIn(this.fadeTime)
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.warn('Resume aborted')
-        return
-      }
+      if (err.name === 'AbortError') return
       console.error('play(): failed:', err)
       throw err
     }
@@ -161,6 +159,7 @@ export class AudioController {
       audio.onended = () => this.onended()
       audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
       audio.onpause = () => this.onpause()
+      audio.onplay = () => this.onplay()
 
       this.setupDurationListener(this.pipeline.audio)
 
@@ -173,12 +172,8 @@ export class AudioController {
       if (options.paused !== true) {
         try {
           await this.play()
-          this.fadeIn(this.fadeTime)
         } catch (error: any) {
-          if (error.name === 'AbortError') {
-            console.error('loadTrack(): Audio play aborted due to rapid skip')
-            return
-          }
+          if (error.name === 'AbortError') return
           throw error
         }
       }
