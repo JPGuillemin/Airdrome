@@ -1,5 +1,5 @@
 <template>
-  <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll">
+  <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll" :twin-rows="twinRows">
     <Tile
       v-for="(item, index) in validItems"
       :key="item.id || index"
@@ -7,6 +7,7 @@
       :title="item.name || 'Unknown Album'"
       :image="item.image || ''"
       draggable="true"
+      :title-only="titleOnly"
       @dragstart="dragstart(item.id, $event)"
     >
       <template #title>
@@ -57,6 +58,8 @@
       },
       allowHScroll: { type: Boolean, default: false },
       tileSize: { type: Number, default: 110 },
+      twinRows: { type: Boolean, default: false },
+      titleOnly: { type: Boolean, default: false },
     },
 
     setup(props) {

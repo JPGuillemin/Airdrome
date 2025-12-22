@@ -21,17 +21,17 @@
           Playlists
         </span>
       </router-link>
-      <PlaylistList :items="result.playlists" tile-size="120" allow-h-scroll />
+      <PlaylistList :items="result.playlists" tile-size="90" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
-        <Icon icon="recent" class="title-color me-2" />
+    <div v-if="result.recent.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
+        <Icon icon="new" class="title-color me-2" />
         <span class="section-title">
-          Recently played
+          Recently added
         </span>
       </router-link>
-      <AlbumList :items="result.played" tile-size="90" allow-h-scroll />
+      <AlbumList :items="result.recent" tile-size="60" allow-h-scroll title-only twin-rows />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
@@ -61,17 +61,17 @@
           Random
         </span>
       </router-link>
-      <AlbumList :items="result.random" tile-size="90" allow-h-scroll />
+      <AlbumList :items="result.random" tile-size="60" allow-h-scroll title-only twin-rows />
     </div>
 
-    <div v-if="result.recent.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
-        <Icon icon="new" class="title-color me-2" />
+    <div v-if="result.played.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
+        <Icon icon="recent" class="title-color me-2" />
         <span class="section-title">
-          Recently added
+          Recently played
         </span>
       </router-link>
-      <AlbumList :items="result.recent" tile-size="90" allow-h-scroll />
+      <AlbumList :items="result.played" tile-size="90" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
@@ -123,18 +123,17 @@
       const fetchData = async() => {
         if (loading.value) return
         loading.value = true
-        const size = 15
         try {
           const playlists = await api.getPlaylists()
-          result.value.playlists = playlists.slice(0, size)
+          result.value.playlists = playlists.slice(0, 10)
 
-          api.getAlbums('recently-played', size).then(played => {
-            result.value.played = played
+          api.getAlbums('recently-added', 32).then(recent => {
+            result.value.recent = recent
           })
 
           api.getFavourites().then(favourites => {
-            result.value.favartists = favourites.artists.slice(0, size)
-            result.value.favalbums = favourites.albums.slice(0, size)
+            result.value.favartists = favourites.artists.slice(0, 16)
+            result.value.favalbums = favourites.albums.slice(0, 16)
           })
 
           api.getGenres().then((genres: Genre[]) => {
@@ -142,15 +141,15 @@
             result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
           })
 
-          api.getAlbums('random', size).then(random => {
+          api.getAlbums('random', 32).then(random => {
             result.value.random = random
           })
 
-          api.getAlbums('recently-added', size).then(recent => {
-            result.value.recent = recent
+          api.getAlbums('recently-played', 32).then(played => {
+            result.value.played = played
           })
 
-          api.getAlbums('most-played', size).then(most => {
+          api.getAlbums('most-played', 32).then(most => {
             result.value.most = most
           })
         } finally {

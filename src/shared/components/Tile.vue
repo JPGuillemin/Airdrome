@@ -21,7 +21,7 @@
           {{ title }}
         </slot>
       </div>
-      <div class="text-truncate text-muted">
+      <div v-if="!titleOnly" class="text-truncate text-muted">
         <slot name="text">
           {{ text }}
         </slot>
@@ -41,6 +41,7 @@
       text: { type: String, default: '' },
       image: { type: String, default: '' },
       circle: { type: Boolean, default: false },
+      titleOnly: { type: Boolean, default: false },
     },
     setup() {
       return { fallback }
