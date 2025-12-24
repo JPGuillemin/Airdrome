@@ -5,7 +5,7 @@
       :to="{name: 'artist', params: { id: item.id } }"
       :title="item.name"
       :image="item.image"
-      :circle="false"
+      :circle="true"
     >
       <template #text>
         <strong>{{ item.albumCount }}</strong> albums

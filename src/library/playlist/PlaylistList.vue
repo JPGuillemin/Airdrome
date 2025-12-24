@@ -6,7 +6,7 @@
       :to="{ name: 'playlist', params: { id: item.id } }"
       :title="item.name || 'Untitled Playlist'"
       :image="item.image || ''"
-      :circle="true"
+      :circle="false"
     >
       <template #title>
         <router-link :to="{ name: 'playlist', params: { id: item.id } }">

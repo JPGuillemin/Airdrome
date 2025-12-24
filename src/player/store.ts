@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import { defineStore } from 'pinia'
-import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
+import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
@@ -215,17 +215,25 @@ export const usePlayerStore = defineStore('player', {
       localStorage.setItem('player.shuffle', String(enable))
     },
     setPlaying() {
+      if (this.isPlaying) return
+      this.isPlaying = true
       if (mediaSession) {
         mediaSession.playbackState = 'playing'
         this.setMediaSessionPosition(undefined, playRate, undefined)
+        setTimeout(() => {
+          mediaSession.playbackState = 'playing'
+        }, 200)
       }
-      this.isPlaying = true
     },
     setPaused() {
+      if (!this.isPlaying) return
       this.isPlaying = false
       if (mediaSession) {
-        mediaSession.playbackState = 'paused'
         this.setMediaSessionPosition(undefined, pauseRate, undefined)
+        mediaSession.playbackState = 'paused'
+        setTimeout(() => {
+          mediaSession.playbackState = 'paused'
+        }, 200)
       }
     },
     setQueue(queue: Track[]) {
@@ -237,8 +245,7 @@ export const usePlayerStore = defineStore('player', {
         this.queueIndex = -1
         this.duration = 0
         if (mediaSession) {
-          mediaSession.metadata = null
-          mediaSession.playbackState = 'none'
+          mediaSession.playbackState = 'paused'
         }
         return
       }
@@ -249,7 +256,6 @@ export const usePlayerStore = defineStore('player', {
       const track = this.queue[index]
       this.duration = track.duration
       if (mediaSession) {
-        mediaSession.metadata = null
         mediaSession.metadata = new MediaMetadata({
           title: track.title,
           artist: formatArtists(track.artists),
@@ -334,11 +340,15 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   audio.onpause = () => {
-    playerStore.setPaused()
+    if (playerStore.isPlaying) {
+      playerStore.setPaused()
+    }
   }
 
   audio.onplay = () => {
-    playerStore.setPlaying()
+    if (!playerStore.userPaused) {
+      playerStore.setPlaying()
+    }
   }
 
   audio.onerror = (error: any) => {
@@ -370,8 +380,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     mediaSession.setActionHandler('hangup' as any, () => {
       console.info('hangup')
       if (!playerStore.userPaused) {
-        playerStore.play()
-        sleep(1000)
         playerStore.play()
       }
     })
