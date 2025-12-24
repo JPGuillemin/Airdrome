@@ -80,7 +80,7 @@
             Albums
           </span>
         </div>
-        <AlbumList :items="artist.albums" allow-h-scroll />
+        <AlbumList :items="artist.albums" tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.similarArtist.length > 0">
         <div class="d-inline-flex align-items-center">
@@ -89,7 +89,7 @@
             Similar artists
           </span>
         </div>
-        <ArtistList :items="artist.similarArtist" :tile-size="90" allow-h-scroll />
+        <ArtistList :items="artist.similarArtist" tile-size="90" allow-h-scroll />
       </template>
       <template v-if="artist.description">
         <div class="d-inline-flex align-items-center">

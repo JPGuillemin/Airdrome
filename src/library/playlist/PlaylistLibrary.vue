@@ -30,7 +30,6 @@
     <PlaylistList
       v-if="items.length > 0"
       :items="items"
-      tile-size="120"
       :allow-h-scroll="false"
       :is-playlist-view="true"
       @edit-playlist="openEditPlaylist"

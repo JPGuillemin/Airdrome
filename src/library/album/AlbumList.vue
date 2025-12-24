@@ -30,7 +30,7 @@
       </template>
 
       <!-- Context Menu -->
-      <template #context-menu>
+      <template v-if="tileSize > 79" #context-menu>
         <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
           Play
         </DropdownItem>
@@ -57,7 +57,7 @@
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 110 },
+      tileSize: { type: Number, default: 100 },
       twinRows: { type: Boolean, default: false },
       titleOnly: { type: Boolean, default: false },
     },

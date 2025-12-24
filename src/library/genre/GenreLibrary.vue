@@ -45,7 +45,7 @@
             <Icon icon="radio" />
           </b-button>
         </div>
-        <AlbumList :items="item.albums" tile-size="80" allow-h-scroll />
+        <AlbumList :items="item.albums" tile-size="60" title-only allow-h-scroll />
       </div>
     </div>
   </div>
