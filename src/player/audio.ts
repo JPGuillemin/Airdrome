@@ -199,7 +199,7 @@ export class AudioController {
     pipeline.audio.ontimeupdate = null
     pipeline.audio.ondurationchange = null
 
-    setTimeout(() => pipeline.dispose(), 500)
+    setTimeout(() => pipeline.dispose(), 300)
   }
 
   private setupDurationListener(audio: HTMLAudioElement) {

@@ -24,16 +24,6 @@
       <PlaylistList :items="result.playlists" tile-size="100" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
-        <Icon icon="recent" class="title-color me-2" />
-        <span class="section-title">
-          Recently played
-        </span>
-      </router-link>
-      <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
-    </div>
-
     <div v-if="result.recent.length > 0" class="section-wrapper">
       <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
         <Icon icon="new" class="title-color me-2" />
@@ -42,6 +32,16 @@
         </span>
       </router-link>
       <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
+    </div>
+
+    <div v-if="result.played.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
+        <Icon icon="recent" class="title-color me-2" />
+        <span class="section-title">
+          Recently played
+        </span>
+      </router-link>
+      <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
@@ -125,25 +125,25 @@
         if (loading.value) return
         loading.value = true
         try {
+          api.getGenres().then((genres: Genre[]) => {
+            const genreNames = genres.map((genre: Genre) => ({ ...genre, id: genre.name }))
+            result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
+          })
+
           const playlists = await api.getPlaylists()
           result.value.playlists = playlists.slice(0, 10)
-
-          api.getAlbums('recently-played', 32).then(played => {
-            result.value.played = played
-          })
 
           api.getAlbums('recently-added', 32).then(recent => {
             result.value.recent = recent
           })
 
+          api.getAlbums('recently-played', 32).then(played => {
+            result.value.played = played
+          })
+
           api.getFavourites().then(favourites => {
             result.value.favartists = favourites.artists.slice(0, 16)
             result.value.favalbums = favourites.albums.slice(0, 16)
-          })
-
-          api.getGenres().then((genres: Genre[]) => {
-            const genreNames = genres.map((genre: Genre) => ({ ...genre, id: genre.name }))
-            result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
           })
 
           api.getAlbums('random', 32).then(random => {

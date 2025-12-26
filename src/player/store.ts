@@ -406,7 +406,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       audio.seek(Math.max(playerStore.currentTime - offset, 0))
     })
   }
-
+  /*
   watch(
     () => playerStore.currentTime,
     (t) => {
@@ -419,6 +419,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
     }
   )
+  */
 
   watch(
     () => playerStore.currentTime,
