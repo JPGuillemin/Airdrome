@@ -9,35 +9,44 @@ export enum ReplayGainMode {
 }
 
 type ReplayGain = {
-  trackGain: number // dB
-  trackPeak: number // 0.0-1.0
-  albumGain: number // dB
-  albumPeak: number // 0.0-1.0
+  trackGain: number
+  trackPeak: number
+  albumGain: number
+  albumPeak: number
+}
+
+type AudioPipeline = {
+  audio: HTMLAudioElement
+  volumeNode: GainNode
+  replayGainNode: GainNode
+  fadeNode: GainNode
+  normalizerNode: DynamicsCompressorNode
+  dispose(): void
 }
 
 export class AudioController {
   private fadeTime = 0.3
   private changeToken = 0
   private buffer: HTMLAudioElement | null = null
-  private statsListener : any = null
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
   private cachingQueue: Promise<void> = Promise.resolve()
-  private context = new AudioContext()
-  private pipeline = creatPipeline(this.context, {})
 
-  ontimeupdate: (value: number) => void = () => { /* do nothing */ }
-  ondurationchange: (value: number) => void = () => { /* do nothing */ }
-  onpause: () => void = () => { /* do nothing */ }
-  onplay: () => void = () => { /* do nothing */ }
-  onended: () => void = () => { /* do nothing */ }
-  onerror: (err: MediaError | null) => void = () => { /* do nothing */ }
-  onfocus: () => void = () => { /* do nothing */ }
-  onblur: () => void = () => { /* do nothing */ }
-  onvisibilitychange: () => void = () => { /* do nothing */ }
+  private context = new AudioContext()
+  private pipeline: AudioPipeline = createPipeline(this.context, {})
+
+  ontimeupdate = (_: number) => {}
+  ondurationchange = (_: number) => {}
+  onpause = () => {}
+  onplay = () => {}
+  onended = () => {}
+  onerror = (_: MediaError | null) => {}
+  onfocus = () => {}
+  onblur = () => {}
+  onvisibilitychange = () => {}
 
   get audioElement(): HTMLAudioElement | undefined {
-    return this.pipeline?.audio
+    return this.pipeline.audio
   }
 
   currentTime() {
@@ -64,12 +73,11 @@ export class AudioController {
   }
 
   async setBuffer(url: string) {
-    this.buffer = null
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
-    this.buffer.src = url // start streaming immediately
-    try { this.buffer.load() } catch { /* ignore */ }
+    this.buffer.src = url
+    try { this.buffer.load() } catch {}
     this.setCache(url)
   }
 
@@ -84,22 +92,19 @@ export class AudioController {
     if (value === ReplayGainMode.None) {
       this.pipeline.normalizerNode.threshold.value = 0
       this.pipeline.normalizerNode.knee.value = 0
-      this.pipeline.normalizerNode.ratio.value = 1.0
+      this.pipeline.normalizerNode.ratio.value = 1
     } else {
-      this.pipeline.normalizerNode.threshold.value = -3.0
-      this.pipeline.normalizerNode.knee.value = 3.0
-      this.pipeline.normalizerNode.ratio.value = 2.0
+      this.pipeline.normalizerNode.threshold.value = -3
+      this.pipeline.normalizerNode.knee.value = 3
+      this.pipeline.normalizerNode.ratio.value = 2
       this.pipeline.normalizerNode.attack.value = 0.01
       this.pipeline.normalizerNode.release.value = 0.1
     }
-    console.info('setReplayGainMode():', this.replayGainFactor())
   }
 
   async stop() {
     this.changeToken++
-    if (this.pipeline?.audio) {
-      this.pipeline.disconnect()
-    }
+    this.disposePipeline(this.pipeline)
   }
 
   async pause() {
@@ -108,17 +113,11 @@ export class AudioController {
   }
 
   async play() {
-    try {
-      if (this.context.state === 'suspended') {
-        await this.context.resume()
-      }
-      await this.pipeline.audio.play()
-      await this.fadeIn(this.fadeTime)
-    } catch (err: any) {
-      if (err.name === 'AbortError') return
-      console.error('play(): failed:', err)
-      throw err
+    if (this.context.state === 'suspended') {
+      await this.context.resume()
     }
+    await this.pipeline.audio.play()
+    await this.fadeIn(this.fadeTime)
   }
 
   async seek(value: number) {
@@ -131,183 +130,181 @@ export class AudioController {
     }
   }
 
-  async loadTrack(options: { url?: string; nextUrl?: string; paused?: boolean; replayGain?: ReplayGain }) {
-    const token = ++this.changeToken
+  async loadTrack(options: {
+    url?: string
+    nextUrl?: string
+    paused?: boolean
+    replayGain?: ReplayGain
+  }) {
+    if (!options.url) return
 
-    if (this.pipeline.audio) {
-      endPlayback(this.context, this.pipeline)
+    const token = ++this.changeToken
+    this.replayGain = options.replayGain ?? null
+
+    if (!this.buffer || this.buffer.src !== options.url) {
+      await this.setBuffer(options.url)
     }
 
-    this.replayGain = options.replayGain || null
-    console.info('loadTrack(): Launching pipeline for ', options.url)
-    let newPipeline: ReturnType<typeof creatPipeline> | undefined
-    this.setBuffer(options.url!)
-    newPipeline = creatPipeline(this.context, {
+    const nextPipeline = createPipeline(this.context, {
       audio: this.buffer!,
       volume: this.pipeline.volumeNode.gain.value,
-      replayGain: this.replayGainFactor(),
+      replayGain: this.replayGainFactor()
     })
 
-    if (token === this.changeToken) {
-      this.pipeline.disconnect()
-      this.pipeline = newPipeline!
-      this.setReplayGainMode(this.replayGainMode)
-
-      const audio = this.pipeline.audio
-
-      audio.onerror = () => this.onerror(audio.error)
-      audio.onended = () => this.onended()
-      audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
-      audio.onpause = () => this.onpause()
-      audio.onplay = () => this.onplay()
-
-      this.setupDurationListener(this.pipeline.audio)
-
-      if (audio.readyState < 1) {
-        try {
-          audio.load()
-        } catch {}
-      }
-
-      if (options.paused !== true) {
-        try {
-          await this.play()
-        } catch (error: any) {
-          if (error.name === 'AbortError') return
-          throw error
-        }
-      }
-      if (options.nextUrl) {
-        this.setCache(options.nextUrl)
-        console.info('loadTrack(): buffering ', options.nextUrl)
-      }
-    } else {
-      newPipeline!.disconnect()
+    if (token !== this.changeToken) {
+      nextPipeline.dispose()
+      return
     }
+
+    this.replacePipeline(nextPipeline)
+    this.setReplayGainMode(this.replayGainMode)
+
+    const audio = this.pipeline.audio
+
+    audio.onerror = () => this.onerror(audio.error)
+    audio.onended = () => this.onended()
+    audio.onpause = () => this.onpause()
+    audio.onplay = () => this.onplay()
+    audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
+
+    this.setupDurationListener(audio)
+
+    if (audio.readyState < 1) {
+      try { audio.load() } catch {}
+    }
+
+    if (!options.paused) {
+      try {
+        await this.play()
+      } catch (err: any) {
+        if (err.name !== 'AbortError') throw err
+      }
+    }
+
+    if (options.nextUrl) {
+      this.setBuffer(options.nextUrl)
+    }
+  }
+
+  private replacePipeline(next: AudioPipeline) {
+    this.disposePipeline(this.pipeline)
+    this.pipeline = next
+  }
+
+  private disposePipeline(pipeline: AudioPipeline) {
+    pipeline.audio.onended = null
+    pipeline.audio.onerror = null
+    pipeline.audio.onpause = null
+    pipeline.audio.onplay = null
+    pipeline.audio.ontimeupdate = null
+    pipeline.audio.ondurationchange = null
+
+    setTimeout(() => pipeline.dispose(), 500)
   }
 
   private setupDurationListener(audio: HTMLAudioElement) {
-    const updateDuration = () => {
-      const duration = audio.duration
-      if (duration && duration !== Infinity && !isNaN(duration)) {
-        this.ondurationchange(duration)
+    const update = () => {
+      const d = audio.duration
+      if (Number.isFinite(d) && d > 0) {
+        this.ondurationchange(d)
       }
     }
-
-    // Listen for metadata and readiness events
-    audio.addEventListener('loadedmetadata', updateDuration)
-    audio.addEventListener('canplay', updateDuration)
-
-    // Optional quick fallback: sometimes metadata loads slightly later
-    const fallback = setTimeout(updateDuration, 200)
-    audio.addEventListener('durationchange', () => clearTimeout(fallback))
+    audio.addEventListener('loadedmetadata', update)
+    audio.addEventListener('canplay', update)
   }
 
   private async fadeIn(duration = 0) {
-    const value = this.pipeline.fadeNode.gain.value
-    this.pipeline.fadeNode.gain.cancelScheduledValues(0)
-    this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
-    this.pipeline.fadeNode.gain.linearRampToValueAtTime(1, this.context.currentTime + duration)
+    const g = this.pipeline.fadeNode.gain
+    g.cancelScheduledValues(0)
+    g.setValueAtTime(g.value, this.context.currentTime)
+    g.linearRampToValueAtTime(1, this.context.currentTime + duration)
     await sleep(duration * 1000)
   }
 
   private async fadeOut(duration = 0) {
-    const value = this.pipeline.fadeNode.gain.value
-    this.pipeline.fadeNode.gain.cancelScheduledValues(0)
-    this.pipeline.fadeNode.gain.setValueAtTime(value, this.context.currentTime)
-    this.pipeline.fadeNode.gain.linearRampToValueAtTime(0, this.context.currentTime + duration)
+    const g = this.pipeline.fadeNode.gain
+    g.cancelScheduledValues(0)
+    g.setValueAtTime(g.value, this.context.currentTime)
+    g.linearRampToValueAtTime(0, this.context.currentTime + duration)
     await sleep(duration * 1000)
   }
 
   private replayGainFactor(): number {
     if (this.replayGainMode === ReplayGainMode.None || !this.replayGain) {
-      return 1.0
+      return 1
     }
 
-    const gain = this.replayGainMode === ReplayGainMode.Track
-      ? this.replayGain.trackGain
-      : this.replayGain.albumGain
+    const gain =
+      this.replayGainMode === ReplayGainMode.Track
+        ? this.replayGain.trackGain
+        : this.replayGain.albumGain
 
-    const peak = this.replayGainMode === ReplayGainMode.Track
-      ? this.replayGain.trackPeak
-      : this.replayGain.albumPeak
+    const peak =
+      this.replayGainMode === ReplayGainMode.Track
+        ? this.replayGain.trackPeak
+        : this.replayGain.albumPeak
 
     if (!Number.isFinite(gain) || !Number.isFinite(peak) || peak <= 0) {
-      console.warn('replayGainFactor(): invalid ReplayGain settings', this.replayGain)
-      return 1.0
+      return 1
     }
 
-    const preAmp = 6.0
-    const gainFactor = Math.pow(10, (gain + preAmp) / 20)
-    const peakFactor = 1 / peak
-    const factor = Math.min(gainFactor, peakFactor)
-    console.info('replayGainFactor():', factor)
-    return factor
+    const preAmp = 6
+    return Math.min(
+      Math.pow(10, (gain + preAmp) / 20),
+      1 / peak
+    )
   }
 }
 
-function creatPipeline(
+function createPipeline(
   context: AudioContext,
-  options: { audio?: HTMLAudioElement; volume?: number; replayGain?: number }
-) {
-  let audio: HTMLAudioElement
-
-  if (options.audio) {
-    audio = options.audio
-  } else {
-    audio = new Audio()
+  {
+    audio = new Audio(),
+    volume = 1,
+    replayGain = 1
+  }: {
+    audio?: HTMLAudioElement
+    volume?: number
+    replayGain?: number
   }
+): AudioPipeline {
+  audio.playbackRate = 1
 
-  audio.playbackRate = 1.0
-
-  const sourceNode = context.createMediaElementSource(audio)
+  const source = context.createMediaElementSource(audio)
   const volumeNode = context.createGain()
-  volumeNode.gain.value = options.volume ?? 1
-
   const replayGainNode = context.createGain()
-  replayGainNode.gain.value = options.replayGain ?? 1
-
   const fadeNode = context.createGain()
-  fadeNode.gain.value = 1
-
   const normalizerNode = context.createDynamicsCompressor()
+
+  volumeNode.gain.value = volume
+  replayGainNode.gain.value = replayGain
+  fadeNode.gain.value = 1
   normalizerNode.threshold.value = 0
 
-  sourceNode
+  source
     .connect(volumeNode)
     .connect(replayGainNode)
     .connect(fadeNode)
     .connect(normalizerNode)
     .connect(context.destination)
 
-  function disconnect() {
+  function dispose() {
     audio.pause()
-    sourceNode.disconnect()
+    source.disconnect()
     volumeNode.disconnect()
     replayGainNode.disconnect()
     fadeNode.disconnect()
     normalizerNode.disconnect()
     audio.src = ''
-    try {
-      audio.load()
-    } catch {}
+    try { audio.load() } catch {}
   }
 
-  return { audio, volumeNode, replayGainNode, fadeNode, normalizerNode, disconnect }
-}
-
-function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPipeline>) {
-  console.info('endPlayback(): ending payback')
-  pipeline.audio.ontimeupdate = null
-  pipeline.audio.ondurationchange = null
-  pipeline.audio.onpause = null
-  pipeline.audio.onerror = null
-  pipeline.audio.onended = null
-  pipeline.audio.onloadedmetadata = null
-
-  // const startTime = Date.now()
-  setTimeout(() => {
-    // console.info(`AudioController: ending payback done. actual ${Date.now() - startTime}ms`)
-    pipeline.disconnect()
-  }, 1000)
+  return {
+    audio,
+    volumeNode,
+    replayGainNode,
+    fadeNode,
+    normalizerNode,
+    dispose
+  }
 }

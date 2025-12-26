@@ -33,6 +33,12 @@ export interface Track {
 }
 
 export interface Genre {
+  id: string
+  name: string
+  albumCount: number
+  trackCount: number
+}
+export interface AlbumGenre {
   name: string
 }
 
@@ -43,7 +49,7 @@ export interface Album {
   artists: {name: string, id: string}[]
   year: number
   favourite: boolean
-  genres: Genre[]
+  genres: AlbumGenre[]
   image?: string
   lastFmUrl?: string
   musicBrainzUrl?: string
@@ -55,7 +61,7 @@ export interface Artist {
   id: string
   name: string
   description?: string
-  genres: Genre[]
+  genres: AlbumGenre[]
   albumCount: number
   trackCount: number
   favourite: boolean
@@ -460,7 +466,7 @@ export class API {
     }
   }
 
-  private normalizeGenres(item: any): Genre[] {
+  private normalizeGenres(item: any): AlbumGenre[] {
     if (item.genres?.length) {
       return item.genres
     }
