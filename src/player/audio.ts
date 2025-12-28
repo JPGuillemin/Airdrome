@@ -78,6 +78,7 @@ export class AudioController {
     this.buffer.preload = 'auto'
     this.buffer.src = url
     try { this.buffer.load() } catch {}
+    this.setCache(url)
   }
 
   setVolume(value: number) {
@@ -141,7 +142,7 @@ export class AudioController {
     this.replayGain = options.replayGain ?? null
 
     if (!this.buffer || this.buffer.src !== options.url) {
-      this.setBuffer(options.url)
+      await this.setBuffer(options.url)
     }
 
     const nextPipeline = createPipeline(this.context, {
@@ -180,11 +181,8 @@ export class AudioController {
       }
     }
 
-    this.setCache(options.url)
-
     if (options.nextUrl) {
       this.setBuffer(options.nextUrl)
-      this.setCache(options.nextUrl)
     }
   }
 
@@ -201,7 +199,7 @@ export class AudioController {
     pipeline.audio.ontimeupdate = null
     pipeline.audio.ondurationchange = null
 
-    setTimeout(() => pipeline.dispose(), 300)
+    setTimeout(() => pipeline.dispose(), 500)
   }
 
   private setupDurationListener(audio: HTMLAudioElement) {
