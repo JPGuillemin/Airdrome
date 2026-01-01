@@ -32,7 +32,7 @@ docker rm airdrome
 docker network create --subnet=172.25.0.0/24 darkstar
 docker run -d \
 	--name=airdrome \
-	--restart on-failure \
+	--restart=always \
 	--network=darkstar \
 	-p 4321:80 \
 	-v /data:/root \
