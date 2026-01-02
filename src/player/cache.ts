@@ -396,12 +396,10 @@ export const useCacheStore = defineStore('albumCache', {
     async isCached(album: Album): Promise<boolean> {
       if (!album?.tracks?.length) return false
       const cache = await caches.open(CACHE_NAME)
-      for (const track of album.tracks) {
-        if (!track.url) continue
-        const match = await cache.match(track.url)
-        if (match) return true
-      }
-      return false
+      const results = await Promise.all(
+        album.tracks.map(t => t.url ? cache.match(t.url) : Promise.resolve(null)),
+      )
+      return results.every(Boolean)
     },
 
     async getCacheSizeGB(): Promise<number> {

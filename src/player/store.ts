@@ -260,7 +260,10 @@ export const usePlayerStore = defineStore('player', {
           title: track.title,
           artist: formatArtists(track.artists),
           album: track.album,
-          artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
+          artwork:
+            navigator.onLine && track.image
+              ? [{ src: track.image, sizes: '300x300' }]
+              : undefined,
         })
       }
       this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
@@ -281,16 +284,31 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
-    api.savePlayQueue(playerStore.queue!, playerStore.track, Math.trunc(playerStore.currentTime))
-    playerStore.setMediaSessionPosition(playerStore.duration, pauseRate, 0.0)
+
+    if (navigator.onLine) {
+      api.savePlayQueue(
+        playerStore.queue!,
+        playerStore.track,
+        Math.trunc(playerStore.currentTime)
+      )
+    }
+
+    playerStore.setMediaSessionPosition(
+      playerStore.duration,
+      pauseRate,
+      0.0
+    )
   })
 
   audio.onended = async() => {
-    const { hasNext, repeat } = playerStore
+    if (!navigator.onLine) {
+      console.info('[Offline mode] Queue ended.')
+      return playerStore.resetQueue()
+    }
 
-    // Normal behavior
+    const { hasNext, repeat } = playerStore
     if (hasNext || repeat) return playerStore.next()
-    if (!playerStore.track || !playerStore.track?.url) return
+    if (!playerStore.track?.url) return
 
     const lastTrack = playerStore.track
 
@@ -352,11 +370,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   audio.onerror = (error: any) => {
+    console.warn('[Audio error]', error)
+
     if (playerStore.hasNext) {
       playerStore.next()
     } else {
       playerStore.resetQueue()
     }
+
     mainStore.setError(error)
   }
 
@@ -445,7 +466,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   )
 
   setInterval(() => {
-    if (!playerStore.track) return
+    if (!playerStore.track || !navigator.onLine) return
 
     api.savePlayQueue(
       playerStore.queue!,
@@ -457,15 +478,16 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   watch(
     () => [playerStore.duration],
     () => {
-      if (playerStore.track) {
-        playerStore.setMediaSessionPosition()
-        api.updateNowPlaying(playerStore.track.id)
-        api.savePlayQueue(
-          playerStore.queue!,
-          playerStore.track,
-          Math.trunc(playerStore.currentTime)
-        )
-      }
+      if (!playerStore.track || !navigator.onLine) return
+
+      playerStore.setMediaSessionPosition()
+
+      api.updateNowPlaying(playerStore.track.id)
+      api.savePlayQueue(
+        playerStore.queue!,
+        playerStore.track,
+        Math.trunc(playerStore.currentTime)
+      )
     }
   )
 }

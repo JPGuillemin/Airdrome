@@ -99,6 +99,13 @@ export interface PlayQueue {
   currentTrackPosition: number
 }
 
+export class OfflineError extends Error {
+  constructor() {
+    super('Offline')
+    this.name = 'OfflineError'
+  }
+}
+
 export class UnsupportedOperationError extends Error { }
 
 export class SubsonicError extends Error {
@@ -115,47 +122,56 @@ export class API {
   private readonly clientName = window.origin || 'web'
 
   constructor(private auth: AuthService) {
-    this.fetch = (path: string, params: any) => {
+    this.fetch = async(path: string, params: any) => {
       params = { ...params, v: '1.16.1', f: 'json', c: this.clientName }
 
-      const request = auth.serverInfo?.extensions.includes('formPost')
+      const request = this.auth.serverInfo?.extensions.includes('formPost')
         ? new Request(`${this.auth.server}/${path}`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `${toQueryString(params)}&${this.auth.urlParams}`
+          body: `${toQueryString(params)}&${this.auth.urlParams}`,
         })
-        : new Request(`${this.auth.server}/${path}?${toQueryString(params)}&${this.auth.urlParams}`, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          }
-        })
+        : new Request(
+            `${this.auth.server}/${path}?${toQueryString(params)}&${this.auth.urlParams}`,
+            { method: 'GET', headers: { Accept: 'application/json' } }
+        )
 
-      return window
-        .fetch(request)
-        .then(response => {
-          if (response.ok) {
-            return response.json()
-          }
-          const message = `Request failed with status ${response.status}`
-          // Handle non-standard Navidrome response
+      try {
+        const response = await window.fetch(request)
+
+        if (!response.ok) {
           if (response.status === 501) {
-            return Promise.reject(new UnsupportedOperationError(message))
+            throw new UnsupportedOperationError(
+              `Request failed with status ${response.status}`
+            )
           }
-          return Promise.reject(new Error(message))
-        })
-        .then(response => {
-          const subsonicResponse = response['subsonic-response']
-          if (subsonicResponse.status === 'ok') {
-            return subsonicResponse
-          }
-          const code = subsonicResponse.error?.code
-          const message = subsonicResponse.error?.message || subsonicResponse.status
-          throw new SubsonicError(message, code)
-        })
+          throw new Error(`Request failed with status ${response.status}`)
+        }
+
+        const json = await response.json()
+        const subsonicResponse = json['subsonic-response']
+
+        if (subsonicResponse.status !== 'ok') {
+          throw new SubsonicError(
+            subsonicResponse.error?.message || subsonicResponse.status,
+            subsonicResponse.error?.code ?? null
+          )
+        }
+
+        return subsonicResponse
+      } catch (err: any) {
+        if (
+          err instanceof TypeError &&
+          !navigator.onLine
+        ) {
+          console.info('[Offline mode] API request skipped:', path)
+          throw new OfflineError()
+        }
+        throw err
+      }
     }
   }
 
@@ -335,20 +351,25 @@ export class API {
     }
   }
 
-  async savePlayQueue(tracks: Track[], currentTrack: Track | null, currentTime: number | null) {
-    const tracksIds = tracks.filter(track => !track.isStream).map(track => track.id)
-    const params = {
-      id: tracksIds,
-      current: !currentTrack?.isStream ? currentTrack?.id : undefined,
-      position: currentTime != null ? parseInt(String(Math.round(currentTime * 1000)), 10) : undefined,
-    }
+  async savePlayQueue(
+    tracks: Track[],
+    currentTrack: Track | null,
+    currentTime: number | null
+  ) {
     try {
-      await this.fetch('rest/savePlayQueue', params)
+      const tracksIds = tracks.filter(t => !t.isStream).map(t => t.id)
+
+      await this.fetch('rest/savePlayQueue', {
+        id: tracksIds,
+        current: !currentTrack?.isStream ? currentTrack?.id : undefined,
+        position:
+          currentTime != null
+            ? Math.round(currentTime * 1000)
+            : undefined,
+      })
     } catch (err: any) {
-      // ignore missing required parameter error
-      if (err.code === 0 || err.code === 10) {
-        return
-      }
+      if (err instanceof OfflineError) return
+      if (err.code === 0 || err.code === 10) return
       throw err
     }
   }
@@ -433,11 +454,21 @@ export class API {
   }
 
   async scrobble(id: string): Promise<void> {
-    return this.fetch('rest/scrobble', { id, submission: true })
+    try {
+      await this.fetch('rest/scrobble', { id, submission: true })
+    } catch (err) {
+      if (err instanceof OfflineError) return
+      throw err
+    }
   }
 
   async updateNowPlaying(id: string): Promise<void> {
-    return this.fetch('rest/scrobble', { id, submission: false })
+    try {
+      await this.fetch('rest/scrobble', { id, submission: false })
+    } catch (err) {
+      if (err instanceof OfflineError) return
+      throw err
+    }
   }
 
   private normalizeTrack(item: any): Track {
