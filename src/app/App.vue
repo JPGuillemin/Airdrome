@@ -1,9 +1,16 @@
 <template>
   <div>
     <component :is="layout">
-      <keep-alive max="3">
-        <router-view :key="$route.fullPath" />
-      </keep-alive>
+      <router-view v-slot="{ Component, route }">
+        <template v-if="route.meta.keepAlive">
+          <keep-alive max="3">
+            <component :is="Component" />
+          </keep-alive>
+        </template>
+        <template v-else>
+          <component :is="Component" />
+        </template>
+      </router-view>
     </component>
     <GlobalLoader />
   </div>

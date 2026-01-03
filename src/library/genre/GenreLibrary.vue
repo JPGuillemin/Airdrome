@@ -92,7 +92,8 @@
         try {
           const genres = await api.getGenres()
           const createGenreWithAlbums = async(genre: any) => {
-            const albums = await api.getAlbumsByGenre(genre.id, 15)
+            const shuffled = true
+            const albums = await api.getAlbumsByGenre(genre.id, 16, 0, shuffled)
             return {
               id: genre.id,
               name: genre.name,

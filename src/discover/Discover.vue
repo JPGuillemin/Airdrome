@@ -14,6 +14,16 @@
       </div>
     </div>
 
+    <div v-if="result.mood.length > 0" class="section-wrapper">
+      <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
+        <Icon icon="genres" class="title-color me-2" />
+        <span class="section-title">
+          Current mood
+        </span>
+      </router-link>
+      <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
+    </div>
+
     <div v-if="result.playlists.length > 0" class="section-wrapper">
       <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
         <Icon icon="playlist" class="title-color me-2" />
@@ -32,16 +42,6 @@
         </span>
       </router-link>
       <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
-    </div>
-
-    <div v-if="result.mood.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
-        <Icon icon="genres" class="title-color me-2" />
-        <span class="section-title">
-          Current mood
-        </span>
-      </router-link>
-      <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
@@ -87,12 +87,13 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, onMounted, inject } from 'vue'
+  import { defineComponent, ref, computed, onMounted, watch, inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import { Album, AlbumGenre, Genre, Artist, Playlist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
+  import { reloadToken } from '@/shared/reload'
 
   export default defineComponent({
     components: {
@@ -132,13 +133,6 @@
             result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
           })
 
-          const playlists = await api.getPlaylists()
-          result.value.playlists = playlists.slice(0, 10)
-
-          api.getAlbums('recently-added', 32).then(recent => {
-            result.value.recent = recent
-          })
-
           api.getAlbums('recently-played', 32).then(async played => {
             result.value.played = played
             if (played.length === 0) return
@@ -146,8 +140,16 @@
             const lastPlayed = played[0]
             lastGenre.value = (lastPlayed as Album).genres[0]!
             if (!lastGenre.value) return
-            const albumsByGenre = await api.getAlbumsByGenre(lastGenre.value.name, 32)
+            const shuffled = true
+            const albumsByGenre = await api.getAlbumsByGenre(lastGenre.value.name, 64, 0, shuffled)
             result.value.mood = albumsByGenre
+          })
+
+          const playlists = await api.getPlaylists()
+          result.value.playlists = playlists.slice(0, 10)
+
+          api.getAlbums('recently-added', 32).then(recent => {
+            result.value.recent = recent
           })
 
           api.getFavourites().then(favourites => {
@@ -164,6 +166,24 @@
       }
 
       onMounted(fetchData)
+
+      function emptyResult() {
+        Object.assign(result.value, {
+          recent: [],
+          played: [],
+          mood: [],
+          most: [],
+          favalbums: [],
+          favartists: [],
+          genres: [],
+          playlists: [],
+        })
+      }
+
+      watch(reloadToken, () => {
+        emptyResult()
+        fetchData()
+      })
 
       return {
         result,

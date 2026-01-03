@@ -25,7 +25,10 @@ export function setupRouter(auth: AuthService) {
       {
         path: '/',
         name: 'home',
-        component: Discover
+        component: Discover,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'login',
@@ -55,7 +58,10 @@ export function setupRouter(auth: AuthService) {
         name: 'albums',
         path: '/albums/:sort',
         component: AlbumLibrary,
-        props: true
+        props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'album',
@@ -68,6 +74,9 @@ export function setupRouter(auth: AuthService) {
         path: '/artists/:sort?',
         component: ArtistLibrary,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'artist',
@@ -80,30 +89,45 @@ export function setupRouter(auth: AuthService) {
         path: '/genres/:sort?',
         component: GenreLibrary,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'genre',
         path: '/genres/id/:id/:section?',
         component: GenreDetails,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'favourites',
         path: '/favourites/:section?',
         component: Favourites,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'playlists',
         path: '/playlists/:sort?',
         component: PlaylistLibrary,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'playlist',
         path: '/playlist/:id',
         component: Playlist,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'search',

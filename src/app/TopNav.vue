@@ -125,7 +125,7 @@
   import { useLoader } from '@/shared/loader'
   import { useCacheStore } from '@/player/cache'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
-
+  import { pushReload } from '@/shared/reload'
   export default defineComponent({
     components: {
       About,
@@ -211,6 +211,8 @@
             await sleep(1000)
             scanning = await api.getScanStatus()
           } while (scanning)
+
+          pushReload()
 
           router.replace({
             name: route.name as string,

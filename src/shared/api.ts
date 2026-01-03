@@ -187,7 +187,12 @@ export class API {
       .sort((a: any, b:any) => b.albumCount - a.albumCount)
   }
 
-  async getAlbumsByGenre(id: string, size: number, offset = 0) {
+  async getAlbumsByGenre(
+    id: string,
+    size: number,
+    offset = 0,
+    random = false,
+  ) {
     const params = {
       type: 'byGenre',
       genre: id,
@@ -195,7 +200,19 @@ export class API {
       offset,
     }
     const response = await this.fetch('rest/getAlbumList2', params)
-    return (response.albumList2?.album || []).map(this.normalizeAlbum, this)
+    const albums = (response.albumList2?.album || []).map(
+      this.normalizeAlbum,
+      this,
+    )
+    if (!random) {
+      return albums
+    }
+    // Fisher–Yates shuffle (in-place)
+    for (let i = albums.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[albums[i], albums[j]] = [albums[j], albums[i]]
+    }
+    return albums
   }
 
   async getTracksByGenre(id: string, size: number, offset = 0) {
