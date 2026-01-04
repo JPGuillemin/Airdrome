@@ -47,7 +47,7 @@ export class AuthService {
       const auth = { salt: this.salt, hash: this.hash, password: this.password }
       await login(this.server, this.username, auth)
       this.authenticated = true
-      this.serverInfo = await fetchServerInfo(this.server, this.username, auth)
+      this.serverInfo = await fetchServerInfo(this.server)
       return true
     } catch {
       return false
@@ -71,7 +71,7 @@ export class AuthService {
     this.server = server
     this.username = username
     this.authenticated = true
-    this.serverInfo = await fetchServerInfo(server, username, { hash, salt, password })
+    this.serverInfo = await fetchServerInfo(server)
     this.saveSession()
   }
 
@@ -100,7 +100,7 @@ async function login(server: string, username: string, auth: Auth) {
     t: auth.hash,
     p: auth.password,
   }, x => x !== undefined) as Record<string, string>)
-  const url = `${server}/rest/ping?u=${username}&${qs}&v=1.15.0&c=app&f=json`
+  const url = `${server}/rest/ping?u=${username}&${qs}&v=1.16.1&c=Airdrome&f=json`
   return fetch(url)
     .then(response => response.ok
       ? response.json()
@@ -114,13 +114,8 @@ async function login(server: string, username: string, auth: Auth) {
     })
 }
 
-async function fetchServerInfo(server: string, username: string, auth: Auth): Promise<ServerInfo> {
-  const qs = toQueryString(pickBy({
-    s: auth.salt,
-    t: auth.hash,
-    p: auth.password,
-  }, x => x !== undefined) as Record<string, string>)
-  const url = `${server}/rest/getOpenSubsonicExtensions?u=${username}&${qs}&v=1.15.0&c=app&f=json`
+async function fetchServerInfo(server: string): Promise<ServerInfo> {
+  const url = `${server}/rest/getOpenSubsonicExtensions?c=Airdrome&v=1.16.1&f=json`
   const response = await fetch(url)
   if (response.ok) {
     const body = await response.json()
