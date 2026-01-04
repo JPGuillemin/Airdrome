@@ -5,12 +5,12 @@
         <component
           :is="Component"
           v-if="!viewRoute.meta.keepAlive"
-          v-bind="routerViewAttrs(viewRoute)"
+          v-bind="routeOnAttributes(viewRoute)"
         />
-        <keep-alive v-else max="3">
+        <keep-alive v-else max="5">
           <component
             :is="Component"
-            v-bind="routerViewAttrs(viewRoute)"
+            v-bind="routeOnAttributes(viewRoute)"
           />
         </keep-alive>
       </router-view>
@@ -29,10 +29,10 @@
 
   const route = useRoute()
 
-  function routerViewAttrs(r: RouteLocationNormalizedLoaded) {
-    const forceRemountRoutes = new Set(['album', 'genre', 'artist'])
+  function routeOnAttributes(r: RouteLocationNormalizedLoaded) {
+    const dynamicRoutes = new Set(['album', 'genre', 'artist', ' search', 'queue'])
 
-    return forceRemountRoutes.has(r.name as string)
+    return dynamicRoutes.has(r.name as string)
       ? { key: JSON.stringify(r.params) }
       : {}
   }

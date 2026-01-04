@@ -45,6 +45,9 @@ export function setupRouter(auth: AuthService) {
         name: 'queue',
         path: '/queue',
         component: Queue,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'albums-default',
@@ -53,6 +56,9 @@ export function setupRouter(auth: AuthService) {
           name: 'albums',
           params: { sort: 'recently-added' }
         }),
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'albums',
@@ -68,6 +74,9 @@ export function setupRouter(auth: AuthService) {
         path: '/albums/id/:id',
         component: AlbumDetails,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'artists',
@@ -83,6 +92,9 @@ export function setupRouter(auth: AuthService) {
         path: '/artists/id/:id',
         component: ArtistDetails,
         props: true,
+        meta: {
+          keepAlive: true
+        }
       },
       {
         name: 'genres',
