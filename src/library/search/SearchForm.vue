@@ -29,7 +29,7 @@
       }
 
       const reloadUnfiltered = () => {
-        router.push({ name: 'home', query: { t: Date.now().toString() } })
+        router.back()
       }
 
       watch(query, (newVal, oldVal) => {
