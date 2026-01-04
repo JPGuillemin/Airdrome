@@ -1,38 +1,45 @@
 <template>
   <div>
     <component :is="layout">
-      <router-view v-slot="{ Component, route }">
-        <template v-if="route.meta.keepAlive">
-          <keep-alive max="3">
-            <component :is="Component" />
-          </keep-alive>
-        </template>
-        <template v-else>
-          <component :is="Component" />
-        </template>
+      <router-view v-slot="{ Component, route: viewRoute }">
+        <component
+          :is="Component"
+          v-if="!viewRoute.meta.keepAlive"
+          v-bind="routerViewAttrs(viewRoute)"
+        />
+        <keep-alive v-else max="3">
+          <component
+            :is="Component"
+            v-bind="routerViewAttrs(viewRoute)"
+          />
+        </keep-alive>
       </router-view>
     </component>
     <GlobalLoader />
   </div>
 </template>
 
-<script lang="ts">
-  import { defineComponent } from 'vue'
+<script setup lang="ts">
+  import { computed } from 'vue'
+  import { useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
+
   import GlobalLoader from '@/shared/components/GlobalLoader.vue'
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
 
-  export default defineComponent({
-    components: {
-      Default,
-      Fullscreen,
-      GlobalLoader,
-    },
-    computed: {
-      layout(): string {
-        // Dynamic layout based on route meta
-        return (this as any).$route.meta.layout || 'Default'
-      },
-    },
+  const route = useRoute()
+
+  function routerViewAttrs(r: RouteLocationNormalizedLoaded) {
+    const forceRemountRoutes = new Set(['album', 'genre', 'artist'])
+
+    return forceRemountRoutes.has(r.name as string)
+      ? { key: JSON.stringify(r.params) }
+      : {}
+  }
+
+  const layout = computed(() => {
+    return route.meta.layout === 'fullscreen'
+      ? Fullscreen
+      : Default
   })
 </script>

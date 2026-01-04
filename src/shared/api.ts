@@ -119,7 +119,7 @@ export class SubsonicError extends Error {
 
 export class API {
   private readonly fetch: (path: string, params?: any) => Promise<any>
-  private readonly clientName = window.origin || 'web'
+  private readonly clientName = 'Airdrome'
 
   constructor(private auth: AuthService) {
     this.fetch = async(path: string, params: any) => {
