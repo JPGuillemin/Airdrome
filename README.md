@@ -47,10 +47,20 @@ $ docker run -d \
 
 ```
 
-## OpenSubsonic support
+## OpenSubsonic endpoints
 
-- HTTP form POST extension
-- Multiple artists/genres
+- getAlbumList2
+- getArtistInfo2
+- getAlbumInfo2
+- getStarred2
+- search3
+- getSongsByGenre
+- getRandomSongs
+- getPlayQueue
+- savePlayQueue
+- getScanStatus
+- startScan
+- getOpenSubsonicExtensions
 
 ## License
 
