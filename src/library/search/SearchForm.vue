@@ -11,33 +11,41 @@
 
 <script lang="ts">
   import { defineComponent, ref, watch } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRouter, useRoute } from 'vue-router'
 
   export default defineComponent({
     setup() {
       const router = useRouter()
+      const route = useRoute()
+
       const query = ref('')
       let clearTimeoutId: number | null = null
 
       const search = () => {
         const trimmed = query.value.trim()
-        if (trimmed === '') {
-          reloadUnfiltered()
-        } else {
-          router.push({ name: 'search', query: { query: trimmed } })
+
+        if (!trimmed) {
+          clearSearch()
+          return
+        }
+
+        router.push({
+          name: 'search',
+          query: { query: trimmed },
+        })
+      }
+
+      const clearSearch = () => {
+        // Only act if we are currently on the search route
+        if (route.name === 'search') {
+          router.replace({ name: 'home' }) // or whatever your base route is
         }
       }
 
-      const reloadUnfiltered = () => {
-        router.back()
-      }
-
       watch(query, (newVal, oldVal) => {
-        if (oldVal && newVal.trim() === '') {
+        if (oldVal && !newVal.trim()) {
           if (clearTimeoutId) clearTimeout(clearTimeoutId)
-          clearTimeoutId = window.setTimeout(() => {
-            reloadUnfiltered()
-          }, 300)
+          clearTimeoutId = window.setTimeout(clearSearch, 300)
         }
       })
 
