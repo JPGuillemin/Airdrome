@@ -24,7 +24,19 @@ Airdrome is a modern responsive web frontend for [navidrome](https://github.com/
 
 <img src="screenshots/desktop.png" width="800" />
 
-## Install
+## Run from Docker Hub
+
+```
+$ docker run -d \
+  --name=airdrome \
+  --restart on-failure \
+  --network=bridge \
+  -p 8080:80 \
+  h7p3ri0n/airdrome:latest
+
+```
+
+## Build your own Docker image
 
 ```
 $ yarn install

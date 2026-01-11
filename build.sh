@@ -1,4 +1,8 @@
+#!/bin/bash
+
+export VERSION="4.2.0"
 export BASE_PATH="/"
+
 rm -rf dist docker
 
 # Build the project
@@ -25,23 +29,19 @@ sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
 mv dist${BASE_PATH}.well-known dist/
 
 # Build the docker image
-docker build -f docker/Dockerfile -t local/airdrome . || exit "error docker build"
+docker build -f docker/Dockerfile -t local/airdrome:latest . || exit "error docker build"
+# docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
+# exit
+
 # Build the docker container
 docker stop airdrome
 docker rm airdrome
 docker network create --subnet=172.25.0.0/24 darkstar
 docker run -d \
-	--name=airdrome \
-	--restart=always \
-	--network=darkstar \
-	-p 4321:80 \
-	-v /data:/root \
-	local/airdrome:latest || exit "error build-airdrome.sh"
+  --name=airdrome \
+  --restart=always \
+  --network=darkstar \
+  -p 4321:80 \
+  -v /data:/root \
+  local/airdrome:latest || exit "error run airdrome"
 
-#rm -rf __TMP__
-#mv dist __TMP__
-#mkdir dist
-# cp -rf __TMP__ dist/airdrome
-######
-# rm -rf dist
-# mv __TMP__ dist
