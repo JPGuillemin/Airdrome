@@ -73,7 +73,7 @@
                   v-for="option in [
                     { icon: 'music-note', value: 128, shade: 0.6 },
                     { icon: 'music-note', value: 192, shade: 0.9 },
-                    { icon: 'music-note-beamed', value: 1000, shade: 0.9 }
+                    { icon: 'music-note-beamed', value: 512, shade: 0.9 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
@@ -116,7 +116,6 @@
 <script lang="ts">
   import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
   import { useMainStore } from '@/shared/store'

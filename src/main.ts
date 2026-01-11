@@ -78,7 +78,7 @@ async function bootstrapApp() {
   app.config.globalProperties.$api = api
 
   const themeColors = [
-    { name: 'Grey', value: '#999999' },
+    { name: 'Blue', value: '#178994' },
     { name: 'Green', value: '#1db954' },
     { name: 'Orange', value: '#ff8c00' },
     { name: 'Purple', value: '#6f42c1' },
