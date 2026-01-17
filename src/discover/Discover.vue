@@ -15,72 +15,142 @@
     </div>
 
     <div v-if="result.mood.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
-        <Icon icon="genres" class="title-color me-2" />
-        <span class="section-title">
-          Current mood
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
+          <Icon icon="genres" class="title-color me-2" />
+          <span class="section-title">
+            Current mood
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioMood()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
     </div>
 
     <div v-if="result.playlists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
-        <Icon icon="playlist" class="title-color me-2" />
-        <span class="section-title">
-          Playlists
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
+          <Icon icon="playlist" class="title-color me-2" />
+          <span class="section-title">
+            Playlists
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioPlaylists()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <PlaylistList :items="result.playlists" tile-size="100" allow-h-scroll />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
-        <Icon icon="new" class="title-color me-2" />
-        <span class="section-title">
-          Recently added
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
+          <Icon icon="new" class="title-color me-2" />
+          <span class="section-title">
+            Recently added
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioRecentlyAdded()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
     </div>
 
     <div v-if="result.favartists.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
-        <Icon icon="heart" class="title-color me-2" />
-        <span class="section-title">
-          Fav artists
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
+          <Icon icon="heart" class="title-color me-2" />
+          <span class="section-title">
+            Fav artists
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioFavouriteArtists()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <ArtistList :items="result.favartists" tile-size="100" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
-        <Icon icon="heart" class="title-color me-2" />
-        <span class="section-title">
-          Fav albums
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
+          <Icon icon="heart" class="title-color me-2" />
+          <span class="section-title">
+            Fav albums
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioFavouriteAlbums()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <AlbumList :items="result.favalbums" tile-size="100" allow-h-scroll />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
-        <Icon icon="recent" class="title-color me-2" />
-        <span class="section-title">
-          Recently played
-        </span>
-      </router-link>
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
+          <Icon icon="recent" class="title-color me-2" />
+          <span class="section-title">
+            Recently played
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioRecentlyPlayed()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
     </div>
 
-    <div v-if="result.recent.length > 0" class="section-wrapper">
-      <router-link :to="{ name: 'albums', params: { sort: 'most-played' } }" class="d-inline-flex align-items-center">
-        <Icon icon="most" class="title-color me-2" />
-        <span class="section-title">
-          Most Played
-        </span>
-      </router-link>
+    <div v-if="result.most.length > 0" class="section-wrapper">
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'albums', params: { sort: 'most-played' } }" class="d-inline-flex align-items-center">
+          <Icon icon="most" class="title-color me-2" />
+          <span class="section-title">
+            Most Played
+          </span>
+        </router-link>
+        <b-button
+          variant="transparent"
+          class="me-2"
+          title="Radio"
+          @click="radioMostPlayed()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
       <AlbumList :items="result.most" tile-size="60" allow-h-scroll title-only />
     </div>
   </div>
@@ -94,6 +164,7 @@
   import { Album, AlbumGenre, Genre, Artist, Playlist } from '@/shared/api'
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
+  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     components: {
@@ -165,6 +236,18 @@
         }
       }
 
+      const radio = useRadioStore()
+      const radioRecentlyPlayed = () => radio.shuffleRecentlyPlayed(api)
+      const radioMostPlayed = () => radio.shuffleMostPlayed(api)
+      const radioFavouriteAlbums = () => radio.shuffleFavouriteAlbums(api)
+      const radioFavouriteArtists = () => radio.shuffleFavouriteArtists(api)
+      const radioRecentlyAdded = () => radio.shuffleRecentlyAdded(api)
+      const radioPlaylists = () => radio.shufflePlaylists(api)
+      const radioMood = () =>
+        lastGenre.value
+          ? radio.shuffleMood(api, lastGenre.value.name)
+          : undefined
+
       onMounted(fetchData)
 
       function emptyResult() {
@@ -191,6 +274,13 @@
         loading,
         empty,
         fetchData,
+        radioRecentlyPlayed,
+        radioMostPlayed,
+        radioFavouriteAlbums,
+        radioFavouriteArtists,
+        radioRecentlyAdded,
+        radioMood,
+        radioPlaylists,
       }
     },
   })

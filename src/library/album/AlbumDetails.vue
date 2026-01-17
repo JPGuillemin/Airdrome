@@ -116,6 +116,7 @@
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRouter, useRoute } from 'vue-router'
+  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     components: { TrackList, IconLastFm, IconMusicBrainz },
@@ -128,6 +129,7 @@
       const loader = useLoader()
       const router = useRouter()
       const route = useRoute()
+      const radioStore = useRadioStore()
 
       const album = ref<Album | null>(null)
       const cached = ref(false)
@@ -158,25 +160,6 @@
             album.value.tracks?.some(t => t.id === currentTrack.id))
         if (isAlbumTrack) return playerStore.playPause()
         if (album.value.tracks?.length) return playerStore.playNow(album.value.tracks)
-      }
-
-      const shuffleNow = () => {
-        if (!album.value || !album.value.tracks?.length) return
-        return playerStore.shuffleNow(album.value.tracks)
-      }
-
-      const RadioNow = async() => {
-        if (!album.value || !album.value.artists?.length) return
-        playerStore.setShuffle(false)
-        loader.showLoading()
-        try {
-          const artistId = album.value.artists[0].id
-          const tracks = await api.getSimilarTracksByArtist(artistId, 50)
-          if (!tracks?.length) return
-          return playerStore.playNow(tracks)
-        } finally {
-          loader.hideLoading()
-        }
       }
 
       const setNextInQueue = () => {
@@ -211,6 +194,16 @@
           params: { ...(route.params || {}) },
           query: { ...(route.query || {}), t: Date.now().toString() },
         })
+      }
+
+      const shuffleNow = async() => {
+        if (!album.value?.tracks?.length) return
+        await radioStore.shuffleAlbum(album.value.tracks)
+      }
+
+      const RadioNow = async() => {
+        if (!album.value?.tracks?.length || !album.value?.artists?.length) return
+        await radioStore.radioAlbum(api, album.value.tracks, album.value.artists)
       }
 
       fetchAlbum()

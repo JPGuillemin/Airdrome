@@ -113,10 +113,9 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { useMainStore } from '@/shared/store'
   import { usePlayerStore } from '@/player/store'
-  import { useLoader } from '@/shared/loader'
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
-  import type { Track } from '@/shared/api'
+  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     components: {
@@ -133,35 +132,15 @@
       const mainStore = useMainStore()
       const favouriteStore = useFavouriteStore()
       const playerStore = usePlayerStore()
+
+      const radioStore = useRadioStore()
+      const shuffleNow = () => radioStore.shuffleArtist(api, props.id)
+      const RadioNow = () => radioStore.radioArtist(api, props.id)
+
       const artist = ref<any>(null)
       const api = inject('$api') as any
-      const loader = useLoader()
 
       const isFavourite = computed(() => favouriteStore.get('artist', props.id))
-
-      const shuffleNow = async() => {
-        loader.showLoading()
-        try {
-          const tracks: Track[] = []
-          for await (const batch of api.getTracksByArtist(props.id)) {
-            tracks.push(...batch)
-          }
-          return playerStore.shuffleNow(tracks)
-        } finally {
-          loader.hideLoading()
-        }
-      }
-
-      const RadioNow = async() => {
-        playerStore.setShuffle(false)
-        loader.showLoading()
-        try {
-          const tracks = await api.getSimilarTracksByArtist(props.id, 50)
-          return playerStore.playNow(tracks)
-        } finally {
-          loader.hideLoading()
-        }
-      }
 
       const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
       const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()

@@ -425,6 +425,11 @@ export class API {
     }
   }
 
+  async getRecentlyPlayedTracks(size = 200) {
+    const albums = await this.getAlbums('recently-played', size)
+    return albums.flatMap(a => a.tracks || [])
+  }
+
   async addFavourite(id: string, type: 'track' | 'album' | 'artist') {
     const params = {
       id: type === 'track' ? id : undefined,
