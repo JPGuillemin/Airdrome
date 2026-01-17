@@ -2,11 +2,11 @@
   <div class="tile">
     <ContextMenu class="tile-img" :class="{ 'tile-img--circle': circle }" :enabled="!!$slots['context-menu']">
       <router-link v-if="to" :to="to">
-        <img v-if="image" :src="image" alt="Album cover">
+        <img v-if="image" :src="image" loading="lazy" alt="Album cover">
         <img v-else :src="fallback" alt="Fallback cover">
       </router-link>
       <template v-else>
-        <img v-if="image" :src="image" alt="Album cover">
+        <img v-if="image" :src="image" loading="lazy" alt="Album cover">
         <img v-else :src="fallback" alt="Fallback cover">
       </template>
 
