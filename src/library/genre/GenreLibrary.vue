@@ -40,7 +40,7 @@
             variant="transparent"
             class="me-2"
             title="Radio"
-            @click="shuffleNow(item.id)"
+            @click="radio.shuffleGenre(api, item.id)"
           >
             <Icon icon="radio" />
           </b-button>
@@ -52,13 +52,12 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, watch, inject, nextTick } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+  import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
   import AlbumList from '@/library/album/AlbumList.vue'
-  import { useLoader } from '@/shared/loader'
-  import { usePlayerStore } from '@/player/store'
   import type { Album } from '@/shared/api'
+  import { useRadioStore } from '@/player/radio'
+  import { useRoute } from 'vue-router'
 
   interface GenreWithAlbums {
     id: string
@@ -70,11 +69,9 @@
   export default defineComponent({
     components: { AlbumList },
     setup() {
-      const playerStore = usePlayerStore()
       const api = inject('$api') as any
+      const radio = useRadioStore()
       const route = useRoute()
-      const router = useRouter()
-
       const items = ref<GenreWithAlbums[]>([])
       const loading = ref(true)
       const sort = ref<string | null>(route.params.sort as string || null)
@@ -116,29 +113,6 @@
         }
       }
 
-      const shuffleNow = async(id: string) => {
-        const loader = useLoader()
-        loader.showLoading()
-        await new Promise(resolve => setTimeout(resolve, 0))
-        let shouldRoute = false
-        try {
-          const tracks = await api.getRandomTracks({
-            genre: id,
-            size: 200,
-          })
-          if (!tracks.length) return
-          await playerStore.playNow(tracks)
-          shouldRoute = true
-        } finally {
-          loader.hideLoading()
-          if (shouldRoute) {
-            nextTick(() => {
-              router.push({ name: 'queue' })
-            })
-          }
-        }
-      }
-
       watch(
         () => route.params.sort,
         (newSort) => {
@@ -148,7 +122,7 @@
         { immediate: true }
       )
 
-      return { items, sortedItems, loading, sort, loadGenres, shuffleNow, playerStore, api }
+      return { items, sortedItems, loading, sort, loadGenres, radio, api }
     }
   })
 </script>

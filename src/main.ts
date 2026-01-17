@@ -16,6 +16,10 @@ import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import '@/style/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
+const auth = createAuth()
+export const router = setupRouter(auth)
+export default router
+
 const APP_BASE = import.meta.env.BASE_URL
 
 async function bootstrapApp() {
@@ -27,12 +31,9 @@ async function bootstrapApp() {
   const savedColor = localStorage.getItem('themeColor')
   if (savedColor) setTheme(savedColor)
 
-  // --- Auth & API ---
-  const auth = createAuth()
+  // --- API ---
   const api = createApi(auth)
 
-  // --- Router & Pinia ---
-  const router = setupRouter(auth)
   const pinia = createPinia().use(({ store }) => {
     store.api = markRaw(api)
   })
