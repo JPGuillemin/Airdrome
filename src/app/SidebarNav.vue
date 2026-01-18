@@ -44,8 +44,14 @@
 
     <router-link
       class="nav-link"
-      to="#"
-      @click.prevent="luckyRadioNow"
+      to="{name: 'queue'}"
+      :class="{ 'router-link-active': radioPressed }"
+      @mousedown.prevent="radioPressed = true"
+      @mouseup.prevent="radioPressed = false"
+      @mouseleave.prevent="radioPressed = false"
+      @touchstart.prevent="radioPressed = true"
+      @touchend.prevent="radioPressed = false"
+      @click="luckyRadioNow"
     >
       <Icon icon="radio" /> Radio
     </router-link>
@@ -64,7 +70,7 @@
       const route = useRoute()
       const api = inject('$api') as any
       const radioStore = useRadioStore()
-
+      const radioPressed = false
       const luckyRadioNow = async() => {
         if (!api) return
         await radioStore.luckyRadio(api)
@@ -74,6 +80,7 @@
         store,
         route,
         luckyRadioNow,
+        radioPressed,
       }
     },
   })

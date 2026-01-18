@@ -16,12 +16,12 @@
 
 <script lang="ts">
   import { defineComponent, ref, inject, watch } from 'vue'
-  import { useRouter, useRoute } from 'vue-router'
+  import { useRoute } from 'vue-router'
   import AlbumList from '@/library/album/AlbumList.vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import { usePlayerStore } from '@/player/store'
-  import { useLoader } from '@/shared/loader'
   import type { Album } from '@/shared/api'
+  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     components: { AlbumList, InfiniteList },
@@ -32,10 +32,8 @@
     setup(props) {
       const playerStore = usePlayerStore()
       const api = inject('$api') as any
-      const router = useRouter()
       const route = useRoute()
-      const loader = useLoader()
-
+      const radio = useRadioStore()
       const currentSection = ref(props.section)
       const firstLoadDone = ref(false)
 
@@ -56,25 +54,7 @@
         return await api.getAlbumsByGenre(props.id, 30, offset)
       }
 
-      const shuffleNow = async(): Promise<void> => {
-        loader.showLoading()
-        await new Promise(resolve => setTimeout(resolve, 0))
-        let shouldRoute = false
-        try {
-          const tracks = await api.getRandomTracks({
-            genre: props.id,
-            size: 200
-          })
-          if (!tracks.length) return
-          await playerStore.playNow(tracks)
-          shouldRoute = true
-        } finally {
-          loader.hideLoading()
-          if (shouldRoute) {
-            router.push({ name: 'queue' })
-          }
-        }
-      }
+      const shuffleNow = () => radio.shuffleGenre(api, props.id)
 
       return {
         playerStore,
