@@ -41,46 +41,22 @@
     <router-link class="nav-link" :to="{name: 'favourites'}">
       <Icon icon="heart" /> Favourites
     </router-link>
-
-    <router-link
-      class="nav-link"
-      to="{name: 'queue'}"
-      :class="{ 'router-link-active': radioPressed }"
-      @mousedown.prevent="radioPressed = true"
-      @mouseup.prevent="radioPressed = false"
-      @mouseleave.prevent="radioPressed = false"
-      @touchstart.prevent="radioPressed = true"
-      @touchend.prevent="radioPressed = false"
-      @click="luckyRadioNow"
-    >
-      <Icon icon="radio" /> Radio
-    </router-link>
   </nav>
 </template>
 
 <script lang="ts">
-  import { defineComponent, inject } from 'vue'
+  import { defineComponent } from 'vue'
   import { useMainStore } from '@/shared/store'
   import { useRoute } from 'vue-router'
-  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     setup() {
       const store = useMainStore()
       const route = useRoute()
-      const api = inject('$api') as any
-      const radioStore = useRadioStore()
-      const radioPressed = false
-      const luckyRadioNow = async() => {
-        if (!api) return
-        await radioStore.luckyRadio(api)
-      }
 
       return {
         store,
         route,
-        luckyRadioNow,
-        radioPressed,
       }
     },
   })

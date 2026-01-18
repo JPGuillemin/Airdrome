@@ -46,7 +46,7 @@
           variant="transparent"
           class="me-2"
           title="Radio"
-          @click="radioPlaylists()"
+          @click="luckyRadio()"
         >
           <Icon icon="radio" />
         </b-button>
@@ -242,7 +242,7 @@
       const radioFavouriteAlbums = () => radio.shuffleFavouriteAlbums(api)
       const radioFavouriteArtists = () => radio.shuffleFavouriteArtists(api)
       const radioRecentlyAdded = () => radio.shuffleRecentlyAdded(api)
-      const radioPlaylists = () => radio.shufflePlaylists(api)
+      const luckyRadio = () => radio.luckyRadio(api)
       const radioMood = () =>
         lastGenre.value
           ? radio.shuffleMood(api, lastGenre.value.name)
@@ -280,7 +280,7 @@
         radioFavouriteArtists,
         radioRecentlyAdded,
         radioMood,
-        radioPlaylists,
+        luckyRadio,
       }
     },
   })
