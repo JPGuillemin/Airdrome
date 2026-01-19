@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <!-- Genres -->
     <div v-if="result.genres.length > 0" class="section-wrapper pt-3">
       <div class="d-flex gap-3 overflow-auto custom-scroll">
         <router-link
@@ -14,18 +15,18 @@
       </div>
     </div>
 
+    <!-- Mood -->
     <div v-if="result.mood.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
           <Icon icon="genres" class="title-color me-2" />
-          <span class="section-title">
-            Current mood
-          </span>
+          <span class="section-title">Current mood</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Current Mood Radio"
           @click="radioMood()"
         >
           <Icon icon="radio" />
@@ -34,18 +35,18 @@
       <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
     </div>
 
+    <!-- Playlists -->
     <div v-if="result.playlists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
           <Icon icon="playlist" class="title-color me-2" />
-          <span class="section-title">
-            Playlists
-          </span>
+          <span class="section-title">Playlists</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Global Radio"
           @click="luckyRadio()"
         >
           <Icon icon="radio" />
@@ -54,18 +55,18 @@
       <PlaylistList :items="result.playlists" tile-size="100" allow-h-scroll />
     </div>
 
+    <!-- Recently added -->
     <div v-if="result.recent.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
           <Icon icon="new" class="title-color me-2" />
-          <span class="section-title">
-            Recently added
-          </span>
+          <span class="section-title">Recently added</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Recently added Radio"
           @click="radioRecentlyAdded()"
         >
           <Icon icon="radio" />
@@ -74,18 +75,18 @@
       <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
     </div>
 
+    <!-- Fav artists -->
     <div v-if="result.favartists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
           <Icon icon="heart" class="title-color me-2" />
-          <span class="section-title">
-            Fav artists
-          </span>
+          <span class="section-title">Fav artists</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Favourite Artists Radio"
           @click="radioFavouriteArtists()"
         >
           <Icon icon="radio" />
@@ -94,18 +95,18 @@
       <ArtistList :items="result.favartists" tile-size="100" allow-h-scroll />
     </div>
 
+    <!-- Fav albums -->
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
           <Icon icon="heart" class="title-color me-2" />
-          <span class="section-title">
-            Fav albums
-          </span>
+          <span class="section-title">Fav albums</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Favourite Albums Radio"
           @click="radioFavouriteAlbums()"
         >
           <Icon icon="radio" />
@@ -114,18 +115,18 @@
       <AlbumList :items="result.favalbums" tile-size="100" allow-h-scroll />
     </div>
 
+    <!-- Recently played -->
     <div v-if="result.played.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
           <Icon icon="recent" class="title-color me-2" />
-          <span class="section-title">
-            Recently played
-          </span>
+          <span class="section-title">Recently played</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Recently Played Radio"
           @click="radioRecentlyPlayed()"
         >
           <Icon icon="radio" />
@@ -134,18 +135,18 @@
       <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
     </div>
 
+    <!-- Most played -->
     <div v-if="result.most.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'most-played' } }" class="d-inline-flex align-items-center">
           <Icon icon="most" class="title-color me-2" />
-          <span class="section-title">
-            Most Played
-          </span>
+          <span class="section-title">Most Played</span>
         </router-link>
         <b-button
+          v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Radio"
+          title="Most Played Radio"
           @click="radioMostPlayed()"
         >
           <Icon icon="radio" />
@@ -165,12 +166,17 @@
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
 
   export default defineComponent({
     components: {
       AlbumList,
       ArtistList,
       PlaylistList,
+    },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
     },
 
     setup() {

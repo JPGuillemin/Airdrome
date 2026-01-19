@@ -5,7 +5,7 @@
       v-if="showImage && track.image"
       :src="track.image"
       loading="lazy"
-      alt="cover"
+      :alt="track.album"
       class="rounded"
       style="width: 28px; height: 28px; object-fit: cover;"
     >

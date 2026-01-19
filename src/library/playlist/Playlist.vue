@@ -26,6 +26,7 @@
 
         <div class="text-nowrap mt-3">
           <b-button
+            v-longpress-tooltip
             variant="transparent"
             class="me-2"
             :disabled="playlist.tracks.length === 0"
@@ -35,6 +36,7 @@
             <Icon icon="shuffle" />
           </b-button>
           <b-button
+            v-longpress-tooltip
             variant="transparent"
             class="me-2"
             :disabled="playlist.tracks.length === 0"
@@ -118,6 +120,7 @@
   import { BButton } from 'bootstrap-vue-3'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { useRouter, useRoute } from 'vue-router'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
 
   export default defineComponent({
     components: {
@@ -133,6 +136,11 @@
       BButton,
       ConfirmDialog,
     },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
+    },
+
     props: { id: { type: String, required: true } },
 
     setup(props) {

@@ -43,16 +43,16 @@
         </div>
 
         <div class="text-nowrap mt-3">
-          <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Artist Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Radio" @click="RadioNow">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Artist Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Like Artist" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button v-if="artist.similarArtist.length > 0" variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
+          <b-button v-if="artist.similarArtist.length > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
             <Icon icon="artists" />
           </b-button>
         </div>
@@ -116,6 +116,7 @@
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRadioStore } from '@/player/radio'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
 
   export default defineComponent({
     components: {
@@ -125,9 +126,15 @@
       ArtistList,
       TrackList,
     },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
+    },
+
     props: {
       id: { type: String, required: true },
     },
+
     setup(props) {
       const mainStore = useMainStore()
       const favouriteStore = useFavouriteStore()

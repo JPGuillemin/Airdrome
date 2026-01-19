@@ -39,7 +39,7 @@
           <b-button
             variant="transparent"
             class="me-2"
-            title="Radio"
+            title="Genre Radio"
             @click="radio.shuffleGenre(api, item.id)"
           >
             <Icon icon="radio" />

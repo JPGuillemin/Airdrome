@@ -58,13 +58,13 @@
         </div>
 
         <div class="text-nowrap mt-3">
-          <b-button variant="transparent" class="me-2" title="Shuffle" @click="shuffleNow">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Shuffle" @click="shuffleNow">
             <Icon icon="shuffle" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Radio" @click="RadioNow">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button variant="transparent" class="me-2" title="Like" @click="toggleFavourite">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Like Album" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
           <OverflowMenu direction="up" variant="transparent">
@@ -117,10 +117,17 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useRadioStore } from '@/player/radio'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
 
   export default defineComponent({
     components: { TrackList, IconLastFm, IconMusicBrainz },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
+    },
+
     props: { id: { type: String, required: true } },
+
     setup(props) {
       const favouriteStore = useFavouriteStore()
       const playerStore = usePlayerStore()

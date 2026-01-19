@@ -4,7 +4,7 @@
       <div class="main-title">
         {{ id }}
       </div>
-      <b-button variant="transparent" class="me-2" title="Radio" @click="shuffleNow">
+      <b-button v-longpress-tooltip variant="transparent" class="title-color me-2" title="Genre Radio" @click="shuffleNow">
         <Icon icon="radio" />
       </b-button>
     </div>
@@ -22,9 +22,15 @@
   import { usePlayerStore } from '@/player/store'
   import type { Album } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
 
   export default defineComponent({
     components: { AlbumList, InfiniteList },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
+    },
+
     props: {
       id: { type: String, required: true },
       section: { type: String, default: 'albums' }
