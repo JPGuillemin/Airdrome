@@ -52,9 +52,6 @@
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Like Artist" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <b-button v-if="artist.similarArtist.length > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Go to Top Tracks" @click="scrollToSection('similarArtists')">
-            <Icon icon="artists" />
-          </b-button>
         </div>
       </Custom>
     </div>
@@ -152,14 +149,6 @@
       const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
       const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()
 
-      const scrollToSection = (refName: string) => {
-        const section = (document.querySelector(`[ref="${refName}"]`) as HTMLElement)
-        if (!section) return
-        const customHeight = 230
-        const top = section.getBoundingClientRect().top + window.scrollY - customHeight
-        window.scrollTo({ top, behavior: 'smooth' })
-      }
-
       onMounted(async() => {
         artist.value = await api.getArtistDetails(props.id)
       })
@@ -174,7 +163,6 @@
         RadioNow,
         toggleFavourite,
         toggleAlbumSortOrder,
-        scrollToSection,
       }
     },
   })
