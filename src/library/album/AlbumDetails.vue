@@ -58,8 +58,11 @@
         </div>
 
         <div class="text-nowrap mt-3">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Play" @click="playNow">
+            <Icon icon="play" />
+          </b-button>
           <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Shuffle" @click="shuffleNow">
-            <Icon icon="shuffle" />
+            <Icon icon="random" />
           </b-button>
           <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Radio" @click="RadioNow">
             <Icon icon="radio" />

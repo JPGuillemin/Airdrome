@@ -30,10 +30,20 @@
             variant="transparent"
             class="me-2"
             :disabled="playlist.tracks.length === 0"
+            title="Play"
+            @click="playNow()"
+          >
+            <Icon icon="play" />
+          </b-button>
+          <b-button
+            v-longpress-tooltip
+            variant="transparent"
+            class="me-2"
+            :disabled="playlist.tracks.length === 0"
             title="Shuffle"
             @click="shuffleNow()"
           >
-            <Icon icon="shuffle" />
+            <Icon icon="random" />
           </b-button>
           <b-button
             v-longpress-tooltip
@@ -103,7 +113,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, watch, inject } from 'vue'
+  import { defineComponent, ref, watch, inject, nextTick } from 'vue'
   import TrackList from '@/library/track/TrackList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import OverflowFade from '@/shared/components/OverflowFade.vue'
@@ -185,7 +195,10 @@
         return playerStore.playNow(playlist.value.tracks)
       }
 
-      const shuffleNow = () => playerStore.shuffleNow(playlist.value.tracks)
+      const shuffleNow = () => {
+        playerStore.shuffleNow(playlist.value.tracks)
+        nextTick(() => router.push({ name: 'queue' }))
+      }
 
       const removeTrack = (index: number) => {
         playlist.value.tracks.splice(index, 1)

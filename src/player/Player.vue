@@ -126,16 +126,6 @@
                   <Icon icon="repeat" />
                 </b-button>
               </div>
-              <div class="d-flex justify-content-between px-3 py-1 on-top">
-                <b-button
-                  title="Shuffle"
-                  variant="transparent"
-                  class="m-0 px-2 py-0"
-                  :class="{ 'theme-primary': shuffleActive }"
-                  @click.stop="toggleShuffle">
-                  <Icon icon="shuffle" />
-                </b-button>
-              </div>
               <div class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
                 <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
                   <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
@@ -207,7 +197,6 @@
       const isPlaying = computed(() => playerStore.isPlaying)
       const isMuted = computed(() => playerStore.volume <= 0)
       const repeatActive = computed(() => playerStore.repeat)
-      const shuffleActive = computed(() => playerStore.shuffle)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
 
       const isFavourite = computed<boolean>(() => {
@@ -273,7 +262,6 @@
       function previous() { playerStore.previous() }
       function toggleReplayGain() { playerStore.toggleReplayGain() }
       function toggleRepeat() { playerStore.toggleRepeat() }
-      function toggleShuffle() { playerStore.toggleShuffle() }
       function toggleFavourite() {
         if (track.value) {
           favouriteStore.toggle('track', track.value.id)
@@ -292,7 +280,6 @@
         isPlaying,
         isMuted,
         repeatActive,
-        shuffleActive,
         replayGainMode,
         isFavourite,
 
@@ -308,7 +295,6 @@
         previous,
         toggleReplayGain,
         toggleRepeat,
-        toggleShuffle,
         toggleFavourite,
       }
     },

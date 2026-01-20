@@ -43,8 +43,11 @@
         </div>
 
         <div class="text-nowrap mt-3">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Play Artist Top Tracks" @click="playNow">
+            <Icon icon="play" />
+          </b-button>
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Artist Shuffle" @click="shuffleNow">
-            <Icon icon="shuffle" />
+            <Icon icon="random" />
           </b-button>
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Artist Radio" @click="RadioNow">
             <Icon icon="radio" />
@@ -138,6 +141,8 @@
       const playerStore = usePlayerStore()
 
       const radioStore = useRadioStore()
+
+      const playNow = () => playerStore.playNow(artist.value.topTracks)
       const shuffleNow = () => radioStore.shuffleArtist(api, props.id)
       const RadioNow = () => radioStore.radioArtist(api, props.id)
 
@@ -159,6 +164,7 @@
         playerStore,
         artist,
         isFavourite,
+        playNow,
         shuffleNow,
         RadioNow,
         toggleFavourite,

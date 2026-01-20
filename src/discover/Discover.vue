@@ -1,6 +1,5 @@
 <template>
   <div class="main-content">
-    <!-- Genres -->
     <div v-if="result.genres.length > 0" class="section-wrapper pt-3">
       <div class="d-flex gap-3 overflow-auto custom-scroll">
         <router-link
@@ -15,7 +14,6 @@
       </div>
     </div>
 
-    <!-- Mood -->
     <div v-if="result.mood.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
@@ -35,7 +33,6 @@
       <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
     </div>
 
-    <!-- Playlists -->
     <div v-if="result.playlists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
@@ -55,7 +52,6 @@
       <PlaylistList :items="result.playlists" tile-size="100" allow-h-scroll />
     </div>
 
-    <!-- Recently added -->
     <div v-if="result.recent.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'recently-added' } }" class="d-inline-flex align-items-center">
@@ -75,7 +71,6 @@
       <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
     </div>
 
-    <!-- Fav artists -->
     <div v-if="result.favartists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
@@ -95,7 +90,6 @@
       <ArtistList :items="result.favartists" tile-size="100" allow-h-scroll />
     </div>
 
-    <!-- Fav albums -->
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
@@ -115,7 +109,6 @@
       <AlbumList :items="result.favalbums" tile-size="100" allow-h-scroll />
     </div>
 
-    <!-- Recently played -->
     <div v-if="result.played.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
@@ -135,7 +128,25 @@
       <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
     </div>
 
-    <!-- Most played -->
+    <div v-if="result.random.length > 0" class="section-wrapper">
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="d-inline-flex align-items-center">
+          <Icon icon="random" class="title-color me-2" />
+          <span class="section-title">Get lucky</span>
+        </router-link>
+        <b-button
+          v-longpress-tooltip
+          variant="transparent"
+          class="me-2"
+          title="Random play"
+          @click="luckyRadio()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
+      <AlbumList :items="result.random" tile-size="60" allow-h-scroll title-only />
+    </div>
+
     <div v-if="result.most.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'most-played' } }" class="d-inline-flex align-items-center">
@@ -192,6 +203,7 @@
         favartists: [] as Artist[],
         genres: [] as Genre[],
         playlists: [] as Playlist[],
+        random: [] as Album[],
       })
 
       const lastGenre = ref<AlbumGenre | null>(null)
@@ -233,7 +245,9 @@
             result.value.favartists = favourites.artists.slice(0, 16)
             result.value.favalbums = favourites.albums.slice(0, 16)
           })
-
+          api.getAlbums('random', 32).then(random => {
+            result.value.random = random
+          })
           api.getAlbums('most-played', 32).then(most => {
             result.value.most = most
           })
@@ -266,6 +280,7 @@
           favartists: [],
           genres: [],
           playlists: [],
+          random: [],
         })
       }
 

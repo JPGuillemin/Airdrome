@@ -10,13 +10,13 @@
         </span>
       </div>
       <div>
-        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="play">
+        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Play" @click="play">
           <Icon icon="play" />
         </b-button>
-        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="shuffle">
+        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Shuffle" @click="shuffle">
           <Icon icon="random" />
         </b-button>
-        <b-button variant="transparent" class="me-2" :disabled="!allTracks.length" @click="clear">
+        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Delete" @click="clear">
           <Icon icon="trash" />
         </b-button>
       </div>
@@ -57,12 +57,19 @@
   import TrackList from '@/library/track/TrackList.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import { longPressTooltip } from '@/shared/longPressTooltips'
+
   export default defineComponent({
     components: {
       TrackList,
       EmptyIndicator,
       ConfirmDialog,
     },
+
+    directives: {
+      'longpress-tooltip': longPressTooltip
+    },
+
     setup() {
       const playerStore = usePlayerStore()
 
