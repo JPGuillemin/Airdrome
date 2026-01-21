@@ -5,7 +5,7 @@
       'tiles-square',
       {
         'tiles-scroll': allowHScroll,
-        'custom-scroll': allowHScroll,
+        'scroll': allowHScroll,
         'tiles-twin-rows': twinRows,
       }
     ]"
