@@ -177,7 +177,7 @@
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {
@@ -257,15 +257,15 @@
       }
 
       const radio = useRadioStore()
-      const radioRecentlyPlayed = () => radio.shuffleRecentlyPlayed(api)
-      const radioMostPlayed = () => radio.shuffleMostPlayed(api)
-      const radioFavouriteAlbums = () => radio.shuffleFavouriteAlbums(api)
-      const radioFavouriteArtists = () => radio.shuffleFavouriteArtists(api)
-      const radioRecentlyAdded = () => radio.shuffleRecentlyAdded(api)
-      const luckyRadio = () => radio.luckyRadio(api)
+      const radioRecentlyPlayed = () => radio.shuffleRecentlyPlayed()
+      const radioMostPlayed = () => radio.shuffleMostPlayed()
+      const radioFavouriteAlbums = () => radio.shuffleFavouriteAlbums()
+      const radioFavouriteArtists = () => radio.shuffleFavouriteArtists()
+      const radioRecentlyAdded = () => radio.shuffleRecentlyAdded()
+      const luckyRadio = () => radio.luckyRadio()
       const radioMood = () =>
         lastGenre.value
-          ? radio.shuffleMood(api, lastGenre.value.name)
+          ? radio.shuffleMood(lastGenre.value.name)
           : undefined
 
       onMounted(fetchData)

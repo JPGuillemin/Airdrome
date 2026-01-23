@@ -1,6 +1,8 @@
+import { inject, App, Plugin } from 'vue'
 import { AuthService } from '@/auth/service'
 import { orderBy, startCase, sumBy, uniqBy } from 'lodash-es'
 import { toQueryString } from '@/shared/utils'
+const apiSymbol = Symbol('')
 
 export type AlbumSort =
   'a-z' |
@@ -8,6 +10,20 @@ export type AlbumSort =
   'recently-played' |
   'most-played' |
   'random'
+
+export function useApi(): API {
+  return inject(apiSymbol) as API
+}
+
+export function createApi(auth: AuthService): API & Plugin {
+  const instance = new API(auth)
+  return Object.assign(instance, {
+    install: (app: App) => {
+      app.config.globalProperties.$api = instance
+      app.provide(apiSymbol, instance)
+    }
+  })
+}
 
 export interface Track {
   id: string

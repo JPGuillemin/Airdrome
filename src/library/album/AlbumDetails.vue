@@ -120,7 +120,7 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useRadioStore } from '@/player/radio'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: { TrackList, IconLastFm, IconMusicBrainz },
@@ -213,7 +213,7 @@
 
       const RadioNow = async() => {
         if (!album.value?.tracks?.length || !album.value?.artists?.length) return
-        await radioStore.radioAlbum(api, album.value.tracks, album.value.artists)
+        await radioStore.radioAlbum(album.value.tracks, album.value.artists)
       }
 
       fetchAlbum()

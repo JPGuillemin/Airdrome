@@ -57,7 +57,7 @@
   import TrackList from '@/library/track/TrackList.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {

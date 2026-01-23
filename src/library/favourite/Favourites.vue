@@ -40,12 +40,11 @@
   </div>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, watch } from 'vue'
+  import { defineComponent, ref, watch, inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import { useFavouriteStore } from '@/library/favourite/store'
-  import { useApi } from '@/shared'
 
   export default defineComponent({
     components: {
@@ -57,7 +56,7 @@
       section: { type: String, default: '' },
     },
     setup() {
-      const api = useApi()
+      const api = inject('$api') as any
       const favouriteStore = useFavouriteStore()
       const details = ref<any>(null)
       watch(

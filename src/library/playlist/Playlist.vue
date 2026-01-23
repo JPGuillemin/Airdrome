@@ -130,7 +130,7 @@
   import { BButton } from 'bootstrap-vue-3'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {

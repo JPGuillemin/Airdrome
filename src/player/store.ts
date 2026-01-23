@@ -1,7 +1,7 @@
 import { watch } from 'vue'
 import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
-import { API, Track } from '@/shared/api'
+import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
@@ -125,7 +125,7 @@ export const usePlayerStore = defineStore('player', {
       this.setMediaSessionPosition()
     },
     async loadQueue() {
-      const { tracks, currentTrack, currentTrackPosition } = await this.api!.getPlayQueue()
+      const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
       await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url, paused: true })
@@ -271,8 +271,7 @@ export const usePlayerStore = defineStore('player', {
   },
 })
 
-export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>, api: API) {
-  playerStore.api = api
+export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>) {
 
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
@@ -286,7 +285,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.pause()
 
     if (navigator.onLine) {
-      api.savePlayQueue(
+      playerStore.api.savePlayQueue(
         playerStore.queue!,
         playerStore.track,
         Math.trunc(playerStore.currentTime)
@@ -318,7 +317,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
       if (!genreName && lastTrack.albumId) {
         try {
-          const album = await api.getAlbumDetails(lastTrack.albumId)
+          const album = await playerStore.api.getAlbumDetails(lastTrack.albumId)
           genreName = album.genres?.[0]?.name
         } catch (err) {
           console.warn('Could not fetch album for genre:', err)
@@ -331,7 +330,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
 
       // 2. Fetch random tracks by genre
-      const randomTracks = await api.getRandomTracks({ genre: genreName, size: 50 })
+      const randomTracks = await playerStore.api.getRandomTracks({ genre: genreName, size: 50 })
 
       if (!randomTracks?.length) {
         console.warn(`No random tracks found for genre "${genreName}"`)
@@ -460,7 +459,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
           playerStore.isPlaying
       ) {
         playerStore.scrobbled = true
-        api.scrobble(playerStore.track.id)
+        playerStore.api.scrobble(playerStore.track.id)
       }
     }
   )
@@ -468,7 +467,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   setInterval(() => {
     if (!playerStore.track || !navigator.onLine) return
 
-    api.savePlayQueue(
+    playerStore.api.savePlayQueue(
       playerStore.queue!,
       playerStore.track,
       Math.trunc(playerStore.currentTime)
@@ -482,8 +481,8 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
       playerStore.setMediaSessionPosition()
 
-      api.updateNowPlaying(playerStore.track.id)
-      api.savePlayQueue(
+      playerStore.api.updateNowPlaying(playerStore.track.id)
+      playerStore.api.savePlayQueue(
         playerStore.queue!,
         playerStore.track,
         Math.trunc(playerStore.currentTime)

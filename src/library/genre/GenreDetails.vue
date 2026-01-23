@@ -22,7 +22,7 @@
   import { usePlayerStore } from '@/player/store'
   import type { Album } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: { AlbumList, InfiniteList },
@@ -60,7 +60,7 @@
         return await api.getAlbumsByGenre(props.id, 30, offset)
       }
 
-      const shuffleNow = () => radio.shuffleGenre(api, props.id)
+      const shuffleNow = () => radio.shuffleGenre(props.id)
 
       return {
         playerStore,

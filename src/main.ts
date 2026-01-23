@@ -3,7 +3,7 @@ import AppComponent from '@/app/App.vue'
 import { components } from '@/shared/components'
 import { setupRouter } from '@/shared/router'
 import { useMainStore } from '@/shared/store'
-import { createApi } from '@/shared'
+import { createApi } from '@/shared/api'
 import { createAuth } from '@/auth/service'
 import { setupAudio, usePlayerStore } from './player/store'
 import { createPinia } from 'pinia'
@@ -38,6 +38,9 @@ async function bootstrapApp() {
     store.api = markRaw(api)
   })
 
+  const app = createApp(AppComponent)
+  app.use(pinia)
+
   const mainStore = useMainStore(pinia)
   const playerStore = usePlayerStore(pinia)
 
@@ -48,11 +51,10 @@ async function bootstrapApp() {
       if (value) {
         try {
           // setup player once authenticated
-          setupAudio(playerStore, mainStore, api)
-
+          setupAudio(playerStore, mainStore)
           await Promise.all([
-            useFavouriteStore().load(),
-            usePlaylistStore().load(),
+            useFavouriteStore(pinia).load(),
+            usePlaylistStore(pinia).load(),
             playerStore.loadQueue(),
           ])
         } catch (err) {
@@ -64,15 +66,12 @@ async function bootstrapApp() {
   )
 
   window.history.scrollRestoration = 'manual'
-  // --- Create App ---
-  const app = createApp(AppComponent)
 
   app.use(router)
-  app.use(pinia)
   app.use(auth)
   app.use(api)
-  app.use(createBootstrap())
   app.provide('$api', api)
+  app.use(createBootstrap())
 
   // --- Global properties ---
   app.config.globalProperties.$auth = auth

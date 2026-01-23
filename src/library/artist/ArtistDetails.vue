@@ -116,7 +116,7 @@
   import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRadioStore } from '@/player/radio'
-  import { longPressTooltip } from '@/shared/longPressTooltips'
+  import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {
@@ -143,8 +143,8 @@
       const radioStore = useRadioStore()
 
       const playNow = () => playerStore.playNow(artist.value.topTracks)
-      const shuffleNow = () => radioStore.shuffleArtist(api, props.id)
-      const RadioNow = () => radioStore.radioArtist(api, props.id)
+      const shuffleNow = () => radioStore.shuffleArtist(props.id)
+      const RadioNow = () => radioStore.radioArtist(props.id)
 
       const artist = ref<any>(null)
       const api = inject('$api') as any
