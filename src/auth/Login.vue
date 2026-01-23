@@ -40,9 +40,8 @@
 
 <script lang="ts">
   import { defineComponent, ref, computed, onMounted } from 'vue'
-  import { config } from '@/shared/config'
   import { useMainStore } from '@/shared/store'
-  import { useAuth } from '@/auth/service'
+  import { config, useAuth } from '@/auth/service'
   import { useRouter } from 'vue-router'
 
   export default defineComponent({
