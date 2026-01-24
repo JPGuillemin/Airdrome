@@ -290,6 +290,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         playerStore.track,
         Math.trunc(playerStore.currentTime)
       )
+        .catch(err => {
+          console.debug('savePlayQueue aborted:', err)
+        })
     }
 
     playerStore.setMediaSessionPosition(
@@ -472,6 +475,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       playerStore.track,
       Math.trunc(playerStore.currentTime)
     )
+      .catch(err => {
+        console.debug('savePlayQueue aborted:', err)
+      })
   }, 10000)
 
   watch(
@@ -487,6 +493,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         playerStore.track,
         Math.trunc(playerStore.currentTime)
       )
+        .catch(err => {
+          console.debug('savePlayQueue aborted:', err)
+        })
     }
   )
 }
