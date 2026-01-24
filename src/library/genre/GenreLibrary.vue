@@ -40,7 +40,7 @@
             variant="transparent"
             class="me-2"
             title="Genre Radio"
-            @click="radio.shuffleGenre(api, item.id)"
+            @click="radio.shuffleGenre(item.id)"
           >
             <Icon icon="radio" />
           </b-button>

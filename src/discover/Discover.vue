@@ -1,7 +1,10 @@
 <template>
   <div class="main-content">
     <div v-if="result.genres.length > 0" class="section-wrapper pt-3">
-      <div class="d-flex gap-3 overflow-auto scroll">
+      <div
+        v-wheel-scroll="{ enabled: allowHScroll, speed: 0.9, friction: 0.88 }"
+        class="d-flex gap-3 overflow-auto scroll"
+      >
         <router-link
           v-for="item in result.genres"
           :key="item.id"

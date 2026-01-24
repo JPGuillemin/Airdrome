@@ -15,6 +15,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import '@/style/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+import wheelScroll from '@/shared/wheelscroll'
 
 const auth = createAuth()
 export const router = setupRouter(auth)
@@ -87,6 +88,8 @@ async function bootstrapApp() {
 
   app.config.globalProperties.$themeColors = themeColors
   app.provide('themeColors', themeColors)
+
+  app.directive('wheel-scroll', wheelScroll)
 
   // --- Register components ---
   Object.entries(components).forEach(([key, value]) => {

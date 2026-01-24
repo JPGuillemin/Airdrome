@@ -1,5 +1,6 @@
 <template>
   <div
+    v-wheel-scroll="{ enabled: allowHScroll, speed: 0.9, friction: 0.88 }"
     :class="[
       'tiles',
       'tiles-square',
