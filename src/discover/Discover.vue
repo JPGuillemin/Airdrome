@@ -17,6 +17,25 @@
       </div>
     </div>
 
+    <div v-if="result.favartists.length > 0" class="section-wrapper">
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
+          <Icon icon="heart" class="title-color me-2" />
+          <span class="section-title">Fav artists</span>
+        </router-link>
+        <b-button
+          v-longpress-tooltip
+          variant="transparent"
+          class="me-2"
+          title="Favourite Artists Radio"
+          @click="radioFavouriteArtists()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
+      <ArtistList :items="result.favartists" tile-size="120" allow-h-scroll />
+    </div>
+
     <div v-if="result.mood.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'genre', params: { id: lastGenre.name } }" class="d-inline-flex align-items-center">
@@ -33,26 +52,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.mood" tile-size="60" allow-h-scroll title-only />
-    </div>
-
-    <div v-if="result.playlists.length > 0" class="section-wrapper">
-      <div class="d-flex align-items-center justify-content-between">
-        <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
-          <Icon icon="playlist" class="title-color me-2" />
-          <span class="section-title">Playlists</span>
-        </router-link>
-        <b-button
-          v-longpress-tooltip
-          variant="transparent"
-          class="me-2"
-          title="Global Radio"
-          @click="luckyRadio()"
-        >
-          <Icon icon="radio" />
-        </b-button>
-      </div>
-      <PlaylistList :items="result.playlists" tile-size="100" allow-h-scroll />
+      <AlbumList :items="result.mood" tile-size="45" allow-h-scroll three-rows />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
@@ -71,26 +71,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.recent" tile-size="100" allow-h-scroll />
-    </div>
-
-    <div v-if="result.favartists.length > 0" class="section-wrapper">
-      <div class="d-flex align-items-center justify-content-between">
-        <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
-          <Icon icon="heart" class="title-color me-2" />
-          <span class="section-title">Fav artists</span>
-        </router-link>
-        <b-button
-          v-longpress-tooltip
-          variant="transparent"
-          class="me-2"
-          title="Favourite Artists Radio"
-          @click="radioFavouriteArtists()"
-        >
-          <Icon icon="radio" />
-        </b-button>
-      </div>
-      <ArtistList :items="result.favartists" tile-size="100" allow-h-scroll />
+      <AlbumList :items="result.recent" tile-size="120" allow-h-scroll />
     </div>
 
     <div v-if="result.favalbums.length > 0" class="section-wrapper">
@@ -109,26 +90,26 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.favalbums" tile-size="100" allow-h-scroll />
+      <AlbumList :items="result.favalbums" tile-size="120" allow-h-scroll />
     </div>
 
-    <div v-if="result.played.length > 0" class="section-wrapper">
+    <div v-if="result.playlists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
-        <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
-          <Icon icon="recent" class="title-color me-2" />
-          <span class="section-title">Recently played</span>
+        <router-link :to="{ name: 'playlists' }" class="d-inline-flex align-items-center">
+          <Icon icon="playlist" class="title-color me-2" />
+          <span class="section-title">Playlists</span>
         </router-link>
         <b-button
           v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          title="Recently Played Radio"
-          @click="radioRecentlyPlayed()"
+          title="Global Radio"
+          @click="luckyRadio()"
         >
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.played" tile-size="60" allow-h-scroll title-only />
+      <PlaylistList :items="result.playlists" tile-size="120" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="section-wrapper">
@@ -147,7 +128,26 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.random" tile-size="60" allow-h-scroll title-only />
+      <AlbumList :items="result.random" tile-size="45" allow-h-scroll three-rows />
+    </div>
+
+    <div v-if="result.played.length > 0" class="section-wrapper">
+      <div class="d-flex align-items-center justify-content-between">
+        <router-link :to="{ name: 'albums', params: { sort: 'recently-played' } }" class="d-inline-flex align-items-center">
+          <Icon icon="recent" class="title-color me-2" />
+          <span class="section-title">Recently played</span>
+        </router-link>
+        <b-button
+          v-longpress-tooltip
+          variant="transparent"
+          class="me-2"
+          title="Recently Played Radio"
+          @click="radioRecentlyPlayed()"
+        >
+          <Icon icon="radio" />
+        </b-button>
+      </div>
+      <AlbumList :items="result.played" tile-size="120" allow-h-scroll />
     </div>
 
     <div v-if="result.most.length > 0" class="section-wrapper">
@@ -166,7 +166,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.most" tile-size="60" allow-h-scroll title-only />
+      <AlbumList :items="result.most" tile-size="120" allow-h-scroll />
     </div>
   </div>
 </template>
@@ -225,6 +225,11 @@
             result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
           })
 
+          api.getFavourites().then(favourites => {
+            result.value.favartists = favourites.artists.slice(0, 16)
+            result.value.favalbums = favourites.albums.slice(0, 16)
+          })
+
           api.getAlbums('recently-played', 32).then(async played => {
             result.value.played = played
             if (played.length === 0) return
@@ -233,24 +238,21 @@
             lastGenre.value = (lastPlayed as Album).genres[0]!
             if (!lastGenre.value) return
             const shuffled = true
-            const albumsByGenre = await api.getAlbumsByGenre(lastGenre.value.name, 64, 0, shuffled)
+            const albumsByGenre = await api.getAlbumsByGenre(lastGenre.value.name, 72, 0, shuffled)
             result.value.mood = albumsByGenre
           })
-
-          const playlists = await api.getPlaylists()
-          result.value.playlists = playlists.slice(0, 10)
 
           api.getAlbums('recently-added', 32).then(recent => {
             result.value.recent = recent
           })
 
-          api.getFavourites().then(favourites => {
-            result.value.favartists = favourites.artists.slice(0, 16)
-            result.value.favalbums = favourites.albums.slice(0, 16)
-          })
+          const playlists = await api.getPlaylists()
+          result.value.playlists = playlists.slice(0, 10)
+
           api.getAlbums('random', 32).then(random => {
             result.value.random = random
           })
+
           api.getAlbums('most-played', 32).then(most => {
             result.value.most = most
           })

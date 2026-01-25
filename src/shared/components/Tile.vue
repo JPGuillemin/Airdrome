@@ -1,6 +1,10 @@
 <template>
   <div class="tile">
-    <ContextMenu class="tile-img" :class="{ 'tile-img--circle': circle }" :enabled="!!$slots['context-menu']">
+    <ContextMenu
+      class="tile-img"
+      :class="{ 'tile-img--circle': circle }"
+      :enabled="!!$slots['context-menu']"
+    >
       <router-link v-if="to" :to="to">
         <img v-if="image" :src="image" loading="lazy" alt="Album cover">
         <img v-else :src="fallback" alt="Fallback cover">
@@ -15,8 +19,8 @@
       </template>
     </ContextMenu>
 
-    <div>
-      <div class="text-truncate ">
+    <div class="tile-text">
+      <div class="text-truncate">
         <slot name="title">
           {{ title }}
         </slot>
@@ -48,7 +52,15 @@
     },
   })
 </script>
+
 <style>
+  .tile {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* default image */
   .tile-img {
     position: relative;
     width: 100%;
@@ -60,7 +72,7 @@
     overflow: visible;
   }
 
-  /* clip only the image itself, not its children */
+  /* clip only the image itself */
   .tile-img--circle img {
     clip-path: circle(50%);
   }
@@ -71,5 +83,31 @@
     height: 100%;
     object-fit: cover;
     border-radius: 6px;
+  }
+
+  /* ----------------------------- */
+  /* 3-ROWS MODE */
+  /* ----------------------------- */
+
+  .tiles-three-rows .tile {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tiles-three-rows .tile-img {
+    width: var(--tile-size-active);
+    padding-bottom: var(--tile-size-active);
+    flex-shrink: 0;
+  }
+
+  .tiles-three-rows .tile-text {
+    width: 100px;
+    min-width: 100px;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 </style>

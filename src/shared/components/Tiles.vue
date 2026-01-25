@@ -7,7 +7,7 @@
       {
         'tiles-scroll': allowHScroll,
         'scroll': allowHScroll,
-        'tiles-twin-rows': twinRows,
+        'tiles-three-rows': threeRows,
       }
     ]"
     :style="{
@@ -26,7 +26,7 @@
     props: {
       allowHScroll: { type: Boolean, default: false },
       tileSize: { type: Number, default: 110 },
-      twinRows: { type: Boolean, default: false },
+      threeRows: { type: Boolean, default: false },
     },
     computed: {
       tileSizeMobile(): number {
@@ -67,11 +67,13 @@
     scrollbar-color: rgba(0,0,0,0.3) transparent;
   }
 
-  /* Twin rows scrolling together */
-  .tiles-twin-rows.tiles-scroll {
+  /* Three rows scrolling together */
+  .tiles-three-rows.tiles-scroll {
     grid-auto-flow: column;
-    grid-template-rows: repeat(2, auto);
-    grid-auto-columns: var(--tile-size-active);
+    grid-template-rows: repeat(3, auto);
+
+    /* image + text + gap */
+    grid-auto-columns: calc(var(--tile-size-active) + 100px + 8px);
   }
 
   /* Ensure square tiles */
