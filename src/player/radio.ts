@@ -63,6 +63,31 @@ export const useRadioStore = defineStore('radio', {
       }
     },
 
+    async continueFromTrack(track: Track) {
+      if (!track) return
+
+      // Prefer explicit genre if present
+      let genreName: string | undefined = (track as any).genre
+
+      if (!genreName && track.albumId) {
+        try {
+          const album = await this.api.getAlbumDetails(track.albumId)
+          genreName = album.genres?.[0]?.name
+        } catch (err) {
+          console.warn('Radio: failed to resolve album genre', err)
+        }
+      }
+
+      if (!genreName) {
+        console.warn('Radio: no genre found, cannot continue')
+        return
+      }
+
+      await this.playRandomOrTracks({
+        params: { genre: genreName, size: 200 }
+      })
+    },
+
     // -------- RADIOS --------
     async shuffleGenre(genreId: string) {
       await this.playRandomOrTracks({ params: { genre: genreId, size: 200 } })

@@ -5,6 +5,7 @@ import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
+import { useRadioStore } from './radio'
 
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -73,7 +74,7 @@ export const usePlayerStore = defineStore('player', {
     },
     async playTrackListIndex(index: number) {
       this.setQueueIndex(index)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url })
       this.setPlaying()
     },
     async playTrackList(tracks: Track[], index?: number) {
@@ -89,7 +90,7 @@ export const usePlayerStore = defineStore('player', {
         this.setQueue(tracks)
       }
       this.setQueueIndex(index)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url })
       this.setPlaying()
     },
     async play() {
@@ -112,12 +113,12 @@ export const usePlayerStore = defineStore('player', {
     },
     async next() {
       this.setQueueIndex(this.queueIndex + 1)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url })
       this.setPlaying()
     },
     async previous() {
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url })
       this.setPlaying()
     },
     async seek(value: number) {
@@ -128,7 +129,7 @@ export const usePlayerStore = defineStore('player', {
       const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url, paused: true })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url, paused: true })
       await audio.seek(currentTrackPosition)
       this.setPaused()
     },
@@ -139,7 +140,7 @@ export const usePlayerStore = defineStore('player', {
         return
       }
       this.setQueueIndex(0)
-      await audio.loadTrack({ ...this.track!, nextUrl: this.nextTrack!.url, paused: true })
+      await audio.loadTrack({ url: this.track!.url, nextUrl: this.nextTrack!.url, paused: true })
       this.setPaused()
     },
     async clearQueue() {
@@ -309,52 +310,18 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }
 
     const { hasNext, repeat } = playerStore
-    if (hasNext || repeat) return playerStore.next()
-    if (!playerStore.track?.url) return
+    if (hasNext || repeat) {
+      return playerStore.next()
+    }
 
-    const lastTrack = playerStore.track
+    const track = playerStore.track
+    if (!track?.url) return
 
     try {
-      // 1. Resolve genre
-      let genreName: string | undefined = (lastTrack as any).genre
-
-      if (!genreName && lastTrack.albumId) {
-        try {
-          const album = await playerStore.api.getAlbumDetails(lastTrack.albumId)
-          genreName = album.genres?.[0]?.name
-        } catch (err) {
-          console.warn('Could not fetch album for genre:', err)
-        }
-      }
-
-      if (!genreName) {
-        console.warn('No genre found — ending playback.')
-        return playerStore.resetQueue()
-      }
-
-      // 2. Fetch random tracks by genre
-      const randomTracks = await playerStore.api.getRandomTracks({ genre: genreName, size: 50 })
-
-      if (!randomTracks?.length) {
-        console.warn(`No random tracks found for genre "${genreName}"`)
-        return playerStore.resetQueue()
-      }
-
-      // 3. Load new queue
-      playerStore.setQueue([])
-      playerStore.setQueueIndex(-1)
-
-      const shuffledTracks = shuffled(randomTracks) as Track[]
-      playerStore.addToQueue(shuffledTracks)
-      playerStore.setQueueIndex(0)
-
-      // 4. Start next track
-      await audio.loadTrack({ ...playerStore.track!, nextUrl: playerStore.nextTrack!.url })
-
-      playerStore.setPlaying()
-      console.info(`Auto-continued with random tracks in genre "${genreName}"`)
-    } catch (error) {
-      console.error('Auto-radio continuation failed:', error)
+      const radioStore = useRadioStore()
+      await radioStore.continueFromTrack(track)
+    } catch (err) {
+      console.error('Radio continuation failed:', err)
       playerStore.resetQueue()
     }
   }
@@ -390,7 +357,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   const track = playerStore.track
 
   if (track?.url) {
-    audio.loadTrack({ ...track!, nextUrl: playerStore.nextTrack!.url, paused: true })
+    audio.loadTrack({ url: playerStore.track!.url, nextUrl: playerStore.nextTrack!.url, paused: true })
   }
 
   if (mediaSession) {
@@ -438,7 +405,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       const remaining = playerStore.duration - t
       if (remaining <= 0.15 && playerStore.hasNext) {
         playerStore.setQueueIndex(playerStore.queueIndex + 1)
-        audio.loadTrack({ ...playerStore.track!, nextUrl: playerStore.nextTrack!.url })
+        audio.loadTrack({ url: playerStore.track!.url, nextUrl: playerStore.nextTrack!.url })
       }
     }
   )
