@@ -117,7 +117,7 @@ export class AudioController {
       await this.context.resume()
     }
     await this.pipeline.audio.play()
-    await this.fadeIn(this.fadeTime)
+    await this.fadeIn(this.fadeTime / 2)
   }
 
   async seek(value: number) {
@@ -135,6 +135,7 @@ export class AudioController {
     nextUrl?: string
     paused?: boolean
     replayGain?: ReplayGain
+    fade?: boolean
   }) {
     if (!options.url) return
 
@@ -154,6 +155,10 @@ export class AudioController {
     if (token !== this.changeToken) {
       nextPipeline.dispose()
       return
+    }
+
+    if (options.fade) {
+      await this.fadeOut(this.fadeTime)
     }
 
     this.replacePipeline(nextPipeline)
