@@ -1,7 +1,7 @@
 <template>
   <td>
     <button>
-      <Icon class="icon" :icon="active ? 'pause' : 'play'" />
+      <Icon class="icon" :icon="active ? 'spin' : 'play'" />
       <span class="number adapt-text">{{ trackNumber ?? '-' }}</span>
     </button>
   </td>

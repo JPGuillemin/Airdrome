@@ -69,6 +69,7 @@
   import iconTrash from '@iconify-icons/bi/trash'
   import iconVolume from '@iconify-icons/bi/volume-up-fill'
   import iconX from '@iconify-icons/bi/x'
+  import iconSpin from '@iconify-icons/svg-spinners/bars-scale-middle'
 
   const icons = {
     albums: iconAlbum.body,
@@ -124,6 +125,7 @@
     trash: iconTrash.body,
     volume: iconVolume.body,
     x: iconX.body,
+    spin: `<g transform="scale(0.6)">${iconSpin.body}</g>`
   } as {[key: string]: string}
 
   export default defineComponent({
