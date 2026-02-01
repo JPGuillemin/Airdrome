@@ -5,10 +5,10 @@
       <main class="container-fluid py-2">
         <TopNav />
         <slot />
+        <Player />
+        <MobileNavBar />
       </main>
     </div>
-    <MobileNavBar />
-    <Player />
   </div>
 </template>
 

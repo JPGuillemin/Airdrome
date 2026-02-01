@@ -266,7 +266,7 @@
   })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
   .top-nav {
     position: fixed;
     top: 0;
@@ -298,4 +298,11 @@
     background-color: rgba(var(--bs-primary-rgb), 0.15);
     border-color: var(--bs-primary);
   }
+
+  @media(max-width: 768px) {
+    .top-nav {
+      border-radius: 12px;
+    }
+  }
+
 </style>

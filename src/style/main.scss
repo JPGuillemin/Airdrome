@@ -144,6 +144,7 @@ $tooltip-color: $theme-text;
 
 .tooltip {
   position: absolute;
+  z-index: 3000 !important;
 }
 
 // Form

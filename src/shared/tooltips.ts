@@ -3,63 +3,62 @@ import { Tooltip } from 'bootstrap'
 
 export const longPressTooltip: Directive = {
   mounted(el) {
-    let pressTimer: number | null = null
+    let pressTimer: any = null
+    let tip: Tooltip | null = null
 
     const showTooltip = () => {
-      const text = el.getAttribute('title')
+      const text = el.getAttribute('title') || el.getAttribute('alt')
       if (!text) return
 
-      // Create tooltip
-      const tip = new Tooltip(el, {
+      // dispose previous
+      tip?.dispose()
+
+      // create tooltip attached to body
+      tip = new Tooltip(el, {
         trigger: 'manual',
         placement: 'top',
-        container: 'body',
+        container: 'body',      // ← key fix
+        boundary: 'viewport',   // avoid clipping
       })
 
-      tip.show()
-
-      // Force z-index above navbar
-      const tipEl = document.querySelector('.tooltip') as HTMLElement
-      if (tipEl) tipEl.style.zIndex = '2200'
-
-      // Store reference on element for cleanup
-      ;(el as any)._tooltipInstance = tip
+      tip.show()   // let Bootstrap manage DOM
+      tip.update?.()
 
       setTimeout(() => {
-        tip.hide()
-        tip.dispose()
-        (el as any)._tooltipInstance = null
+        tip?.hide()
+        tip?.dispose()
+        tip = null
       }, 2000)
     }
 
     const start = () => {
-      pressTimer = window.setTimeout(showTooltip, 600)
+      if (pressTimer === null) pressTimer = setTimeout(showTooltip, 600)
     }
 
     const cancel = () => {
-      if (pressTimer) {
+      if (pressTimer !== null) {
         clearTimeout(pressTimer)
         pressTimer = null
       }
     }
 
-    el.addEventListener('touchstart', start, { passive: true })
+    // Mobile events
+    el.addEventListener('touchstart', start)
     el.addEventListener('touchend', cancel)
     el.addEventListener('touchmove', cancel)
     el.addEventListener('touchcancel', cancel)
 
-    // Store cleanup on element
+    // cleanup
     ;(el as any)._longPressCleanup = () => {
       el.removeEventListener('touchstart', start)
       el.removeEventListener('touchend', cancel)
       el.removeEventListener('touchmove', cancel)
       el.removeEventListener('touchcancel', cancel)
-      ;(el as any)._tooltipInstance?.dispose()
+      tip?.dispose()
     }
   },
 
   unmounted(el) {
-    ;(el as any)._longPressCleanup?.()
-    ;(el as any)._tooltipInstance?.dispose()
+    (el as any)._longPressCleanup?.()
   },
 }

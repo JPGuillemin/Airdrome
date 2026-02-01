@@ -91,14 +91,14 @@
     left: 0;
     right: 0;
 
-    height: 60px;
+    height: var(--mobile-nav-height);
     background-color: var(--bs-body-bg);
 
     display: flex;
     justify-content: space-around;
     align-items: center;
 
-    z-index: 2100;
+    z-index: 3000;
   }
 
   .mobile-nav-item {

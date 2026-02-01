@@ -1,158 +1,181 @@
 <template>
-  <div :class="{'visible': track}" class="player d-flex">
-    <div class="flex-fill">
-      <div class="slider-click-zone" @click="onSliderClick($event)">
-        <Slider
-          v-model="sliderValue"
-          :min="0"
-          :max="playerStore.duration"
-          :step="0.1"
-          :tooltips="true"
-          show-tooltip="drag"
-          :format="formatter"
-          orientation="horizontal"
-          :lazy="true"
-          class="playback-slider px-1 real-slider"
-          @start="onSliderDragStart"
-          @end="onSliderDragEnd"
-          @change="onSliderUpdate"
-        />
-      </div>
-      <div class="row align-items-center m-0 elevated">
-        <!-- Track info --->
-        <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
-          <template v-if="track">
-            <div
-              v-if="track.albumId"
-              class="pt-0 pb-3 ps-3 pe-2"
-              style="cursor: pointer"
-              @click="onAlbumClick"
-            >
-              <img v-if="track.image" :src="track.image" class="small-cover cursor-pointer">
-              <img v-else src="@/shared/assets/fallback.svg" class="small-cover cursor-pointer">
+  <div
+    class="player"
+    :class="{ visible: track }"
+  >
+    <!-- visual layer (background + radius ONLY) -->
+    <div class="player-bg">
+      <!-- layout layer (NO clipping) -->
+      <div class="player-content d-flex">
+        <div class="flex-fill">
+
+          <!-- progress -->
+          <div class="slider-click-zone" @click="onSliderClick($event)">
+            <Slider
+              v-model="sliderValue"
+              :min="0"
+              :max="playerStore.duration"
+              :step="0.1"
+              :tooltips="true"
+              show-tooltip="drag"
+              :format="formatter"
+              orientation="horizontal"
+              :lazy="true"
+              class="playback-slider px-1 real-slider"
+              @start="onSliderDragStart"
+              @end="onSliderDragEnd"
+              @change="onSliderUpdate"
+            />
+          </div>
+
+          <!-- main row -->
+          <div class="row align-items-center m-0 elevated">
+
+            <!-- track info -->
+            <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
+              <template v-if="track">
+                <div
+                  v-if="track.albumId"
+                  class="pt-0 pb-3 ps-3 pe-2"
+                  style="cursor: pointer"
+                  @click="onAlbumClick"
+                >
+                  <img
+                    v-if="track.image"
+                    :src="track.image"
+                    class="small-cover"
+                  >
+                  <img
+                    v-else
+                    src="@/shared/assets/fallback.svg"
+                    class="small-cover"
+                  >
+                </div>
+
+                <div style="min-width: 0; overflow: hidden">
+                  <div class="title-text">
+                    {{ track.title }}
+                  </div>
+                  <div class="text-truncate text-muted pb-3">
+                    <template v-if="track.artists.length">
+                      <span
+                        v-for="(artist, index) in track.artists"
+                        :key="artist.id"
+                      >
+                        <span v-if="index > 0">, </span>
+                        <router-link
+                          :to="{ name: 'artist', params: { id: artist.id } }"
+                          class="text-muted"
+                        >
+                          {{ artist.name }}
+                        </router-link>
+                      </span>
+                    </template>
+                    <template v-else-if="track.album">
+                      {{ track.album }}
+                    </template>
+                  </div>
+                </div>
+              </template>
             </div>
-            <div style="min-width: 0; overflow: hidden">
-              <div class="title-text">
-                {{ track.title }}
-              </div>
-              <div class="text-truncate text-muted pb-3">
-                <template v-if="track.artists.length > 0">
-                  <span v-for="(artist, index) in track.artists" :key="artist.id">
-                    <span v-if="index > 0">, </span>
-                    <router-link :to="{name: 'artist', params: { id: artist.id }}" class="text-muted">{{ artist.name }}</router-link>
-                  </span>
-                </template>
-                <template v-else-if="track.album">
-                  {{ track.album }}
-                </template>
-              </div>
-            </div>
-          </template>
-        </div>
 
-        <!-- Controls--->
-        <div class="col-auto pb-3 d-flex align-items-center">
-          <b-button
-            variant="transparent"
-            class="mx-0"
-            @click="previous">
-            <Icon icon="skip-start" />
-          </b-button>
-
-          <b-button
-            variant="transparent"
-            size="lg"
-            class="btn-play mx-0"
-            @click="playPause">
-            <Icon :icon="isPlaying ? 'pause' : 'play'" />
-          </b-button>
-
-          <b-button
-            variant="transparent"
-            class="mx-0"
-            @click="next">
-            <Icon icon="skip-end" />
-          </b-button>
-        </div>
-
-        <!-- Controls right --->
-        <div class="col-auto pb-3">
-          <div class="d-flex flex-nowrap justify-content-end pe-3">
-            <div class="m-0 d-none d-md-inline-flex align-items-center">
-              <b-button
-                title="Like"
-                variant="transparent" class="m-0"
-                @click="toggleFavourite"
-              >
-                <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+            <!-- transport -->
+            <div class="col-auto pb-3 d-flex align-items-center">
+              <b-button variant="transparent" class="mx-0" @click="previous">
+                <Icon icon="skip-start" />
               </b-button>
 
               <b-button
-                v-if="track && track.replayGain"
-                title="R.Gain"
                 variant="transparent"
-                class="m-0"
-                :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
-                @click="toggleReplayGain"
+                size="lg"
+                class="btn-play mx-0"
+                @click="playPause"
               >
-                <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
-                <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
-                <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
+                <Icon :icon="isPlaying ? 'pause' : 'play'" />
+              </b-button>
+
+              <b-button variant="transparent" class="mx-0" @click="next">
+                <Icon icon="skip-end" />
               </b-button>
             </div>
 
-            <OverflowMenu direction="up">
-              <div class="d-flex justify-content-between align-items-center px-3 py-1 on-top">
-                <Slider
-                  v-model="playerStore.volume"
-                  orientation="vertical"
-                  direction="rtl"
-                  :min="0"
-                  :max="1"
-                  :step="0.01"
-                  :tooltips="false"
-                  show-tooltip="never"
-                  class="volume-slider py-1"
-                  @update="playerStore.setVolume"
-                />
-              </div>
-              <div class="d-flex justify-content-between px-3 py-1 on-top">
-                <b-button
-                  title="Repeat"
-                  variant="transparent"
-                  class="m-0 px-2 py-0"
-                  :class="{ 'theme-primary': repeatActive }"
-                  @click.stop="toggleRepeat">
-                  <Icon icon="repeat" />
-                </b-button>
-              </div>
-              <div class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
-                <b-button variant="transparent" class="m-0 px-2 py-0" @click.stop="toggleFavourite">
-                  <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
-                </b-button>
-              </div>
+            <!-- right controls -->
+            <div class="col-auto pb-3">
+              <div class="d-flex flex-nowrap justify-content-end pe-3">
 
-              <div v-if="track && track.replayGain" class="d-md-none d-flex justify-content-between px-3 py-1 on-top">
-                <b-button
-                  title="ReplayGain"
-                  variant="transparent"
-                  class="m-0 px-2 py-0"
-                  :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
-                  @click.stop="toggleReplayGain">
-                  <small v-if="replayGainMode === ReplayGainMode.None" class="d-flex align-items-center">
-                    Off
-                  </small>
-                  <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
-                  <IconReplayGainAlbum v-else-if="replayGainMode === ReplayGainMode.Album" />
-                </b-button>
+                <div class="m-0 d-none d-md-inline-flex align-items-center">
+                  <b-button
+                    title="Like"
+                    variant="transparent"
+                    class="m-0"
+                    @click="toggleFavourite"
+                  >
+                    <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+                  </b-button>
+
+                  <b-button
+                    v-if="track && track.replayGain"
+                    title="R.Gain"
+                    variant="transparent"
+                    class="m-0"
+                    :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
+                    @click="toggleReplayGain"
+                  >
+                    <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
+                    <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
+                    <IconReplayGainAlbum v-else />
+                  </b-button>
+                </div>
+
+                <!-- overflow menu MUST NOT be clipped -->
+                <OverflowMenu direction="up">
+                  <div class="px-3 py-1 on-top">
+                    <Slider
+                      v-model="playerStore.volume"
+                      orientation="vertical"
+                      direction="rtl"
+                      :min="0"
+                      :max="1"
+                      :step="0.01"
+                      :tooltips="false"
+                      class="volume-slider"
+                      @update="playerStore.setVolume"
+                    />
+                  </div>
+
+                  <div class="px-3 py-1 on-top">
+                    <b-button
+                      title="Repeat"
+                      variant="transparent"
+                      class="m-0 px-2 py-0"
+                      :class="{ 'theme-primary': repeatActive }"
+                      @click.stop="toggleRepeat"
+                    >
+                      <Icon icon="repeat" />
+                    </b-button>
+                  </div>
+
+                  <div class="d-md-none px-3 py-1 on-top">
+                    <b-button
+                      variant="transparent"
+                      class="m-0 px-2 py-0"
+                      @click.stop="toggleFavourite"
+                    >
+                      <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+                    </b-button>
+                  </div>
+                </OverflowMenu>
+
               </div>
-            </OverflowMenu>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent, watch, ref, computed } from 'vue'
   import { ReplayGainMode } from './audio'
@@ -304,14 +327,18 @@
 <style scoped>
   .player {
     position: fixed;
-    z-index: 1000;
-    bottom: 0;
     left: 0;
     right: 0;
+    bottom: 0;
+    z-index: 1000;
     height: 0;
     max-height: 0;
     transition: max-height 0.5s;
-    background: var(--theme-elevation-1);
+  }
+
+  .player.visible {
+    height: auto;
+    max-height: 110px;
   }
 
   .small-cover {
@@ -369,6 +396,10 @@
     margin: auto;
   }
 
+  .player-bg {
+    background: var(--theme-elevation-1);
+  }
+
   .slider-click-zone {
     position: relative;
     padding-top: 10px;
@@ -385,17 +416,27 @@
     pointer-events: auto; /* but slider handles still work */
   }
 
+  .slider-click-zone,
+  .row.elevated {
+    background: transparent !important;
+  }
+
   @media(max-width: 768px) {
     .player {
       font-size: 0.7rem;
       position: fixed;
-      z-index: 2000;
-      bottom: 60px;
+      z-index: 1000;
+      bottom: var(--mobile-nav-height);
       left: 0;
       right: 0;
       height: 0;
       max-height: 0;
       transition: max-height 0.5s;
+      border-radius: 12px;
+    }
+
+    .player-bg {
+      border-radius: 12px;
     }
 
     .visible {
@@ -444,6 +485,11 @@
     /* Reduce play button size */
     .col-auto.pb-3.d-flex.align-items-center .btn-play {
       --bs-btn-font-size: 1.5rem;
+    }
+
+    .overflow-menu,
+    .b-button {
+      border-radius: 12px;
     }
   }
 </style>
