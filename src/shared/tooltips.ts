@@ -3,60 +3,63 @@ import { Tooltip } from 'bootstrap'
 
 export const longPressTooltip: Directive = {
   mounted(el) {
-    let pressTimer: any = null
-    let tip: Tooltip | null = null
+    let pressTimer: number | null = null
 
     const showTooltip = () => {
-      // Read title (for buttons) or alt (for images)
-      const text = el.getAttribute('title') || el.getAttribute('alt')
+      const text = el.getAttribute('title')
       if (!text) return
 
-      // Temporarily set title for Bootstrap tooltip
-      el.setAttribute('title', text)
+      // Create tooltip
+      const tip = new Tooltip(el, {
+        trigger: 'manual',
+        placement: 'top',
+        container: 'body',
+      })
 
-      tip = new Tooltip(el, { trigger: 'manual' })
       tip.show()
-      tip.update?.() // recompute position (safe for scrollable containers)
 
-      // Hide after 2s
+      // Force z-index above navbar
+      const tipEl = document.querySelector('.tooltip') as HTMLElement
+      if (tipEl) tipEl.style.zIndex = '2200'
+
+      // Store reference on element for cleanup
+      ;(el as any)._tooltipInstance = tip
+
       setTimeout(() => {
-        tip?.hide()
-        tip?.dispose()
-        tip = null
+        tip.hide()
+        tip.dispose()
+        (el as any)._tooltipInstance = null
       }, 2000)
     }
 
     const start = () => {
-      if (pressTimer === null) {
-        pressTimer = setTimeout(() => {
-          showTooltip()
-        }, 600) // long-press threshold
-      }
+      pressTimer = window.setTimeout(showTooltip, 600)
     }
 
     const cancel = () => {
-      if (pressTimer !== null) {
+      if (pressTimer) {
         clearTimeout(pressTimer)
         pressTimer = null
       }
     }
 
-    // Mobile touch events
-    el.addEventListener('touchstart', start)
+    el.addEventListener('touchstart', start, { passive: true })
     el.addEventListener('touchend', cancel)
     el.addEventListener('touchmove', cancel)
     el.addEventListener('touchcancel', cancel)
 
-    // Cleanup reference
+    // Store cleanup on element
     ;(el as any)._longPressCleanup = () => {
       el.removeEventListener('touchstart', start)
       el.removeEventListener('touchend', cancel)
       el.removeEventListener('touchmove', cancel)
       el.removeEventListener('touchcancel', cancel)
-      tip?.dispose()
+      ;(el as any)._tooltipInstance?.dispose()
     }
   },
+
   unmounted(el) {
-    (el as any)._longPressCleanup?.()
+    ;(el as any)._longPressCleanup?.()
+    ;(el as any)._tooltipInstance?.dispose()
   },
 }

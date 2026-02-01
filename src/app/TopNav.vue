@@ -9,29 +9,6 @@
         >
           <img width="36" height="36" src="@/shared/assets/logo.svg">
         </button>
-        <router-link
-          class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
-          :to="{ name: 'home' }"
-          title="Home panel"
-          :exact="true"
-        >
-          <Icon icon="home" class="nav-icon nav-link" />
-        </router-link>
-        <router-link
-          class="d-md-none btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2"
-          :to="{ name: 'queue' }"
-          title="Playing"
-          :exact="true"
-        >
-          <Icon icon="soundwave" class="nav-icon nav-link" />
-        </router-link>
-        <button
-          class="btn btn-transparent nav-link flex-grow-1 flex-md-grow-0 mx-2 d-none d-md-inline"
-          title="Go back"
-          @click="$router.back()"
-        >
-          <Icon icon="goback" class="nav-icon nav-link" />
-        </button>
       </div>
 
       <div class="d-flex align-items-center">
