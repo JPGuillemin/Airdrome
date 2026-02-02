@@ -433,6 +433,8 @@
       max-height: 0;
       transition: max-height 0.5s;
       border-radius: 12px;
+      border: 1px solid var(--theme-elevation-2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .player-bg {

@@ -302,6 +302,8 @@
   @media(max-width: 768px) {
     .top-nav {
       border-radius: 12px;
+      border: 1px solid var(--theme-elevation-2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
   }
 
