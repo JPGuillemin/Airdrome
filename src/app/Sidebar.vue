@@ -1,5 +1,5 @@
 <template>
-  <div class="main-content sidebar-container elevated">
+  <div class="main-content sidebar-container">
     <div class="sidebar-fixed d-none d-md-block">
       <SidebarNav />
     </div>
@@ -15,6 +15,7 @@
     </div>
   </div>
 </template>
+
 <script lang="ts">
   import { defineComponent } from 'vue'
   import SidebarNav from './SidebarNav.vue'
@@ -31,10 +32,17 @@
     },
   })
 </script>
+
 <style>
+  .sidebar-container {
+    background: var(--theme-elevation-0);
+    min-height: 100vh;
+  }
+
   .sidebar-container .nav {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    background: var(--theme-elevation-0);
   }
 
   .sidebar-container .sidebar-fixed {
@@ -43,8 +51,10 @@
     position: sticky;
     top: 46px;
     max-height: 100vh;
-    overflow-y: auto; /* vertical slider appears if content overflows */
-    z-index: 999;
+    overflow-y: auto;
+    z-index: 500;
+    background: var(--theme-elevation-0);
+    min-height: calc(100vh - var(--mobile-nav-height));
   }
 
   /* Scrollbar styling for WebKit browsers */
@@ -58,7 +68,7 @@
   }
 
   .sidebar-container .sidebar-fixed::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
+    background: transparent;
     border-radius: 4px;
   }
 
@@ -69,10 +79,10 @@
   }
 
   .offcanvas {
-    z-index: 1100;
+    z-index: 600;
   }
 
-  @media (max-width: 654px) {
+  @media (max-width: 768px) {
     .offcanvas.offcanvas-start {
       width: 50% !important; /* half the screen */
       background: rgba(0, 0, 0, 0.8);

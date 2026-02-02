@@ -7,7 +7,7 @@
           class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
           @click="store.showMenu"
         >
-          <img width="36" height="36" src="@/shared/assets/logo.svg">
+          <img width="32" height="32" src="@/shared/assets/logo.svg">
         </button>
       </div>
 
