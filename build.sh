@@ -6,7 +6,7 @@ export BASE_PATH="/"
 rm -rf dist docker
 
 # Build the project
-yarn build || exit "error yarn build"
+yarn build || exit 1
 
 # Rewrite BASE_PATH in static files
 (

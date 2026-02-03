@@ -16,6 +16,7 @@ export default defineConfig(() => {
   } catch {
     buildVersion = 'unknown'
   }
+
   return {
     base: basePath,
     build: {
@@ -26,7 +27,7 @@ export default defineConfig(() => {
       checker({
         vueTsc: true,
         eslint: {
-          lintCommand: 'eslint . --ext .vue,.ts,.js --ignore-path .gitignore',
+          lintCommand: 'eslint .', // <-- no --ext
         },
         overlay: { initialIsOpen: 'error' }
       }),
@@ -37,13 +38,14 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url))
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        'bootstrap-vue-3': 'bootstrap-vue-next' // <-- redirect imports
       }
     },
     css: {
       preprocessorOptions: {
         scss: {
-          silenceDeprecations: ['mixed-decls', 'color-functions', 'global-builtin', 'import']
+          silenceDeprecations: ['if-function', 'mixed-decls', 'color-functions', 'global-builtin', 'import']
         }
       },
       postcss: { plugins: [autoprefixer()] }

@@ -8,15 +8,16 @@
     "preview": "vite preview",
     "start": "vite",
     "serve": "vite",
-    "lint": "eslint --fix \"src/**/*.{ts,vue}\""
+    "lint": "eslint src"
   },
   "dependencies": {
     "@iconify-icons/bi": "^1.2.2",
+    "@iconify-icons/svg-spinners": "^1.2.0",
     "@popperjs/core": "^2.11.8",
     "@vueform/slider": "^2.1.10",
     "@vueuse/core": "^11.1.0",
     "bootstrap": "^5.3.8",
-    "bootstrap-vue-next": "^0.40.6",
+    "bootstrap-vue-next": "^0.42.0",
     "icecast-metadata-stats": "^0.1.1",
     "lodash-es": "^4.17.21",
     "md5-es": "^1.8.2",
@@ -28,6 +29,7 @@
     "@types/lodash-es": "^4.17.6",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.4.27",
     "@vue/eslint-config-standard": "^8.0.1",
     "@vue/eslint-config-typescript": "^11.0.2",
@@ -44,7 +46,6 @@
     "sass": "^1.77.8",
     "typescript": "^5.1.6",
     "vite": "^7.1.12",
-    "@vitejs/plugin-vue": "^6.0.1",
     "vite-plugin-checker": "^0.10.2",
     "vue-tsc": "^2.2.2"
   },
