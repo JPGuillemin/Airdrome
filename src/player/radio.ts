@@ -8,9 +8,9 @@ import type { API, Track } from '@/shared/api'
 export const useRadioStore = defineStore('radio', {
   actions: {
     // -------- HELPERS --------
-    takeUpTo200(acc: Track[], next: Track[]): Track[] {
-      if (acc.length >= 200) return acc
-      const remaining = 200 - acc.length
+    takeUpToX(acc: Track[], next: Track[]): Track[] {
+      if (acc.length >= 100) return acc
+      const remaining = 100 - acc.length
       return acc.concat(next.slice(0, remaining))
     },
 
@@ -84,21 +84,21 @@ export const useRadioStore = defineStore('radio', {
       }
 
       await this.playRandomOrTracks({
-        params: { genre: genreName, size: 200 }
+        params: { genre: genreName, size: 100 }
       })
     },
 
     // -------- RADIOS --------
     async shuffleGenre(genreId: string) {
-      await this.playRandomOrTracks({ params: { genre: genreId, size: 200 } })
+      await this.playRandomOrTracks({ params: { genre: genreId, size: 100 } })
     },
 
     async shuffleMood(genreName: string) {
-      await this.playRandomOrTracks({ params: { genre: genreName, size: 200 } })
+      await this.playRandomOrTracks({ params: { genre: genreName, size: 100 } })
     },
 
     async luckyRadio() {
-      await this.playRandomOrTracks({ params: { size: 200 } })
+      await this.playRandomOrTracks({ params: { size: 100 } })
     },
 
     async shuffleRecentlyPlayed() {
@@ -111,8 +111,8 @@ export const useRadioStore = defineStore('radio', {
         for (const album of albums) {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpTo200(tracks, fullAlbum.tracks)
-            if (tracks.length >= 200) break
+            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
+            if (tracks.length >= 100) break
           }
         }
 
@@ -134,8 +134,8 @@ export const useRadioStore = defineStore('radio', {
         for (const album of albums) {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpTo200(tracks, fullAlbum.tracks)
-            if (tracks.length >= 200) break
+            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
+            if (tracks.length >= 100) break
           }
         }
 
@@ -157,8 +157,8 @@ export const useRadioStore = defineStore('radio', {
         for (const album of albums) {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpTo200(tracks, fullAlbum.tracks)
-            if (tracks.length >= 200) break
+            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
+            if (tracks.length >= 100) break
           }
         }
 
@@ -182,8 +182,8 @@ export const useRadioStore = defineStore('radio', {
         for (const album of favouriteAlbums as { id: string }[]) {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpTo200(tracks, fullAlbum.tracks)
-            if (tracks.length >= 200) break
+            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
+            if (tracks.length >= 100) break
           }
         }
 
@@ -212,7 +212,7 @@ export const useRadioStore = defineStore('radio', {
             if (artistTracks.length >= 20) break
           }
           tracks = tracks.concat(artistTracks.slice(0, 20))
-          if (tracks.length >= 200) break
+          if (tracks.length >= 100) break
         }
 
         if (tracks.length) {
@@ -233,8 +233,8 @@ export const useRadioStore = defineStore('radio', {
         for (const p of playlists) {
           const full = await this.api.getPlaylist(p.id)
           if (full.tracks?.length) {
-            allTracks = this.takeUpTo200(allTracks, full.tracks)
-            if (allTracks.length >= 200) break
+            allTracks = this.takeUpToX(allTracks, full.tracks)
+            if (allTracks.length >= 100) break
           }
         }
 
@@ -252,8 +252,8 @@ export const useRadioStore = defineStore('radio', {
       try {
         let tracks: Track[] = []
         for await (const batch of this.api.getTracksByArtist(artistId)) {
-          tracks = this.takeUpTo200(tracks, batch)
-          if (tracks.length >= 200) break
+          tracks = this.takeUpToX(tracks, batch)
+          if (tracks.length >= 100) break
         }
         await this.playRandomOrTracks({ tracks })
       } finally {
@@ -281,7 +281,7 @@ export const useRadioStore = defineStore('radio', {
 
     async shuffleAlbum(tracks: Track[]) {
       if (!tracks?.length) return
-      await this.playRandomOrTracks({ tracks: tracks.slice(0, 200) })
+      await this.playRandomOrTracks({ tracks: tracks.slice(0, 100) })
     }
   }
 })
