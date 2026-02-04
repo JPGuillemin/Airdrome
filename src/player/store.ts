@@ -157,12 +157,18 @@ export const usePlayerStore = defineStore('player', {
     },
     async loadQueue() {
       const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
+      if (!tracks) {
+        return
+      }
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
+      if (!this.track) {
+        return
+      }
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack!.url,
+        nextUrl: this.nextTrack?.url,
         fade: true,
         paused: true
       })

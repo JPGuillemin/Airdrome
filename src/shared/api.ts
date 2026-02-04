@@ -376,7 +376,8 @@ export class API {
     const response = await this.fetch('rest/getPlayQueue')
     const tracks = (response.playQueue?.entry || []).map(this.normalizeTrack, this) as Track[]
     const currentTrackId = response.playQueue?.current?.toString()
-    const currentTrack = tracks.findIndex(track => track.id === currentTrackId) ?? 0
+    const index = tracks.findIndex(track => track.id === currentTrackId)
+    const currentTrack = index >= 0 ? index : 0
     return {
       tracks,
       currentTrack,
