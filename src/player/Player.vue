@@ -164,6 +164,21 @@
                       <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                     </b-button>
                   </div>
+
+                  <div v-if="track && track.replayGain" class="d-md-none px-3 py-1 on-top">
+                    <b-button
+                      title="ReplayGain"
+                      variant="transparent"
+                      class="m-0 px-2 py-0"
+                      :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
+                      @click.stop="toggleReplayGain"
+                    >
+                      <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
+                      <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
+                      <IconReplayGainAlbum v-else />
+                    </b-button>
+                  </div>
+
                 </OverflowMenu>
 
               </div>
