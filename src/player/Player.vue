@@ -10,14 +10,20 @@
         <div class="flex-fill">
 
           <!-- progress -->
-          <div class="slider-click-zone" @click="onSliderClick($event)">
+          <div
+            class="slider-click-zone"
+            @mouseenter="focusSlider"
+            @mouseleave="blurSlider"
+            @click="onSliderClick($event)"
+          >
             <Slider
+              ref="progressSlider"
               v-model="sliderValue"
               :min="0"
               :max="playerStore.duration"
               :step="0.1"
               :tooltips="true"
-              show-tooltip="drag"
+              show-tooltip="focus"
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
@@ -270,6 +276,18 @@
         }
       }
 
+      const progressSlider = ref<any>(null)
+
+      const focusSlider = () => {
+        const el = progressSlider.value?.$el?.querySelector('[tabindex]')
+        el?.focus()
+      }
+
+      const blurSlider = () => {
+        const el = progressSlider.value?.$el?.querySelector('[tabindex]')
+        el?.blur()
+      }
+
       const onSliderDragStart = () => {
         dragging.value = true
       }
@@ -310,24 +328,23 @@
         ReplayGainMode,
         favouriteStore,
         playerStore,
-
         sliderValue,
         dragging,
-
         track,
         isPlaying,
         isMuted,
         repeatActive,
         replayGainMode,
         isFavourite,
-
+        progressSlider,
+        focusSlider,
+        blurSlider,
         onAlbumClick,
         onSliderDragStart,
         onSliderDragEnd,
         onSliderUpdate,
         onSliderClick,
         formatter,
-
         playPause,
         next,
         previous,
@@ -354,6 +371,12 @@
   .player.visible {
     height: auto;
     max-height: 110px;
+  }
+
+  .player,
+  .player * {
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .small-cover {
@@ -400,6 +423,15 @@
     --slider-tooltip-bg: var(--bs-primary);
     margin: auto;
     background: transparent;
+  }
+
+  .playback-slider:hover {
+    --slider-handle-bg: var(--bs-primary);
+  }
+
+  .playback-slider *:focus {
+    outline: none !important;
+    caret-color: transparent !important;
   }
 
   .volume-slider {
