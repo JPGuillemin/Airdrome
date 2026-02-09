@@ -48,9 +48,9 @@
               <div class="d-flex gap-2 flex-wrap">
                 <button
                   v-for="option in [
-                    { icon: 'music-note', value: 128, shade: 0.6 },
-                    { icon: 'music-note', value: 192, shade: 0.9 },
-                    { icon: 'music-note-beamed', value: 512, shade: 0.9 }
+                    { icon: 'music-note', value: 100, shade: 0.6 },
+                    { icon: 'music-note', value: 140, shade: 0.9 },
+                    { icon: 'music-note-beamed', value: 500, shade: 0.9 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
@@ -145,7 +145,7 @@
         localStorage.setItem('themeColor', color)
       }
 
-      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
+      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 140)
 
       function setStreamQuality(value: number) {
         streamQuality.value = value

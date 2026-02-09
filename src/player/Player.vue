@@ -373,12 +373,6 @@
     max-height: 110px;
   }
 
-  .player,
-  .player * {
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
   .small-cover {
     display: block;
     width: 58px;

@@ -37,6 +37,22 @@ $border-color: $theme-elevation-2;
   --secondary: #{$secondary};
 }
 
+#app {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.selectable,
+p,
+span,
+article,
+.markdown,
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .theme-primary {
   background-color: transparent !important;
   border: none !important;
