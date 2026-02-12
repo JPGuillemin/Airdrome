@@ -101,7 +101,7 @@
             Background info
           </span>
         </div>
-        <span class="d-flex justify-content-between adapt-text mb-2" style="text-align: justify;">
+        <span class="d-flex justify-content-between adapt-text mb-2 no-caret" style="text-align: justify;">
           {{ album.description }}
         </span>
       </div>

@@ -1,6 +1,7 @@
 .main-content {
   padding-top: 38px;
   z-index: auto;
+  caret-color: transparent;
 }
 
 .header-wrapper {
@@ -9,6 +10,7 @@
   z-index: 500;
   background: var(--bs-body-bg);
   overflow: visible;
+  caret-color: transparent;
 }
 
 .header-title-wrapper {
@@ -180,4 +182,8 @@
 
 :root {
   --mobile-nav-height: 60px;
+}
+
+.no-caret {
+  caret-color: transparent;
 }
