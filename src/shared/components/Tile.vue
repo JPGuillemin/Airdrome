@@ -22,7 +22,12 @@
     <div class="tile-text">
       <div class="text-truncate">
         <slot name="title">
-          {{ title }}
+          <router-link v-if="to" :to="to" class="tile-title">
+            {{ title }}
+          </router-link>
+          <span v-else>
+            {{ title }}
+          </span>
         </slot>
       </div>
       <div v-if="!titleOnly" class="text-truncate text-muted">
@@ -84,6 +89,11 @@
     object-fit: cover;
     border-radius: 6px;
   }
+
+    .tile:hover .tile-title {
+      color: var(--bs-primary);
+      transition: color 0.2s ease-in-out;
+    }
 
   /* ----------------------------- */
   /* 3-ROWS MODE */

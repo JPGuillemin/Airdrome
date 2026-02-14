@@ -196,3 +196,9 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Text turns primary when its tile container is hovered */
+.tile:hover .hover-tile-primary {
+  color: var(--bs-primary);
+  transition: color 0.2s ease-in-out;
+}

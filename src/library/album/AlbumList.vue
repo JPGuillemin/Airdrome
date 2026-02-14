@@ -10,12 +10,6 @@
       :title-only="titleOnly"
       @dragstart="dragstart(item.id, $event)"
     >
-      <template #title>
-        <router-link :to="{ name: 'album', params: { id: item.id } }">
-          {{ item.name }}
-        </router-link>
-      </template>
-
       <!-- Artists -->
       <template #text>
         <span v-for="(artist, aIndex) in item.artists" :key="artist.id">
