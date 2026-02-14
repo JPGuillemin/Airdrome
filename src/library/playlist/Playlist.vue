@@ -2,7 +2,7 @@
   <div v-if="playlist" class="main-content">
     <ConfirmDialog ref="confirmDialog" />
     <div class="header-wrapper">
-      <Custom :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
+      <Header :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playNow">
         <div class="header-title-wrapper">
           <div class="header-title">
             {{ playlist.name }}
@@ -76,7 +76,7 @@
             </DropdownItem>
           </OverflowMenu>
         </div>
-      </Custom>
+      </Header>
     </div>
 
     <div class="content-wrapper">
@@ -122,7 +122,6 @@
   import OverflowMenu from '@/shared/components/OverflowMenu.vue'
   import DropdownItem from '@/shared/components/DropdownItem.vue'
   import Icon from '@/shared/components/Icon.vue'
-  import Custom from '@/shared/components/Custom.vue'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
@@ -142,7 +141,6 @@
       OverflowMenu,
       DropdownItem,
       Icon,
-      Custom,
       BButton,
       ConfirmDialog,
     },

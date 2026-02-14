@@ -35,22 +35,24 @@ $border-color: $theme-elevation-2;
   --theme-elevation-4: #{$theme-elevation-4};
   --primary: #{$primary};
   --secondary: #{$secondary};
-}
-
-#app {
+  --mobile-nav-height: 60px;
   user-select: none;
   -webkit-user-select: none;
+  caret-color: transparent;
 }
 
 .selectable,
 p,
 span,
 article,
-.markdown,
-input,
-textarea {
+.markdown {
   user-select: text;
   -webkit-user-select: text;
+}
+
+input,
+textarea {
+  caret-color: var(--theme-text-muted);
 }
 
 .theme-primary {

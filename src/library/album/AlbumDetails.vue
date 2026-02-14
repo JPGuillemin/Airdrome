@@ -1,7 +1,7 @@
 <template>
   <div v-if="album" class="main-content">
     <div class="header-wrapper">
-      <Custom :image="album.image" :hover="'Play/Pause'" class="cursor-pointer" @click="playNow">
+      <Header :image="album.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playNow">
         <div class="header-title-wrapper">
           <div class="header-title">
             {{ album.name }}
@@ -85,7 +85,7 @@
             </DropdownItem>
           </OverflowMenu>
         </div>
-      </Custom>
+      </Header>
     </div>
     <div class="content-wrapper">
       <TrackList
@@ -101,7 +101,7 @@
             Background info
           </span>
         </div>
-        <span class="d-flex justify-content-between adapt-text mb-2 no-caret" style="text-align: justify;">
+        <span class="d-flex justify-content-between adapt-text mb-2 can-select" style="text-align: justify;">
           {{ album.description }}
         </span>
       </div>

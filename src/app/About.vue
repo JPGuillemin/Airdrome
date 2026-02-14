@@ -6,7 +6,7 @@
         <div class="d-flex justify-content-center mb-3">
           <img width="100" height="100" src="@/shared/assets/logo.svg">
         </div>
-        <div class="text-center">
+        <div class="text-center can-select">
           <ExternalLink :href="url">
             {{ url }}
           </ExternalLink>

@@ -1,7 +1,7 @@
 <template>
   <div v-if="artist" class="main-content">
     <div class="header-wrapper">
-      <Custom :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer" @click="shuffleNow">
+      <Header :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="shuffleNow">
         <div class="header-title-wrapper">
           <div class="header-title mt-3">
             {{ artist.name }}
@@ -56,7 +56,7 @@
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
         </div>
-      </Custom>
+      </Header>
     </div>
     <div class="content-wrapper">
       <template v-if="artist.topTracks.length > 0">
@@ -98,7 +98,7 @@
             Background info
           </span>
         </div>
-        <span class="d-flex justify-content-between adapt-text mb-2 no-caret" style="text-align: justify;">
+        <span class="d-flex justify-content-between adapt-text mb-2 can-select" style="text-align: justify;">
           {{ artist.description }}
         </span>
       </template>
