@@ -59,9 +59,12 @@
                 </div>
 
                 <div style="min-width: 0; overflow: hidden">
-                  <div class="title-text">
+                  <router-link
+                    :to="{ name: 'album', params: { id: track.albumId } }"
+                    class="text-muted"
+                  >
                     {{ track.title }}
-                  </div>
+                  </router-link>
                   <div class="text-truncate text-muted pb-3">
                     <template v-if="track.artists.length">
                       <span

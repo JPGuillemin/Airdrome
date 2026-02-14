@@ -3,6 +3,45 @@
   z-index: auto;
 }
 
+.main-title {
+  display: inline-block;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  color: var(--theme-text-muted);
+  font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.section-title {
+  display: inline-block;
+  margin-block-start: 0.67em;
+  margin-block-end: 0.67em;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  color: var(--theme-text-muted);
+  font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.content-wrapper {
+  max-width: 100%;
+  position: relative;
+  z-index: auto;
+  margin-top: 170px;
+  padding: 1rem;
+}
+
+.section-wrapper {
+  max-width: 100%;
+  position: relative;
+  z-index: auto;
+  padding-bottom: 1.2rem;
+}
+
 .header-wrapper {
   position: fixed;
   width: 100%;
@@ -15,16 +54,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.main-title {
-  display: inline-block;
-  margin-block-start: 0.67em;
-  margin-block-end: 0.67em;
-  font-size: 1.5rem;
-  line-height: 1.5;
-  color: var(--theme-text-muted);
-  font-weight: 700;
 }
 
 .header-title {
@@ -47,16 +76,6 @@
   margin-top: 7px;
   color: var(--theme-text-muted);
   font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.section-title {
-  display: inline-block;
-  margin-block-start: 0.67em;
-  margin-block-end: 0.67em;
-  font-size: 1.2rem;
-  line-height: 1.2;
-  color: var(--theme-text-muted);
   font-weight: 700;
 }
 
@@ -91,7 +110,7 @@
 }
 
 /* Mobile: slightly smaller font */
-@media (max-width: 767.98px) {
+@media (max-width: 767px) {
   .main-title {
     max-width: 220px;
     font-size: 1.2rem !important;
@@ -114,21 +133,9 @@
     max-width: 220px;
     font-size: 0.8rem !important;
   }
-}
-
-.content-wrapper {
-  max-width: 100%;
-  position: relative;
-  z-index: auto;
-  margin-top: 170px;
-  padding: 1rem;
-}
-
-.section-wrapper {
-  max-width: 100%;
-  position: relative;
-  z-index: auto;
-  padding-bottom: 1.2rem;
+  .adapt-text {
+    font-size: 0.8rem;
+  }
 }
 
 .on-top {
@@ -139,12 +146,6 @@
 
 .adapt-text {
   font-size: 1rem;
-}
-
-@media (max-width: 768px) {
-  .adapt-text {
-    font-size: 0.8rem;
-  }
 }
 
 .truncate {
@@ -189,4 +190,9 @@
 .can-select {
   user-select: text;
   -webkit-user-select: text;
+}
+
+.cant-select {
+  user-select: none;
+  -webkit-user-select: none;
 }
