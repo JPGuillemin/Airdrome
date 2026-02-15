@@ -191,6 +191,16 @@ export class API {
     }
   }
 
+  async isOnline(): Promise<boolean> {
+    try {
+      const response = await this.fetch('rest/ping.view', {})
+      return response?.status === 'ok'
+    } catch (err) {
+      if (err instanceof OfflineError) return false
+      return false
+    }
+  }
+
   async getGenres() {
     const response = await this.fetch('rest/getGenres', {})
     return (response.genres.genre || [])

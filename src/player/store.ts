@@ -340,7 +340,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         Math.trunc(playerStore.currentTime)
       )
         .catch(err => {
-          console.debug('savePlayQueue aborted:', err)
+          console.info('savePlayQueue aborted:', err)
         })
     }
 
@@ -351,15 +351,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     )
   })
 
-  audio.onended = async() => {
-    if (!navigator.onLine) {
-      console.info('[Offline mode] Queue ended.')
-      return playerStore.resetQueue()
-    }
-
+  audio.onended = async () => {
     const { hasNext, repeat } = playerStore
+
     if (hasNext || repeat) {
-      return playerStore.autoNext()
+      try {
+        await playerStore.autoNext()
+      } catch (err) {
+        console.info('[Offline or load failure]')
+        playerStore.resetQueue()
+      }
+      return
     }
 
     const track = playerStore.track
@@ -369,7 +371,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       const radioStore = useRadioStore()
       await radioStore.continueFromTrack(track)
     } catch (err) {
-      console.error('Radio continuation failed:', err)
+      console.info('[Radio continuation failed]')
       playerStore.resetQueue()
     }
   }
@@ -486,7 +488,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   )
 
   setInterval(() => {
-    if (!playerStore.track || !navigator.onLine) return
+    if (!playerStore.track) return
 
     playerStore.api.savePlayQueue(
       playerStore.queue!,
@@ -494,14 +496,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       Math.trunc(playerStore.currentTime)
     )
       .catch(err => {
-        console.debug('savePlayQueue aborted:', err)
+        console.info('savePlayQueue aborted:', err)
       })
   }, 10000)
 
   watch(
     () => [playerStore.duration],
     () => {
-      if (!playerStore.track || !navigator.onLine) return
+      if (!playerStore.track) return
 
       playerStore.setMediaSessionPosition()
 
@@ -512,7 +514,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         Math.trunc(playerStore.currentTime)
       )
         .catch(err => {
-          console.debug('savePlayQueue aborted:', err)
+          console.info('savePlayQueue aborted:', err)
         })
     }
   )
