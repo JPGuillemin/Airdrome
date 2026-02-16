@@ -330,6 +330,12 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.duration = value
   }
 
+  document.addEventListener('visibilitychange', () => {
+    if (!playerStore.userPaused && !playerStore.isPlaying) {
+      playerStore.play()
+    }
+  })
+
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
 
