@@ -143,7 +143,7 @@ export class AudioController {
     this.replayGain = options.replayGain ?? null
 
     if (!this.buffer || this.buffer.src !== options.url) {
-      await this.setBuffer(options.url)
+      this.setBuffer(options.url)
     }
 
     const nextPipeline = createPipeline(this.context, {

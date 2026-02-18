@@ -9,8 +9,7 @@
           v-for="item in result.genres"
           :key="item.id"
           :to="{ name: 'genre', params: { id: item.id } }"
-          class="text-decoration-none"
-          style="color: var(--theme-text-muted); white-space: nowrap; font-weight: bold;"
+          class="genre-link text-decoration-none"
         >
           {{ item.name }}
         </router-link>
@@ -316,5 +315,20 @@
   .header-title {
     margin-top: 10px;
     font-size: 1.5rem;
+  }
+  .genre-link {
+    color: var(--theme-text-muted);
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.85rem; /* smaller than default */
+    transition:
+      color 0.2s ease,
+      transform 0.2s ease,
+      font-size 0.2s ease;
+  }
+
+  .genre-link:hover {
+    color: var(--bs-primary);
+    transform: scale(1.1);
   }
 </style>
