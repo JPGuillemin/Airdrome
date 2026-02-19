@@ -322,6 +322,8 @@ export const usePlayerStore = defineStore('player', {
 
 export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>) {
 
+  let systemInterrupted = false
+
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
@@ -330,11 +332,11 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.duration = value
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (!playerStore.userPaused && !playerStore.isPlaying) {
-      playerStore.play()
-    }
-  })
+  //document.addEventListener('visibilitychange', () => {
+    //if (!playerStore.userPaused && !playerStore.isPlaying) {
+      //playerStore.play()
+    //}
+  //})
 
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
@@ -383,15 +385,18 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   audio.onpause = () => {
-    if (playerStore.isPlaying) {
-      playerStore.setPaused()
+    const wasPlaying = playerStore.isPlaying
+
+    if (wasPlaying && !playerStore.userPaused) {
+      systemInterrupted = true
     }
+
+    playerStore.setPaused()
   }
 
   audio.onplay = () => {
-    if (!playerStore.userPaused) {
-      playerStore.setPlaying()
-    }
+    systemInterrupted = false
+    playerStore.setPlaying()
   }
 
   audio.onerror = (error: any) => {
@@ -505,6 +510,28 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         console.info('savePlayQueue aborted:', err)
       })
   }, 10000)
+
+  const isMobile =
+    matchMedia('(pointer: coarse)').matches &&
+    navigator.maxTouchPoints > 0
+
+  if (isMobile) {
+    setInterval(async() => {
+      if (
+        systemInterrupted &&
+        !playerStore.userPaused &&
+        !playerStore.isPlaying &&
+        document.visibilityState === 'visible'
+      ) {
+        try {
+          await playerStore.play()
+          systemInterrupted = false
+        } catch {
+          // still blocked — retry next tick
+        }
+      }
+    }, 2000)
+  }
 
   watch(
     () => [playerStore.duration],
