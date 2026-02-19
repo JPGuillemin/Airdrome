@@ -30,10 +30,10 @@
   import iconGear from '@iconify-icons/bi/gear-fill'
   import iconGenre from '@iconify-icons/bi/palette'
   import iconGoBack from '@iconify-icons/bi/arrow-left-circle'
-  import iconHeart from '@iconify-icons/bi/heart'
+  import iconHeart from '@iconify-icons/bi/hearts'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
   import iconHigh from '@iconify-icons/bi/headphones'
-  import iconHome from '@iconify-icons/bi/house-fill'
+  import iconDiscover from '@iconify-icons/bi/speedometer'
   import iconInfo from '@iconify-icons/bi/info-circle'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
@@ -78,7 +78,7 @@
     check: iconCheck.body,
     'check-circle': iconCheckCircle.body,
     'chevron-right': iconChevronRight.body,
-    discover: iconHome.body,
+    discover: iconDiscover.body,
     download: iconDownload.body,
     edit: iconEdit.body,
     files: iconFiles.body,
@@ -88,7 +88,6 @@
     goback: iconGoBack.body,
     heart: iconHeart.body,
     'heart-fill': iconHeartFill.body,
-    home: iconHome.body,
     info: iconInfo.body,
     library: iconLibrary.body,
     link: iconLink.body,

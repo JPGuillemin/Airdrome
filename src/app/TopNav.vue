@@ -124,7 +124,7 @@
 
       function handleLogoClick() {
         if (window.innerWidth >= 768) {
-          router.push({ name: 'home' })
+          router.push({ name: 'discover' })
         } else {
           store.toggleMenu()
         }

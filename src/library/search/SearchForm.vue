@@ -38,7 +38,7 @@
       const clearSearch = () => {
         // Only act if we are currently on the search route
         if (route.name === 'search') {
-          router.replace({ name: 'home' }) // or whatever your base route is
+          router.replace({ name: 'discover' }) // or whatever your base route is
         }
       }
 

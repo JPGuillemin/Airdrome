@@ -6,8 +6,8 @@
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{name: 'home'}">
-      <Icon icon="discover" class="" /> Discover
+    <router-link class="nav-link" :to="{name: 'discover'}">
+      <Icon icon="discover" class="" /> Cockpit
     </router-link>
 
     <router-link class="nav-link" :to="{name: 'queue'}">

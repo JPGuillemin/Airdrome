@@ -33,10 +33,10 @@
 
       const items = [
         {
-          name: 'home',
+          name: 'discover',
           title: 'Discover',
           icon: 'discover',
-          to: { name: 'home' },
+          to: { name: 'discover' },
         },
         {
           name: 'queue',

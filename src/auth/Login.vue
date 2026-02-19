@@ -47,7 +47,7 @@
   export default defineComponent({
     name: 'Login',
     props: {
-      returnTo: { type: String, default: '/home' }
+      returnTo: { type: String, default: '/discover' }
     },
     setup(props) {
       const store = useMainStore()

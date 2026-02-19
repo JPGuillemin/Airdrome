@@ -24,7 +24,7 @@ export function setupRouter(auth: AuthService) {
     routes: [
       {
         path: '/',
-        name: 'home',
+        name: 'discover',
         component: Discover,
         meta: {
           keepAlive: true
@@ -154,7 +154,7 @@ export function setupRouter(auth: AuthService) {
 
     // Native scroll restoration logic
     scrollBehavior(to, from, savedPosition) {
-      const heavyRoutes = ['home', 'albums', 'artists', 'genre']
+      const heavyRoutes = ['discover', 'albums', 'artists', 'genre']
       if (savedPosition) {
         return new Promise(resolve => {
           nextTick().then(() => {
