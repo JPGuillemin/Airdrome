@@ -5,7 +5,7 @@
       <div class="d-flex align-items-center">
         <button
           class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
-          @click="store.showMenu"
+          @click="handleLogoClick"
         >
           <img width="32" height="32" src="@/shared/assets/logo.svg">
         </button>
@@ -91,7 +91,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount } from 'vue'
+  import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount, computed } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
@@ -112,14 +112,22 @@
       const store = useMainStore()
       const auth = useAuth()
       const cacheStore = useCacheStore()
-
       const router = useRouter()
       const route = useRoute()
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const { proxy } = getCurrentInstance()!
+
       const api = proxy!.$api as {
         scan(): Promise<void>
         getScanStatus(): Promise<boolean>
+      }
+
+      function handleLogoClick() {
+        if (window.innerWidth >= 768) {
+          router.push({ name: 'home' })
+        } else {
+          store.toggleMenu()
+        }
       }
 
       const colors = inject('themeColors') as { name: string; value: string }[]
@@ -249,6 +257,7 @@
         store,
         auth,
         colors,
+        handleLogoClick,
         currentColor,
         setTheme,
         streamQuality,

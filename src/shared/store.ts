@@ -28,6 +28,9 @@ export const useMainStore = defineStore('main', {
     hideMenu() {
       this.menuVisible = false
     },
+    toggleMenu() {
+      this.menuVisible = !this.menuVisible
+    },
     toggleArtistAlbumSortOrder() {
       this.artistAlbumSortOrder = this.artistAlbumSortOrder === 'asc' ? 'desc' : 'asc'
     }
