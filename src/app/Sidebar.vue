@@ -4,12 +4,14 @@
       <SidebarNav />
     </div>
     <div
-      class="offcanvas offcanvas-start d-md-none"
-      tabindex="-1"
-      :class="store.menuVisible ? 'showing': 'hiding'"
+      v-if="store.menuVisible"
+      class="offcanvas-wrapper d-md-none"
       @click="store.hideMenu"
     >
-      <div class="offcanvas-body p-0">
+      <div
+        class="offcanvas-panel"
+        @click.stop
+      >
         <SidebarNav />
       </div>
     </div>
@@ -17,17 +19,27 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, watch } from 'vue'
   import SidebarNav from './SidebarNav.vue'
   import { useMainStore } from '@/shared/store'
+  import { useRoute } from 'vue-router'
 
   export default defineComponent({
     components: {
       SidebarNav,
     },
     setup() {
+      const store = useMainStore()
+      const route = useRoute()
+
+      watch(
+        () => route.fullPath,
+        () => {
+          store.hideMenu()
+        }
+      )
       return {
-        store: useMainStore(),
+        store,
       }
     },
   })
@@ -72,14 +84,24 @@
     border-radius: 4px;
   }
 
-  /* Offcanvas scroll for mobile */
-  .offcanvas-body {
-    overflow-y: auto;
-    max-height: 100vh;
-  }
-
   .offcanvas {
     z-index: 600;
+  }
+
+  .offcanvas-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    background: rgba(0, 0, 0, 0.6); /* backdrop */
+    backdrop-filter: blur(6px);
+  }
+
+  .offcanvas-panel {
+    width: 50%;
+    max-width: 280px;
+    height: 100%;
+    background: var(--theme-elevation-0);
+    overflow-y: auto;
   }
 
   @media (max-width: 768px) {
