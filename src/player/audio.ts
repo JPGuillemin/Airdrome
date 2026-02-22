@@ -172,7 +172,12 @@ export class AudioController {
     audio.onplay = () => this.onplay()
     audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
 
-    this.setupDurationListener(audio)
+    audio.addEventListener('loadedmetadata', () => {
+      const d = audio.duration
+      if (Number.isFinite(d) && d > 0) {
+        this.ondurationchange(d)
+      }
+    })
 
     if (audio.readyState < 1) {
       try { audio.load() } catch {}
@@ -205,17 +210,6 @@ export class AudioController {
     pipeline.audio.ondurationchange = null
 
     setTimeout(() => pipeline.dispose(), 500)
-  }
-
-  private setupDurationListener(audio: HTMLAudioElement) {
-    const update = () => {
-      const d = audio.duration
-      if (Number.isFinite(d) && d > 0) {
-        this.ondurationchange(d)
-      }
-    }
-    audio.addEventListener('loadedmetadata', update)
-    audio.addEventListener('canplay', update)
   }
 
   private async fadeIn(duration = 0) {

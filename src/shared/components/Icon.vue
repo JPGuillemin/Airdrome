@@ -30,7 +30,7 @@
   import iconGear from '@iconify-icons/bi/gear-fill'
   import iconGenre from '@iconify-icons/bi/palette'
   import iconGoBack from '@iconify-icons/bi/arrow-left-circle'
-  import iconHeart from '@iconify-icons/bi/hearts'
+  import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
   import iconHigh from '@iconify-icons/bi/headphones'
   import iconDiscover from '@iconify-icons/bi/speedometer'

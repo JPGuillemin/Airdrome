@@ -463,17 +463,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  watch(
-    () => playerStore.currentTime,
-    (t) => {
-      if (!playerStore.track || !playerStore.isPlaying) return
+  //watch(
+    //() => playerStore.currentTime,
+    //(t) => {
+      //if (!playerStore.track || !playerStore.isPlaying) return
 
-      const remaining = playerStore.duration - t
-      if (remaining <= 0.15 && playerStore.hasNext) {
-        playerStore.autoNext()
-      }
-    }
-  )
+      //const remaining = playerStore.duration - t
+      //if (remaining <= 0.15 && playerStore.hasNext) {
+        //playerStore.autoNext()
+      //}
+    //}
+  //)
 
   watch(
     () => playerStore.currentTime,
