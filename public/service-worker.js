@@ -1,6 +1,5 @@
-// service-worker.optimized.js
 const APP_BASE = '/'
-const SW_VERSION = 'v1.2.0'
+const SW_VERSION = 'v1.2.1'
 const SHELL_CACHE = `shell-cache-${SW_VERSION}`
 const RUNTIME_CACHE = `runtime-cache-${SW_VERSION}`
 const IMAGE_CACHE = `image-cache-${SW_VERSION}`
@@ -71,8 +70,11 @@ self.addEventListener('fetch', event => {
 
   if (request.method !== 'GET' || !isSameOrigin(url.href) || !url.pathname.startsWith(APP_BASE)) return
 
-  // Never cache streams/downloads
-  if (isStreamRequest(url.href)) return
+  // Audio stream/download → cache-first (preserves range requests)
+  if (isStreamRequest(url.href)) {
+    event.respondWith(cacheFirstStream(request))
+    return
+  }
 
   // SPA navigation: cache-first shell
   if (request.mode === 'navigate') {
@@ -125,6 +127,31 @@ async function handleNavigation(request, event) {
     return networkResponse
   } catch {
     return new Response('Offline', { status: 503, statusText: 'Offline' })
+  }
+}
+
+async function cacheFirstStream(request) {
+  const cache = await caches.open(RUNTIME_CACHE)
+
+  // IMPORTANT: match ignoring Range header differences
+  const cached = await cache.match(request, { ignoreVary: true })
+
+  if (cached) {
+    return cached
+  }
+
+  try {
+    const response = await fetch(request)
+
+    // Only cache full responses (not partial 206)
+    if (response && response.status === 200) {
+      cache.put(request, response.clone()).catch(() => {})
+    }
+
+    return response
+  } catch {
+    if (cached) return cached
+    return new Response('Offline', { status: 503 })
   }
 }
 
