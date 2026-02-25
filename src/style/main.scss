@@ -213,6 +213,10 @@ a.active {
   box-shadow: none !important;
 }
 
+img {
+  color-scheme: only light;
+}
+
 @import './nav';
 @import './custom';
 @import './scroll';
