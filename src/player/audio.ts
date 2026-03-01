@@ -1,5 +1,4 @@
 import { sleep } from '@/shared/utils'
-import { useCacheStore } from '@/player/cache'
 
 export enum ReplayGainMode {
   None,
@@ -30,8 +29,6 @@ export class AudioController {
   private buffer: HTMLAudioElement | null = null
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
-  private cachingQueue: Promise<void> = Promise.resolve()
-
   private context = new AudioContext()
   private pipeline: AudioPipeline = createPipeline(this.context, {})
 
@@ -57,28 +54,12 @@ export class AudioController {
     return this.pipeline.audio.duration
   }
 
-  async setCache(url: string) {
-    this.cachingQueue = this.cachingQueue
-      .catch(() => {})
-      .then(async() => {
-        try {
-          const albumCache = useCacheStore()
-          await albumCache.cacheTrack(url)
-          window.dispatchEvent(new CustomEvent('audioCached', { detail: url }))
-        } catch (err) {
-          console.warn('setCache(): failed', url, err)
-        }
-      })
-    return this.cachingQueue
-  }
-
   async setBuffer(url: string) {
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
     this.buffer.src = url
     try { this.buffer.load() } catch {}
-    this.setCache(url)
   }
 
   setVolume(value: number) {

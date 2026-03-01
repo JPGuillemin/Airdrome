@@ -6,6 +6,7 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
+import { useCacheStore } from '@/player/cache'
 
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -64,6 +65,10 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
+    async cacheTrack(url: string) {
+      const cacheStore = useCacheStore()
+      cacheStore.cacheTrack(url!)
+    },
     async playNow(tracks: Track[]) {
       this.setShuffle(false)
       await this.playTrackList(tracks, 0)
@@ -303,6 +308,12 @@ export const usePlayerStore = defineStore('player', {
       this.queueIndex = index
       this.scrobbled = false
       const track = this.queue[index]
+      if (track?.url) {
+        this.cacheTrack(track.url)
+      }
+      if (this.nextTrack?.url) {
+        this.cacheTrack(this.nextTrack.url)
+      }
       this.duration = track.duration
       if (mediaSession) {
         mediaSession.metadata = new MediaMetadata({
@@ -463,17 +474,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  watch(
-    () => playerStore.currentTime,
-    (t) => {
-      if (!playerStore.track || !playerStore.isPlaying) return
+  //watch(
+    //() => playerStore.currentTime,
+    //(t) => {
+      //if (!playerStore.track || !playerStore.isPlaying) return
 
-      const remaining = playerStore.duration - t
-      if (remaining <= 0.15 && playerStore.hasNext) {
-        playerStore.autoNext()
-      }
-    }
-  )
+      //const remaining = playerStore.duration - t
+      //if (remaining <= 0.15 && playerStore.hasNext) {
+        //playerStore.autoNext()
+      //}
+    //}
+  //)
 
   watch(
     () => playerStore.currentTime,
@@ -520,8 +531,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (
         systemInterrupted &&
         !playerStore.userPaused &&
-        !playerStore.isPlaying &&
-        document.visibilityState === 'visible'
+        !playerStore.isPlaying // && document.visibilityState === 'visible'
       ) {
         try {
           await playerStore.play()

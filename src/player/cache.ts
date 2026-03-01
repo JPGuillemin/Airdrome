@@ -23,7 +23,7 @@ type MetaInfo = {
 }
 
 // ---------------------------------------------------------------------------
-// IndexedDB helpers (TYPE-SAFE)
+// IndexedDB helpers
 // ---------------------------------------------------------------------------
 
 function openMetaDB(): Promise<IDBDatabase> {
@@ -75,11 +75,12 @@ async function getMetaInfo(): Promise<MetaInfo> {
   return new Promise(resolve => {
     const tx = db.transaction(META_INFO_STORE_NAME, 'readonly')
     const store = tx.objectStore(META_INFO_STORE_NAME)
-
     const req = store.get('meta')
+
     req.onsuccess = () => {
       resolve(req.result || { id: 'meta', totalBytes: 0, nextOrder: 1 })
     }
+
     req.onerror = () => {
       resolve({ id: 'meta', totalBytes: 0, nextOrder: 1 })
     }
@@ -102,6 +103,7 @@ async function touchMeta(url: string) {
 
 async function putMeta(url: string, size: number) {
   const db = await openMetaDB()
+
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
     const entries = tx.objectStore(META_STORE_NAME)
@@ -153,7 +155,7 @@ async function deleteMeta(url: string) {
 }
 
 // ---------------------------------------------------------------------------
-// LRU eviction (TYPE-SAFE)
+// LRU eviction
 // ---------------------------------------------------------------------------
 
 async function enforceCacheLimitLRU() {
@@ -172,7 +174,8 @@ async function enforceCacheLimitLRU() {
     const metaStore = tx.objectStore(META_INFO_STORE_NAME)
 
     const cursorReq = index.openCursor()
-    cursorReq.onsuccess = async () => {
+
+    cursorReq.onsuccess = async() => {
       let cursor = cursorReq.result as IDBCursorWithValue | null
 
       while (cursor && total > MAX_CACHE_SIZE_BYTES) {
@@ -188,9 +191,8 @@ async function enforceCacheLimitLRU() {
 
         cursor = await new Promise<IDBCursorWithValue | null>(res => {
           cursor!.continue()
-          cursor!.request.onsuccess = () => {
+          cursor!.request.onsuccess = () =>
             res(cursor!.request.result as IDBCursorWithValue | null)
-          }
           cursor!.request.onerror = () => res(null)
         })
       }
@@ -215,15 +217,75 @@ async function enforceCacheLimitLRU() {
 }
 
 // ---------------------------------------------------------------------------
-// Store
+// Store (FIFO queue enabled)
 // ---------------------------------------------------------------------------
 
 export const useCacheStore = defineStore('albumCache', {
   state: () => ({
     activeCaching: new Map<string, { cancelled: boolean }>(),
+
+    queue: [] as string[],
+    queuedSet: new Set<string>(),
+    processingQueue: false,
   }),
 
   actions: {
+    // --------------------------------------------------
+    // FIFO worker
+    // --------------------------------------------------
+
+    async processQueue() {
+      if (this.processingQueue) return
+      this.processingQueue = true
+
+      const cache = await caches.open(CACHE_NAME)
+
+      while (this.queue.length > 0) {
+        const url = this.queue.shift()!
+        this.queuedSet.delete(url)
+
+        try {
+          if (await cache.match(url)) {
+            await touchMeta(url)
+            continue
+          }
+
+          const res = await fetch(url, { mode: 'cors', cache: 'force-cache' })
+          if (!res.ok) continue
+
+          const clone = res.clone()
+          const blob = await res.blob()
+
+          await cache.put(url, clone)
+          await putMeta(url, blob.size)
+          await enforceCacheLimitLRU()
+
+          window.dispatchEvent(
+            new CustomEvent('audioCached', { detail: url }),
+          )
+        } catch (err) {
+          console.error('Cache error:', err)
+        }
+      }
+
+      this.processingQueue = false
+    },
+
+    // --------------------------------------------------
+    // Public enqueue method
+    // --------------------------------------------------
+
+    async cacheTrack(url: string) {
+      if (!url || this.queuedSet.has(url)) return
+
+      this.queue.push(url)
+      this.queuedSet.add(url)
+
+      if (!this.processingQueue) {
+        this.processQueue()
+      }
+    },
+
     async hasTrack(url: string) {
       if (!url) return false
       const cache = await caches.open(CACHE_NAME)
@@ -232,34 +294,14 @@ export const useCacheStore = defineStore('albumCache', {
       return !!match
     },
 
-    async cacheTrack(url: string) {
-      if (!url) return
-      const cache = await caches.open(CACHE_NAME)
-
-      if (await cache.match(url)) {
-        await touchMeta(url)
-        return
-      }
-
-      const res = await fetch(url, { mode: 'cors', cache: 'force-cache' })
-      if (!res.ok) return
-
-      const clone = res.clone()
-      const blob = await res.blob()
-
-      await cache.put(url, clone)
-      await putMeta(url, blob.size)
-      await enforceCacheLimitLRU()
-
-      window.dispatchEvent(new CustomEvent('audioCached', { detail: url }))
-    },
-
     async deleteTrack(url: string) {
       if (!url) return
       const cache = await caches.open(CACHE_NAME)
       if (await cache.delete(url)) {
         await deleteMeta(url)
-        window.dispatchEvent(new CustomEvent('audioCacheDeleted', { detail: url }))
+        window.dispatchEvent(
+          new CustomEvent('audioCacheDeleted', { detail: url }),
+        )
       }
     },
 
@@ -277,29 +319,12 @@ export const useCacheStore = defineStore('albumCache', {
       this.activeCaching.set(key, { cancelled: false })
       const session = this.activeCaching.get(key)!
 
-      const cache = await caches.open(CACHE_NAME)
       const urls = album.tracks.map(t => t.url).filter(Boolean) as string[]
 
       for (const url of urls) {
         if (session.cancelled) return
-
-        if (await cache.match(url)) {
-          await touchMeta(url)
-          continue
-        }
-
-        const res = await fetch(url, { mode: 'cors' })
-        if (!res.ok) continue
-
-        const clone = res.clone()
-        const blob = await res.blob()
-
-        await cache.put(url, clone)
-        await putMeta(url, blob.size)
-        await enforceCacheLimitLRU()
-
-        window.dispatchEvent(new CustomEvent('audioCached', { detail: url }))
-        await sleep(300)
+        await this.cacheTrack(url)
+        await sleep(200)
       }
     },
 
@@ -309,15 +334,18 @@ export const useCacheStore = defineStore('albumCache', {
       const key = album.id || album.name
       if (key && this.activeCaching.has(key)) {
         this.activeCaching.get(key)!.cancelled = true
-        await sleep(2000)
+        await sleep(1000)
       }
 
       const cache = await caches.open(CACHE_NAME)
+
       for (const t of album.tracks) {
         if (!t.url) continue
         if (await cache.delete(t.url)) {
           await deleteMeta(t.url)
-          window.dispatchEvent(new CustomEvent('audioCacheDeleted', { detail: t.url }))
+          window.dispatchEvent(
+            new CustomEvent('audioCacheDeleted', { detail: t.url }),
+          )
         }
       }
     },
