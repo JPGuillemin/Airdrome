@@ -173,7 +173,13 @@ export class AudioController {
     }
 
     if (options.nextUrl) {
-      this.setBuffer(options.nextUrl)
+      const nextUrl = options.nextUrl
+
+      setTimeout(() => {
+        if (token === this.changeToken) {
+          this.setBuffer(nextUrl)
+        }
+      }, 5000)
     }
   }
 

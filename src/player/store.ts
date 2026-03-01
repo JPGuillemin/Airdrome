@@ -58,7 +58,7 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
-    nextTrack(offset: number): Track | null {
+    trackOffset(offset: number): Track | null {
       if (!this.queue || this.queue.length === 0 || this.queueIndex < 0) return null
 
       const len = this.queue.length
@@ -83,7 +83,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
       this.setPlaying()
@@ -104,7 +104,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
       this.setPlaying()
@@ -132,7 +132,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
       this.setPlaying()
@@ -142,7 +142,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: false
       })
       this.setPlaying()
@@ -152,7 +152,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
       this.setPlaying()
@@ -174,7 +174,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true,
         paused: true
       })
@@ -191,7 +191,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.nextTrack(1)?.url,
+        nextUrl: this.trackOffset(1)?.url,
         fade: true,
         paused: true
       })
@@ -230,10 +230,14 @@ export const usePlayerStore = defineStore('player', {
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
     },
     setNextInQueue(tracks: Track[]) {
-      if (tracks.length === 1 && tracks[0].id === this.nextTrack(1)?.id) {
+      if (tracks.length === 1 && tracks[0].id === this.trackOffset(1)?.id) {
         return
       }
-      this.queue?.splice(this.queueIndex + 1, 0, ...this.shuffle ? shuffled(tracks) : tracks)
+      this.queue?.splice(
+        this.queueIndex + 1,
+        0,
+        ...(this.shuffle ? shuffled(tracks) : tracks)
+      )
     },
     removeFromQueue(index: number) {
       this.queue?.splice(index, 1)
@@ -324,10 +328,15 @@ export const usePlayerStore = defineStore('player', {
       }
       this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
       for (let i = 1; i <= 2; i++) {
-        const next = this.nextTrack(i)
-        if (next?.url) {
-          this.cacheTrack(next.url)
+        const trackToCache = this.trackOffset(i)
+        if (trackToCache?.url) {
+          this.cacheTrack(trackToCache.url)
         }
+      }
+      for (let i = 0; i <= 2; i++) {
+        const next = this.trackOffset(i)
+        if (!next?.url) continue
+        this.cacheTrack(next.url)
       }
     },
   },
@@ -434,7 +443,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     audio.loadTrack({
       url: playerStore.track!.url,
       replayGain: playerStore.track!.replayGain,
-      nextUrl: playerStore.nextTrack(1)?.url,
+      nextUrl: playerStore.trackOffset(1)?.url,
       paused: true
     })
   }
@@ -498,7 +507,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   )
 
   watch(
-    () => playerStore.currentTime / playerStore.duration,
+    () => playerStore.duration
+      ? playerStore.currentTime / playerStore.duration
+      : 0,
     (progress) => {
       if (!playerStore.scrobbled &&
           progress > 0.7 &&
