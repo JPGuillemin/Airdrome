@@ -125,6 +125,7 @@ export class AudioController {
 
     if (!this.buffer || this.buffer.src !== options.url) {
       this.setBuffer(options.url)
+      console.info('setBuffer(1):', options.url)
     }
 
     const nextPipeline = createPipeline(this.context, {
@@ -178,8 +179,9 @@ export class AudioController {
       setTimeout(() => {
         if (token === this.changeToken) {
           this.setBuffer(nextUrl)
+          console.info('setBuffer(2):', nextUrl)
         }
-      }, 5000)
+      }, 10000)
     }
   }
 

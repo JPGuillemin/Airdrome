@@ -511,15 +511,6 @@ export class API {
     }
   }
 
-  async updateNowPlaying(id: string): Promise<void> {
-    try {
-      await this.fetch('rest/scrobble', { id, submission: false })
-    } catch (err) {
-      if (err instanceof OfflineError) return
-      throw err
-    }
-  }
-
   private normalizeTrack(item: any): Track {
     const replayGain =
       Number.isFinite(item.replayGain?.trackGain) &&

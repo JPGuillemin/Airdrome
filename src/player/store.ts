@@ -313,7 +313,6 @@ export const usePlayerStore = defineStore('player', {
       this.queueIndex = index
       if (!this.track) return
       this.scrobbled = false
-      this.cacheTrack(this.track.url!)
       this.duration = this.track.duration
       if (mediaSession) {
         mediaSession.metadata = new MediaMetadata({
@@ -327,17 +326,6 @@ export const usePlayerStore = defineStore('player', {
         })
       }
       this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
-      for (let i = 1; i <= 2; i++) {
-        const trackToCache = this.trackOffset(i)
-        if (trackToCache?.url) {
-          this.cacheTrack(trackToCache.url)
-        }
-      }
-      for (let i = 0; i <= 2; i++) {
-        const next = this.trackOffset(i)
-        if (!next?.url) continue
-        this.cacheTrack(next.url)
-      }
     },
   },
 })
@@ -512,12 +500,20 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       : 0,
     (progress) => {
       if (!playerStore.scrobbled &&
-          progress > 0.7 &&
+          progress > 0.5 &&
           playerStore.track &&
           playerStore.isPlaying
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
+        console.info('api.scrobble:', playerStore.track.url!)
+        playerStore.cacheTrack(playerStore.track.url!)
+        console.info('cacheTrack:', playerStore.track.url!)
+        //for (let i = 0; i <= 2; i++) {
+          //const next = playerStore.trackOffset(i)
+          //if (!next?.url) continue
+          //playerStore.cacheTrack(next.url)
+        //}
       }
     }
   )
@@ -555,23 +551,4 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
     }, 2000)
   }
-
-  watch(
-    () => [playerStore.duration],
-    () => {
-      if (!playerStore.track) return
-
-      playerStore.setMediaSessionPosition()
-
-      playerStore.api.updateNowPlaying(playerStore.track.id)
-      playerStore.api.savePlayQueue(
-        playerStore.queue!,
-        playerStore.track,
-        Math.trunc(playerStore.currentTime)
-      )
-        .catch(err => {
-          console.info('savePlayQueue aborted:', err)
-        })
-    }
-  )
 }
