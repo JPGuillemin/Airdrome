@@ -46,6 +46,20 @@ export class AudioController {
     return this.pipeline.audio
   }
 
+  get playbackStatus(): 'playing' | 'paused' | 'suspended' {
+    const audio = this.pipeline.audio
+
+    if (this.context.state === 'suspended') {
+      return 'suspended'
+    }
+
+    if (!audio.paused && !audio.ended) {
+      return 'playing'
+    }
+
+    return 'paused'
+  }
+
   currentTime() {
     return this.pipeline.audio.currentTime
   }

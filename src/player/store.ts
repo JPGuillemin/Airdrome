@@ -115,11 +115,12 @@ export const usePlayerStore = defineStore('player', {
       this.setPlaying()
     },
     async pause() {
+      this.userPaused = true
       await audio.pause()
       this.setPaused()
     },
     async playPause() {
-      if (this.isPlaying) {
+      if (audio.playbackStatus === "playing") {
         this.userPaused = true
         return this.pause()
       } else {
@@ -332,8 +333,6 @@ export const usePlayerStore = defineStore('player', {
 
 export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>) {
 
-  let systemInterrupted = false
-
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
   }
@@ -341,12 +340,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.ondurationchange = (value: number) => {
     playerStore.duration = value
   }
-
-  //document.addEventListener('visibilitychange', () => {
-    //if (!playerStore.userPaused && !playerStore.isPlaying) {
-      //playerStore.play()
-    //}
-  //})
 
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
@@ -395,17 +388,10 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   }
 
   audio.onpause = () => {
-    const wasPlaying = playerStore.isPlaying
-
-    if (wasPlaying && !playerStore.userPaused) {
-      systemInterrupted = true
-    }
-
     playerStore.setPaused()
   }
 
   audio.onplay = () => {
-    systemInterrupted = false
     playerStore.setPlaying()
   }
 
@@ -442,12 +428,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
     mediaSession.setActionHandler('pause', () => {
       playerStore.pause()
-    })
-    mediaSession.setActionHandler('hangup' as any, () => {
-      console.info('hangup')
-      if (!playerStore.userPaused) {
-        playerStore.play()
-      }
     })
     mediaSession.setActionHandler('nexttrack', () => {
       playerStore.next()
@@ -502,18 +482,13 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (!playerStore.scrobbled &&
           progress > 0.5 &&
           playerStore.track &&
-          playerStore.isPlaying
+          audio.playbackStatus === "playing"
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
         console.info('api.scrobble:', playerStore.track.url!)
         playerStore.cacheTrack(playerStore.track.url!)
         console.info('cacheTrack:', playerStore.track.url!)
-        //for (let i = 0; i <= 2; i++) {
-          //const next = playerStore.trackOffset(i)
-          //if (!next?.url) continue
-          //playerStore.cacheTrack(next.url)
-        //}
       }
     }
   )
@@ -529,6 +504,13 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       .catch(err => {
         console.info('savePlayQueue aborted:', err)
       })
+    if (mediaSession) {
+      if (audio.playbackStatus === "playing") {
+        mediaSession.playbackState = 'playing'
+      } else {
+        mediaSession.playbackState = 'paused'
+      }
+    }
   }, 10000)
 
   const isMobile =
@@ -537,18 +519,32 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   if (isMobile) {
     setInterval(async() => {
-      if (
-        systemInterrupted &&
-        !playerStore.userPaused &&
-        !playerStore.isPlaying // && document.visibilityState === 'visible'
-      ) {
+      if (!playerStore.userPaused && audio.playbackStatus === "suspended") {
         try {
           await playerStore.play()
-          systemInterrupted = false
         } catch {
           // still blocked — retry next tick
         }
       }
     }, 2000)
   }
+
+  watch(
+    () => [playerStore.duration],
+    () => {
+      if (!playerStore.track) return
+
+      playerStore.setMediaSessionPosition()
+
+      playerStore.api.scrobble(playerStore.track.id)
+      playerStore.api.savePlayQueue(
+        playerStore.queue!,
+        playerStore.track,
+        Math.trunc(playerStore.currentTime)
+      )
+        .catch(err => {
+          console.info('savePlayQueue aborted:', err)
+        })
+    }
+  )
 }
