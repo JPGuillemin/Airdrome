@@ -63,15 +63,26 @@ self.addEventListener('fetch', event => {
   const { request } = event
 
   if (request.method !== 'GET') return
-  if (!isSameOrigin(request.url)) return
 
   const url = new URL(request.url)
 
-  if (isStreamRequest(request.url)) {
-    event.respondWith(cacheFirstStream(request))
-    return
+  // --------------------------------------------------
+  // NEVER touch range requests (audio seeking)
+  // --------------------------------------------------
+  if (request.headers.has('range')) {
+    return // let browser handle natively
   }
 
+  // --------------------------------------------------
+  // NEVER touch audio stream endpoints
+  // --------------------------------------------------
+  if (isStreamRequest(request.url)) {
+    return // critical for background playback stability
+  }
+
+  // --------------------------------------------------
+  // Images (safe to cache)
+  // --------------------------------------------------
   if (
     request.destination === 'image' ||
     /\.(png|jpe?g|webp|gif|svg)$/.test(url.pathname)
@@ -80,11 +91,17 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  // --------------------------------------------------
+  // API calls (lightweight network-first)
+  // --------------------------------------------------
   if (isSubsonicApi(request.url)) {
-    event.respondWith(runtimeCache(request))
+    event.respondWith(networkFirst(request))
     return
   }
 
+  // --------------------------------------------------
+  // Everything else
+  // --------------------------------------------------
   event.respondWith(networkFirst(request))
 })
 
@@ -97,26 +114,16 @@ async function networkFirst(request: Request) {
 
   try {
     const response = await fetch(request)
-    if (response.status === 200 && response.type === 'basic') {
+
+    if (response.ok && response.type === 'basic') {
       await cache.put(request, response.clone())
     }
+
     return response
   } catch {
     const cached = await cache.match(request)
     return cached ?? Response.error()
   }
-}
-
-async function cacheFirstStream(request: Request) {
-  const cache = await caches.open(RUNTIME_CACHE)
-  const cached = await cache.match(request, { ignoreVary: true })
-  if (cached) return cached
-
-  const response = await fetch(request)
-  if (response.status === 200) {
-    await cache.put(request, response.clone())
-  }
-  return response
 }
 
 async function cacheFirstImage(request: Request) {
@@ -151,17 +158,7 @@ async function runtimeCache(request: Request) {
     const response = await fetch(request)
 
     if (response.status === 200 && response.type === 'basic') {
-      const headers = new Headers(response.headers)
-      headers.set('sw-cache-date', Date.now().toString())
-
-      const body = await response.clone().blob()
-      const cachedResp = new Response(body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers
-      })
-
-      await cache.put(request, cachedResp)
+      await cache.put(request, response.clone())
     }
 
     return response
