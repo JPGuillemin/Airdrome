@@ -225,11 +225,7 @@ export const usePlayerStore = defineStore('player', {
       if (tracks.length === 1 && tracks[0].id === this.trackOffset(1)?.id) {
         return
       }
-      this.queue?.splice(
-        this.queueIndex + 1,
-        0,
-        ...(this.shuffle ? shuffled(tracks) : tracks)
-      )
+      this.queue?.splice(this.queueIndex + 1, 0, ...(this.shuffle ? shuffled(tracks) : tracks))
     },
     removeFromQueue(index: number) {
       this.queue?.splice(index, 1)
@@ -279,7 +275,14 @@ export const usePlayerStore = defineStore('player', {
         return
       }
       index = Math.max(0, index)
-      index = index < this.queue.length ? index : 0
+      if (index >= this.queue.length) {
+        if (this.repeat) {
+          index = 0
+        } else {
+          this.queueIndex = this.queue.length - 1
+          return
+        }
+      }
       this.queueIndex = index
       if (!this.track) return
       this.scrobbled = false
@@ -354,21 +357,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   })
 
   audio.onended = async () => {
-    const { hasNext, repeat } = playerStore
-
-    if (hasNext || repeat) {
-      try {
-        await playerStore.autoNext()
-      } catch (err) {
-        console.info('[Offline or load failure]')
-        playerStore.resetQueue()
-      }
-      return
-    }
-
+    await playerStore.autoNext()
     const track = playerStore.track
     if (!track?.url) return
-
     try {
       const radioStore = useRadioStore()
       await radioStore.continueFromTrack(track)
@@ -453,17 +444,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  // watch(
-    // () => playerStore.currentTime,
-    // (t) => {
-      // if (!playerStore.track || !playerStore.isPlaying) return
+  watch(
+    () => playerStore.currentTime,
+    (t) => {
+      if (!playerStore.track || !playerStore.isPlaying) return
 
-      // const remaining = playerStore.duration - t
-      // if (remaining <= 0.15 && playerStore.hasNext) {
-        // playerStore.autoNext()
-      // }
-    // }
-  // )
+      const remaining = playerStore.duration - t
+      if (remaining <= 0.15 && playerStore.hasNext) {
+        playerStore.autoNext()
+      }
+    }
+  )
 
   watch(
     () => playerStore.currentTime,
@@ -479,10 +470,12 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       ? playerStore.currentTime / playerStore.duration
       : 0,
     (progress) => {
-      if (!playerStore.scrobbled &&
-          progress > 0.5 &&
-          playerStore.track &&
-          audio.playbackStatus === 'playing'
+      if (
+        !playerStore.scrobbled &&
+        progress > 0.5 &&
+        playerStore.track &&
+        audio.playbackStatus === 'playing' &&
+        navigator.onLine
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)

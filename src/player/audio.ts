@@ -109,9 +109,9 @@ export class AudioController {
   }
 
   async play() {
-    if (this.context.state === 'suspended') {
-      await this.context.resume()
-    }
+    // if (this.context.state === 'suspended') {
+    await this.context.resume()
+    // }
     await this.pipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
   }
