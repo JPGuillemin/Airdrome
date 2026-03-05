@@ -450,7 +450,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (!playerStore.track || !playerStore.isPlaying) return
 
       const remaining = playerStore.duration - t
-      if (remaining <= 0.15 && playerStore.hasNext) {
+      if (remaining <= 0.25 && playerStore.hasNext) {
         playerStore.autoNext()
       }
     }
@@ -466,22 +466,19 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   )
 
   watch(
-    () => playerStore.duration
-      ? playerStore.currentTime / playerStore.duration
-      : 0,
+    () => playerStore.currentTime / playerStore.duration,
     (progress) => {
       if (
         !playerStore.scrobbled &&
         progress > 0.5 &&
         playerStore.track &&
-        audio.playbackStatus === 'playing' &&
-        navigator.onLine
+        audio.playbackStatus === 'playing'
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
-        console.info('api.scrobble:', playerStore.track.url!)
+        // console.info('api.scrobble:', playerStore.track.url!)
         playerStore.cacheTrack(playerStore.track.url!)
-        console.info('cacheTrack:', playerStore.track.url!)
+        // console.info('cacheTrack:', playerStore.track.url!)
       }
     }
   )
@@ -496,32 +493,26 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     )
       .catch(err => {
         console.info('savePlayQueue aborted:', err)
-      })
-    if (mediaSession) {
-      if (audio.playbackStatus === 'playing') {
-        mediaSession.playbackState = 'playing'
-      } else {
-        mediaSession.playbackState = 'paused'
       }
-    }
+    )
   }, 10000)
 
-  watch(
-    () => [playerStore.duration],
-    () => {
-      if (!playerStore.track) return
+  //watch(
+    //() => [playerStore.duration],
+    //() => {
+      //if (!playerStore.track) return
 
-      playerStore.setMediaSessionPosition()
+      //playerStore.setMediaSessionPosition()
 
-      playerStore.api.scrobble(playerStore.track.id)
-      playerStore.api.savePlayQueue(
-        playerStore.queue!,
-        playerStore.track,
-        Math.trunc(playerStore.currentTime)
-      )
-        .catch(err => {
-          console.info('savePlayQueue aborted:', err)
-        })
-    }
-  )
+      //playerStore.api.scrobble(playerStore.track.id)
+      //playerStore.api.savePlayQueue(
+        //playerStore.queue!,
+        //playerStore.track,
+        //Math.trunc(playerStore.currentTime)
+      //)
+        //.catch(err => {
+          //console.info('savePlayQueue aborted:', err)
+        //})
+    //}
+  //)
 }
