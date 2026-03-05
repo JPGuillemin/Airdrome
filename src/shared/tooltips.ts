@@ -17,8 +17,8 @@ export const longPressTooltip: Directive = {
       tip = new Tooltip(el, {
         trigger: 'manual',
         placement: 'top',
-        container: 'body',      // ← key fix
-        boundary: 'viewport',   // avoid clipping
+        container: 'body',
+        boundary: 'viewport',
       })
 
       tip.show()   // let Bootstrap manage DOM

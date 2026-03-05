@@ -32,7 +32,7 @@ export const usePlayerStore = defineStore('player', {
     shuffle: localStorage.getItem('player.shuffle') === 'true',
     volume: storedVolume,
     scrobbled: false,
-    userPaused: false,
+    wasPaused: true,
   }),
   getters: {
     track(): Track | null {
@@ -86,7 +86,6 @@ export const usePlayerStore = defineStore('player', {
         nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
-      this.setPlaying()
     },
     async playTrackList(tracks: Track[], index?: number) {
       if (index == null) {
@@ -107,24 +106,23 @@ export const usePlayerStore = defineStore('player', {
         nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
-      this.setPlaying()
     },
     async play() {
-      this.userPaused = false
+      if (audio.playbackStatus === 'playing') return
+      this.wasPaused = false
       await audio.play()
-      this.setPlaying()
     },
     async pause() {
-      this.userPaused = true
+      if (audio.playbackStatus === 'paused') return
+      this.wasPaused = true
       await audio.pause()
-      this.setPaused()
     },
     async playPause() {
-      if (audio.playbackStatus === "playing") {
-        this.userPaused = true
+      if (audio.playbackStatus === 'playing') {
+        this.wasPaused = true
         return this.pause()
       } else {
-        this.userPaused = false
+        this.wasPaused = false
         return this.play()
       }
     },
@@ -136,7 +134,6 @@ export const usePlayerStore = defineStore('player', {
         nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
-      this.setPlaying()
     },
     async autoNext() {
       this.setQueueIndex(this.queueIndex + 1)
@@ -146,7 +143,6 @@ export const usePlayerStore = defineStore('player', {
         nextUrl: this.trackOffset(1)?.url,
         fade: false
       })
-      this.setPlaying()
     },
     async previous() {
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
@@ -156,7 +152,6 @@ export const usePlayerStore = defineStore('player', {
         nextUrl: this.trackOffset(1)?.url,
         fade: true
       })
-      this.setPlaying()
     },
     async seek(value: number) {
       await audio.seek(value)
@@ -180,12 +175,10 @@ export const usePlayerStore = defineStore('player', {
         paused: true
       })
       await audio.seek(currentTrackPosition)
-      this.setPaused()
     },
     async resetQueue() {
       if (!this.queue.length || !this.track?.url) {
         this.setQueueIndex(-1)
-        this.setPaused()
         return
       }
       this.setQueueIndex(0)
@@ -196,7 +189,6 @@ export const usePlayerStore = defineStore('player', {
         fade: true,
         paused: true
       })
-      this.setPaused()
     },
     async clearQueue() {
       if (!this.queue) {
@@ -209,7 +201,6 @@ export const usePlayerStore = defineStore('player', {
         this.setQueue([])
         this.setQueueIndex(-1)
         await audio.stop()
-        this.setPaused()
       }
     },
     async setMediaSessionPosition(duration?: number, rate?: number, position?: number) {
@@ -274,28 +265,6 @@ export const usePlayerStore = defineStore('player', {
       this.shuffle = enable
       localStorage.setItem('player.shuffle', String(enable))
     },
-    setPlaying() {
-      if (this.isPlaying) return
-      this.isPlaying = true
-      if (mediaSession) {
-        mediaSession.playbackState = 'playing'
-        this.setMediaSessionPosition(undefined, playRate, undefined)
-        setTimeout(() => {
-          mediaSession.playbackState = 'playing'
-        }, 200)
-      }
-    },
-    setPaused() {
-      if (!this.isPlaying) return
-      this.isPlaying = false
-      if (mediaSession) {
-        this.setMediaSessionPosition(undefined, pauseRate, undefined)
-        mediaSession.playbackState = 'paused'
-        setTimeout(() => {
-          mediaSession.playbackState = 'paused'
-        }, 200)
-      }
-    },
     setQueue(queue: Track[]) {
       this.queue = queue
       this.queueIndex = -1
@@ -332,6 +301,28 @@ export const usePlayerStore = defineStore('player', {
 })
 
 export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>) {
+  const isMobile =
+    matchMedia('(pointer: coarse)').matches &&
+    navigator.maxTouchPoints > 0
+
+  let resumeToken = false
+  function autoResume() {
+    if (!isMobile || playerStore.wasPaused || resumeToken || document.visibilityState !== 'visible') return
+
+    resumeToken = true
+
+    const interval = setInterval(async () => {
+      if (audio.playbackStatus === 'playing') {
+        clearInterval(interval)
+        resumeToken = false
+        return
+      }
+
+      try {
+        await playerStore.play()
+      } catch {}
+    }, 2000)
+  }
 
   audio.ontimeupdate = (value: number) => {
     playerStore.currentTime = value
@@ -387,12 +378,21 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }
   }
 
-  audio.onpause = () => {
-    playerStore.setPaused()
+  audio.onplay = () => {
+    playerStore.isPlaying = true
+    if (mediaSession) mediaSession.playbackState = 'playing'
   }
 
-  audio.onplay = () => {
-    playerStore.setPlaying()
+  audio.onpause = () => {
+    playerStore.isPlaying = false
+    if (mediaSession) mediaSession.playbackState = 'paused'
+    autoResume()
+  }
+
+  audio.onsuspend = () => {
+    playerStore.isPlaying = false
+    if (mediaSession) mediaSession.playbackState = 'paused'
+    autoResume()
   }
 
   audio.onerror = (error: any) => {
@@ -453,17 +453,17 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  //watch(
-    //() => playerStore.currentTime,
-    //(t) => {
-      //if (!playerStore.track || !playerStore.isPlaying) return
+  // watch(
+    // () => playerStore.currentTime,
+    // (t) => {
+      // if (!playerStore.track || !playerStore.isPlaying) return
 
-      //const remaining = playerStore.duration - t
-      //if (remaining <= 0.15 && playerStore.hasNext) {
-        //playerStore.autoNext()
-      //}
-    //}
-  //)
+      // const remaining = playerStore.duration - t
+      // if (remaining <= 0.15 && playerStore.hasNext) {
+        // playerStore.autoNext()
+      // }
+    // }
+  // )
 
   watch(
     () => playerStore.currentTime,
@@ -482,7 +482,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       if (!playerStore.scrobbled &&
           progress > 0.5 &&
           playerStore.track &&
-          audio.playbackStatus === "playing"
+          audio.playbackStatus === 'playing'
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
@@ -505,29 +505,13 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         console.info('savePlayQueue aborted:', err)
       })
     if (mediaSession) {
-      if (audio.playbackStatus === "playing") {
+      if (audio.playbackStatus === 'playing') {
         mediaSession.playbackState = 'playing'
       } else {
         mediaSession.playbackState = 'paused'
       }
     }
   }, 10000)
-
-  const isMobile =
-    matchMedia('(pointer: coarse)').matches &&
-    navigator.maxTouchPoints > 0
-
-  if (isMobile) {
-    setInterval(async() => {
-      if (!playerStore.userPaused && audio.playbackStatus === "suspended") {
-        try {
-          await playerStore.play()
-        } catch {
-          // still blocked — retry next tick
-        }
-      }
-    }, 2000)
-  }
 
   watch(
     () => [playerStore.duration],

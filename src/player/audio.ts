@@ -37,6 +37,7 @@ export class AudioController {
   onpause = () => {}
   onplay = () => {}
   onended = () => {}
+  onsuspend = () => {}
   onerror = (_: MediaError | null) => {}
   onfocus = () => {}
   onblur = () => {}
