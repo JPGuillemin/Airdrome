@@ -41,6 +41,13 @@ export const usePlayerStore = defineStore('player', {
       }
       return null
     },
+    nextTrack(): Track | null {
+      if (this.queue && this.queue.length > 0) {
+        const next = (this.queueIndex + 1) % this.queue.length
+        return this.queue[next]
+      }
+      return null
+    },
     trackId(): string | null {
       return this.track?.id ?? null
     },
@@ -58,14 +65,6 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
-    trackOffset(offset: number): Track | null {
-      if (!this.queue || this.queue.length === 0 || this.queueIndex < 0) return null
-
-      const len = this.queue.length
-      const nextIndex = (this.queueIndex + offset + len) % len
-
-      return this.queue[nextIndex]
-    },
     async cacheTrack(url: string) {
       const cacheStore = useCacheStore()
       cacheStore.cacheTrack(url!)
@@ -83,7 +82,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true
       })
     },
@@ -103,7 +102,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true
       })
     },
@@ -131,7 +130,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true
       })
     },
@@ -140,7 +139,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: false
       })
     },
@@ -149,7 +148,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true
       })
     },
@@ -170,7 +169,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true,
         paused: true
       })
@@ -185,7 +184,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.loadTrack({
         url: this.track!.url,
         replayGain: this.track!.replayGain,
-        nextUrl: this.trackOffset(1)?.url,
+        nextUrl: this.nextTrack?.url,
         fade: true,
         paused: true
       })
@@ -222,7 +221,7 @@ export const usePlayerStore = defineStore('player', {
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
     },
     setNextInQueue(tracks: Track[]) {
-      if (tracks.length === 1 && tracks[0].id === this.trackOffset(1)?.id) {
+      if (tracks.length === 1 && tracks[0].id === this.nextTrack?.id) {
         return
       }
       this.queue?.splice(this.queueIndex + 1, 0, ...(this.shuffle ? shuffled(tracks) : tracks))
@@ -315,7 +314,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     resumeToken = true
 
     const interval = setInterval(async () => {
-      if (audio.playbackStatus === 'playing') {
+      if (playerStore.isPlaying === true) {
         clearInterval(interval)
         resumeToken = false
         return
@@ -333,6 +332,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   audio.ondurationchange = (value: number) => {
     playerStore.duration = value
+    playerStore.setMediaSessionPosition()
   }
 
   window.addEventListener('beforeunload', () => {
@@ -408,7 +408,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     audio.loadTrack({
       url: playerStore.track!.url,
       replayGain: playerStore.track!.replayGain,
-      nextUrl: playerStore.trackOffset(1)?.url,
+      nextUrl: playerStore.nextTrack?.url,
       paused: true
     })
   }
@@ -431,16 +431,16 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
     mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime) {
-        audio.seek(Math.min(details.seekTime, playerStore.duration))
+        playerStore.seek(Math.min(details.seekTime, playerStore.duration))
       }
     })
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
-      audio.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
+      playerStore.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
     })
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
-      audio.seek(Math.max(playerStore.currentTime - offset, 0))
+      playerStore.seek(Math.max(playerStore.currentTime - offset, 0))
     })
   }
 
@@ -472,7 +472,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
         !playerStore.scrobbled &&
         progress > 0.5 &&
         playerStore.track &&
-        audio.playbackStatus === 'playing'
+        playerStore.isPlaying === true
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
@@ -496,23 +496,4 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
     )
   }, 10000)
-
-  //watch(
-    //() => [playerStore.duration],
-    //() => {
-      //if (!playerStore.track) return
-
-      //playerStore.setMediaSessionPosition()
-
-      //playerStore.api.scrobble(playerStore.track.id)
-      //playerStore.api.savePlayQueue(
-        //playerStore.queue!,
-        //playerStore.track,
-        //Math.trunc(playerStore.currentTime)
-      //)
-        //.catch(err => {
-          //console.info('savePlayQueue aborted:', err)
-        //})
-    //}
-  //)
 }
