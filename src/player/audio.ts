@@ -109,9 +109,9 @@ export class AudioController {
   }
 
   async play() {
-    // if (this.context.state === 'suspended') {
-    await this.context.resume()
-    // }
+    if (this.context.state === 'suspended') {
+      await this.context.resume()
+    }
     await this.pipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
   }
@@ -139,7 +139,7 @@ export class AudioController {
     this.replayGain = options.replayGain ?? null
 
     if (!this.buffer || this.buffer.src !== options.url) {
-      await this.setBuffer(options.url)
+      this.setBuffer(options.url)
       console.info('setBuffer(1):', options.url)
     }
 

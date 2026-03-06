@@ -23,7 +23,6 @@ export const usePlayerStore = defineStore('player', {
   state: () => ({
     queue: [] as Track[],
     queueIndex: -1,
-    isPlaying: false,
     duration: 0.0,
     currentTime: 0.0,
     playbackRate: pauseRate,
@@ -31,6 +30,8 @@ export const usePlayerStore = defineStore('player', {
     repeat: localStorage.getItem('player.repeat') === 'true',
     shuffle: localStorage.getItem('player.shuffle') === 'true',
     volume: storedVolume,
+    isPlaying: false,
+    isSeeking: false,
     scrobbled: false,
     wasPaused: true,
   }),
@@ -152,9 +153,10 @@ export const usePlayerStore = defineStore('player', {
         fade: true
       })
     },
-    async seek(value: number) {
-      await audio.seek(value)
-      this.setMediaSessionPosition()
+    async seek(pos: number) {
+      this.isSeeking = true
+      await audio.seek(pos)
+      this.isSeeking = false
     },
     async loadQueue() {
       const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
@@ -251,14 +253,14 @@ export const usePlayerStore = defineStore('player', {
     toggleShuffle() {
       this.setShuffle(!this.shuffle)
     },
-    setVolume(value: number) {
-      audio.setVolume(value)
-      this.volume = value
-      localStorage.setItem('player.volume', String(value))
+    setVolume(vol: number) {
+      audio.setVolume(vol)
+      this.volume = vol
+      localStorage.setItem('player.volume', String(vol))
     },
-    setShuffle(enable: boolean) {
-      this.shuffle = enable
-      localStorage.setItem('player.shuffle', String(enable))
+    setShuffle(bool: boolean) {
+      this.shuffle = bool
+      localStorage.setItem('player.shuffle', String(bool))
     },
     setQueue(queue: Track[]) {
       this.queue = queue
@@ -287,15 +289,23 @@ export const usePlayerStore = defineStore('player', {
       this.scrobbled = false
       this.duration = this.track.duration
       if (mediaSession) {
-        mediaSession.metadata = new MediaMetadata({
-          title: this.track.title,
-          artist: formatArtists(this.track.artists),
-          album: this.track.album,
-          artwork:
-            navigator.onLine && this.track.image
-              ? [{ src: this.track.image, sizes: '300x300' }]
-              : undefined,
-        })
+        const artwork: MediaImage[] = [];
+        if (this.track.image) {
+          artwork.push(
+            { src: this.track.image, sizes: '96x96', type: 'image/png' },
+            { src: this.track.image, sizes: '128x128', type: 'image/png' },
+            { src: this.track.image, sizes: '192x192', type: 'image/png' },
+            { src: this.track.image, sizes: '256x256', type: 'image/png' },
+            { src: this.track.image, sizes: '384x384', type: 'image/png' },
+            { src: this.track.image, sizes: '512x512', type: 'image/png' }
+          );
+        }
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: this.track.title || '',
+          artist: formatArtists(this.track.artists) || '',
+          album: this.track.album || '',
+          artwork
+        });
       }
       this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
     },
@@ -321,17 +331,18 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       }
 
       try {
+        await playerStore.loadQueue()
         await playerStore.play()
       } catch {}
     }, 2000)
   }
 
-  audio.ontimeupdate = (value: number) => {
-    playerStore.currentTime = value
+  audio.ontimeupdate = (time: number) => {
+    playerStore.currentTime = time
   }
 
-  audio.ondurationchange = (value: number) => {
-    playerStore.duration = value
+  audio.ondurationchange = (dur: number) => {
+    playerStore.duration = dur
     playerStore.setMediaSessionPosition()
   }
 
@@ -357,7 +368,18 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   })
 
   audio.onended = async () => {
-    await playerStore.autoNext()
+    const { hasNext, repeat } = playerStore
+
+    if (hasNext || repeat) {
+      try {
+        await playerStore.autoNext()
+      } catch (err) {
+        console.info('[Offline or load failure]')
+        playerStore.resetQueue()
+      }
+      return
+    }
+
     const track = playerStore.track
     if (!track?.url) return
     try {
@@ -444,30 +466,20 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
-  watch(
-    () => playerStore.currentTime,
-    (t) => {
-      if (!playerStore.track || !playerStore.isPlaying) return
-
-      const remaining = playerStore.duration - t
-      if (remaining <= 0.25 && playerStore.hasNext) {
-        playerStore.autoNext()
-      }
+  const throttledMediaSessionUpdate = throttle(async(time: number) => {
+    if (playerStore.track && !playerStore.isSeeking) {
+      await playerStore.setMediaSessionPosition(undefined, undefined, time)
     }
-  )
+  }, 500)
 
   watch(
     () => playerStore.currentTime,
-    throttle(() => {
-      if (playerStore.track) {
-        playerStore.setMediaSessionPosition()
-      }
-    }, 300)
-  )
+    (time) => {
+      // throttled part
+      throttledMediaSessionUpdate(time)
 
-  watch(
-    () => playerStore.currentTime / playerStore.duration,
-    (progress) => {
+      // scrobble logic
+      const progress = playerStore.duration ? time / playerStore.duration : 0
       if (
         !playerStore.scrobbled &&
         progress > 0.5 &&
@@ -476,10 +488,15 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
-        // console.info('api.scrobble:', playerStore.track.url!)
         playerStore.cacheTrack(playerStore.track.url!)
-        // console.info('cacheTrack:', playerStore.track.url!)
       }
+
+      // if (!playerStore.track || !playerStore.isPlaying) return
+      // autoplay next
+      // const remaining = playerStore.duration - time
+      // if (remaining <= 0.25 && playerStore.hasNext) {
+      //   playerStore.autoNext()
+      // }
     }
   )
 
