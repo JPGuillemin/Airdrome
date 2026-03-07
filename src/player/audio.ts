@@ -1,4 +1,5 @@
 import { sleep } from '@/shared/utils'
+import { useCacheStore } from '@/player/cache'
 
 export enum ReplayGainMode {
   None,
@@ -47,20 +48,6 @@ export class AudioController {
     return this.pipeline.audio
   }
 
-  get playbackStatus(): 'playing' | 'paused' | 'suspended' {
-    const audio = this.pipeline.audio
-
-    if (this.context.state === 'suspended') {
-      return 'suspended'
-    }
-
-    if (!audio.paused && !audio.ended) {
-      return 'playing'
-    }
-
-    return 'paused'
-  }
-
   currentTime() {
     return this.pipeline.audio.currentTime
   }
@@ -69,12 +56,18 @@ export class AudioController {
     return this.pipeline.audio.duration
   }
 
+  async cacheTrack(url: string) {
+    const cacheStore = useCacheStore()
+    cacheStore.cacheTrack(url!)
+  }
+
   async setBuffer(url: string) {
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
     this.buffer.src = url
     try { this.buffer.load() } catch {}
+    this.cacheTrack(url)
   }
 
   setVolume(value: number) {
@@ -139,7 +132,7 @@ export class AudioController {
     this.replayGain = options.replayGain ?? null
 
     if (!this.buffer || this.buffer.src !== options.url) {
-      this.setBuffer(options.url)
+      await this.setBuffer(options.url)
       console.info('setBuffer(1):', options.url)
     }
 

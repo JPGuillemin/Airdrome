@@ -6,7 +6,6 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
-import { useCacheStore } from '@/player/cache'
 
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -66,10 +65,6 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
-    async cacheTrack(url: string) {
-      const cacheStore = useCacheStore()
-      cacheStore.cacheTrack(url!)
-    },
     async playNow(tracks: Track[]) {
       this.setShuffle(false)
       await this.playTrackList(tracks, 0)
@@ -108,21 +103,17 @@ export const usePlayerStore = defineStore('player', {
       })
     },
     async play() {
-      if (audio.playbackStatus === 'playing') return
       this.wasPaused = false
       await audio.play()
     },
     async pause() {
-      if (audio.playbackStatus === 'paused') return
       this.wasPaused = true
       await audio.pause()
     },
     async playPause() {
-      if (audio.playbackStatus === 'playing') {
-        this.wasPaused = true
+      if (this.isPlaying === true) {
         return this.pause()
       } else {
-        this.wasPaused = false
         return this.play()
       }
     },
@@ -488,15 +479,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       ) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(playerStore.track.id)
-        playerStore.cacheTrack(playerStore.track.url!)
       }
 
-      // if (!playerStore.track || !playerStore.isPlaying) return
+      if (!playerStore.track || !playerStore.isPlaying) return
       // autoplay next
-      // const remaining = playerStore.duration - time
-      // if (remaining <= 0.25 && playerStore.hasNext) {
-      //   playerStore.autoNext()
-      // }
+      const remaining = playerStore.duration - time
+      if (remaining <= 0.25 && playerStore.hasNext) {
+        playerStore.autoNext()
+      }
     }
   )
 
