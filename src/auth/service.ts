@@ -23,8 +23,9 @@ interface ServerInfo {
 
 export class AuthService {
   public server = ''
-  public serverInfo = null as null | ServerInfo
+  public serverInfo: ServerInfo | null = null
   public username = ''
+
   private salt = ''
   private hash = ''
   private password = ''
@@ -42,21 +43,44 @@ export class AuthService {
     if (!config.serverUrl) {
       localStorage.setItem('server', this.server)
     }
+
     localStorage.setItem('username', this.username)
     localStorage.setItem('salt', this.salt)
     localStorage.setItem('hash', this.hash)
     localStorage.setItem('password', this.password)
   }
 
+  get urlParams() {
+    return toQueryString(
+      pickBy(
+        {
+          u: this.username,
+          s: this.salt,
+          t: this.hash,
+          p: this.password,
+        },
+        (x) => x !== undefined && x !== ''
+      )
+    )
+  }
+
   async autoLogin(): Promise<boolean> {
     if (!this.server || !this.username) {
       return false
     }
+
     try {
-      const auth = { salt: this.salt, hash: this.hash, password: this.password }
+      const auth = {
+        salt: this.salt,
+        hash: this.hash,
+        password: this.password,
+      }
+
       await login(this.server, this.username, auth)
+
       this.authenticated = true
-      this.serverInfo = await fetchServerInfo(this.server)
+      this.serverInfo = await fetchServerInfo(this)
+
       return true
     } catch {
       return false
@@ -66,31 +90,28 @@ export class AuthService {
   async loginWithPassword(server: string, username: string, password: string): Promise<void> {
     const salt = randomString()
     const hash = md5(password + salt)
+
     try {
       await login(server, username, { hash, salt })
+
       this.salt = salt
       this.hash = hash
       this.password = ''
     } catch {
       await login(server, username, { password })
+
       this.salt = ''
       this.hash = ''
       this.password = password
     }
+
     this.server = server
     this.username = username
     this.authenticated = true
-    this.serverInfo = await fetchServerInfo(server)
-    this.saveSession()
-  }
 
-  get urlParams() {
-    return toQueryString(pickBy({
-      u: this.username,
-      s: this.salt,
-      t: this.hash,
-      p: this.password,
-    }))
+    this.serverInfo = await fetchServerInfo(this)
+
+    this.saveSession()
   }
 
   logout() {
@@ -103,45 +124,81 @@ export class AuthService {
   }
 }
 
-async function login(server: string, username: string, auth: Auth) {
-  const qs = toQueryString(pickBy({
-    s: auth.salt,
-    t: auth.hash,
-    p: auth.password,
-  }, x => x !== undefined) as Record<string, string>)
-  const url = `${server}/rest/ping?u=${username}&${qs}&v=1.16.1&c=Airdrome&f=json`
-  return fetch(url)
-    .then(response => response.ok
-      ? response.json()
-      : Promise.reject(new Error(response.statusText)))
-    .then((response) => {
-      const subsonicResponse = response['subsonic-response']
-      if (!subsonicResponse || subsonicResponse.status !== 'ok') {
-        const message = subsonicResponse.error?.message || subsonicResponse.status
-        throw new Error(message)
-      }
-    })
+async function safeJson(response: Response) {
+  const text = await response.text()
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`Server returned non-JSON response: ${text.slice(0, 120)}`)
+  }
 }
 
-async function fetchServerInfo(server: string): Promise<ServerInfo> {
-  const url = `${server}/rest/getOpenSubsonicExtensions?c=Airdrome&v=1.16.1&f=json`
+async function login(server: string, username: string, auth: Auth) {
+  const qs = toQueryString(
+    pickBy(
+      {
+        s: auth.salt,
+        t: auth.hash,
+        p: auth.password,
+      },
+      (x) => x !== undefined
+    ) as Record<string, string>
+  )
+
+  const url = `${server}/rest/ping?u=${username}&${qs}&v=1.16.1&c=Airdrome&f=json`
+
   const response = await fetch(url)
-  if (response.ok) {
-    const body = await response.json()
+
+  if (!response.ok) {
+    throw new Error(response.statusText)
+  }
+
+  const body = await safeJson(response)
+
+  const subsonicResponse = body['subsonic-response']
+
+  if (!subsonicResponse || subsonicResponse.status !== 'ok') {
+    const message = subsonicResponse?.error?.message || subsonicResponse?.status || 'Unknown error'
+    throw new Error(message)
+  }
+}
+
+async function fetchServerInfo(auth: AuthService): Promise<ServerInfo> {
+  const url = `${auth.server}/rest/getOpenSubsonicExtensions?${auth.urlParams}&v=1.16.1&c=Airdrome&f=json`
+
+  try {
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error(response.statusText)
+    }
+
+    const body = await safeJson(response)
+
     const subsonicResponse = body['subsonic-response']
+
     if (subsonicResponse?.status === 'ok') {
       return {
         name: subsonicResponse.type,
         version: subsonicResponse.version,
         openSubsonic: true,
-        extensions: subsonicResponse.openSubsonicExtensions.map((ext: any) => ext.name)
+        extensions: (subsonicResponse.openSubsonicExtensions || []).map((ext: any) => ext.name),
       }
     }
+  } catch {
+    // ignore errors and fallback below
   }
-  return { name: 'Subsonic', version: 'Unknown', openSubsonic: false, extensions: [] }
+
+  return {
+    name: 'Subsonic',
+    version: 'Unknown',
+    openSubsonic: false,
+    extensions: [],
+  }
 }
 
-const apiSymbol = Symbol('')
+const apiSymbol = Symbol('auth')
 
 export function useAuth(): AuthService {
   return inject(apiSymbol) as AuthService
@@ -149,9 +206,10 @@ export function useAuth(): AuthService {
 
 export function createAuth(): AuthService & Plugin {
   const instance = new AuthService()
+
   return Object.assign(instance, {
-    install: (app: App) => {
+    install(app: App) {
       app.provide(apiSymbol, instance)
-    }
+    },
   })
 }
