@@ -34,7 +34,7 @@
       const items = [
         {
           name: 'discover',
-          title: 'Discover',
+          title: 'Cockpit',
           icon: 'discover',
           to: { name: 'discover' },
         },

@@ -67,7 +67,6 @@ export class AudioController {
     this.buffer.preload = 'auto'
     this.buffer.src = url
     try { this.buffer.load() } catch {}
-    this.cacheTrack(url)
   }
 
   setVolume(value: number) {
@@ -97,8 +96,9 @@ export class AudioController {
   }
 
   async pause() {
+    const audio = this.pipeline.audio
     await this.fadeOut(this.fadeTime)
-    this.pipeline.audio.pause()
+    audio.pause()
   }
 
   async play() {
@@ -127,13 +127,16 @@ export class AudioController {
     fade?: boolean
   }) {
     if (!options.url) return
+    const currentUrl = options.url
+    const nextUrl = options.nextUrl
 
     const token = ++this.changeToken
+
     this.replayGain = options.replayGain ?? null
 
-    if (!this.buffer || this.buffer.src !== options.url) {
-      await this.setBuffer(options.url)
-      console.info('setBuffer(1):', options.url)
+    if (!this.buffer || this.buffer.src !== currentUrl) {
+      await this.setBuffer(currentUrl)
+      console.info('setBuffer(1):', currentUrl)
     }
 
     const nextPipeline = createPipeline(this.context, {
@@ -181,16 +184,15 @@ export class AudioController {
       }
     }
 
-    if (options.nextUrl) {
-      const nextUrl = options.nextUrl
-
-      setTimeout(() => {
-        if (token === this.changeToken) {
+    setTimeout(() => {
+      if (token === this.changeToken) {
+        this.cacheTrack(currentUrl!)
+        if (nextUrl) {
           this.setBuffer(nextUrl)
           console.info('setBuffer(2):', nextUrl)
         }
-      }, 10000)
-    }
+      }
+    }, 15000)
   }
 
   private replacePipeline(next: AudioPipeline) {
@@ -210,18 +212,20 @@ export class AudioController {
   }
 
   private async fadeIn(duration = 0) {
-    const g = this.pipeline.fadeNode.gain
-    g.cancelScheduledValues(0)
-    g.setValueAtTime(g.value, this.context.currentTime)
-    g.linearRampToValueAtTime(1, this.context.currentTime + duration)
+    const gain = this.pipeline.fadeNode.gain
+    const now = this.context.currentTime
+    gain.cancelScheduledValues(0)
+    gain.setValueAtTime(gain.value, now)
+    gain.linearRampToValueAtTime(1, now + duration)
     await sleep(duration * 1000)
   }
 
   private async fadeOut(duration = 0) {
-    const g = this.pipeline.fadeNode.gain
-    g.cancelScheduledValues(0)
-    g.setValueAtTime(g.value, this.context.currentTime)
-    g.linearRampToValueAtTime(0, this.context.currentTime + duration)
+    const gain = this.pipeline.fadeNode.gain
+    const now = this.context.currentTime
+    gain.cancelScheduledValues(0)
+    gain.setValueAtTime(gain.value, now)
+    gain.linearRampToValueAtTime(0, now + duration)
     await sleep(duration * 1000)
   }
 
