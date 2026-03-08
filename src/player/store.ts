@@ -135,16 +135,20 @@ export const usePlayerStore = defineStore('player', {
     },
 
     async next() {
-      this.setQueueIndex(this.queueIndex + 1)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true
-      })
+      if (this.hasNext || this.repeat) {
+        this.setQueueIndex(this.queueIndex + 1)
+        const track = this.track
+        const nextTrack = this.nextTrack
+        if (!track) return
+        await audio.loadTrack({
+          url: track.url,
+          replayGain: track.replayGain,
+          nextUrl: nextTrack?.url,
+          fade: true
+        })
+      } else {
+        await this.processQueueEnd()
+      }
     },
 
     async autoNext() {
@@ -248,50 +252,72 @@ export const usePlayerStore = defineStore('player', {
       }
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
     },
+
     setNextInQueue(tracks: Track[]) {
       if (tracks.length === 1 && tracks[0].id === this.nextTrack?.id) {
         return
       }
       this.queue?.splice(this.queueIndex + 1, 0, ...(this.shuffle ? shuffled(tracks) : tracks))
     },
+
     removeFromQueue(index: number) {
       this.queue?.splice(index, 1)
       if (index < this.queueIndex) {
         this.queueIndex--
       }
     },
+
     shuffleQueue() {
       if (this.queue && this.queue.length > 0) {
         this.queue = shuffled(this.queue, this.queueIndex)
         this.queueIndex = 0
       }
     },
+
     toggleReplayGain() {
       const mode = (this.replayGainMode + 1) % ReplayGainMode._Length
       audio.setReplayGainMode(mode)
       this.replayGainMode = mode
       localStorage.setItem('player.replayGainMode', `${mode}`)
     },
+
     toggleRepeat() {
       this.repeat = !this.repeat
       localStorage.setItem('player.repeat', String(this.repeat))
     },
+
     toggleShuffle() {
       this.setShuffle(!this.shuffle)
     },
+
     setVolume(volume: number) {
       audio.setVolume(volume)
       this.volume = volume
       localStorage.setItem('player.volume', String(volume))
     },
+
     setShuffle(toggle: boolean) {
       this.shuffle = toggle
       localStorage.setItem('player.shuffle', String(toggle))
     },
+
     setQueue(queue: Track[]) {
       this.queue = queue
       this.queueIndex = -1
     },
+
+    async processQueueEnd() {
+      const track = this.track
+      if (!track?.url) return
+
+      try {
+        const radioStore = useRadioStore()
+        await radioStore.continueFromTrack(track)
+      } catch {
+        this.resetQueue()
+      }
+    },
+
     setQueueIndex(index: number) {
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
@@ -397,25 +423,10 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
 
   audio.onended = async () => {
     const { hasNext, repeat } = playerStore
-
     if (hasNext || repeat) {
-      try {
-        await playerStore.autoNext()
-      } catch (err) {
-        console.info('[Offline or load failure]')
-        playerStore.resetQueue()
-      }
-      return
-    }
-
-    const track = playerStore.track
-    if (!track?.url) return
-    try {
-      const radioStore = useRadioStore()
-      await radioStore.continueFromTrack(track)
-    } catch (err) {
-      console.info('[Radio continuation failed]')
-      playerStore.resetQueue()
+      await playerStore.autoNext()
+    } else {
+      await playerStore.processQueueEnd()
     }
   }
 

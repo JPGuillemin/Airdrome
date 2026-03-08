@@ -1,11 +1,16 @@
 const APP_BASE = '/'
-const SW_VERSION = 'v1.1.0'
+const SW_VERSION = 'v1.2.0'
 
-const SHELL_CACHE = `shell-cache-${SW_VERSION}`
-const RUNTIME_CACHE = `runtime-cache-${SW_VERSION}`
-const IMAGE_CACHE = `image-cache-${SW_VERSION}`
+// Cache names
+const SHELL_CACHE = `shell-${SW_VERSION}`
+const RUNTIME_CACHE = `runtime-${SW_VERSION}`
+const IMAGE_CACHE = `images-${SW_VERSION}`
 const AUDIO_CACHE = 'airdrome-cache-v2'
 
+// Limits
+const MAX_IMAGE_ENTRIES = 10000
+
+// App shell
 const APP_SHELL = [
   `${APP_BASE}`,
   `${APP_BASE}index.html`,
@@ -13,81 +18,181 @@ const APP_SHELL = [
   `${APP_BASE}icon.png`,
 ]
 
-const MAX_IMAGE_ENTRIES = 10000
-
-// --------------------------------------------------
-// Install
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* INSTALL */
+/* -------------------------------------------------- */
 
 self.addEventListener('install', event => {
+
   self.skipWaiting()
 
   event.waitUntil(
-    caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL))
+    caches.open(SHELL_CACHE)
+      .then(cache => cache.addAll(APP_SHELL))
   )
+
 })
 
-// --------------------------------------------------
-// Activate
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* ACTIVATE */
+/* -------------------------------------------------- */
 
 self.addEventListener('activate', event => {
-  event.waitUntil((async() => {
+
+  event.waitUntil((async () => {
 
     const keys = await caches.keys()
 
+    const allowed = [
+      SHELL_CACHE,
+      RUNTIME_CACHE,
+      IMAGE_CACHE,
+      AUDIO_CACHE
+    ]
+
     await Promise.all(
-      keys.filter(k =>
-        ![SHELL_CACHE, RUNTIME_CACHE, IMAGE_CACHE, AUDIO_CACHE].includes(k)
-      ).map(k => caches.delete(k))
+      keys
+        .filter(key => !allowed.includes(key))
+        .map(key => caches.delete(key))
     )
 
     await self.clients.claim()
 
   })())
+
 })
 
-// --------------------------------------------------
-// Fetch
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* FETCH */
+/* -------------------------------------------------- */
 
 self.addEventListener('fetch', event => {
+
   const request = event.request
   const url = new URL(request.url)
 
   if (request.method !== 'GET') return
 
-  // SPA navigation
+  /* SPA navigation */
+
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request, SHELL_CACHE))
     return
   }
 
-  // Audio streams (Subsonic)
-  if (url.pathname.includes('/rest/stream') || url.pathname.includes('/rest/download')) {
-    event.respondWith(networkFirst(request, AUDIO_CACHE))
+  /* AUDIO STREAMS */
+
+  if (
+    url.pathname.includes('/rest/stream') ||
+    url.pathname.includes('/rest/download')
+  ) {
+    event.respondWith(audioStrategy(request))
     return
   }
 
-  // Images
-  if (request.destination === 'image' || /\.(png|jpg|jpeg|webp|gif|svg)$/.test(url.pathname)) {
+  /* IMAGES */
+
+  if (
+    request.destination === 'image' ||
+    /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(url.pathname)
+  ) {
     event.respondWith(imageStrategy(request))
     return
   }
 
-  // Static assets
+  /* STATIC ASSETS */
+
   if (isStaticAsset(url.pathname)) {
     event.respondWith(cacheFirst(request, SHELL_CACHE))
     return
   }
 
-  // Default
+  /* DEFAULT */
+
   event.respondWith(networkFirst(request, RUNTIME_CACHE))
+
 })
 
-// --------------------------------------------------
-// Strategies
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* AUDIO STRATEGY */
+/* Network first / Cache fallback */
+/* -------------------------------------------------- */
+
+async function audioStrategy(request) {
+
+  // Do not cache range requests
+  if (request.headers.has('range')) {
+    return fetch(request)
+  }
+
+  const cache = await caches.open(AUDIO_CACHE)
+
+  try {
+
+    const response = await fetch(request)
+
+    if (response && response.status === 200) {
+
+      const cached = await cache.match(request)
+
+      // Avoid overwriting entries managed by the app
+      if (!cached) {
+        cache.put(request, response.clone()).catch(() => {})
+      }
+
+    }
+
+    return response
+
+  } catch (err) {
+
+    const cached = await cache.match(request)
+
+    if (cached) return cached
+
+    throw err
+  }
+
+}
+
+/* -------------------------------------------------- */
+/* IMAGE STRATEGY */
+/* Cache first + background update */
+/* -------------------------------------------------- */
+
+async function imageStrategy(request) {
+
+  const cache = await caches.open(IMAGE_CACHE)
+  const cached = await cache.match(request)
+
+  const networkFetch = fetch(request)
+    .then(async response => {
+
+      if (response && response.status === 200) {
+
+        await cache.put(request, response.clone())
+        trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
+
+      }
+
+      return response
+
+    })
+    .catch(() => null)
+
+  if (cached) return cached
+
+  const network = await networkFetch
+
+  if (network) return network
+
+  return new Response('', { status: 504 })
+
+}
+
+/* -------------------------------------------------- */
+/* NETWORK FIRST */
+/* -------------------------------------------------- */
 
 async function networkFirst(request, cacheName) {
 
@@ -103,7 +208,7 @@ async function networkFirst(request, cacheName) {
 
     return response
 
-  } catch (err) {
+  } catch {
 
     const cached = await cache.match(request)
 
@@ -111,11 +216,17 @@ async function networkFirst(request, cacheName) {
 
     throw err
   }
+
 }
+
+/* -------------------------------------------------- */
+/* CACHE FIRST */
+/* -------------------------------------------------- */
 
 async function cacheFirst(request, cacheName) {
 
   const cache = await caches.open(cacheName)
+
   const cached = await cache.match(request)
 
   if (cached) return cached
@@ -127,38 +238,15 @@ async function cacheFirst(request, cacheName) {
   }
 
   return response
+
 }
 
-async function imageStrategy(request) {
-
-  const cache = await caches.open(IMAGE_CACHE)
-  const cached = await cache.match(request)
-
-  const networkFetch = fetch(request).then(async response => {
-
-    if (response && response.status === 200) {
-      await cache.put(request, response.clone())
-      trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
-    }
-
-    return response
-
-  }).catch(() => null)
-
-  if (cached) return cached
-
-  const network = await networkFetch
-  if (network) return network
-
-  return new Response('', { status: 504 })
-}
-
-// --------------------------------------------------
-// Helpers
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* HELPERS */
+/* -------------------------------------------------- */
 
 function isStaticAsset(path) {
-  return /\.(js|css|woff2|woff|ttf|png|jpg|svg|webp)$/.test(path)
+  return /\.(js|css|woff2?|ttf|png|jpg|svg|webp)$/i.test(path)
 }
 
 async function trimCache(cacheName, maxEntries) {
@@ -173,11 +261,12 @@ async function trimCache(cacheName, maxEntries) {
   for (let i = 0; i < deleteCount; i++) {
     await cache.delete(keys[i])
   }
+
 }
 
-// --------------------------------------------------
-// Messages
-// --------------------------------------------------
+/* -------------------------------------------------- */
+/* MESSAGES */
+/* -------------------------------------------------- */
 
 self.addEventListener('message', event => {
 
@@ -196,4 +285,3 @@ self.addEventListener('message', event => {
   }
 
 })
-

@@ -223,7 +223,6 @@ async function enforceCacheLimitLRU() {
 export const useCacheStore = defineStore('albumCache', {
   state: () => ({
     activeCaching: new Map<string, { cancelled: boolean }>(),
-
     queue: [] as string[],
     queuedSet: new Set<string>(),
     processingQueue: false,
