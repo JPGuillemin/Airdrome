@@ -12,13 +12,17 @@ export const config: Config = {
   serverUrl: env?.SERVER_URL || '',
 }
 
-type Auth = { password?: string, salt?: string, hash?: string }
+type Auth = { password?: string; salt?: string; hash?: string }
 
 interface ServerInfo {
   name: string
   version: string
   openSubsonic: boolean
   extensions: string[]
+}
+
+function normalizeServerUrl(url: string): string {
+  return url.replace(/\/+$/, '')
 }
 
 export class AuthService {
@@ -32,7 +36,10 @@ export class AuthService {
   private authenticated = false
 
   constructor() {
-    this.server = config.serverUrl || localStorage.getItem('server') || ''
+    this.server = normalizeServerUrl(
+      config.serverUrl || localStorage.getItem('server') || ''
+    )
+
     this.username = localStorage.getItem('username') || ''
     this.salt = localStorage.getItem('salt') || ''
     this.hash = localStorage.getItem('hash') || ''
@@ -88,6 +95,8 @@ export class AuthService {
   }
 
   async loginWithPassword(server: string, username: string, password: string): Promise<void> {
+    server = normalizeServerUrl(server)
+
     const salt = randomString()
     const hash = md5(password + salt)
 
@@ -159,7 +168,11 @@ async function login(server: string, username: string, auth: Auth) {
   const subsonicResponse = body['subsonic-response']
 
   if (!subsonicResponse || subsonicResponse.status !== 'ok') {
-    const message = subsonicResponse?.error?.message || subsonicResponse?.status || 'Unknown error'
+    const message =
+      subsonicResponse?.error?.message ||
+      subsonicResponse?.status ||
+      'Unknown error'
+
     throw new Error(message)
   }
 }
@@ -183,7 +196,9 @@ async function fetchServerInfo(auth: AuthService): Promise<ServerInfo> {
         name: subsonicResponse.type,
         version: subsonicResponse.version,
         openSubsonic: true,
-        extensions: (subsonicResponse.openSubsonicExtensions || []).map((ext: any) => ext.name),
+        extensions: (subsonicResponse.openSubsonicExtensions || []).map(
+          (ext: any) => ext.name
+        ),
       }
     }
   } catch {
