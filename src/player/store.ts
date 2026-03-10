@@ -117,11 +117,13 @@ export const usePlayerStore = defineStore('player', {
     },
 
     async play() {
+      this.setMediaSessionPosition(undefined, playRate, undefined)
       this.wasPaused = false
       await audio.play()
     },
 
     async pause() {
+      this.setMediaSessionPosition(undefined, pauseRate, undefined)
       this.wasPaused = true
       await audio.pause()
     },
@@ -135,6 +137,7 @@ export const usePlayerStore = defineStore('player', {
     },
 
     async next() {
+      this.setMediaSessionPosition(undefined, undefined, 0)
       if (this.hasNext || this.repeat) {
         this.setQueueIndex(this.queueIndex + 1)
         const track = this.track
@@ -152,6 +155,7 @@ export const usePlayerStore = defineStore('player', {
     },
 
     async autoNext() {
+      this.setMediaSessionPosition(undefined, undefined, 0)
       this.setQueueIndex(this.queueIndex + 1)
       const track = this.track
       const nextTrack = this.nextTrack
@@ -165,6 +169,7 @@ export const usePlayerStore = defineStore('player', {
     },
 
     async previous() {
+      this.setMediaSessionPosition(undefined, undefined, 0)
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
       const track = this.track
       const nextTrack = this.nextTrack
