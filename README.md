@@ -1,6 +1,6 @@
 # Airdrome Music Player
 
-![Screenshot](public/icon.png)
+![Screenshot](public/icon-128x128.png)
 
 Airdrome is a modern React web Frontend for Mobile and Desktop supporting [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), [NextCloud Music](https://apps.nextcloud.com/apps/music) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
