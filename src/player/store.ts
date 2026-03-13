@@ -394,8 +394,13 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     }, 2000)
   }
 
+  const throttledMediaSessionUpdate = throttle(() => {
+    void playerStore.setMediaSessionPosition(undefined, undefined, playerStore.currentTime)
+  }, 500)
+
   audio.ontimeupdate = (time: number) => {
     playerStore.currentTime = time
+    throttledMediaSessionUpdate()
   }
 
   audio.ondurationchange = (duration: number) => {
@@ -495,10 +500,10 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     mediaSession.setActionHandler('stop', () => {
       playerStore.pause()
     })
-    mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime) {
-        playerStore.seek(Math.min(details.seekTime, playerStore.duration))
-      }
+    mediaSession.setActionHandler('seekto', async (details) => {
+      if (details.fastSeek || details.seekTime === undefined) return
+      const position = Math.min(details.seekTime, playerStore.duration)
+      await audio.seek(position)
     })
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
@@ -509,13 +514,6 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       playerStore.seek(Math.max(playerStore.currentTime - offset, 0))
     })
   }
-
-  setInterval(() => {
-    if (playerStore.track) {
-      const currentTime = playerStore.currentTime
-      playerStore.setMediaSessionPosition(undefined, undefined, currentTime)
-    }
-  }, 300)
 
   watch(
     () => playerStore.currentTime,
