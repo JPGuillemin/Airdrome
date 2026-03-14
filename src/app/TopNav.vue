@@ -7,7 +7,9 @@
           class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
           @click="handleLogoClick"
         >
-          <img width="32" height="32" src="@/shared/assets/logo.svg">
+          <div class="logo-wrapper">
+            <img :src="logo" :class="{ spinning: isPlaying }" />
+          </div>
         </button>
       </div>
 
@@ -92,10 +94,12 @@
 
 <script lang="ts">
   import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount, computed } from 'vue'
+  import logo from '@/shared/assets/logo.svg'
   import { useRouter, useRoute } from 'vue-router'
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
   import { useMainStore } from '@/shared/store'
+  import { usePlayerStore } from '@/player/store'
   import { useAuth } from '@/auth/service'
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
@@ -112,10 +116,12 @@
       const store = useMainStore()
       const auth = useAuth()
       const cacheStore = useCacheStore()
+      const playerStore = usePlayerStore()
       const router = useRouter()
       const route = useRoute()
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const { proxy } = getCurrentInstance()!
+      const isPlaying = computed(() => playerStore.isPlaying)
 
       const api = proxy!.$api as {
         scan(): Promise<void>
@@ -255,6 +261,7 @@
 
       return {
         store,
+        logo,
         auth,
         colors,
         handleLogoClick,
@@ -265,6 +272,7 @@
         cacheSize,
         updateCacheSize,
         isScanning,
+        isPlaying,
         showAboutModal,
         scan,
         clearAllCache,
@@ -276,6 +284,7 @@
 </script>
 
 <style scoped>
+
   .top-nav {
     position: fixed;
     top: 0;
@@ -316,4 +325,30 @@
     }
   }
 
+  .logo-wrapper {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .logo-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* keep aspect ratio */
+  }
+
+  .spinning {
+    animation: spin 2s linear infinite;   /* slower, smoother rotation */
+    transform-origin: center;
+    backface-visibility: hidden;
+    will-change: transform;
+    transition: transform 0.3s ease-in-out; /* smooth start/stop */
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
