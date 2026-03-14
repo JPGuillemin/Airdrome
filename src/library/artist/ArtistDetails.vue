@@ -117,6 +117,7 @@
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
+  import { useLoader } from '@/shared/loader'
 
   export default defineComponent({
     components: {
@@ -139,7 +140,7 @@
       const mainStore = useMainStore()
       const favouriteStore = useFavouriteStore()
       const playerStore = usePlayerStore()
-
+      const loader = useLoader()
       const radioStore = useRadioStore()
 
       const playNow = () => playerStore.playNow(artist.value.topTracks)
@@ -154,9 +155,17 @@
       const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
       const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()
 
-      onMounted(async() => {
-        artist.value = await api.getArtistDetails(props.id)
-      })
+      // Fetch artist details
+      const fetchArtist = async() => {
+        loader.showLoading()
+        try {
+          artist.value = await api.getArtistDetails(props.id)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
+      fetchArtist()
 
       return {
         mainStore,
