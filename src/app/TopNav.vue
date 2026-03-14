@@ -8,7 +8,7 @@
           @click="handleLogoClick"
         >
           <div class="logo-wrapper">
-            <img :src="logo" :class="{ spinning: isPlaying }" />
+            <div :class="['logo-mask', { spinning: isPlaying }]"></div>
           </div>
         </button>
       </div>
@@ -293,6 +293,18 @@
     width: 100%;
     z-index: 1000;
     height: 46px;
+  }
+
+  .logo-mask {
+    width: 32px;
+    height: 32px;
+    background-color: var(--bs-primary);
+
+    -webkit-mask: url('@/shared/assets/logo.svg') no-repeat center;
+    mask: url('@/shared/assets/logo.svg') no-repeat center;
+
+    -webkit-mask-size: contain;
+    mask-size: contain;
   }
 
   .nav-link .nav-icon {

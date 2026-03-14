@@ -4,7 +4,7 @@
     :class="{ visible: track }"
   >
     <!-- visual layer (background + radius ONLY) -->
-    <div class="player-bg">
+    <div class="player-bg" @click="onBackgroundClick">
       <!-- layout layer (NO clipping) -->
       <div class="player-content d-flex">
         <div class="flex-fill">
@@ -44,7 +44,7 @@
                   v-if="track.albumId"
                   class="pt-0 pb-3 ps-3 pe-2"
                   style="cursor: pointer"
-                  @click="onAlbumClick"
+                  @click.stop="onAlbumClick"
                 >
                   <img
                     v-if="track.image"
@@ -90,7 +90,7 @@
 
             <!-- transport -->
             <div class="col-auto pb-3 d-flex align-items-center">
-              <b-button variant="transparent" class="mx-0" @click="previous">
+              <b-button variant="transparent" class="mx-0 btn-skip" @click="previous">
                 <Icon icon="skip-start" />
               </b-button>
 
@@ -103,7 +103,7 @@
                 <Icon :icon="isPlaying ? 'pause' : 'play'" />
               </b-button>
 
-              <b-button variant="transparent" class="mx-0" @click="next">
+              <b-button variant="transparent" class="mx-0 btn-skip" @click="next">
                 <Icon icon="skip-end" />
               </b-button>
             </div>
@@ -316,6 +316,21 @@
         playerStore.seek(newTime)
       }
 
+      const onBackgroundClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement
+
+        // ignore clicks on interactive elements
+        if (
+          target.closest(
+            'button, a, input, .slider-click-zone, .real-slider, .volume-slider'
+          )
+        ) {
+          return
+        }
+
+        playerStore.playPause()
+      }
+
       function playPause() { playerStore.playPause() }
       function next() { playerStore.next() }
       function previous() { playerStore.previous() }
@@ -347,6 +362,7 @@
         onSliderDragEnd,
         onSliderUpdate,
         onSliderClick,
+        onBackgroundClick,
         formatter,
         playPause,
         next,
@@ -401,7 +417,11 @@
   }
 
   .btn-play {
-    --bs-btn-font-size: 1.9rem;
+    --bs-btn-font-size: 2rem;
+  }
+
+  .btn-skip {
+    --bs-btn-font-size: 1.5rem;
   }
 
   .b-button {
@@ -530,7 +550,11 @@
 
     /* Reduce play button size */
     .col-auto.pb-3.d-flex.align-items-center .btn-play {
-      --bs-btn-font-size: 1.5rem;
+      --bs-btn-font-size: 1.6rem;
+    }
+
+    .btn-skip {
+      --bs-btn-font-size: 1.2rem;
     }
 
     .overflow-menu,
