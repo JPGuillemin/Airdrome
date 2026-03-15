@@ -16,18 +16,16 @@
 
     <router-link
       :to="{name: 'queue'}"
-      class="nav-link"
+      class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/queue') }"
     >
       <Icon icon="soundwave" class="me-2" />
       <span class="bold">Playing</span>
     </router-link>
 
-    <small class="sidebar-heading text-muted"></small>
-
     <router-link
       :to="{ name: 'albums-default' }"
-      class="nav-link"
+      class="nav-link mt-5"
       :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
     >
       <Icon icon="albums" class="me-2" />
@@ -36,7 +34,7 @@
 
     <router-link
       :to="{name: 'artists', params: { sort: 'default' }}"
-      class="nav-link"
+      class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/artists/') }"
     >
       <Icon icon="artists" class="me-2" />
@@ -45,7 +43,7 @@
 
     <router-link
       :to="{name: 'genres', params: { sort: 'default' }}"
-      class="nav-link"
+      class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
     >
       <Icon icon="genres" class="me-2" />
@@ -54,7 +52,7 @@
 
     <router-link
       :to="{name: 'playlists', params: { sort: 'default' }}"
-      class="nav-link"
+      class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/playlists/') }"
     >
       <Icon icon="playlist" class="me-2" />
@@ -63,7 +61,7 @@
 
     <router-link
       :to="{name: 'favourites', params: { section: 'albums' }}"
-      class="nav-link"
+      class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/favourites/') }"
     >
       <Icon icon="heart" class="me-2" />
