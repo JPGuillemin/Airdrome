@@ -26,19 +26,19 @@
       <Icon icon="albums" /> Albums
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'artists'}">
+    <router-link class="nav-link" :to="{name: 'artists', params: { sort: 'default' }}">
       <Icon icon="artists" /> Artists
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'genres'}">
+    <router-link class="nav-item nav-link" :to="{name: 'genres', params: { sort: 'default' }}">
       <Icon icon="genres" /> Genres
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'playlists'}">
+    <router-link class="nav-link" :to="{name: 'playlists', params: { sort: 'default' }}">
       <Icon icon="playlist" /> Playlists
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'favourites'}">
+    <router-link class="nav-link" :to="{name: 'favourites', params: { section: 'albums' }}">
       <Icon icon="heart" /> Favourites
     </router-link>
   </nav>

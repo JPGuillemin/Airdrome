@@ -109,35 +109,6 @@
   font-size: 0.9rem;
 }
 
-/* Mobile: slightly smaller font */
-@media (max-width: 767px) {
-  .main-title {
-    max-width: 220px;
-    font-size: 1.2rem !important;
-  }
-  .header-title {
-    max-width: 220px;
-    font-size: 1.2rem !important;
-  }
-  .section-title {
-    max-width: 220px;
-    font-size: 1.1rem !important;
-  }
-  .header-info-one {
-    display: block;
-    max-width: 220px;
-    font-size: 0.9rem !important;
-  }
-  .header-info-two {
-    display: block;
-    max-width: 220px;
-    font-size: 0.8rem !important;
-  }
-  .adapt-text {
-    font-size: 0.8rem;
-  }
-}
-
 .on-top {
   position: relative;
   z-index: 3000;
@@ -201,4 +172,114 @@
 .tile:hover .hover-tile-primary {
   color: var(--bs-primary);
   transition: color 0.2s ease-in-out;
+}
+
+.btn:hover {
+  color: var(--bs-primary);
+}
+
+.btn:active {
+  color: var(--bs-primary);
+}
+
+/* router-link base style */
+.nav a {
+  color: var(--theme-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+/* hover like your buttons */
+.nav a:hover {
+  color: var(--bs-primary);
+}
+
+/* active route highlight */
+.nav a.router-link-active,
+.nav a.router-link-exact-active {
+  color: var(--bs-primary);
+}
+
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem;
+}
+
+/* Target all router-links inside main content, except genre-link */
+.main-content a:not(.genre-link) {
+  text-decoration: none; /* remove underline */
+  color: inherit;        /* default color */
+  transition: color 0.15s ease;
+}
+
+/* Hover */
+.main-content a:not(.genre-link):hover {
+  color: var(--bs-primary);  /* highlight like button */
+  text-decoration: none;      /* ensure no underline */
+}
+
+/* Active route */
+.main-content a.router-link-active:not(.genre-link),
+.main-content a.router-link-exact-active:not(.genre-link) {
+  color: var(--bs-primary);
+  text-decoration: none;
+}
+
+.main-content a.d-inline-flex:not(.genre-link) {
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Section header links outside header, excluding genre-link */
+.section-wrapper > div > a.d-inline-flex:not(.genre-link) {
+  text-decoration: none;
+  color: inherit; /* base color */
+  transition: color 0.15s ease;
+  align-items: center;
+  display: inline-flex;
+}
+
+/* Hover state: change color for all children */
+.section-wrapper > div > a.d-inline-flex:not(.genre-link):hover,
+.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-active,
+.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-exact-active {
+  color: var(--bs-primary);
+  text-decoration: none;
+}
+
+/* Make sure all children inherit hover color */
+.section-wrapper > div > a.d-inline-flex:not(.genre-link):hover *,
+.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-active *,
+.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-exact-active * {
+  color: inherit;
+}
+
+/* Mobile: slightly smaller font */
+@media (max-width: 767px) {
+  .main-title {
+    max-width: 220px;
+    font-size: 1.2rem !important;
+  }
+  .header-title {
+    max-width: 220px;
+    font-size: 1.2rem !important;
+  }
+  .section-title {
+    max-width: 220px;
+    font-size: 1.1rem !important;
+  }
+  .header-info-one {
+    display: block;
+    max-width: 220px;
+    font-size: 0.9rem !important;
+  }
+  .header-info-two {
+    display: block;
+    max-width: 220px;
+    font-size: 0.8rem !important;
+  }
+  .adapt-text {
+    font-size: 0.8rem;
+  }
 }

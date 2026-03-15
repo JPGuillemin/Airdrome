@@ -48,19 +48,19 @@
           name: 'genres',
           title: 'Genres',
           icon: 'genres',
-          to: { name: 'genres' },
+          to: { name: 'genres', params: { sort: 'default' }},
         },
         {
           name: 'playlists',
           title: 'Playlists',
           icon: 'playlist',
-          to: { name: 'playlists' },
+          to: { name: 'playlists', params: { sort: 'default' }},
         },
         {
           name: 'favourites',
           title: 'Favourites',
           icon: 'heart',
-          to: { name: 'favourites' },
+          to: { name: 'favourites', params: { section: 'albums' }},
         },
       ]
 
@@ -109,6 +109,10 @@
   }
 
   .mobile-nav-item.active {
+    color: var(--bs-primary);
+  }
+
+  .mobile-nav-item:hover {
     color: var(--bs-primary);
   }
 </style>

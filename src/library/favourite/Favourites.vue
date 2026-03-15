@@ -9,7 +9,7 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{... $route, params: { }}">
+          <router-link :to="{... $route, params: { section: 'albums' }}">
             <Icon icon="albums" />
           </router-link>
         </li>

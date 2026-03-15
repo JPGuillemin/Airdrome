@@ -10,12 +10,12 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: {} }">
+          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'default' }}">
             <Icon icon="recent" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' } }">
+          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' }}">
             A-z
           </router-link>
         </li>
