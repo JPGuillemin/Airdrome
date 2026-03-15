@@ -56,6 +56,7 @@
   import iconRandom from '@iconify-icons/bi/dice-3'
   import iconRecent from '@iconify-icons/bi/clock-history'
   import iconNew from '@iconify-icons/bi/clock-fill'
+  import iconRecycle from '@iconify-icons/bi/recycle'
   import iconRefresh from '@iconify-icons/bi/arrow-counterclockwise'
   import iconReload from '@iconify-icons/bi/arrow-repeat'
   import iconRepeat from '@iconify-icons/bi/repeat'
@@ -111,6 +112,7 @@
     radio: iconRadio.body,
     random: iconRandom.body,
     recent: iconRecent.body,
+    recycle: iconRecycle.body,
     refresh: iconRefresh.body,
     reload: iconReload.body,
     repeat: iconRepeat.body,

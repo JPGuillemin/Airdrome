@@ -121,7 +121,7 @@
       const route = useRoute()
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const { proxy } = getCurrentInstance()!
-      const isPlaying = computed(() => playerStore.isPlaying)
+      const isPlaying = computed(() => playerStore.isPlaying && playerStore.track !== null)
 
       const api = proxy!.$api as {
         scan(): Promise<void>

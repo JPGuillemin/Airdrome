@@ -10,8 +10,8 @@
         </span>
       </div>
       <div>
-        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Play" @click="play(0)">
-          <Icon icon="play" />
+        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Recycle" @click="play(0)">
+          <Icon icon="recycle" />
         </b-button>
         <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Shuffle" @click="shuffle">
           <Icon icon="random" />
@@ -105,7 +105,7 @@
       function play(index: number) {
         playerStore.setShuffle(false)
         if (index === queueIndex.value) {
-          return playerStore.playPause()
+          return playerStore.play()
         }
         return playerStore.playTrackListIndex(index)
       }
