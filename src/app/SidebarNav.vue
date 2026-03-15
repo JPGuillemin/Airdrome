@@ -1,45 +1,73 @@
 <template>
-  <nav class="nav flex-column">
+  <nav class="nav adapt-text flex-column">
     <div class="sidebar-brand d-flex justify-content-between align-items-end">
       <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
         <Icon icon="goback" />
       </button>
     </div>
 
-    <router-link class="nav-link" :to="{name: 'discover'}">
-      <Icon icon="discover" class="" /> Cockpit
+    <router-link
+      :to="{name: 'discover'}"
+      class="nav-link"
+    >
+      <Icon icon="discover" class="me-2" />
+      <span class="bold">Cockpit</span>
     </router-link>
-
-    <router-link class="nav-link" :to="{name: 'queue'}">
-      <Icon icon="soundwave" /> Playing
-    </router-link>
-
-    <small class="sidebar-heading text-muted">
-      Library
-    </small>
 
     <router-link
+      :to="{name: 'queue'}"
       class="nav-link"
+      :class="{ 'router-link-active': route.fullPath.includes('/queue') }"
+    >
+      <Icon icon="soundwave" class="me-2" />
+      <span class="bold">Playing</span>
+    </router-link>
+
+    <small class="sidebar-heading text-muted"></small>
+
+    <router-link
       :to="{ name: 'albums-default' }"
+      class="nav-link"
       :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
     >
-      <Icon icon="albums" /> Albums
+      <Icon icon="albums" class="me-2" />
+      <span class="bold">Albums</span>
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'artists', params: { sort: 'default' }}">
-      <Icon icon="artists" /> Artists
+    <router-link
+      :to="{name: 'artists', params: { sort: 'default' }}"
+      class="nav-link"
+      :class="{ 'router-link-active': route.fullPath.includes('/artists/') }"
+    >
+      <Icon icon="artists" class="me-2" />
+      <span class="bold">Artists</span>
     </router-link>
 
-    <router-link class="nav-item nav-link" :to="{name: 'genres', params: { sort: 'default' }}">
-      <Icon icon="genres" /> Genres
+    <router-link
+      :to="{name: 'genres', params: { sort: 'default' }}"
+      class="nav-link"
+      :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
+    >
+      <Icon icon="genres" class="me-2" />
+      <span class="bold">Genres</span>
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'playlists', params: { sort: 'default' }}">
-      <Icon icon="playlist" /> Playlists
+    <router-link
+      :to="{name: 'playlists', params: { sort: 'default' }}"
+      class="nav-link"
+      :class="{ 'router-link-active': route.fullPath.includes('/playlists/') }"
+    >
+      <Icon icon="playlist" class="me-2" />
+      <span class="bold">Playlists</span>
     </router-link>
 
-    <router-link class="nav-link" :to="{name: 'favourites', params: { section: 'albums' }}">
-      <Icon icon="heart" /> Favourites
+    <router-link
+      :to="{name: 'favourites', params: { section: 'albums' }}"
+      class="nav-link"
+      :class="{ 'router-link-active': route.fullPath.includes('/favourites/') }"
+    >
+      <Icon icon="heart" class="me-2" />
+      <span class="bold">Favourites</span>
     </router-link>
   </nav>
 </template>

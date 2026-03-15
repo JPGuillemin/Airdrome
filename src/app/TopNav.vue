@@ -307,14 +307,6 @@
     mask-size: contain;
   }
 
-  .nav-link .nav-icon {
-    color: var(--theme-elevation-3);
-  }
-
-  .nav-link.router-link-active .nav-icon {
-    color: var(--bs-primary);
-  }
-
   .theme-swatch {
     width: 20px;
     height: 20px;

@@ -61,7 +61,7 @@
                 <div style="min-width: 0; overflow: hidden">
                   <router-link
                     :to="{ name: 'album', params: { id: track.albumId } }"
-                    class="text-muted"
+                    class="player-link"
                   >
                     {{ track.title }}
                   </router-link>
@@ -74,7 +74,7 @@
                         <span v-if="index > 0">, </span>
                         <router-link
                           :to="{ name: 'artist', params: { id: artist.id } }"
-                          class="text-muted"
+                          class="player-link player-link-small"
                         >
                           {{ artist.name }}
                         </router-link>
@@ -390,6 +390,20 @@
   .player.visible {
     height: auto;
     max-height: 110px;
+  }
+
+  .player :deep(.player-link) {
+    color: var(--theme-text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .player :deep(.player-link:hover) {
+    color: var(--bs-primary);
+  }
+
+  .player :deep(.player-link-small) {
+    font-size: 0.85em;
   }
 
   .small-cover {

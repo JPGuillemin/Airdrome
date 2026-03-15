@@ -3,6 +3,22 @@
   z-index: auto;
 }
 
+.main-content a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.15s ease;
+}
+
+.main-content a:hover {
+  color: var(--bs-primary);
+  text-decoration: none;
+}
+
+.main-content a.router-link-active,
+.main-content a.router-link-exact-active {
+  color: var(--bs-primary);
+}
+
 .main-title {
   display: inline-block;
   margin-block-start: 0.67em;
@@ -127,7 +143,7 @@
 }
 
 .bold {
-  font-weight: 700;
+  font-weight: 550;
 }
 
 .small {
@@ -182,21 +198,21 @@
   color: var(--bs-primary);
 }
 
-/* router-link base style */
-.nav a {
+.nav .nav-link {
   color: var(--theme-text-muted);
   text-decoration: none;
   transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem;
 }
 
-/* hover like your buttons */
-.nav a:hover {
+.nav .nav-link:hover {
   color: var(--bs-primary);
 }
 
-/* active route highlight */
-.nav a.router-link-active,
-.nav a.router-link-exact-active {
+.nav .nav-link.router-link-active,
+.nav .nav-link.router-link-exact-active {
   color: var(--bs-primary);
 }
 
@@ -208,8 +224,8 @@
 
 /* Target all router-links inside main content, except genre-link */
 .main-content a:not(.genre-link) {
-  text-decoration: none; /* remove underline */
-  color: inherit;        /* default color */
+  text-decoration: none;
+  color: var(--theme-text-muted);
   transition: color 0.15s ease;
 }
 

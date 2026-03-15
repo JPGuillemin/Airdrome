@@ -148,8 +148,7 @@
   .icon.bi,
   .dropdown-item .icon.bi,
   .dropdown-toggle .icon.bi,
-  .input-group-text .icon.bi,
-  .nav-link .icon.bi {
+  .input-group-text .icon.bi {
     font-size: 125%;
     vertical-align: text-bottom;
     pointer-events: none;
