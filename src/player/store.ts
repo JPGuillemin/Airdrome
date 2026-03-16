@@ -521,7 +521,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
       const track = playerStore.track
       const isPlaying = playerStore.isPlaying
 
-      if (!track || !isPlaying) return
+      if (!track || !isPlaying || time <= 15) return
 
       // autoplay next
       const duration = playerStore.duration
