@@ -85,7 +85,7 @@ table.table-numbered {
   tbody tr:hover td .number {
     display: none;
   }
-  tbody tr:hover td .icon {
+  tbody tr:hover td:first-child .icon {
     display: inline;
     color: var(--bs-primary);
   }

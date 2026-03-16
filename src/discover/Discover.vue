@@ -312,10 +312,6 @@
 </script>
 
 <style scoped>
-  .header-title {
-    margin-top: 10px;
-    font-size: 1.5rem;
-  }
   .genre-link {
     color: var(--theme-text-muted);
     white-space: nowrap;

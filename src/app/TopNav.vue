@@ -284,7 +284,6 @@
 </script>
 
 <style scoped>
-
   .top-nav {
     position: fixed;
     top: 0;

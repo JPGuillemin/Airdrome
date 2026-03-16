@@ -63,11 +63,6 @@
     min-height: calc(100vh - var(--mobile-nav-height));
   }
 
-  /* Scrollbar styling for WebKit browsers */
-  .sidebar-container .sidebar-fixed::-webkit-scrollbar {
-    width: 8px;
-  }
-
   .sidebar-container .sidebar-fixed::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 4px;

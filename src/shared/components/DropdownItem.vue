@@ -32,8 +32,19 @@
   const isLink = computed(() => !!props.href)
 </script>
 
-<style>
+<style scoped>
   .dropdown-item-danger:not(:disabled) {
     color: var(--bs-danger);
+  }
+
+  .dropdown-item-danger:not(:disabled):hover,
+  .dropdown-item-danger:not(:disabled):focus {
+    color: var(--bs-primary);
+  }
+
+  .dropdown-item:not(:disabled):hover,
+  .dropdown-item:not(:disabled):focus {
+    background-color: $theme-elevation-2;
+    color: var(--bs-primary);
   }
 </style>

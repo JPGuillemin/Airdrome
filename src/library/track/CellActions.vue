@@ -170,5 +170,6 @@
 
   .playlist-item:hover {
     background-color: var(--bs-gray-200);
+    color: var(--bs-primary);
   }
 </style>
