@@ -1,0 +1,96 @@
+$theme-elevation-0: #000000;
+$theme-elevation-1: #171717;
+$theme-elevation-2: #303030;
+$theme-elevation-3: #404040;
+$theme-elevation-4: #707070;
+$theme-text: #cccccc;
+$theme-text-muted: #707070;
+
+// Bootstrap overrides
+$primary: #707070;
+$danger: #ff4141;
+$secondary: $theme-elevation-2;
+
+$body-bg: $theme-elevation-0;
+$body-color: $theme-text;
+
+$grid-gutter-width: 2rem;
+
+$headings-color: #ffffff;
+
+$link-color: $theme-text;
+$link-decoration: none;
+$link-hover-decoration: underline;
+
+$text-muted: $theme-text-muted;
+$border-color: $theme-elevation-2;
+
+:root {
+  --theme-text-muted: #{$theme-text-muted};
+  --theme-text: #{$theme-text};
+  --theme-elevation-0: #{$theme-elevation-0};
+  --theme-elevation-1: #{$theme-elevation-1};
+  --theme-elevation-2: #{$theme-elevation-2};
+  --theme-elevation-3: #{$theme-elevation-3};
+  --theme-elevation-4: #{$theme-elevation-4};
+  --primary: #{$primary};
+  --secondary: #{$secondary};
+  --mobile-nav-height: 60px;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
+
+
+.theme-primary {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--bs-primary) !important;
+}
+
+.theme-primary:hover,
+.theme-primary:focus {
+  color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+}
+
+.theme-primary:active {
+  color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+}
+
+.btn-theme-primary {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:hover,
+.btn-theme-primary:focus {
+  background-color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+  border-color: color-mix(in srgb, var(--bs-primary) 90%, black 10%) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:active {
+  background-color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+  border-color: color-mix(in srgb, var(--bs-primary) 80%, black 20%) !important;
+  color: #fff !important;
+}
+
+.btn-theme-primary:disabled {
+  background-color: var(--bs-secondary) !important;
+  border-color: var(--bs-secondary) !important;
+  opacity: 0.65;
+  color: #fff !important;
+}
+
+img {
+  color-scheme: only light;
+}
+
+$table-color: $theme-text;
+$table-bg: #ffffff00;
+$table-hover-bg: #ffffff1a;
+
+.elevated {
+  background-color: $theme-elevation-1;
+}

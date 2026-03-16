@@ -13,7 +13,7 @@ import { createBootstrap } from 'bootstrap-vue-next'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
-import '@/style/main.scss'
+import '@/css/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import wheelScroll from '@/shared/wheelscroll'
 
