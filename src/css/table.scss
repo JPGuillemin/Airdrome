@@ -2,7 +2,7 @@
 table,
 th,
 td {
-  border: none; /* remove default browser borders */
+  border: none;
 }
 
 /* Table header */
@@ -17,13 +17,10 @@ table.table {
   th {
     color: var(--bs-secondary-color);
   }
-
   tr {
     cursor: pointer;
-    background-color: var(--bs-body-bg, white); /* explicit row background */
+    background-color: var(--bs-body-bg, white);
   }
-
-  /* Active row text color */
   tr.active {
     td,
     td a,
@@ -31,17 +28,13 @@ table.table {
       color: var(--bs-primary);
     }
   }
-
-  /* Disabled row */
   tr.disabled {
     cursor: default;
-
     td,
     td a,
     td button.dropdown-toggle {
       color: var(--bs-secondary-color);
     }
-
     button {
       cursor: default;
     }
@@ -50,7 +43,6 @@ table.table {
 
 /* Numbered table specific styling */
 table.table-numbered {
-  /* First column sizing and alignment */
   th:first-child,
   td:first-child {
     padding-left: 0;
@@ -60,26 +52,20 @@ table.table-numbered {
     text-align: center;
     color: var(--bs-secondary-color);
   }
-
-  /* Buttons in first column */
   tr td:first-child button {
     border: none;
     background: none;
     color: inherit;
     font: inherit;
     outline: inherit;
-
     .number {
       display: inline;
       white-space: nowrap;
     }
-
     .icon {
       display: none;
     }
   }
-
-  /* Active row first-column icons */
   tr.active td:first-child button {
     .number {
       display: none;
@@ -88,8 +74,6 @@ table.table-numbered {
       display: inline;
     }
   }
-
-  /* Disabled row first-column icons */
   tr.disabled td:first-child button {
     .number {
       display: inline;
@@ -98,30 +82,16 @@ table.table-numbered {
       display: none;
     }
   }
-
-  /* Hover effects — icons/text only, no background */
-  tbody tr:hover td:first-child button {
-    .number {
-      display: none;
-    }
-    .icon {
-      display: inline;
-      color: var(--bs-primary);
-    }
-  }
-
   tbody tr:hover td .number {
     display: none;
   }
-
   tbody tr:hover td .icon {
     display: inline;
     color: var(--bs-primary);
   }
-}
-
-table.table-numbered tbody tr td {
-  cursor: pointer;
+  tbody tr td {
+    cursor: pointer;
+  }
 }
 
 $table-cell-padding-y: 0.75rem;

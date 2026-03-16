@@ -1,3 +1,27 @@
+// Nav / Links
+a.active,
+.nav .nav-link.router-link-active,
+.nav .nav-link.router-link-exact-active,
+.nav .nav-link:hover {
+  color: var(--bs-primary);
+}
+.nav .nav-link,
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem;
+}
+.nav .nav-link {
+  color: var(--theme-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.main-content a:not(.genre-link) {
+  text-decoration: none;
+  color: var(--theme-text-muted);
+  transition: color 0.15s ease;
+}
+
 ul.nav-underlined {
   white-space: nowrap;
   overflow-x: auto;

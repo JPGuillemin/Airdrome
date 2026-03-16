@@ -1,0 +1,27 @@
+// Buttons
+.btn-primary {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-disabled-color: #ffffff !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-hover-color: #ffffff !important;
+}
+.btn-transparent {
+  --bs-btn-color: $theme-text;
+  --bs-btn-bg: transparent;
+  --bs-btn-border-width: 0;
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: #ffffff1f;
+  --bs-btn-focus-shadow-rgb: $theme-elevation-4;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: transparent;
+}
+$btn-close-color: $theme-text;
+.btn-link:focus {
+  box-shadow: none !important;
+}
+.btn:hover,
+.btn:active {
+  color: var(--bs-primary);
+}

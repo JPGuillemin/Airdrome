@@ -4,39 +4,6 @@ textarea {
   caret-color: var(--theme-text-muted);
 }
 
-// Buttons
-.btn-primary {
-  --bs-btn-color: #ffffff !important;
-  --bs-btn-disabled-color: #ffffff !important;
-  --bs-btn-active-color: #ffffff !important;
-  --bs-btn-hover-color: #ffffff !important;
-}
-
-.btn-transparent {
-  --bs-btn-color: $theme-text;
-  --bs-btn-bg: transparent;
-  --bs-btn-border-width: 0;
-  --bs-btn-active-color: #ffffff;
-  --bs-btn-active-border-color: transparent;
-  --bs-btn-hover-color: #ffffff;
-  --bs-btn-hover-bg: #ffffff1f;
-  --bs-btn-focus-shadow-rgb: $theme-elevation-4;
-  --bs-btn-disabled-bg: transparent;
-  --bs-btn-disabled-border-color: transparent;
-}
-
-$btn-close-color: $theme-text;
-
-.btn-link:focus {
-  box-shadow: none !important;
-}
-
-// Hover / active shared color
-.btn:hover,
-.btn:active {
-  color: var(--bs-primary);
-}
-
 // Dropdown
 $dropdown-bg: $theme-elevation-1;
 $dropdown-link-color: $theme-text;
@@ -44,12 +11,10 @@ $dropdown-link-hover-bg: $theme-elevation-2;
 $dropdown-link-hover-color: white;
 $dropdown-border-color: $theme-elevation-2;
 $dropdown-divider-bg: $theme-elevation-2;
-
 .dropdown-toggle.dropdown-toggle-no-caret::before,
 .dropdown-toggle.dropdown-toggle-no-caret::after {
   display: none !important;
 }
-
 .dropdown-menu {
   --bs-dropdown-link-active-bg: var(--bs-primary) !important;
 }
@@ -57,7 +22,6 @@ $dropdown-divider-bg: $theme-elevation-2;
 // Tooltip
 $tooltip-bg: $theme-elevation-1;
 $tooltip-color: $theme-text;
-
 .tooltip {
   position: absolute;
   z-index: 3000 !important;
@@ -68,13 +32,9 @@ $input-bg: $theme-elevation-2;
 $input-disabled-bg: $theme-elevation-1;
 $input-border-color: $theme-elevation-2;
 $input-color: $theme-text;
-
 $custom-range-track-height: 0.1rem;
 $custom-range-thumb-bg: $theme-text;
 $custom-range-track-bg: $theme-text-muted;
-
-$form-switch-color-dark: #ffffff40;
-$form-switch-bg-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='3' fill='#{$form-switch-color-dark}'/></svg>");
 
 // List group
 $list-group-bg: rgba(#ffffff, 0);
@@ -87,35 +47,6 @@ $list-group-action-active-bg: #ffffff1a;
 // Offcanvas
 $offcanvas-bg-color: $theme-elevation-1;
 
-// Nav / Links
-a.active,
-.nav .nav-link.router-link-active,
-.nav .nav-link.router-link-exact-active,
-.nav .nav-link:hover {
-  color: var(--bs-primary);
-}
-
-.nav .nav-link {
-  color: var(--theme-text-muted);
-  text-decoration: none;
-  transition: color 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.4rem;
-}
-
-.nav a {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.4rem;
-}
-
-.main-content a:not(.genre-link) {
-  text-decoration: none;
-  color: var(--theme-text-muted);
-  transition: color 0.15s ease;
-}
-
 // Card
 $card-bg: $theme-elevation-1;
 $card-cap-bg: $theme-elevation-1;
@@ -125,7 +56,6 @@ $card-spacer-x: 1.25rem;
 // Modal
 $modal-content-bg: $theme-elevation-1;
 $modal-content-border-color: $theme-elevation-2;
-
 .modal-backdrop {
   opacity: 0.5;
 }
@@ -142,9 +72,4 @@ article,
 .markdown {
   user-select: text;
   -webkit-user-select: text;
-}
-
-.breadcrumb {
-  background: none !important;
-  padding: 0 !important;
 }
