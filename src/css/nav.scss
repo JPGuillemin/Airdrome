@@ -22,6 +22,15 @@ a.active,
   transition: color 0.15s ease;
 }
 
+@media(max-width: 768px) {
+  a.active,
+  .nav .nav-link.router-link-active,
+  .nav .nav-link.router-link-exact-active,
+  .nav .nav-link:hover {
+    color: var(--theme-text-muted);
+  }
+}
+
 ul.nav-underlined {
   white-space: nowrap;
   overflow-x: auto;

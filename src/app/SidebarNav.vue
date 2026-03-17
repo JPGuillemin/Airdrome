@@ -53,7 +53,7 @@
     <router-link
       :to="{name: 'playlists', params: { sort: 'default' }}"
       class="nav-link mt-2"
-      :class="{ 'router-link-active': route.fullPath.includes('/playlists/') }"
+      :class="{ 'router-link-active': route.fullPath.includes('/playlist') }"
     >
       <Icon icon="playlist" class="me-2" />
       <span class="bold">Playlists</span>

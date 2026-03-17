@@ -43,24 +43,32 @@
           title: 'Playing',
           icon: 'soundwave',
           to: { name: 'queue' },
+          match: (route: any) =>
+            route.path.startsWith('/queue'),
         },
         {
           name: 'genres',
           title: 'Genres',
           icon: 'genres',
           to: { name: 'genres', params: { sort: 'default' }},
+          match: (route: any) =>
+            route.path.startsWith('/genres'),
         },
         {
           name: 'playlists',
           title: 'Playlists',
           icon: 'playlist',
           to: { name: 'playlists', params: { sort: 'default' }},
+          match: (route: any) =>
+            route.path.startsWith('/playlist'),
         },
         {
           name: 'favourites',
           title: 'Favourites',
           icon: 'heart',
           to: { name: 'favourites', params: { section: 'albums' }},
+          match: (route: any) =>
+            route.path.startsWith('/favourites'),
         },
       ]
 

@@ -6,22 +6,29 @@
   --bs-btn-hover-color: #ffffff !important;
 }
 .btn-transparent {
-  --bs-btn-color: $theme-text;
+  --bs-btn-color: var(--theme-text-muted);
   --bs-btn-bg: transparent;
   --bs-btn-border-width: 0;
-  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-color: var(--bs-primary);
   --bs-btn-active-border-color: transparent;
-  --bs-btn-hover-color: #ffffff;
-  --bs-btn-hover-bg: #ffffff1f;
+  --bs-btn-hover-color: var(--bs-primary);
+  --bs-btn-hover-bg: transparent;
   --bs-btn-focus-shadow-rgb: $theme-elevation-4;
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
 }
-$btn-close-color: $theme-text;
+$btn-close-color: var(--theme-text-muted);
 .btn-link:focus {
   box-shadow: none !important;
 }
 .btn:hover,
 .btn:active {
   color: var(--bs-primary);
+}
+
+@media(max-width: 768px) {
+  .btn:hover,
+  .btn:active {
+    color: var(--theme-text-muted);
+  }
 }
