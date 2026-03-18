@@ -154,7 +154,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
-    async autoNext() {
+    async skip() {
       this.setMediaSessionPosition(undefined, undefined, 0)
       this.setQueueIndex(this.queueIndex + 1)
       const track = this.track
@@ -434,7 +434,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.onended = async () => {
     const { hasNext, repeat } = playerStore
     if (hasNext || repeat) {
-      await playerStore.autoNext()
+      await playerStore.skip()
     } else {
       await playerStore.processQueueEnd()
     }
@@ -515,19 +515,26 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
+  let skipping = false
   watch(
     () => playerStore.currentTime,
-    (time) => {
+    async (time) => {
       const track = playerStore.track
       const isPlaying = playerStore.isPlaying
 
-      if (!track || !isPlaying || time <= 15) return
+      if (!track || !isPlaying || time < 20) return
 
       // autoplay next
       const duration = playerStore.duration
       const remaining = duration - time
-      if (remaining <= 0.25 && playerStore.hasNext) {
-        playerStore.autoNext()
+      if (remaining < 0.25 && playerStore.hasNext && !skipping) {
+        skipping = true
+        try {
+          await playerStore.skip()
+        } finally {
+          skipping = false
+        }
+        return
       }
 
       // scrobble logic
