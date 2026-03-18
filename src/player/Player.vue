@@ -332,7 +332,7 @@
       }
 
       function playPause() { playerStore.playPause() }
-      function next() { playerStore.next() }
+      function next() { playerStore.next(true) }
       function previous() { playerStore.previous() }
       function toggleReplayGain() { playerStore.toggleReplayGain() }
       function toggleRepeat() { playerStore.toggleRepeat() }
