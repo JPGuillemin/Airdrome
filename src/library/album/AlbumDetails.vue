@@ -59,7 +59,7 @@
 
         <div class="text-nowrap mt-3">
           <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Play" @click="playNow">
-            <Icon icon="play" />
+            <Icon icon="recycle" />
           </b-button>
           <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Shuffle" @click="shuffleNow">
             <Icon icon="random" />
@@ -163,12 +163,6 @@
 
       const playNow = () => {
         if (!album.value) return
-        const currentTrack = playerStore.track
-        const isAlbumTrack =
-          !!currentTrack &&
-          (currentTrack.albumId === album.value.id ||
-            album.value.tracks?.some(t => t.id === currentTrack.id))
-        if (isAlbumTrack) return playerStore.playPause()
         if (album.value.tracks?.length) return playerStore.playNow(album.value.tracks)
       }
 
