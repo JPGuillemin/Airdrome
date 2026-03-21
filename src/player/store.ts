@@ -7,34 +7,97 @@ import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 
+// ---------------------------------------------------------------------------
+// Migration – clean up keys that are no longer used
+// ---------------------------------------------------------------------------
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
 localStorage.removeItem('queueIndex')
 
+// ---------------------------------------------------------------------------
+// Module-level singletons
+// ---------------------------------------------------------------------------
+// These are created once and shared across the whole app lifetime.
+// Placing them outside the store avoids re-creation on hot-reload.
+
+/** Volume restored from localStorage, default 1.0. */
 const storedVolume = parseFloat(localStorage.getItem('player.volume') || '1.0')
+
+/** ReplayGain mode restored from localStorage, default None (0). */
 const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMode') ?? '0')
+
+/** Browser MediaSession API (undefined on unsupported browsers). */
 const mediaSession: MediaSession | undefined = navigator.mediaSession
+
+/** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
+
+// These two rate constants are used to communicate playback state to the
+// MediaSession API via setPositionState(). The spec requires playbackRate > 0
+// even when paused, so a near-zero value is used instead of 0.
 const pauseRate = 0.00001
 const playRate = 1.0
 
+// ---------------------------------------------------------------------------
+// Pinia store
+// ---------------------------------------------------------------------------
+
 export const usePlayerStore = defineStore('player', {
+  // ── State ─────────────────────────────────────────────────────────────────
   state: () => ({
+    /** Ordered list of tracks in the current playback queue. */
     queue: [] as Track[],
+
+    /** Index of the currently playing track within queue (-1 = nothing loaded). */
     queueIndex: -1,
+
+    /** Duration of the current track in seconds (from audio metadata). */
     duration: 0.0,
+
+    /** Current playback position in seconds, updated on every timeupdate event. */
     currentTime: 0.0,
+
+    /**
+     * Logical playback rate forwarded to the MediaSession API.
+     * Uses pauseRate (≈0) when paused so the position state remains valid.
+     */
     playbackRate: pauseRate,
+
+    /** Active ReplayGain normalisation mode. */
     replayGainMode: storedReplayGainMode as ReplayGainMode,
+
+    /** Whether the queue loops back to the beginning when it reaches the end. */
     repeat: localStorage.getItem('player.repeat') === 'true',
+
+    /** Whether the queue was shuffled when loaded. */
     shuffle: localStorage.getItem('player.shuffle') === 'true',
+
+    /** Master volume (0–1). */
     volume: storedVolume,
+
+    /** True while the audio element is actively playing. */
     isPlaying: false,
+
+    /** True once the current track has been scrobbled (sent to the API). */
     scrobbled: false,
+
+    /**
+     * True when the user explicitly paused.
+     * Used by the mobile auto-resume logic to avoid resuming after an
+     * OS-level interruption if the user had intentionally paused.
+     */
     wasPaused: true,
+
+    /**
+     * Holds the track that was auto-skipped near its end so that the
+     * watcher doesn't trigger next() a second time on the same track.
+     */
     skippedTrack: null as Track | null
   }),
+
+  // ── Getters ───────────────────────────────────────────────────────────────
   getters: {
+    /** Currently active track, or null when the queue is empty / not started. */
     track(): Track | null {
       if (this.queue && this.queueIndex !== -1) {
         return this.queue[this.queueIndex]
@@ -42,6 +105,7 @@ export const usePlayerStore = defineStore('player', {
       return null
     },
 
+    /** The track that will play after the current one (wraps around). */
     nextTrack(): Track | null {
       if (this.queue && this.queue.length > 0) {
         const next = (this.queueIndex + 1) % this.queue.length
@@ -50,10 +114,15 @@ export const usePlayerStore = defineStore('player', {
       return null
     },
 
+    /** Shorthand for the current track's ID (null when nothing is loaded). */
     trackId(): string | null {
       return this.track?.id ?? null
     },
 
+    /**
+     * Current playback position clamped to [0, duration].
+     * Returns 0 when duration is unknown.
+     */
     progress(): number {
       if (this.duration > 0) {
         return Math.min(this.currentTime, this.duration)
@@ -61,25 +130,41 @@ export const usePlayerStore = defineStore('player', {
       return 0
     },
 
+    /** True when there is at least one more track after the current one. */
     hasNext(): boolean {
       return !!this.queue && (this.queueIndex < this.queue.length - 1)
     },
 
+    /** True when the current track is not the first in the queue. */
     hasPrevious(): boolean {
       return this.queueIndex > 0
     },
   },
+
+  // ── Actions ───────────────────────────────────────────────────────────────
   actions: {
+    /**
+     * Replace the queue with `tracks` and start playing from the first track.
+     * Shuffle is disabled so the order matches what was passed in.
+     */
     async playNow(tracks: Track[]) {
       this.setShuffle(false)
       await this.playTrackList(tracks, 0)
     },
 
+    /**
+     * Replace the queue with a shuffled version of `tracks` and start playing.
+     * A random starting track is chosen by playTrackList when index is omitted.
+     */
     async shuffleNow(tracks: Track[]) {
       this.setShuffle(true)
       await this.playTrackList(tracks)
     },
 
+    /**
+     * Jump to a specific queue position without replacing the queue.
+     * Pre-loads the next track's URL into the audio buffer.
+     */
     async playTrackListIndex(index: number) {
       this.setQueueIndex(index)
       const track = this.track
@@ -93,15 +178,24 @@ export const usePlayerStore = defineStore('player', {
       })
     },
 
+    /**
+     * Replace the queue (unless it already contains the same tracks) and
+     * start playback from the given index.
+     *
+     * When shuffle is enabled the track list is shuffled in-place so the
+     * chosen starting track ends up at index 0.
+     */
     async playTrackList(tracks: Track[], index?: number) {
       if (index == null) {
+        // Pick a random start position when shuffling, otherwise start at 0
         index = this.shuffle ? Math.floor(Math.random() * tracks.length) : 0
       }
       if (this.shuffle) {
         tracks = [...tracks]
-        shuffle(tracks, index)
+        shuffle(tracks, index) // Moves the chosen track to position 0
         index = 0
       }
+      // Avoid resetting the queue if the contents haven't changed
       if (!trackListEquals(this.queue || [], tracks)) {
         this.setQueue(tracks)
       }
@@ -117,18 +211,21 @@ export const usePlayerStore = defineStore('player', {
       })
     },
 
+    /** Resume playback and update the MediaSession position state. */
     async play() {
       this.setMediaSessionPosition(undefined, playRate, undefined)
       this.wasPaused = false
       await audio.play()
     },
 
+    /** Pause playback and update the MediaSession position state. */
     async pause() {
       this.setMediaSessionPosition(undefined, pauseRate, undefined)
       this.wasPaused = true
       await audio.pause()
     },
 
+    /** Toggle between play and pause. */
     async playPause() {
       if (this.isPlaying === true) {
         return this.pause()
@@ -137,6 +234,14 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Advance to the next track.
+     *
+     * @param doFade - Whether to cross-fade into the next track.
+     *
+     * If there is no next track and repeat is off, processQueueEnd() is called
+     * which may hand off to the radio store for auto-continuation.
+     */
     async next(doFade: boolean) {
       this.setMediaSessionPosition(undefined, undefined, 0)
       if (this.hasNext || this.repeat) {
@@ -155,6 +260,12 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Go back to the previous track.
+     *
+     * If the current track has been playing for more than 3 seconds, restart
+     * it instead of jumping to the previous one (standard "back" behaviour).
+     */
     async previous() {
       this.setMediaSessionPosition(undefined, undefined, 0)
       this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
@@ -169,10 +280,15 @@ export const usePlayerStore = defineStore('player', {
       })
     },
 
+    /** Seek to an absolute position in seconds. */
     async seek(position: number) {
       await audio.seek(position)
     },
 
+    /**
+     * Restore the play queue from the server (saved on the previous session).
+     * The track is loaded in a paused state and seeked to the saved position.
+     */
     async loadQueue() {
       const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
       if (!tracks) {
@@ -188,11 +304,15 @@ export const usePlayerStore = defineStore('player', {
         replayGain: track.replayGain,
         nextUrl: nextTrack?.url,
         fade: true,
-        paused: true
+        paused: true // Don't auto-play on restore
       })
       await audio.seek(currentTrackPosition)
     },
 
+    /**
+     * Restart the queue from index 0 without changing the track list.
+     * Used when radio continuation fails and there is no fallback.
+     */
     async resetQueue() {
       if (!this.queue.length || !this.track?.url) {
         this.setQueueIndex(-1)
@@ -211,11 +331,16 @@ export const usePlayerStore = defineStore('player', {
       })
     },
 
+    /**
+     * Remove all tracks from the queue except the currently playing one.
+     * If there is only one track, stop the audio and clear the queue entirely.
+     */
     async clearQueue() {
       if (!this.queue) {
         return
       }
       if (this.queue.length > 1) {
+        // Keep only the active track
         this.setQueue([this.queue[this.queueIndex]])
         this.setQueueIndex(0)
       } else {
@@ -225,6 +350,12 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Push the current playback position to the MediaSession API so that
+     * lock-screen / notification controls show an accurate scrubber.
+     *
+     * All parameters are optional; current store values are used as fallbacks.
+     */
     async setMediaSessionPosition(duration?: number, rate?: number, position?: number) {
       if (!navigator.mediaSession) return
       duration ??= this.duration
@@ -233,10 +364,15 @@ export const usePlayerStore = defineStore('player', {
       navigator.mediaSession.setPositionState({
         duration,
         playbackRate: rate,
-        position: Math.min(position, duration),
+        position: Math.min(position, duration), // position must not exceed duration
       })
     },
 
+    /**
+     * Append tracks to the end of the queue.
+     * Deduplicates the trivial case of adding the same single track twice.
+     * In shuffle mode the tracks are randomised before appending.
+     */
     addToQueue(tracks: Track[]) {
       const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
       if (tracks.length === 1 && tracks[0].id === lastTrack?.id) {
@@ -245,6 +381,10 @@ export const usePlayerStore = defineStore('player', {
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
     },
 
+    /**
+     * Insert tracks immediately after the current queue position so they play
+     * next. Deduplicates if the same single track is already queued next.
+     */
     setNextInQueue(tracks: Track[]) {
       if (tracks.length === 1 && tracks[0].id === this.nextTrack?.id) {
         return
@@ -252,6 +392,11 @@ export const usePlayerStore = defineStore('player', {
       this.queue?.splice(this.queueIndex + 1, 0, ...(this.shuffle ? shuffled(tracks) : tracks))
     },
 
+    /**
+     * Remove a track at the given queue index.
+     * Adjusts queueIndex to keep the current track pointer correct when a
+     * track before the current one is removed.
+     */
     removeFromQueue(index: number) {
       this.queue?.splice(index, 1)
       if (index < this.queueIndex) {
@@ -259,6 +404,10 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Re-shuffle the entire queue, moving the current track to index 0 so
+     * playback is uninterrupted.
+     */
     shuffleQueue() {
       if (this.queue && this.queue.length > 0) {
         this.queue = shuffled(this.queue, this.queueIndex)
@@ -266,6 +415,10 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Cycle through ReplayGain modes (None → Track → Album → None …).
+     * Persists the new mode to localStorage.
+     */
     toggleReplayGain() {
       const mode = (this.replayGainMode + 1) % ReplayGainMode._Length
       audio.setReplayGainMode(mode)
@@ -273,31 +426,41 @@ export const usePlayerStore = defineStore('player', {
       localStorage.setItem('player.replayGainMode', `${mode}`)
     },
 
+    /** Toggle queue repeat and persist to localStorage. */
     toggleRepeat() {
       this.repeat = !this.repeat
       localStorage.setItem('player.repeat', String(this.repeat))
     },
 
+    /** Toggle shuffle mode via setShuffle. */
     toggleShuffle() {
       this.setShuffle(!this.shuffle)
     },
 
+    /** Set master volume, apply to audio controller, persist to localStorage. */
     setVolume(volume: number) {
       audio.setVolume(volume)
       this.volume = volume
       localStorage.setItem('player.volume', String(volume))
     },
 
+    /** Set the shuffle flag and persist to localStorage. */
     setShuffle(toggle: boolean) {
       this.shuffle = toggle
       localStorage.setItem('player.shuffle', String(toggle))
     },
 
+    /** Replace the queue and reset the index to -1. */
     setQueue(queue: Track[]) {
       this.queue = queue
       this.queueIndex = -1
     },
 
+    /**
+     * Called when the queue has no more tracks.
+     * Hands off to the radio store to continue playback from the last track.
+     * Falls back to resetQueue() if radio continuation is unavailable.
+     */
     async processQueueEnd() {
       const track = this.track
       if (!track?.url) return
@@ -310,6 +473,14 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * Update queueIndex and refresh track-level metadata (duration, MediaSession).
+     *
+     * Handles edge cases:
+     *  - Empty queue → index set to -1
+     *  - Index past end with repeat on → wraps to 0
+     *  - Index past end with repeat off → stays at last track (no wrap)
+     */
     setQueueIndex(index: number) {
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
@@ -319,22 +490,28 @@ export const usePlayerStore = defineStore('player', {
         }
         return
       }
-      index = Math.max(0, index)
+      index = Math.max(0, index) // Guard against negative indices
       if (index >= this.queue.length) {
         if (this.repeat) {
-          index = 0
+          index = 0 // Loop back to start
         } else {
+          // Stay on the last track; do not advance
           this.queueIndex = this.queue.length - 1
           return
         }
       }
       this.queueIndex = index
       if (!this.track) return
+
+      // Reset scrobble flag so the new track can be scrobbled
       this.scrobbled = false
       this.duration = this.track.duration
+
+      // Update lock-screen / notification metadata
       if (mediaSession) {
         const artwork: MediaImage[] = [];
         if (this.track.image) {
+          // Provide artwork at multiple resolutions for different OS contexts
           artwork.push(
             { src: this.track.image, sizes: '96x96', type: 'image/png' },
             { src: this.track.image, sizes: '128x128', type: 'image/png' },
@@ -356,35 +533,63 @@ export const usePlayerStore = defineStore('player', {
   },
 })
 
-export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>) {
+// ---------------------------------------------------------------------------
+// setupAudio
+// ---------------------------------------------------------------------------
+// Called once at app startup to wire the AudioController events to the store
+// and register MediaSession action handlers.
+
+export function setupAudio(
+  playerStore: ReturnType<typeof usePlayerStore>,
+  mainStore: ReturnType<typeof useMainStore>
+) {
+  // Detect mobile (touch-primary) devices for the auto-resume logic below
   const isMobile =
     matchMedia('(pointer: coarse)').matches &&
     navigator.maxTouchPoints > 0
 
+  // ---------------------------------------------------------------------------
+  // Mobile auto-resume
+  // ---------------------------------------------------------------------------
+  // On iOS/Android the AudioContext is suspended when the browser tab goes to
+  // the background. When the tab becomes visible again we poll until the audio
+  // resumes by itself or we force a reload from the server queue.
+
   let resumeToken = false
+
   function autoResume() {
+    // Only attempt auto-resume on mobile, when the user didn't pause manually,
+    // and when the page is currently visible
     if (!isMobile || playerStore.wasPaused || resumeToken || document.visibilityState !== 'visible') return
 
     resumeToken = true
 
     const interval = setInterval(async () => {
       if (playerStore.isPlaying === true) {
+        // Audio resumed on its own – cancel the polling loop
         clearInterval(interval)
         resumeToken = false
         return
       }
 
       try {
+        // Re-load from the server queue and re-start playback
         await playerStore.loadQueue()
         await playerStore.play()
       } catch {}
     }, 2000)
   }
 
+  // ---------------------------------------------------------------------------
+  // Audio event forwarding
+  // ---------------------------------------------------------------------------
+
+  // Throttle MediaSession position updates to 2/s to avoid excessive overhead
   const throttledMediaSessionUpdate = throttle(() => {
     void playerStore.setMediaSessionPosition(undefined, undefined, playerStore.currentTime)
   }, 500)
 
+  /** Forward the audio element's timeupdate to the store and MediaSession. */
   audio.ontimeupdate = (time: number) => {
     playerStore.currentTime = time
     throttledMediaSessionUpdate()
@@ -395,29 +600,30 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     playerStore.setMediaSessionPosition()
   }
 
+  // ---------------------------------------------------------------------------
+  // Page lifecycle
+  // ---------------------------------------------------------------------------
+
+  /** On unload: pause, then persist the queue position to the server. */
   window.addEventListener('beforeunload', () => {
     playerStore.pause()
     const queue = playerStore.queue
     const track = playerStore.track
     const currentTime = playerStore.currentTime
     const duration = playerStore.duration
-    playerStore.setMediaSessionPosition(
-      duration,
-      pauseRate,
-      0
-    )
+    // Reset position indicator to 0 so the lock screen doesn't show stale progress
+    playerStore.setMediaSessionPosition(duration, pauseRate, 0)
     if (navigator.onLine && queue && track) {
-      playerStore.api.savePlayQueue(
-        queue,
-        track,
-        Math.trunc(currentTime)
-      )
-        .catch(err => {
-          console.info('savePlayQueue aborted:', err)
-        })
+      playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
+        .catch(err => { console.info('savePlayQueue aborted:', err) })
     }
   })
 
+  // ---------------------------------------------------------------------------
+  // Playback event handlers
+  // ---------------------------------------------------------------------------
+
+  /** When a track finishes naturally, advance to the next one or end the queue. */
   audio.onended = async () => {
     const { hasNext, repeat } = playerStore
     if (hasNext || repeat) {
@@ -435,7 +641,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.onpause = () => {
     playerStore.isPlaying = false
     if (mediaSession) mediaSession.playbackState = 'paused'
-    autoResume()
+    autoResume() // Kick off polling if this was an OS-level pause
   }
 
   audio.onsuspend = () => {
@@ -444,6 +650,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     autoResume()
   }
 
+  /** On audio error: log, skip to next track (or reset), and surface to the UI. */
   audio.onerror = (error: any) => {
     console.warn('[Audio error]', error)
 
@@ -456,10 +663,14 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     mainStore.setError(error)
   }
 
-  audio.setReplayGainMode(storedReplayGainMode)
+  // ---------------------------------------------------------------------------
+  // Initialise audio controller with persisted settings
+  // ---------------------------------------------------------------------------
 
+  audio.setReplayGainMode(storedReplayGainMode)
   audio.setVolume(storedVolume)
 
+  // Restore the track that was playing when the page was last open (paused)
   const track = playerStore.track
   const nextTrack = playerStore.nextTrack
   if (track) {
@@ -471,68 +682,84 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     })
   }
 
+  // ---------------------------------------------------------------------------
+  // MediaSession action handlers
+  // ---------------------------------------------------------------------------
+  // These allow OS media controls (lock screen, headphone buttons, etc.)
+  // to control playback.
+
   if (mediaSession) {
-    mediaSession.setActionHandler('play', () => {
-      playerStore.play()
-    })
-    mediaSession.setActionHandler('pause', () => {
-      playerStore.pause()
-    })
-    mediaSession.setActionHandler('nexttrack', () => {
-      playerStore.next(true)
-    })
-    mediaSession.setActionHandler('previoustrack', () => {
-      playerStore.previous()
-    })
-    mediaSession.setActionHandler('stop', () => {
-      playerStore.pause()
-    })
+    mediaSession.setActionHandler('play', () => { playerStore.play() })
+    mediaSession.setActionHandler('pause', () => { playerStore.pause() })
+    mediaSession.setActionHandler('nexttrack', () => { playerStore.next(true) })
+    mediaSession.setActionHandler('previoustrack', () => { playerStore.previous() })
+    mediaSession.setActionHandler('stop', () => { playerStore.pause() })
+
     mediaSession.setActionHandler('seekto', async (details) => {
+      // fastSeek is a hint that the browser is still scrubbing; skip those
       if (details.fastSeek || details.seekTime === undefined) return
       const position = Math.min(details.seekTime, playerStore.duration)
       await audio.seek(position)
     })
+
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
       playerStore.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
     })
+
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
       playerStore.seek(Math.max(playerStore.currentTime - offset, 0))
     })
   }
 
+  // ---------------------------------------------------------------------------
+  // Reactive watchers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Watch the playback position to handle two concerns:
+   *
+   * 1. Auto-skip: When fewer than 250 ms remain and there is a next track,
+   *    advance early so there is no audible gap between tracks.
+   *
+   * 2. Scrobbling: Once the user has listened to more than 50% of a track,
+   *    report a play to the server (Last.fm-style scrobble).
+   */
   watch(
     () => playerStore.currentTime,
     async (time) => {
       const track = playerStore.track
       const isPlaying = playerStore.isPlaying
 
+      // Ignore the first 20 s to avoid false triggers on seek or slow loads
       if (!track || !isPlaying || time < 20) return
 
-      // autoplay next
+      // ── Auto-skip ──────────────────────────────────────────────────────
       const duration = playerStore.duration
       const remaining = duration - time
       if (remaining < 0.25 && playerStore.hasNext) {
+        // Guard: only skip once per track
         if (playerStore.skippedTrack === track) return
         playerStore.skippedTrack = track
-        await playerStore.next(false)
+        await playerStore.next(false) // No fade – the gapless buffer handles the transition
         return
       }
 
-      // scrobble logic
+      // ── Scrobble ───────────────────────────────────────────────────────
       const progress = duration ? time / duration : 0
-      if (
-        !playerStore.scrobbled &&
-        progress > 0.5 &&
-        track &&
-        isPlaying === true
-      ) {
+      if (!playerStore.scrobbled && progress > 0.5 && track && isPlaying === true) {
         playerStore.scrobbled = true
         playerStore.api.scrobble(track.id)
       }
     }
   )
+
+  // ---------------------------------------------------------------------------
+  // Periodic queue persistence
+  // ---------------------------------------------------------------------------
+  // Save the play queue to the server every 10 s so the position can be
+  // restored on the next page load or on another device.
 
   setInterval(() => {
     const track = playerStore.track
@@ -541,14 +768,7 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
     if (!track || !queue) return
 
     const currentTime = playerStore.currentTime
-    playerStore.api.savePlayQueue(
-      queue,
-      track,
-      Math.trunc(currentTime)
-    )
-      .catch(err => {
-        console.info('savePlayQueue aborted:', err)
-      }
-    )
+    playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
+      .catch(err => { console.info('savePlayQueue aborted:', err) })
   }, 10000)
 }

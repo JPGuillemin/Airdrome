@@ -82,13 +82,13 @@
       const allTracks = computed(() => playerStore.queue)
       const queueIndex = computed(() => playerStore.queueIndex)
 
-      function reset() {
+      const reset = () => {
         visibleTracks.value = []
         nextIndex.value = 0
         hasMore.value = true
       }
 
-      function appendNextChunk() {
+      const appendNextChunk = () => {
         const nextChunk = allTracks.value.slice(
           nextIndex.value,
           nextIndex.value + chunkSize.value
@@ -98,11 +98,11 @@
         hasMore.value = nextIndex.value < allTracks.value.length
       }
 
-      function loadMore() {
+      const loadMore = () => {
         appendNextChunk()
       }
 
-      function play(index: number) {
+      const play = (index: number) => {
         playerStore.setShuffle(false)
         if (index === queueIndex.value) {
           return playerStore.play()
@@ -110,11 +110,11 @@
         return playerStore.playTrackListIndex(index)
       }
 
-      function remove(index: number) {
+      const remove = (index: number) => {
         playerStore.removeFromQueue(index)
       }
 
-      async function clear() {
+      const clear = async() => {
         if (!confirmDialog.value) return
 
         const userConfirmed = await confirmDialog.value.open(
@@ -125,7 +125,7 @@
         playerStore.clearQueue()
       }
 
-      function shuffle() {
+      const shuffle = () => {
         playerStore.shuffleQueue()
       }
 
