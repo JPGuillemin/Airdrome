@@ -77,6 +77,21 @@ export class AudioController {
 
   private pipeline: AudioPipeline | null = null
 
+
+  private get activePipeline(): AudioPipeline {
+    if (!this.pipeline) {
+      this.pipeline = createPipeline(this.context, {})
+    }
+    return this.pipeline
+  }
+
+  private get context(): AudioContext {
+    if (!this._context) {
+      this._context = new AudioContext()
+    }
+    return this._context
+  }
+
   // ── Callbacks (assigned by the store via setupAudio) ─────────────────────
   ontimeupdate = (_: number) => {}
   ondurationchange = (_: number) => {}
@@ -296,20 +311,6 @@ export class AudioController {
   private replacePipeline(next: AudioPipeline) {
     this.disposePipeline(this.activePipeline)
     this.pipeline = next
-  }
-
-  private get activePipeline(): AudioPipeline {
-    if (!this.pipeline) {
-      this.pipeline = createPipeline(this.context, {})
-    }
-    return this.pipeline
-  }
-
-  private get context(): AudioContext {
-    if (!this._context) {
-      this._context = new AudioContext()
-    }
-    return this._context
   }
 
   /**

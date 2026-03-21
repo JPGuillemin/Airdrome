@@ -267,17 +267,21 @@ export const usePlayerStore = defineStore('player', {
      * it instead of jumping to the previous one (standard "back" behaviour).
      */
     async previous() {
+      if (this.currentTime > 3) {
+        await audio.seek(0)
+      } else {
+        this.setQueueIndex(this.queueIndex - 1)
+        const track = this.track
+        const nextTrack = this.nextTrack
+        if (!track) return
+        await audio.loadTrack({
+          url: track.url,
+          replayGain: track.replayGain,
+          nextUrl: nextTrack?.url,
+          fade: true
+        })
+      }
       this.setMediaSessionPosition(undefined, undefined, 0)
-      this.setQueueIndex(this.currentTime > 3 ? this.queueIndex : this.queueIndex - 1)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true
-      })
     },
 
     /** Seek to an absolute position in seconds. */
