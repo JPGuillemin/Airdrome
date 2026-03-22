@@ -28,13 +28,13 @@ const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMod
 
 /** Browser MediaSession API (undefined on unsupported browsers). */
 const mediaSession: MediaSession | undefined = navigator.mediaSession
+if (mediaSession) mediaSession.playbackState = 'none'
 
 /** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
 
-// The spec requires playbackRate > 0
-// even when paused, so a near-zero value is used instead of 0.
-const playbackRate = 0.00001
+// Pseudo 0 for things that have to be null, but can't
+const nearNull = 0.00001
 
 // ---------------------------------------------------------------------------
 // Pinia store
@@ -349,15 +349,14 @@ export const usePlayerStore = defineStore('player', {
      *
      * All parameters are optional; current store values are used as fallbacks.
      */
-    async setMediaSessionPosition(duration?: number, position?: number) {
+    async setMediaSessionPosition(_duration?: number, _position?: number) {
       if (!navigator.mediaSession) return
-      duration ??= this.duration
-      position ??= this.currentTime
-      if (!Number.isFinite(duration) || duration <= 0) duration = 1
+      _duration ??= this.duration
+      _position ??= this.currentTime
       navigator.mediaSession.setPositionState({
-        duration,
-        playbackRate,
-        position: Math.max(0, Math.min(position, duration))
+        duration: _duration,
+        playbackRate: nearNull,
+        position: _position
       })
     },
 
@@ -607,6 +606,7 @@ export function setupAudio(
     const duration = playerStore.duration
     // Reset position indicator to 0 so the lock screen doesn't show stale progress
     playerStore.setMediaSessionPosition(duration, currentTime)
+    if (mediaSession) mediaSession.playbackState = 'none'
     if (navigator.onLine && queue && track) {
       playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
         .catch(err => { console.info('savePlayQueue aborted:', err) })
