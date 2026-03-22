@@ -8,7 +8,7 @@ import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 
 // ---------------------------------------------------------------------------
-// Migration – clean up keys that are no longer used
+// Clean up keys that are no longer used
 // ---------------------------------------------------------------------------
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -237,12 +237,12 @@ export const usePlayerStore = defineStore('player', {
     /**
      * Advance to the next track.
      *
-     * @param doFade - Whether to cross-fade into the next track.
+     * @param fade - Whether to cross-fade into the next track.
      *
      * If there is no next track and repeat is off, processQueueEnd() is called
      * which may hand off to the radio store for auto-continuation.
      */
-    async next(doFade: boolean) {
+    async next(fade = true) {
       this.setMediaSessionPosition(undefined, undefined, 0)
       if (this.hasNext || this.repeat) {
         this.setQueueIndex(this.queueIndex + 1)
@@ -253,7 +253,7 @@ export const usePlayerStore = defineStore('player', {
           url: track.url,
           replayGain: track.replayGain,
           nextUrl: nextTrack?.url,
-          fade: doFade
+          fade
         })
       } else {
         await this.processQueueEnd()
@@ -264,9 +264,9 @@ export const usePlayerStore = defineStore('player', {
      * Go back to the previous track.
      *
      * If the current track has been playing for more than 3 seconds, restart
-     * it instead of jumping to the previous one (standard "back" behaviour).
+     * it instead of jumping to the previous one.
      */
-    async previous() {
+    async back() {
       if (this.currentTime > 3) {
         await audio.seek(0)
       } else {
@@ -509,7 +509,10 @@ export const usePlayerStore = defineStore('player', {
 
       // Reset scrobble flag so the new track can be scrobbled
       this.scrobbled = false
+
+      // Initialize this.duration & this.currentTime
       this.duration = this.track.duration
+      this.currentTime = 0
 
       // Update lock-screen / notification metadata
       if (mediaSession) {
@@ -654,18 +657,50 @@ export function setupAudio(
     autoResume()
   }
 
-  /** On audio error: log, skip to next track (or reset), and surface to the UI. */
+  /**
+   * Fatal errors only (ABORTED / SRC_NOT_SUPPORTED).
+   * Transient network/decode errors are retried internally by AudioController;
+   * this fires only once all retries are exhausted via onfailed below,
+   * or immediately for errors that are never worth retrying.
+   */
   audio.onerror = (error: any) => {
-    console.warn('[Audio error]', error)
-
-    if (playerStore.hasNext) {
-      playerStore.next(true)
-    } else {
-      playerStore.resetQueue()
-    }
-
+    console.warn('[Audio] Fatal error', error)
     mainStore.setError(error)
+    // Skip the broken track rather than looping forever on it.
+    if (playerStore.hasNext) {
+      void playerStore.next(true)
+    } else if (playerStore.hasPrevious) {
+      void playerStore.back()
+    } else {
+      void playerStore.resetQueue()
+    }
   }
+
+  /** Fired by AudioController after every retry delay. */
+  audio.onretrying = (attempt: number, max: number) => {
+    console.info(`[Audio] Network error – retrying (${attempt}/${max})…`)
+  }
+
+  /** All retries exhausted without a successful load */
+  audio.onfailed = () => {
+    console.warn('[Audio] Retries exhausted, waiting for network')
+  }
+
+  /** Stall watchdog armed – nothing to do in the store beyond logging. */
+  audio.onstalled = () => {
+    console.info('[Audio] Playback stalled, watchdog armed')
+  }
+
+  /**
+   * When the browser goes back online, immediately retry if we're supposed
+   * to be playing (the user didn't deliberately pause).
+   */
+  window.addEventListener('online', () => {
+    if (!playerStore.wasPaused) {
+      console.info('[Audio] Network restored – retrying current track')
+      audio.retryCurrentTrack()
+    }
+  })
 
   // ---------------------------------------------------------------------------
   // Initialise audio controller with persisted settings
@@ -696,7 +731,7 @@ export function setupAudio(
     mediaSession.setActionHandler('play', () => { playerStore.play() })
     mediaSession.setActionHandler('pause', () => { playerStore.pause() })
     mediaSession.setActionHandler('nexttrack', () => { playerStore.next(true) })
-    mediaSession.setActionHandler('previoustrack', () => { playerStore.previous() })
+    mediaSession.setActionHandler('previoustrack', () => { playerStore.back() })
     mediaSession.setActionHandler('stop', () => { playerStore.pause() })
 
     mediaSession.setActionHandler('seekto', async (details) => {

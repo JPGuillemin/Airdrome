@@ -90,7 +90,7 @@
 
             <!-- transport -->
             <div class="col-auto pb-3 d-flex align-items-center">
-              <b-button variant="transparent" class="mx-0 btn-skip" @click="previous">
+              <b-button variant="transparent" class="mx-0 btn-skip" @click="back">
                 <Icon icon="skip-start" />
               </b-button>
 
@@ -333,7 +333,7 @@
 
       function playPause() { playerStore.playPause() }
       function next() { playerStore.next(true) }
-      function previous() { playerStore.previous() }
+      function back() { playerStore.back() }
       function toggleReplayGain() { playerStore.toggleReplayGain() }
       function toggleRepeat() { playerStore.toggleRepeat() }
       function toggleFavourite() {
@@ -366,7 +366,7 @@
         formatter,
         playPause,
         next,
-        previous,
+        back,
         toggleReplayGain,
         toggleRepeat,
         toggleFavourite,
