@@ -32,11 +32,9 @@ const mediaSession: MediaSession | undefined = navigator.mediaSession
 /** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
 
-// These two rate constants are used to communicate playback state to the
-// MediaSession API via setPositionState(). The spec requires playbackRate > 0
+// The spec requires playbackRate > 0
 // even when paused, so a near-zero value is used instead of 0.
-const pauseRate = 0.00001
-const playRate = 1.0
+const playbackRate = 0.00001
 
 // ---------------------------------------------------------------------------
 // Pinia store
@@ -56,12 +54,6 @@ export const usePlayerStore = defineStore('player', {
 
     /** Current playback position in seconds, updated on every timeupdate event. */
     currentTime: 0.0,
-
-    /**
-     * Logical playback rate forwarded to the MediaSession API.
-     * Uses pauseRate (≈0) when paused so the position state remains valid.
-     */
-    playbackRate: pauseRate,
 
     /** Active ReplayGain normalisation mode. */
     replayGainMode: storedReplayGainMode as ReplayGainMode,
@@ -213,14 +205,12 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      this.setMediaSessionPosition(undefined, playRate, undefined)
       this.wasPaused = false
       await audio.play()
     },
 
     /** Pause playback and update the MediaSession position state. */
     async pause() {
-      this.setMediaSessionPosition(undefined, pauseRate, undefined)
       this.wasPaused = true
       await audio.pause()
     },
@@ -243,7 +233,6 @@ export const usePlayerStore = defineStore('player', {
      * which may hand off to the radio store for auto-continuation.
      */
     async next(fade = true) {
-      this.setMediaSessionPosition(undefined, undefined, 0)
       if (this.hasNext || this.repeat) {
         this.setQueueIndex(this.queueIndex + 1)
         const track = this.track
@@ -255,6 +244,7 @@ export const usePlayerStore = defineStore('player', {
           nextUrl: nextTrack?.url,
           fade
         })
+        await this.seek(0)
       } else {
         await this.processQueueEnd()
       }
@@ -268,7 +258,7 @@ export const usePlayerStore = defineStore('player', {
      */
     async back() {
       if (this.currentTime > 3) {
-        await audio.seek(0)
+        await this.seek(0)
       } else {
         this.setQueueIndex(this.queueIndex - 1)
         const track = this.track
@@ -281,7 +271,6 @@ export const usePlayerStore = defineStore('player', {
           fade: true
         })
       }
-      this.setMediaSessionPosition(undefined, undefined, 0)
     },
 
     /** Seek to an absolute position in seconds. */
@@ -310,7 +299,7 @@ export const usePlayerStore = defineStore('player', {
         fade: true,
         paused: true // Don't auto-play on restore
       })
-      await audio.seek(currentTrackPosition)
+      await this.seek(currentTrackPosition)
     },
 
     /**
@@ -360,15 +349,15 @@ export const usePlayerStore = defineStore('player', {
      *
      * All parameters are optional; current store values are used as fallbacks.
      */
-    async setMediaSessionPosition(duration?: number, rate?: number, position?: number) {
+    async setMediaSessionPosition(duration?: number, position?: number) {
       if (!navigator.mediaSession) return
       duration ??= this.duration
-      rate ??= this.playbackRate
       position ??= this.currentTime
+      if (!Number.isFinite(duration) || duration <= 0) duration = 1
       navigator.mediaSession.setPositionState({
         duration,
-        playbackRate: rate,
-        position: Math.min(position, duration), // position must not exceed duration
+        playbackRate,
+        position: Math.max(0, Math.min(position, duration))
       })
     },
 
@@ -535,7 +524,6 @@ export const usePlayerStore = defineStore('player', {
           artwork
         });
       }
-      this.setMediaSessionPosition(this.duration, playRate, this.currentTime)
     },
   },
 })
@@ -567,7 +555,7 @@ export function setupAudio(
   function autoResume() {
     // Only attempt auto-resume on mobile, when the user didn't pause manually,
     // and when the page is currently visible
-    if (!isMobile || playerStore.wasPaused || resumeToken || document.visibilityState !== 'visible') return
+    if (!isMobile || playerStore.wasPaused || resumeToken) return
 
     resumeToken = true
 
@@ -592,19 +580,18 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   // Throttle MediaSession position updates to 2/s to avoid excessive overhead
-  const throttledMediaSessionUpdate = throttle(() => {
-    void playerStore.setMediaSessionPosition(undefined, undefined, playerStore.currentTime)
-  }, 500)
+  const throttledTimeUpdate = throttle((time: number) => {
+    playerStore.currentTime = time
+    void playerStore.setMediaSessionPosition()
+  }, 100)
 
   /** Forward the audio element's timeupdate to the store and MediaSession. */
   audio.ontimeupdate = (time: number) => {
-    playerStore.currentTime = time
-    throttledMediaSessionUpdate()
+    throttledTimeUpdate(time)
   }
 
   audio.ondurationchange = (duration: number) => {
     playerStore.duration = duration
-    playerStore.setMediaSessionPosition()
   }
 
   // ---------------------------------------------------------------------------
@@ -619,7 +606,7 @@ export function setupAudio(
     const currentTime = playerStore.currentTime
     const duration = playerStore.duration
     // Reset position indicator to 0 so the lock screen doesn't show stale progress
-    playerStore.setMediaSessionPosition(duration, pauseRate, 0)
+    playerStore.setMediaSessionPosition(duration, currentTime)
     if (navigator.onLine && queue && track) {
       playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
         .catch(err => { console.info('savePlayQueue aborted:', err) })
@@ -654,7 +641,7 @@ export function setupAudio(
   audio.onsuspend = () => {
     playerStore.isPlaying = false
     if (mediaSession) mediaSession.playbackState = 'paused'
-    autoResume()
+    autoResume() // Kick off polling if this was an OS-level pause
   }
 
   /**
