@@ -4,10 +4,10 @@ $theme-elevation-2: #303030;
 $theme-elevation-3: #404040;
 $theme-elevation-4: #707070;
 $theme-text: #cccccc;
-$theme-text-muted: #707070;
+$theme-text-muted: #bfbfbf;
 
 // Bootstrap overrides
-$primary: #707070;
+$primary: $theme-text-muted;
 $danger: #ff4141;
 $secondary: $theme-elevation-2;
 

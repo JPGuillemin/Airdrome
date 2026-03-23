@@ -33,7 +33,7 @@ if (mediaSession) mediaSession.playbackState = 'none'
 /** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
 
-// Pseudo 0 for things that have to be null, but can't
+// MediaSession requires a non-zero playback rate; 1 = normal speed
 const mediaSessionProgressRate = 1
 
 // ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ export const usePlayerStore = defineStore('player', {
       this.wasPaused = true
       await audio.pause()
     },
-    
+
     async stop() {
       this.wasPaused = true
       await audio.stop()
@@ -223,7 +223,7 @@ export const usePlayerStore = defineStore('player', {
 
     /** Toggle between play and pause. */
     async playPause() {
-      if (this.isPlaying === true) {
+      if (this.isPlaying) {
         return this.pause()
       } else {
         return this.play()
@@ -287,6 +287,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.seek(position)
       await sleep(200)
       this.setMediaSessionPosition()
+      if (mediaSession && this.isPlaying) mediaSession.playbackState = 'playing'
     },
 
     /**
@@ -340,7 +341,7 @@ export const usePlayerStore = defineStore('player', {
      * If there is only one track, stop the audio and clear the queue entirely.
      */
     async clearQueue() {
-      if (!this.queue) {
+      if (!this.queue.length) {
         return
       }
       if (this.queue.length > 1) {
@@ -378,6 +379,7 @@ export const usePlayerStore = defineStore('player', {
      */
     addToQueue(tracks: Track[]) {
       const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
+      // Only dedup the trivial "same track added twice in a row" case
       if (tracks.length === 1 && tracks[0].id === lastTrack?.id) {
         return
       }
@@ -570,7 +572,7 @@ export function setupAudio(
     resumeToken = true
 
     const interval = setInterval(async () => {
-      if (playerStore.isPlaying === true) {
+      if (playerStore.isPlaying) {
         // Audio resumed on its own – cancel the polling loop
         clearInterval(interval)
         resumeToken = false
@@ -585,23 +587,46 @@ export function setupAudio(
     }, 2000)
   }
 
-  // ---------------------------------------------------------------------------
-  // Audio event forwarding
-  // ---------------------------------------------------------------------------
-
-  // Throttle MediaSession position updates to 2/s to avoid excessive overhead
-  const throttledTimeUpdate = throttle((time: number) => {
-    playerStore.currentTime = time
-    // void playerStore.setMediaSessionPosition()
-  }, 100)
-
-  /** Forward the audio element's timeupdate to the store and MediaSession. */
+  /**
+   * Watch the playback position to handle two concerns:
+   *
+   * 1. Auto-skip: When fewer than 250 ms remain and there is a next track,
+   *    advance early so there is no audible gap between tracks.
+   *
+   * 2. Scrobbling: Once the user has listened to more than 50% of a track,
+   *    report a play to the server (Last.fm-style scrobble).
+   */
   audio.ontimeupdate = (time: number) => {
-    throttledTimeUpdate(time)
+    playerStore.currentTime = time
+
+    const track = playerStore.track
+    const isPlaying = playerStore.isPlaying
+
+    // Ignore the first 20 s to avoid false triggers on seek or slow loads
+    if (!track || !isPlaying || time < 20) return
+
+    // ── Auto-skip ──────────────────────────────────────────────────────
+    const duration = playerStore.duration
+    const remaining = duration - time
+    if (remaining < 0.25 && playerStore.hasNext) {
+      // Guard: only skip once per track
+      if (playerStore.skippedTrack === track) return
+      playerStore.skippedTrack = track
+      playerStore.next(false) // No fade – the gapless buffer handles the transition
+      return
+    }
+
+    // ── Scrobble ───────────────────────────────────────────────────────
+    const progress = duration ? time / duration : 0
+    if (!playerStore.scrobbled && progress > 0.5 && track && isPlaying) {
+      playerStore.scrobbled = true
+      playerStore.api.scrobble(track.id)
+    }
   }
 
   audio.ondurationchange = (duration: number) => {
     playerStore.duration = duration
+    playerStore.setMediaSessionPosition()
   }
 
   // ---------------------------------------------------------------------------
@@ -739,61 +764,21 @@ export function setupAudio(
       // fastSeek is a hint that the browser is still scrubbing; skip those
       if (details.fastSeek || details.seekTime === undefined) return
       const position = Math.min(details.seekTime, playerStore.duration)
-      await audio.seek(position)
+      playerStore.seek(position)
     })
 
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
-      playerStore.seek(Math.min(playerStore.currentTime + offset, playerStore.duration))
+      const position = Math.min(playerStore.currentTime + offset, playerStore.duration)
+      playerStore.seek(position)
     })
 
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
-      playerStore.seek(Math.max(playerStore.currentTime - offset, 0))
+      const position = Math.max(playerStore.currentTime - offset, 0)
+      playerStore.seek(position)
     })
   }
-
-  // ---------------------------------------------------------------------------
-  // Reactive watchers
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Watch the playback position to handle two concerns:
-   *
-   * 1. Auto-skip: When fewer than 250 ms remain and there is a next track,
-   *    advance early so there is no audible gap between tracks.
-   *
-   * 2. Scrobbling: Once the user has listened to more than 50% of a track,
-   *    report a play to the server (Last.fm-style scrobble).
-   */
-  watch(
-    () => playerStore.currentTime,
-    async (time) => {
-      const track = playerStore.track
-      const isPlaying = playerStore.isPlaying
-
-      // Ignore the first 20 s to avoid false triggers on seek or slow loads
-      if (!track || !isPlaying || time < 20) return
-
-      // ── Auto-skip ──────────────────────────────────────────────────────
-      const duration = playerStore.duration
-      const remaining = duration - time
-      if (remaining < 0.25 && playerStore.hasNext) {
-        // Guard: only skip once per track
-        if (playerStore.skippedTrack === track) return
-        playerStore.skippedTrack = track
-        await playerStore.next(false) // No fade – the gapless buffer handles the transition
-        return
-      }
-
-      // ── Scrobble ───────────────────────────────────────────────────────
-      const progress = duration ? time / duration : 0
-      if (!playerStore.scrobbled && progress > 0.5 && track && isPlaying === true) {
-        playerStore.scrobbled = true
-        playerStore.api.scrobble(track.id)
-      }
-    }
-  )
 
   // ---------------------------------------------------------------------------
   // Periodic queue persistence
