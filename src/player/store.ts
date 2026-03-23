@@ -34,7 +34,7 @@ if (mediaSession) mediaSession.playbackState = 'none'
 const audio = new AudioController()
 
 // Pseudo 0 for things that have to be null, but can't
-const nearNull = 0.00001
+const mediaSessionProgressRate = 1
 
 // ---------------------------------------------------------------------------
 // Pinia store
@@ -214,6 +214,12 @@ export const usePlayerStore = defineStore('player', {
       this.wasPaused = true
       await audio.pause()
     },
+    
+    async stop() {
+      this.wasPaused = true
+      await audio.stop()
+      this.setMediaSessionPosition(0, 0)
+    },
 
     /** Toggle between play and pause. */
     async playPause() {
@@ -244,7 +250,8 @@ export const usePlayerStore = defineStore('player', {
           nextUrl: nextTrack?.url,
           fade
         })
-        await this.seek(0)
+        await sleep(200)
+        this.setMediaSessionPosition(this.duration, 0)
       } else {
         await this.processQueueEnd()
       }
@@ -270,12 +277,16 @@ export const usePlayerStore = defineStore('player', {
           nextUrl: nextTrack?.url,
           fade: true
         })
+        await sleep(200)
+        this.setMediaSessionPosition(this.duration, 0)
       }
     },
 
     /** Seek to an absolute position in seconds. */
     async seek(position: number) {
       await audio.seek(position)
+      await sleep(200)
+      this.setMediaSessionPosition()
     },
 
     /**
@@ -339,7 +350,7 @@ export const usePlayerStore = defineStore('player', {
       } else {
         this.setQueue([])
         this.setQueueIndex(-1)
-        await audio.stop()
+        await this.stop()
       }
     },
 
@@ -355,7 +366,7 @@ export const usePlayerStore = defineStore('player', {
       _position ??= this.currentTime
       navigator.mediaSession.setPositionState({
         duration: _duration,
-        playbackRate: nearNull,
+        playbackRate: mediaSessionProgressRate,
         position: _position
       })
     },
@@ -581,7 +592,7 @@ export function setupAudio(
   // Throttle MediaSession position updates to 2/s to avoid excessive overhead
   const throttledTimeUpdate = throttle((time: number) => {
     playerStore.currentTime = time
-    void playerStore.setMediaSessionPosition()
+    // void playerStore.setMediaSessionPosition()
   }, 100)
 
   /** Forward the audio element's timeupdate to the store and MediaSession. */
@@ -629,17 +640,20 @@ export function setupAudio(
 
   audio.onplay = () => {
     playerStore.isPlaying = true
+    playerStore.setMediaSessionPosition()
     if (mediaSession) mediaSession.playbackState = 'playing'
   }
 
   audio.onpause = () => {
     playerStore.isPlaying = false
+    playerStore.setMediaSessionPosition()
     if (mediaSession) mediaSession.playbackState = 'paused'
     autoResume() // Kick off polling if this was an OS-level pause
   }
 
   audio.onsuspend = () => {
     playerStore.isPlaying = false
+    playerStore.setMediaSessionPosition()
     if (mediaSession) mediaSession.playbackState = 'paused'
     autoResume() // Kick off polling if this was an OS-level pause
   }
