@@ -241,14 +241,14 @@ export const usePlayerStore = defineStore('player', {
 
         const track = this.track
         const nextTrack = this.nextTrack
-        if (!track) return
-
-        await audio.loadTrack({
-          url: track.url,
-          replayGain: track.replayGain,
-          nextUrl: nextTrack?.url,
-          fade
-        })
+        if (track) {
+          await audio.loadTrack({
+            url: track.url,
+            replayGain: track.replayGain,
+            nextUrl: nextTrack?.url,
+            fade
+          })
+        }
         this.inTransition = false
         await sleep(200)
         this.setMediaSessionPosition()
@@ -482,13 +482,14 @@ export const usePlayerStore = defineStore('player', {
     async processQueueEnd() {
       const track = this.track
       if (!track?.url) return
-
+      this.inTransition = true
       try {
         const radioStore = useRadioStore()
         await radioStore.continueFromTrack(track)
       } catch {
         this.resetQueue()
       }
+      this.inTransition = false
     },
 
     /**
