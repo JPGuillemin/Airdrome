@@ -153,16 +153,18 @@ export const usePlayerStore = defineStore('player', {
      * Pre-loads the next track's URL into the audio buffer.
      */
     async playTrackListIndex(index: number) {
+      this.inTransition = true
       this.setQueueIndex(index)
       const track = this.track
       const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true
-      })
+      if (track)
+        await audio.loadTrack({
+          url: track.url,
+          replayGain: track.replayGain,
+          nextUrl: nextTrack?.url,
+          fade: true
+        })
+      this.inTransition = false
     },
 
     /**
@@ -173,6 +175,7 @@ export const usePlayerStore = defineStore('player', {
      * chosen starting track ends up at index 0.
      */
     async playTrackList(tracks: Track[], index?: number) {
+      this.inTransition = true
       if (index == null) {
         // Pick a random start position when shuffling, otherwise start at 0
         index = this.shuffle ? Math.floor(Math.random() * tracks.length) : 0
@@ -189,13 +192,14 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(index)
       const track = this.track
       const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true
-      })
+      if (track)
+        await audio.loadTrack({
+          url: track.url,
+          replayGain: track.replayGain,
+          nextUrl: nextTrack?.url,
+          fade: true
+        })
+      this.inTransition = false
     },
 
     /** Resume playback and update the MediaSession position state. */
@@ -241,14 +245,13 @@ export const usePlayerStore = defineStore('player', {
 
         const track = this.track
         const nextTrack = this.nextTrack
-        if (track) {
+        if (track)
           await audio.loadTrack({
             url: track.url,
             replayGain: track.replayGain,
             nextUrl: nextTrack?.url,
             fade
           })
-        }
         this.inTransition = false
         await sleep(200)
         this.setMediaSessionPosition()
@@ -272,13 +275,13 @@ export const usePlayerStore = defineStore('player', {
         this.setQueueIndex(this.queueIndex - 1)
         const track = this.track
         const nextTrack = this.nextTrack
-        if (!track) return
-        await audio.loadTrack({
-          url: track.url,
-          replayGain: track.replayGain,
-          nextUrl: nextTrack?.url,
-          fade: true
-        })
+        if (track)
+          await audio.loadTrack({
+            url: track.url,
+            replayGain: track.replayGain,
+            nextUrl: nextTrack?.url,
+            fade: true
+          })
         this.inTransition = false
         await sleep(200)
         this.setMediaSessionPosition()

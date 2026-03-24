@@ -4,7 +4,7 @@
     :class="{ visible: track }"
   >
     <!-- visual layer (background + radius ONLY) -->
-    <div class="player-bg" @click="onBackgroundClick">
+    <div class="player-bg" @click.stop="onBackgroundClick">
       <!-- layout layer (NO clipping) -->
       <div class="player-content d-flex">
         <div class="flex-fill">
@@ -14,7 +14,7 @@
             class="slider-click-zone"
             @mouseenter="focusSlider"
             @mouseleave="blurSlider"
-            @click="onSliderClick($event)"
+            @click.stop="onSliderClick($event)"
           >
             <Slider
               ref="progressSlider"
@@ -60,6 +60,7 @@
 
                 <div style="min-width: 0; overflow: hidden">
                   <router-link
+                    @click.stop
                     :to="{ name: 'album', params: { id: track.albumId } }"
                     class="player-link"
                   >
@@ -73,6 +74,7 @@
                       >
                         <span v-if="index > 0">, </span>
                         <router-link
+                          @click.stop
                           :to="{ name: 'artist', params: { id: artist.id } }"
                           class="player-link player-link-small"
                         >
@@ -90,7 +92,7 @@
 
             <!-- transport -->
             <div class="col-auto pb-3 d-flex align-items-center">
-              <b-button variant="transparent" class="mx-0 btn-skip" @click="back">
+              <b-button variant="transparent" class="mx-0 btn-skip" @click.stop="back">
                 <Icon icon="skip-start" />
               </b-button>
 
@@ -98,12 +100,12 @@
                 variant="transparent"
                 size="lg"
                 class="btn-play mx-0"
-                @click="playPause"
+                @click.stop="playPause"
               >
                 <Icon :icon="isPlaying ? 'pause' : 'play'" />
               </b-button>
 
-              <b-button variant="transparent" class="mx-0 btn-skip" @click="next">
+              <b-button variant="transparent" class="mx-0 btn-skip" @click.stop="next">
                 <Icon icon="skip-end" />
               </b-button>
             </div>
@@ -117,7 +119,7 @@
                     title="Like"
                     variant="transparent"
                     class="m-0"
-                    @click="toggleFavourite"
+                    @click.stop="toggleFavourite"
                   >
                     <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
                   </b-button>
@@ -128,7 +130,7 @@
                     variant="transparent"
                     class="m-0"
                     :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
-                    @click="toggleReplayGain"
+                    @click.stop="toggleReplayGain"
                   >
                     <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
                     <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
@@ -245,6 +247,9 @@
       const isMuted = computed(() => playerStore.volume <= 0)
       const repeatActive = computed(() => playerStore.repeat)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
+      const isMobile =
+        matchMedia('(pointer: coarse)').matches &&
+        navigator.maxTouchPoints > 0
 
       const isFavourite = computed<boolean>(() => {
         return !!track.value && favouriteStore.get('track', track.value.id)
@@ -317,18 +322,15 @@
       }
 
       const onBackgroundClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement
-
-        // ignore clicks on interactive elements
-        if (
-          target.closest(
-            'button, a, input, .slider-click-zone, .real-slider, .volume-slider'
-          )
-        ) {
-          return
+        if (isMobile) {
+          playerStore.playPause()
+        } else {
+          if (route.name === 'queue') {
+            router.back()
+          } else {
+            router.push({ name: 'queue' })
+          }
         }
-
-        playerStore.playPause()
       }
 
       function playPause() { playerStore.playPause() }

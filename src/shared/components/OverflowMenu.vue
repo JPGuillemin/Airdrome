@@ -7,6 +7,7 @@
     class="p-0"
     :toggle-class="p-0"
     :disabled="disabled"
+    @click.stop
   >
     <template #button-content>
       <Icon icon="three-dots-vertical" />
