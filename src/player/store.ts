@@ -28,7 +28,6 @@ const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMod
 
 /** Browser MediaSession API (undefined on unsupported browsers). */
 const mediaSession: MediaSession | undefined = navigator.mediaSession
-if (mediaSession) mediaSession.playbackState = 'none'
 
 /** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
@@ -73,18 +72,14 @@ export const usePlayerStore = defineStore('player', {
     /** True once the current track has been scrobbled (sent to the API). */
     scrobbled: false,
 
+    /** True while skipping next/back. */
+    inTransition: false,
     /**
      * True when the user explicitly paused.
      * Used by the mobile auto-resume logic to avoid resuming after an
      * OS-level interruption if the user had intentionally paused.
      */
-    wasPaused: true,
-
-    /**
-     * Holds the track that was auto-skipped near its end so that the
-     * watcher doesn't trigger next() a second time on the same track.
-     */
-    skippedTrack: null as Track | null
+    wasPaused: true
   }),
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -219,6 +214,7 @@ export const usePlayerStore = defineStore('player', {
       this.wasPaused = true
       await audio.stop()
       this.setMediaSessionPosition(0, 0)
+      this.setMediaSessionState('none')
     },
 
     /** Toggle between play and pause. */
@@ -240,18 +236,23 @@ export const usePlayerStore = defineStore('player', {
      */
     async next(fade = true) {
       if (this.hasNext || this.repeat) {
+        this.inTransition = true
         this.setQueueIndex(this.queueIndex + 1)
+
         const track = this.track
         const nextTrack = this.nextTrack
         if (!track) return
+
         await audio.loadTrack({
           url: track.url,
           replayGain: track.replayGain,
           nextUrl: nextTrack?.url,
           fade
         })
+        this.inTransition = false
         await sleep(200)
-        this.setMediaSessionPosition(this.duration, 0)
+        this.setMediaSessionPosition()
+        this.setMediaSessionState()
       } else {
         await this.processQueueEnd()
       }
@@ -267,6 +268,7 @@ export const usePlayerStore = defineStore('player', {
       if (this.currentTime > 3) {
         await this.seek(0)
       } else {
+        this.inTransition = true
         this.setQueueIndex(this.queueIndex - 1)
         const track = this.track
         const nextTrack = this.nextTrack
@@ -277,8 +279,10 @@ export const usePlayerStore = defineStore('player', {
           nextUrl: nextTrack?.url,
           fade: true
         })
+        this.inTransition = false
         await sleep(200)
-        this.setMediaSessionPosition(this.duration, 0)
+        this.setMediaSessionPosition()
+        this.setMediaSessionState()
       }
     },
 
@@ -287,7 +291,7 @@ export const usePlayerStore = defineStore('player', {
       await audio.seek(position)
       await sleep(200)
       this.setMediaSessionPosition()
-      if (mediaSession && this.isPlaying) mediaSession.playbackState = 'playing'
+      this.setMediaSessionState()
     },
 
     /**
@@ -370,6 +374,15 @@ export const usePlayerStore = defineStore('player', {
         playbackRate: mediaSessionProgressRate,
         position: _position
       })
+    },
+
+    setMediaSessionState(_state?: MediaSessionPlaybackState) {
+      if (!navigator.mediaSession) return
+
+      if (!_state) {
+        _state = this.isPlaying ? 'playing' : 'paused'
+      }
+      mediaSession!.playbackState = _state
     },
 
     /**
@@ -490,9 +503,7 @@ export const usePlayerStore = defineStore('player', {
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
         this.duration = 0
-        if (mediaSession) {
-          mediaSession.playbackState = 'paused'
-        }
+        this.setMediaSessionState('paused')
         return
       }
       index = Math.max(0, index) // Guard against negative indices
@@ -550,6 +561,7 @@ export function setupAudio(
   playerStore: ReturnType<typeof usePlayerStore>,
   mainStore: ReturnType<typeof useMainStore>
 ) {
+  playerStore.setMediaSessionState('none')
   // Detect mobile (touch-primary) devices for the auto-resume logic below
   const isMobile =
     matchMedia('(pointer: coarse)').matches &&
@@ -597,6 +609,7 @@ export function setupAudio(
    *    report a play to the server (Last.fm-style scrobble).
    */
   audio.ontimeupdate = (time: number) => {
+    if (playerStore.inTransition) return
     playerStore.currentTime = time
 
     const track = playerStore.track
@@ -609,9 +622,6 @@ export function setupAudio(
     const duration = playerStore.duration
     const remaining = duration - time
     if (remaining < 0.25 && playerStore.hasNext) {
-      // Guard: only skip once per track
-      if (playerStore.skippedTrack === track) return
-      playerStore.skippedTrack = track
       playerStore.next(false) // No fade – the gapless buffer handles the transition
       return
     }
@@ -635,14 +645,11 @@ export function setupAudio(
 
   /** On unload: pause, then persist the queue position to the server. */
   window.addEventListener('beforeunload', () => {
-    playerStore.pause()
+    playerStore.stop()
     const queue = playerStore.queue
     const track = playerStore.track
     const currentTime = playerStore.currentTime
-    const duration = playerStore.duration
     // Reset position indicator to 0 so the lock screen doesn't show stale progress
-    playerStore.setMediaSessionPosition(duration, currentTime)
-    if (mediaSession) mediaSession.playbackState = 'none'
     if (navigator.onLine && queue && track) {
       playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
         .catch(err => { console.info('savePlayQueue aborted:', err) })
@@ -666,20 +673,20 @@ export function setupAudio(
   audio.onplay = () => {
     playerStore.isPlaying = true
     playerStore.setMediaSessionPosition()
-    if (mediaSession) mediaSession.playbackState = 'playing'
+    playerStore.setMediaSessionState('playing')
   }
 
   audio.onpause = () => {
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
-    if (mediaSession) mediaSession.playbackState = 'paused'
+    playerStore.setMediaSessionState('paused')
     autoResume() // Kick off polling if this was an OS-level pause
   }
 
   audio.onsuspend = () => {
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
-    if (mediaSession) mediaSession.playbackState = 'paused'
+    playerStore.setMediaSessionState('paused')
     autoResume() // Kick off polling if this was an OS-level pause
   }
 
