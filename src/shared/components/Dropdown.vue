@@ -6,14 +6,14 @@
       @click="toggle">
       <slot name="button-content" />
     </button>
-    <ul
+    <div
       v-if="visible"
       :style="menuStyle"
       :class="['dropdown-menu', `dropdown-menu-${align}`, 'show']"
       @click="onClickInside"
     >
       <slot />
-    </ul>
+    </div>
   </div>
 </template>
 <script lang="ts">

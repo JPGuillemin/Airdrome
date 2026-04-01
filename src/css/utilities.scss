@@ -1,7 +1,6 @@
 .on-top {
   position: relative;
   z-index: 3000;
-  background: var(--theme-elevation-1);
 }
 
 .adapt-text {
@@ -32,7 +31,7 @@
 }
 
 .title-color {
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
 }
 
 .background-color {
@@ -44,7 +43,7 @@
 }
 
 .with-caret {
-  caret-color: var(--theme-text-muted);
+  caret-color: var(--theme-text);
 }
 
 .can-select {

@@ -395,7 +395,7 @@
   }
 
   .player :deep(.player-link) {
-    color: var(--theme-text-muted);
+    color: var(--theme-text);
     text-decoration: none;
     transition: color 0.15s ease;
   }
@@ -434,7 +434,7 @@
 
   .player .btn {
     --bs-btn-font-size: 1.3rem;
-    color: var(--theme-text-muted);
+    color: var(--theme-text);
   }
 
   .player .btn-play {
@@ -574,7 +574,7 @@
     }
 
     .player .btn:hover {
-      color: var(--theme-text-muted);
+      color: var(--theme-text);
     }
 
     .player .btn:active {

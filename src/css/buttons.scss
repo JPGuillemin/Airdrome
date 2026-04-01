@@ -6,7 +6,7 @@
   --bs-btn-hover-color: #ffffff !important;
 }
 .btn-transparent {
-  --bs-btn-color: var(--theme-text-muted);
+  --bs-btn-color: var(--theme-text);
   --bs-btn-bg: transparent;
   --bs-btn-border-width: 0;
   --bs-btn-active-color: var(--bs-primary);
@@ -17,7 +17,7 @@
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
 }
-$btn-close-color: var(--theme-text-muted);
+$btn-close-color: var(--theme-text);
 .btn-link:focus {
   box-shadow: none !important;
 }
@@ -29,6 +29,6 @@ $btn-close-color: var(--theme-text-muted);
 @media(max-width: 768px) {
   .btn:hover,
   .btn:active {
-    color: var(--theme-text-muted);
+    color: var(--theme-text);
   }
 }

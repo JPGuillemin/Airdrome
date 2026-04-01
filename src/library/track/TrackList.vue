@@ -97,14 +97,10 @@
       }
 
       const handlePlay = (index: number) => {
-        if (props.playStrategy) return props.playStrategy(index)
-
         playerStore.setShuffle(false)
-
         if (props.tracks[index].id === playerStore.trackId) {
           return playerStore.playPause()
         }
-
         return playerStore.playTrackList(props.tracks, index)
       }
 

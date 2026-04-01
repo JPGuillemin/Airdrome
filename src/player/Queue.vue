@@ -27,7 +27,6 @@
       :tracks="visibleTracks"
       active-by="index"
       :show-image="true"
-      :play-strategy="play"
     >
       <template #actions="{ index }">
         <hr class="dropdown-divider">

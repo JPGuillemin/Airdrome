@@ -12,13 +12,13 @@ a.active,
   padding: 0.25rem 0.4rem;
 }
 .nav .nav-link {
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 .main-content a:not(.genre-link) {
   text-decoration: none;
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   transition: color 0.15s ease;
 }
 
@@ -27,7 +27,7 @@ a.active,
   .nav .nav-link.router-link-active,
   .nav .nav-link.router-link-exact-active,
   .nav .nav-link:hover {
-    color: var(--theme-text-muted);
+    color: var(--theme-text);
   }
 }
 

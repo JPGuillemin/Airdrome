@@ -313,7 +313,7 @@
 
 <style scoped>
   .genre-link {
-    color: var(--theme-text-muted);
+    color: var(--theme-text);
     white-space: nowrap;
     font-weight: 600;
     font-size: 0.85rem; /* smaller than default */

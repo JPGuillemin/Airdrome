@@ -321,6 +321,16 @@ export const usePlayerStore = defineStore('player', {
       await this.seek(currentTrackPosition)
     },
 
+    async saveQueue() {
+    const queue = this.queue
+    const track = this.track
+    const currentTime = this.currentTime
+      if (navigator.onLine && queue && track) {
+        this.api.savePlayQueue(queue, track, Math.trunc(currentTime))
+          .catch(err => { console.info('savePlayQueue aborted:', err) })
+      }
+    },
+
     /**
      * Restart the queue from index 0 without changing the track list.
      * Used when radio continuation fails and there is no fallback.
@@ -650,15 +660,16 @@ export function setupAudio(
   /** On unload: pause, then persist the queue position to the server. */
   window.addEventListener('beforeunload', () => {
     playerStore.stop()
-    const queue = playerStore.queue
-    const track = playerStore.track
-    const currentTime = playerStore.currentTime
-    // Reset position indicator to 0 so the lock screen doesn't show stale progress
-    if (navigator.onLine && queue && track) {
-      playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
-        .catch(err => { console.info('savePlayQueue aborted:', err) })
+    playerStore.saveQueue()
+  })
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      playerStore.saveQueue()
     }
   })
+  
+  document.addEventListener('resume', autoResume)
 
   // ---------------------------------------------------------------------------
   // Playback event handlers
@@ -798,13 +809,6 @@ export function setupAudio(
   // restored on the next page load or on another device.
 
   setInterval(() => {
-    const track = playerStore.track
-    const queue = playerStore.queue
-
-    if (!track || !queue) return
-
-    const currentTime = playerStore.currentTime
-    playerStore.api.savePlayQueue(queue, track, Math.trunc(currentTime))
-      .catch(err => { console.info('savePlayQueue aborted:', err) })
+    playerStore.saveQueue()
   }, 10000)
 }

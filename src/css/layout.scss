@@ -25,7 +25,7 @@
   margin-block-end: 0.67em;
   font-size: 1.5rem;
   line-height: 1.5;
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   font-weight: 700;
   user-select: none;
   -webkit-user-select: none;
@@ -37,7 +37,7 @@
   margin-block-end: 0.67em;
   font-size: 1.2rem;
   line-height: 1.2;
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   font-weight: 700;
   user-select: none;
   -webkit-user-select: none;
@@ -84,13 +84,13 @@
   line-height: 1.5;
   min-width: 0;
   flex-shrink: 1;
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   font-weight: 700;
 }
 
 .header-title--secondary {
   margin-top: 7px;
-  color: var(--theme-text-muted);
+  color: var(--theme-text);
   font-size: 1.2rem;
   font-weight: 700;
 }
