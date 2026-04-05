@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export VERSION="4.2.0"
+export VERSION="4.5.0"
 export BASE_PATH="/"
 
 rm -rf dist docker
@@ -30,7 +30,7 @@ mv dist${BASE_PATH}.well-known dist/
 
 # Build the docker image
 docker build -f docker/Dockerfile -t local/airdrome:latest . || exit "error docker build"
-docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
+# docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
 # docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION --push . || exit "error docker buildx"
 # exit
 
