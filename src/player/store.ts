@@ -662,13 +662,15 @@ export function setupAudio(
     playerStore.stop()
     playerStore.saveQueue()
   })
-  
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       playerStore.saveQueue()
+    } else {
+      autoResume()
     }
   })
-  
+
   document.addEventListener('resume', autoResume)
 
   // ---------------------------------------------------------------------------
