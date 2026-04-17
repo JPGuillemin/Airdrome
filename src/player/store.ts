@@ -632,10 +632,11 @@ export function setupAudio(
     // Ignore the first 20 s to avoid false triggers on seek or slow loads
     if (!track || !isPlaying || time < 20) return
 
-    // ── Auto-skip ──────────────────────────────────────────────────────
     const duration = playerStore.duration
+
+    // ── Auto-skip ──────────────────────────────────────────────────────
     const remaining = duration - time
-    if (remaining < 0.25 && playerStore.hasNext) {
+    if (remaining < 0.1 && playerStore.hasNext) {
       playerStore.next(false) // No fade – the gapless buffer handles the transition
       return
     }
@@ -681,7 +682,7 @@ export function setupAudio(
   audio.onended = async () => {
     const { hasNext, repeat } = playerStore
     if (hasNext || repeat) {
-      await playerStore.next(true)
+      await playerStore.next(false)
     } else {
       await playerStore.processQueueEnd()
     }
