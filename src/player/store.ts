@@ -659,9 +659,16 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   /** On unload: pause, then persist the queue position to the server. */
-  window.addEventListener('beforeunload', () => {
-    playerStore.stop()
+  window.addEventListener('beforeunload', (event) => {
+    // Save queue position regardless of playback state
     playerStore.saveQueue()
+
+    // Show confirmation dialog if playback is active
+    if (playerStore.isPlaying) {
+      event.preventDefault()
+      event.returnValue = ''
+      return ''
+    }
   })
 
   document.addEventListener('visibilitychange', () => {
