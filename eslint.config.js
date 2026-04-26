@@ -6,6 +6,9 @@ import vueParser from 'vue-eslint-parser'
 
 export default [
   {
+    ignores: ['dist/**', 'android/**', 'node_modules/**'],
+  },
+  {
     files: ['*.ts', '*.tsx'],
     languageOptions: {
       parser: tsParser,

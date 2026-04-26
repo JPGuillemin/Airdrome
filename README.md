@@ -75,6 +75,10 @@ $ docker run -d \
 - startScan
 - getOpenSubsonicExtensions
 
+## Contributors
+
+- [chunjiw](https://github.com/chunjiw) — Capacitor-based Android build
+
 ## License
 
 Licensed under the [AGPLv3](LICENSE) license.
