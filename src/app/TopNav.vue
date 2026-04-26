@@ -18,7 +18,7 @@
         <template v-if="store.username">
           <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
             <template #button-content>
-              <Icon icon="gear" color="var(--theme-elevation-4)" />
+              <Icon icon="gear" color="var(--bs-secondary)" />
             </template>
             <div class="px-3 py-1 small">
               {{ store.username }}

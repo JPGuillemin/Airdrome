@@ -7,7 +7,7 @@
           <h5 class="mb-3">
             {{ title }}
           </h5>
-          <p class="text-secondary mb-4">
+          <p class="mb-4">
             {{ message }}
           </p>
           <div class="d-flex justify-content-center gap-2">

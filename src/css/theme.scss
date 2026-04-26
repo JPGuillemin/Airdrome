@@ -5,11 +5,16 @@ $theme-elevation-3: #404040;
 $theme-elevation-4: #707070;
 $theme-text: #bfbfbf;
 $theme-text-muted: #b0b0b0;
+$blue: #178994;
+$green: #1db954;
+$orange: #ff8c00;
+$purple: #6f42c1;
+$red: #bf0000;
 
 // Bootstrap overrides
-$primary: $theme-text-muted;
+$primary: $blue;
 $danger: #ff4141;
-$secondary: $theme-elevation-2;
+$secondary: $theme-text-muted;
 
 $body-bg: $theme-elevation-0;
 $body-color: $theme-text;
