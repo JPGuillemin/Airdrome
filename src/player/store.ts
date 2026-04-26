@@ -6,6 +6,7 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
+import { nativeMediaSession } from '@/capacitor/mediaSession'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -379,23 +380,34 @@ export const usePlayerStore = defineStore('player', {
      * All parameters are optional; current store values are used as fallbacks.
      */
     async setMediaSessionPosition(_duration?: number, _position?: number) {
-      if (!navigator.mediaSession) return
       _duration ??= this.duration
       _position ??= this.currentTime
-      navigator.mediaSession.setPositionState({
-        duration: _duration,
-        playbackRate: mediaSessionProgressRate,
-        position: _position
+      if (navigator.mediaSession) {
+        navigator.mediaSession.setPositionState({
+          duration: _duration,
+          playbackRate: mediaSessionProgressRate,
+          position: _position
+        })
+      }
+      nativeMediaSession.setPlaybackState({
+        state: this.isPlaying ? 'playing' : 'paused',
+        position: _position,
+        speed: mediaSessionProgressRate
       })
     },
 
     setMediaSessionState(_state?: MediaSessionPlaybackState) {
-      if (!navigator.mediaSession) return
-
       if (!_state) {
         _state = this.isPlaying ? 'playing' : 'paused'
       }
-      mediaSession!.playbackState = _state
+      if (navigator.mediaSession) {
+        mediaSession!.playbackState = _state
+      }
+      nativeMediaSession.setPlaybackState({
+        state: _state,
+        position: this.currentTime,
+        speed: mediaSessionProgressRate
+      })
     },
 
     /**
@@ -541,26 +553,37 @@ export const usePlayerStore = defineStore('player', {
       this.currentTime = 0
 
       // Update lock-screen / notification metadata
+      const trackTitle = this.track.title || ''
+      const trackArtist = formatArtists(this.track.artists) || ''
+      const trackAlbum = this.track.album || ''
+      const trackImage = this.track.image || null
       if (mediaSession) {
         const artwork: MediaImage[] = [];
-        if (this.track.image) {
+        if (trackImage) {
           // Provide artwork at multiple resolutions for different OS contexts
           artwork.push(
-            { src: this.track.image, sizes: '96x96', type: 'image/png' },
-            { src: this.track.image, sizes: '128x128', type: 'image/png' },
-            { src: this.track.image, sizes: '192x192', type: 'image/png' },
-            { src: this.track.image, sizes: '256x256', type: 'image/png' },
-            { src: this.track.image, sizes: '384x384', type: 'image/png' },
-            { src: this.track.image, sizes: '512x512', type: 'image/png' }
+            { src: trackImage, sizes: '96x96', type: 'image/png' },
+            { src: trackImage, sizes: '128x128', type: 'image/png' },
+            { src: trackImage, sizes: '192x192', type: 'image/png' },
+            { src: trackImage, sizes: '256x256', type: 'image/png' },
+            { src: trackImage, sizes: '384x384', type: 'image/png' },
+            { src: trackImage, sizes: '512x512', type: 'image/png' }
           );
         }
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: this.track.title || '',
-          artist: formatArtists(this.track.artists) || '',
-          album: this.track.album || '',
+          title: trackTitle,
+          artist: trackArtist,
+          album: trackAlbum,
           artwork
         });
       }
+      nativeMediaSession.setMetadata({
+        title: trackTitle,
+        artist: trackArtist,
+        album: trackAlbum,
+        artworkUrl: trackImage,
+        duration: this.track.duration || 0
+      })
     },
   },
 })
@@ -811,6 +834,21 @@ export function setupAudio(
       playerStore.seek(position)
     })
   }
+
+  // ---------------------------------------------------------------------------
+  // Native Android MediaSession action events (via Capacitor plugin).
+  // Mirror of the browser handlers above so headphones / lock screen / Bluetooth
+  // (e.g. Tesla) control playback the same way.
+  // ---------------------------------------------------------------------------
+  nativeMediaSession.addListener('play', () => { playerStore.play() })
+  nativeMediaSession.addListener('pause', () => { playerStore.pause() })
+  nativeMediaSession.addListener('next', () => { playerStore.next(true) })
+  nativeMediaSession.addListener('previous', () => { playerStore.back() })
+  nativeMediaSession.addListener('stop', () => { playerStore.pause() })
+  nativeMediaSession.addListener('seek', (data: any) => {
+    const position = Math.min(Number(data?.position) || 0, playerStore.duration)
+    playerStore.seek(position)
+  })
 
   // ---------------------------------------------------------------------------
   // Periodic queue persistence
