@@ -1,5 +1,6 @@
 module.exports = {
   root: true,
+  ignorePatterns: ['dist/**', 'android/**', 'node_modules/**', '!/src/**'],
   env: {
     node: true
   },

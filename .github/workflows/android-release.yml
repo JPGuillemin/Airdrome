@@ -1,0 +1,75 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a GitHub Release with the APK'
+        required: false
+        type: boolean
+        default: false
+      tag:
+        description: 'Release tag (used only when release=true; defaults to v<version>-alpha.<timestamp>)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build APK
+        run: ./build-android.sh
+
+      - name: Read version
+        id: ver
+        run: |
+          V=$(grep versionName android/app/build.gradle | sed -E 's/.*"(.+)".*/\1/')
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: airdrome-capacitor-${{ steps.ver.outputs.version }}-debug
+          path: airdrome-capacitor-${{ steps.ver.outputs.version }}-debug.apk
+
+      - name: Create alpha release
+        if: ${{ github.event_name == 'push' || inputs.release }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+            if [ -z "$TAG" ]; then TAG="v${V}-alpha"; fi
+          fi
+          gh release create "$TAG" \
+            --title "Capacitor alpha build $TAG" \
+            --notes "Alpha build from ${{ github.sha }}" \
+            --prerelease \
+            "airdrome-capacitor-${V}-debug.apk"
