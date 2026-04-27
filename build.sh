@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export VERSION="4.5.0"
+export VERSION="4.5.1"
 export BASE_PATH="/"
 
 rm -rf dist docker
