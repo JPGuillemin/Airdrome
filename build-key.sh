@@ -1,5 +1,5 @@
 keytool -genkeypair -v \
--keystore ./airdrome-release.keystore \
+-keystore ./android/app/airdrome-release.keystore \
 -alias airdrome \
 -keyalg RSA \
 -keysize 2048 \

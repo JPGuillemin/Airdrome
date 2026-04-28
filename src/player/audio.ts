@@ -277,6 +277,7 @@ export class AudioController {
     if (!options.url) return
     const currentUrl = options.url
     const nextUrl = options.nextUrl
+    const cacheStore = useCacheStore()
 
     // Capture token before any await so we can detect stale loads later
     const token = ++this.changeToken
@@ -290,7 +291,8 @@ export class AudioController {
 
     // Re-use existing buffer if possible to avoid redundant network requests
     if (!this.buffer || this.buffer.src !== currentUrl || this.buffer.error) {
-      await this.setBuffer(currentUrl)
+      const playable = await cacheStore.getPlayableUrl(currentUrl)
+      await this.setBuffer(playable)
       console.info('setBuffer(1):', currentUrl)
     }
 
@@ -399,11 +401,12 @@ export class AudioController {
     }
 
     // After 15 s, cache the playing track and pre-buffer the next one
-    setTimeout(() => {
+    setTimeout(async () => {
       if (token === this.changeToken) {
         this.cacheTrack(currentUrl!)
         if (nextUrl) {
-          this.setBuffer(nextUrl)
+          const nextPlayable = await cacheStore.getPlayableUrl(nextUrl)
+          this.setBuffer(nextPlayable)
           console.info('setBuffer(2):', nextUrl)
         }
       }

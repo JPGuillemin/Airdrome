@@ -1,313 +1,461 @@
+// src/player/cache.ts
 import { defineStore } from 'pinia'
+import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
-const CACHE_NAME = 'airdrome-cache-v2'
-const META_DB_NAME = 'airdrome-cache-meta'
-const META_STORE_NAME = 'entries'
-const META_INFO_STORE_NAME = 'meta'
-const MAX_CACHE_SIZE_BYTES = 1 * 1024 * 1024 * 1024 // 1 GB
+const isNative = Capacitor.isNativePlatform()
+
+const CACHE_DIR = 'audio-cache'
+const CACHE_NAME = 'airdrome-cache-v3'
+
+const META_DB = 'airdrome-cache-meta'
+const META_STORE = 'entries'
+const META_INFO = 'meta'
+
+const MAX_CACHE_SIZE_BYTES = 5 * 1024 * 1024 * 1024 // 5 GB
 
 type MetaEntry = {
   url: string
+  filename: string
   size: number
-  timestamp: number
-  order: number
+  createdAt: number
   lastAccess: number
 }
 
 type MetaInfo = {
   id: 'meta'
   totalBytes: number
-  nextOrder: number
 }
 
-// ---------------------------------------------------------------------------
-// IndexedDB helpers
-// ---------------------------------------------------------------------------
+function dispatch(name: string, detail?: any) {
+  window.dispatchEvent(new CustomEvent(name, { detail }))
+}
 
-function openMetaDB(): Promise<IDBDatabase> {
+/* -------------------------------------------------------------------------- */
+/* IndexedDB                                                                  */
+/* -------------------------------------------------------------------------- */
+
+function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(META_DB_NAME, 3)
+    const req = indexedDB.open(META_DB, 3)
 
     req.onupgradeneeded = () => {
       const db = req.result
 
-      let store: IDBObjectStore
-      if (!db.objectStoreNames.contains(META_STORE_NAME)) {
-        store = db.createObjectStore(META_STORE_NAME, { keyPath: 'url' })
-        store.createIndex('order', 'order')
+      if (!db.objectStoreNames.contains(META_STORE)) {
+        const store = db.createObjectStore(META_STORE, { keyPath: 'url' })
         store.createIndex('lastAccess', 'lastAccess')
-      } else {
-        store = req.transaction!.objectStore(META_STORE_NAME)
-        if (!store.indexNames.contains('lastAccess')) {
-          store.createIndex('lastAccess', 'lastAccess')
-        }
       }
 
-      if (!db.objectStoreNames.contains(META_INFO_STORE_NAME)) {
-        db.createObjectStore(META_INFO_STORE_NAME, { keyPath: 'id' })
+      if (!db.objectStoreNames.contains(META_INFO)) {
+        db.createObjectStore(META_INFO, { keyPath: 'id' })
       }
     }
 
-    req.onsuccess = () => {
-      const db = req.result
-      const tx = db.transaction(META_INFO_STORE_NAME, 'readwrite')
-      const store = tx.objectStore(META_INFO_STORE_NAME)
-
-      const getReq = store.get('meta')
-      getReq.onsuccess = () => {
-        if (!getReq.result) {
-          store.put({ id: 'meta', totalBytes: 0, nextOrder: 1 } as MetaInfo)
-        }
-      }
-
-      tx.oncomplete = () => resolve(db)
-      tx.onerror = () => resolve(db)
-    }
-
+    req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
   })
 }
 
 async function getMetaInfo(): Promise<MetaInfo> {
-  const db = await openMetaDB()
+  const db = await openDB()
+
   return new Promise(resolve => {
-    const tx = db.transaction(META_INFO_STORE_NAME, 'readonly')
-    const store = tx.objectStore(META_INFO_STORE_NAME)
-    const req = store.get('meta')
+    const tx = db.transaction(META_INFO, 'readonly')
+    const req = tx.objectStore(META_INFO).get('meta')
 
-    req.onsuccess = () => {
-      resolve(req.result || { id: 'meta', totalBytes: 0, nextOrder: 1 })
-    }
+    req.onsuccess = () =>
+      resolve(req.result || { id: 'meta', totalBytes: 0 })
 
-    req.onerror = () => {
-      resolve({ id: 'meta', totalBytes: 0, nextOrder: 1 })
-    }
+    req.onerror = () =>
+      resolve({ id: 'meta', totalBytes: 0 })
   })
 }
 
-async function touchMeta(url: string) {
-  const db = await openMetaDB()
-  const tx = db.transaction(META_STORE_NAME, 'readwrite')
-  const store = tx.objectStore(META_STORE_NAME)
+async function setMetaInfo(info: MetaInfo) {
+  const db = await openDB()
 
-  const req = store.get(url)
-  req.onsuccess = () => {
-    const entry = req.result as MetaEntry | undefined
-    if (!entry) return
-    entry.lastAccess = Date.now()
-    store.put(entry)
-  }
-}
-
-async function putMeta(url: string, size: number) {
-  const db = await openMetaDB()
-
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
-    const entries = tx.objectStore(META_STORE_NAME)
-    const metaStore = tx.objectStore(META_INFO_STORE_NAME)
-
-    const metaReq = metaStore.get('meta')
-    metaReq.onsuccess = () => {
-      const meta = metaReq.result as MetaInfo
-      const now = Date.now()
-
-      const entry: MetaEntry = {
-        url,
-        size,
-        timestamp: now,
-        order: meta.nextOrder++,
-        lastAccess: now,
-      }
-
-      meta.totalBytes += size
-      entries.put(entry)
-      metaStore.put(meta)
-    }
-
+  return new Promise<void>(resolve => {
+    const tx = db.transaction(META_INFO, 'readwrite')
+    tx.objectStore(META_INFO).put(info)
     tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
   })
 }
 
-async function deleteMeta(url: string) {
-  const db = await openMetaDB()
-  const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
-  const entries = tx.objectStore(META_STORE_NAME)
-  const metaStore = tx.objectStore(META_INFO_STORE_NAME)
+async function getEntry(url: string): Promise<MetaEntry | null> {
+  const db = await openDB()
 
-  const entryReq = entries.get(url)
-  entryReq.onsuccess = () => {
-    const entry = entryReq.result as MetaEntry | undefined
-    if (!entry) return
+  return new Promise(resolve => {
+    const tx = db.transaction(META_STORE, 'readonly')
+    const req = tx.objectStore(META_STORE).get(url)
 
-    entries.delete(url)
+    req.onsuccess = () => resolve(req.result || null)
+    req.onerror = () => resolve(null)
+  })
+}
 
-    const metaReq = metaStore.get('meta')
-    metaReq.onsuccess = () => {
-      const meta = metaReq.result as MetaInfo
-      meta.totalBytes = Math.max(0, meta.totalBytes - entry.size)
-      metaStore.put(meta)
-    }
+async function putEntry(entry: MetaEntry) {
+  const db = await openDB()
+
+  return new Promise<void>(resolve => {
+    const tx = db.transaction(META_STORE, 'readwrite')
+    tx.objectStore(META_STORE).put(entry)
+    tx.oncomplete = () => resolve()
+  })
+}
+
+async function deleteEntry(url: string) {
+  const db = await openDB()
+
+  return new Promise<void>(resolve => {
+    const tx = db.transaction(META_STORE, 'readwrite')
+    tx.objectStore(META_STORE).delete(url)
+    tx.oncomplete = () => resolve()
+  })
+}
+
+async function allEntries(): Promise<MetaEntry[]> {
+  const db = await openDB()
+
+  return new Promise(resolve => {
+    const tx = db.transaction(META_STORE, 'readonly')
+    const req = tx.objectStore(META_STORE).getAll()
+
+    req.onsuccess = () => resolve(req.result || [])
+    req.onerror = () => resolve([])
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function shaName(url: string) {
+  let hash = 0
+  for (let i = 0; i < url.length; i++) {
+    hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0
+  }
+
+  const ext = url.split('.').pop()?.split('?')[0] || 'mp3'
+  return `${Math.abs(hash)}.${ext}`
+}
+
+async function initNativeDir() {
+  if (!isNative) return
+
+  try {
+    await Filesystem.mkdir({
+      path: CACHE_DIR,
+      directory: Directory.Data,
+      recursive: true,
+    })
+  } catch {}
+}
+
+async function touch(url: string) {
+  const entry = await getEntry(url)
+  if (!entry) return
+
+  entry.lastAccess = Date.now()
+  await putEntry(entry)
+}
+
+async function increaseSize(bytes: number) {
+  const meta = await getMetaInfo()
+  meta.totalBytes += bytes
+  await setMetaInfo(meta)
+}
+
+async function decreaseSize(bytes: number) {
+  const meta = await getMetaInfo()
+  meta.totalBytes = Math.max(0, meta.totalBytes - bytes)
+  await setMetaInfo(meta)
+}
+
+/* -------------------------------------------------------------------------- */
+/* Native                                                                     */
+/* -------------------------------------------------------------------------- */
+
+async function nativeExists(filename: string) {
+  try {
+    await Filesystem.stat({
+      path: `${CACHE_DIR}/${filename}`,
+      directory: Directory.Data,
+    })
+    return true
+  } catch {
+    return false
   }
 }
 
-// ---------------------------------------------------------------------------
-// LRU eviction
-// ---------------------------------------------------------------------------
+async function nativeWrite(url: string): Promise<number | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
 
-async function enforceCacheLimitLRU() {
-  const cache = await caches.open(CACHE_NAME)
-  const meta = await getMetaInfo()
-  let total = meta.totalBytes
+    const blob = await res.blob()
+    const reader = new FileReader()
 
-  if (total <= MAX_CACHE_SIZE_BYTES) return
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
 
-  const db = await openMetaDB()
+    const base64 = dataUrl.split(',')[1]
+    const filename = shaName(url)
 
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction([META_STORE_NAME, META_INFO_STORE_NAME], 'readwrite')
-    const store = tx.objectStore(META_STORE_NAME)
-    const index = store.index('lastAccess')
-    const metaStore = tx.objectStore(META_INFO_STORE_NAME)
+    await Filesystem.writeFile({
+      path: `${CACHE_DIR}/${filename}`,
+      data: base64,
+      directory: Directory.Data,
+    })
 
-    const cursorReq = index.openCursor()
-
-    cursorReq.onsuccess = async() => {
-      let cursor = cursorReq.result as IDBCursorWithValue | null
-
-      while (cursor && total > MAX_CACHE_SIZE_BYTES) {
-        const entry = cursor.value as MetaEntry
-
-        await cache.delete(entry.url)
-        store.delete(entry.url)
-        total -= entry.size
-
-        window.dispatchEvent(
-          new CustomEvent('audioCacheDeleted', { detail: entry.url }),
-        )
-
-        cursor = await new Promise<IDBCursorWithValue | null>(res => {
-          cursor!.continue()
-          cursor!.request.onsuccess = () =>
-            res(cursor!.request.result as IDBCursorWithValue | null)
-          cursor!.request.onerror = () => res(null)
-        })
-      }
-
-      const metaReq = metaStore.get('meta')
-      metaReq.onsuccess = () => {
-        const m = metaReq.result as MetaInfo
-        m.totalBytes = total
-        metaStore.put(m)
-      }
-
-      tx.oncomplete = () => {
-        window.dispatchEvent(
-          new CustomEvent('audioCacheEvicted', { detail: { totalBytes: total } }),
-        )
-        resolve()
-      }
+    const entry: MetaEntry = {
+      url,
+      filename,
+      size: blob.size,
+      createdAt: Date.now(),
+      lastAccess: Date.now(),
     }
 
-    cursorReq.onerror = () => reject(cursorReq.error)
-  })
+    await putEntry(entry)
+    await increaseSize(blob.size)
+
+    return blob.size
+  } catch {
+    return null
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Store (FIFO queue enabled)
-// ---------------------------------------------------------------------------
+async function nativePlayable(url: string): Promise<string> {
+  const entry = await getEntry(url)
+  if (!entry) return url
+
+  const exists = await nativeExists(entry.filename)
+  if (!exists) return url
+
+  await touch(url)
+
+  const uri = await Filesystem.getUri({
+    path: `${CACHE_DIR}/${entry.filename}`,
+    directory: Directory.Data,
+  })
+
+  return Capacitor.convertFileSrc(uri.uri)
+}
+
+/* -------------------------------------------------------------------------- */
+/* Web                                                                        */
+/* -------------------------------------------------------------------------- */
+
+async function webWrite(url: string): Promise<number | null> {
+  try {
+    const cache = await caches.open(CACHE_NAME)
+
+    if (await cache.match(url)) {
+      await touch(url)
+      return 0
+    }
+
+    const res = await fetch(url)
+    if (!res.ok) return null
+
+    const clone = res.clone()
+    const blob = await res.blob()
+
+    await cache.put(url, clone)
+
+    const entry: MetaEntry = {
+      url,
+      filename: '',
+      size: blob.size,
+      createdAt: Date.now(),
+      lastAccess: Date.now(),
+    }
+
+    await putEntry(entry)
+    await increaseSize(blob.size)
+
+    return blob.size
+  } catch {
+    return null
+  }
+}
+
+async function webPlayable(url: string): Promise<string> {
+  const cache = await caches.open(CACHE_NAME)
+  const hit = await cache.match(url)
+
+  if (hit) await touch(url)
+
+  return url
+}
+
+/* -------------------------------------------------------------------------- */
+/* LRU                                                                        */
+/* -------------------------------------------------------------------------- */
+
+async function enforceLimit() {
+  const meta = await getMetaInfo()
+  if (meta.totalBytes <= MAX_CACHE_SIZE_BYTES) return
+
+  const entries = await allEntries()
+  entries.sort((a, b) => a.lastAccess - b.lastAccess)
+
+  for (const e of entries) {
+    if (meta.totalBytes <= MAX_CACHE_SIZE_BYTES) break
+
+    if (isNative) {
+      try {
+        await Filesystem.deleteFile({
+          path: `${CACHE_DIR}/${e.filename}`,
+          directory: Directory.Data,
+        })
+      } catch {}
+    } else {
+      const cache = await caches.open(CACHE_NAME)
+      await cache.delete(e.url)
+    }
+
+    await deleteEntry(e.url)
+    await decreaseSize(e.size)
+    meta.totalBytes -= e.size
+
+    dispatch('audioCacheDeleted', e.url)
+  }
+
+  dispatch('audioCacheEvicted')
+}
+
+/* -------------------------------------------------------------------------- */
+/* Store                                                                      */
+/* -------------------------------------------------------------------------- */
 
 export const useCacheStore = defineStore('albumCache', {
   state: () => ({
-    activeCaching: new Map<string, { cancelled: boolean }>(),
     queue: [] as string[],
-    queuedSet: new Set<string>(),
-    processingQueue: false,
+    queued: new Set<string>(),
+    processing: false,
+    initialized: false,
+    activeCaching: new Map<string, { cancelled: boolean }>(),
   }),
 
   actions: {
-    // --------------------------------------------------
-    // FIFO worker
-    // --------------------------------------------------
+    async init() {
+      if (this.initialized) return
+      if (isNative) await initNativeDir()
+      this.initialized = true
+    },
 
     async processQueue() {
-      if (this.processingQueue) return
-      this.processingQueue = true
+      await this.init()
+      if (this.processing) return
 
-      const cache = await caches.open(CACHE_NAME)
+      this.processing = true
 
-      while (this.queue.length > 0) {
+      while (this.queue.length) {
         const url = this.queue.shift()!
-        this.queuedSet.delete(url)
+        this.queued.delete(url)
 
-        try {
-          if (await cache.match(url)) {
-            await touchMeta(url)
-            continue
-          }
+        const exists = await this.hasTrack(url)
+        if (exists) continue
 
-          const res = await fetch(url, { mode: 'cors', cache: 'force-cache' })
-          if (!res.ok) continue
+        const bytes = isNative
+          ? await nativeWrite(url)
+          : await webWrite(url)
 
-          const clone = res.clone()
-          const blob = await res.blob()
-
-          await cache.put(url, clone)
-          await putMeta(url, blob.size)
-          await enforceCacheLimitLRU()
-
-          window.dispatchEvent(
-            new CustomEvent('audioCached', { detail: url }),
-          )
-        } catch (err) {
-          console.error('Cache error:', err)
+        if (bytes !== null) {
+          await enforceLimit()
+          dispatch('audioCached', url)
         }
       }
 
-      this.processingQueue = false
+      this.processing = false
     },
 
-    // --------------------------------------------------
-    // Public enqueue method
-    // --------------------------------------------------
-
     async cacheTrack(url: string) {
-      if (!url || this.queuedSet.has(url)) return
+      if (!url || this.queued.has(url)) return
 
       this.queue.push(url)
-      this.queuedSet.add(url)
+      this.queued.add(url)
 
-      if (!this.processingQueue) {
-        this.processQueue()
+      if (!this.processing) this.processQueue()
+    },
+
+    async getPlayableUrl(url: string) {
+      await this.init()
+
+      const cached = await this.hasTrack(url)
+      if (!cached) {
+        this.cacheTrack(url)
+        return url
       }
+
+      return isNative
+        ? await nativePlayable(url)
+        : await webPlayable(url)
     },
 
     async hasTrack(url: string) {
-      if (!url) return false
+      const entry = await getEntry(url)
+      if (!entry) return false
+
+      if (isNative) {
+        const ok = await nativeExists(entry.filename)
+        if (ok) await touch(url)
+        return ok
+      }
+
       const cache = await caches.open(CACHE_NAME)
-      const match = await cache.match(url)
-      if (match) await touchMeta(url)
-      return !!match
+      const hit = await cache.match(url)
+      if (hit) await touch(url)
+
+      return !!hit
     },
 
     async deleteTrack(url: string) {
-      if (!url) return
-      const cache = await caches.open(CACHE_NAME)
-      if (await cache.delete(url)) {
-        await deleteMeta(url)
-        window.dispatchEvent(
-          new CustomEvent('audioCacheDeleted', { detail: url }),
-        )
+      const entry = await getEntry(url)
+      if (!entry) return
+
+      if (isNative) {
+        try {
+          await Filesystem.deleteFile({
+            path: `${CACHE_DIR}/${entry.filename}`,
+            directory: Directory.Data,
+          })
+        } catch {}
+      } else {
+        const cache = await caches.open(CACHE_NAME)
+        await cache.delete(url)
       }
+
+      await deleteEntry(url)
+      await decreaseSize(entry.size)
+
+      dispatch('audioCacheDeleted', url)
     },
 
     async clearAllAudioCache() {
-      await caches.delete(CACHE_NAME)
-      indexedDB.deleteDatabase(META_DB_NAME)
-      window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
+      if (isNative) {
+        try {
+          await Filesystem.rmdir({
+            path: CACHE_DIR,
+            directory: Directory.Data,
+            recursive: true,
+          })
+        } catch {}
+
+        await initNativeDir()
+      } else {
+        await caches.delete(CACHE_NAME)
+      }
+
+      indexedDB.deleteDatabase(META_DB)
+
+      dispatch('audioCacheClearedAll')
       return true
     },
 
@@ -316,46 +464,33 @@ export const useCacheStore = defineStore('albumCache', {
 
       const key = album.id || album.name
       this.activeCaching.set(key, { cancelled: false })
+
       const session = this.activeCaching.get(key)!
 
-      const urls = album.tracks.map(t => t.url).filter(Boolean) as string[]
-
-      for (const url of urls) {
+      for (const t of album.tracks) {
         if (session.cancelled) return
-        await this.cacheTrack(url)
-        await sleep(200)
+        if (t.url) this.cacheTrack(t.url)
+        await sleep(150)
       }
     },
 
     async clearAlbumCache(album: Album) {
       if (!album?.tracks?.length) return
 
-      const key = album.id || album.name
-      if (key && this.activeCaching.has(key)) {
-        this.activeCaching.get(key)!.cancelled = true
-        await sleep(1000)
-      }
-
-      const cache = await caches.open(CACHE_NAME)
-
       for (const t of album.tracks) {
-        if (!t.url) continue
-        if (await cache.delete(t.url)) {
-          await deleteMeta(t.url)
-          window.dispatchEvent(
-            new CustomEvent('audioCacheDeleted', { detail: t.url }),
-          )
-        }
+        if (t.url) await this.deleteTrack(t.url)
       }
     },
 
     async isCached(album: Album) {
       if (!album?.tracks?.length) return false
-      const cache = await caches.open(CACHE_NAME)
-      const res = await Promise.all(
-        album.tracks.map(t => (t.url ? cache.match(t.url) : null)),
-      )
-      return res.every(Boolean)
+
+      for (const t of album.tracks) {
+        if (!t.url) continue
+        if (!(await this.hasTrack(t.url))) return false
+      }
+
+      return true
     },
 
     async getCacheSizeMB() {

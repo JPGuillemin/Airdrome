@@ -11,6 +11,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@capacitor/filesystem": "^8.1.2",
     "@iconify-icons/bi": "^1.2.2",
     "@iconify-icons/svg-spinners": "^1.2.0",
     "@popperjs/core": "^2.11.8",
