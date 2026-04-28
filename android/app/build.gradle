@@ -7,8 +7,8 @@ android {
         applicationId "com.jpguillemin.airdrome"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 451
-        versionName "4.5.1"
+        versionCode 452
+        versionName "4.5.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +16,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file("airdrome-release.keystore")
+
+            def console = System.console()
+
+            storePassword = console ?
+                    new String(console.readPassword("\nKeystore password: ")) :
+                    System.getenv("STORE_PASSWORD")
+
+            keyPassword = console ?
+                    new String(console.readPassword("Key password: ")) :
+                    System.getenv("KEY_PASSWORD")
+
+            keyAlias "airdrome"
+        }
+    }
     buildTypes {
         release {
-            minifyEnabled false
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

@@ -6,7 +6,7 @@ const CACHE_NAME = 'airdrome-cache-v2'
 const META_DB_NAME = 'airdrome-cache-meta'
 const META_STORE_NAME = 'entries'
 const META_INFO_STORE_NAME = 'meta'
-const MAX_CACHE_SIZE_BYTES = 5 * 1024 * 1024 * 1024 // 5 GB
+const MAX_CACHE_SIZE_BYTES = 1 * 1024 * 1024 * 1024 // 1 GB
 
 type MetaEntry = {
   url: string
@@ -358,9 +358,9 @@ export const useCacheStore = defineStore('albumCache', {
       return res.every(Boolean)
     },
 
-    async getCacheSizeGB() {
+    async getCacheSizeMB() {
       const meta = await getMetaInfo()
-      return Math.round((meta.totalBytes / 1024 ** 3) * 10) / 10
+      return Math.round(meta.totalBytes / 1024 ** 2)
     },
   },
 })

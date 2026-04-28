@@ -68,7 +68,7 @@
             </div>
             <hr class="dropdown-divider">
             <div class="on-top px-3 py-2 text-muted small">
-              Cache size: {{ cacheSize }} GB
+              Cache size: {{ cacheSize }} MB
             </div>
             <DropdownItem class="on-top small" @click="scan">
               Refresh content<Icon icon="refresh" class="me-1" />
@@ -169,7 +169,7 @@
       const cacheSize = ref(0)
 
       async function updateCacheSize() {
-        cacheSize.value = await cacheStore.getCacheSizeGB()
+        cacheSize.value = await cacheStore.getCacheSizeMB()
       }
 
       onMounted(() => {
