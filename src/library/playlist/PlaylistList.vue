@@ -20,7 +20,7 @@
       </template>
 
       <!-- Context Menu -->
-      <template #context-menu>
+      <template v-if="tileSize > 79 && !isNative" #context-menu>
         <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
           Play
         </DropdownItem>
@@ -61,13 +61,13 @@
       },
       allowHScroll: { type: Boolean, default: false },
       isPlaylistView: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 100 },
+      tileSize: { type: Number, default: 110 },
     },
 
     setup(props) {
       const playerStore = usePlayerStore()
       const api = inject('$api') as any
-
+      const isNative = inject<boolean>('isNative', false)
       const validItems = computed(() =>
         (props.items || []).filter((item): item is Playlist => !!item?.id)
       )
@@ -78,7 +78,7 @@
         return playerStore.playTrackList(playlist.tracks!)
       }
 
-      return { playerStore, validItems, playNow }
+      return { playerStore, validItems, playNow, isNative }
     },
   })
 </script>
