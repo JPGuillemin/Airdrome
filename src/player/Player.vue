@@ -203,7 +203,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, watch, ref, computed } from 'vue'
+  import { defineComponent, watch, ref, computed, inject } from 'vue'
   import { ReplayGainMode } from './audio'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
@@ -247,9 +247,7 @@
       const isMuted = computed(() => playerStore.volume <= 0)
       const repeatActive = computed(() => playerStore.repeat)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
-      const isMobile =
-        matchMedia('(pointer: coarse)').matches &&
-        navigator.maxTouchPoints > 0
+      const isMobile = inject<boolean>('isMobile')
 
       const isFavourite = computed<boolean>(() => {
         return !!track.value && favouriteStore.get('track', track.value.id)

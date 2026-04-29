@@ -1,4 +1,4 @@
-import { watch } from 'vue'
+import { watch, inject } from 'vue'
 import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { Track } from '@/shared/api'
@@ -599,10 +599,8 @@ export function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
   playerStore.setMediaSessionState('none')
-  // Detect mobile (touch-primary) devices for the auto-resume logic below
-  const isMobile =
-    matchMedia('(pointer: coarse)').matches &&
-    navigator.maxTouchPoints > 0
+  // auto-resume logic is for (touch-primary) devices only
+  const isMobile = inject<boolean>('isMobile')
 
   // ---------------------------------------------------------------------------
   // Mobile auto-resume

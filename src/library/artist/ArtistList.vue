@@ -10,7 +10,7 @@
       <template #text>
         <strong>{{ item.albumCount }}</strong> albums
       </template>
-      <template #context-menu>
+      <template v-if="tileSize > 79 && !isNative" #context-menu>
         <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </DropdownItem>
@@ -19,18 +19,18 @@
   </Tiles>
 </template>
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, inject } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
 
   export default defineComponent({
     props: {
       items: { type: Array, required: true },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 100 },
+      tileSize: { type: Number, default: 110 },
     },
     setup() {
       const favouriteStore = useFavouriteStore()
-
+      const isNative = inject<boolean>('isNative', false)
       const toggleFavourite = async(id: string) => {
         favouriteStore.toggle('artist', id)
       }
@@ -41,6 +41,7 @@
         favouriteStore,
         toggleFavourite,
         isFavourite,
+        isNative,
       }
     },
   })
