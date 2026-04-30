@@ -10,7 +10,7 @@
       <template #text>
         <strong>{{ item.albumCount }}</strong> albums
       </template>
-      <template v-if="tileSize > 79 && !isNative" #context-menu>
+      <template v-if="tileSize > 79" #context-menu>
         <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </DropdownItem>
@@ -26,11 +26,10 @@
     props: {
       items: { type: Array, required: true },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 110 },
+      tileSize: { type: Number, default: 100 },
     },
     setup() {
       const favouriteStore = useFavouriteStore()
-      const isNative = inject<boolean>('isNative', false)
       const toggleFavourite = async(id: string) => {
         favouriteStore.toggle('artist', id)
       }
@@ -41,7 +40,6 @@
         favouriteStore,
         toggleFavourite,
         isFavourite,
-        isNative,
       }
     },
   })

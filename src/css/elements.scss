@@ -1,6 +1,13 @@
 // Inputs
-input,
-textarea {
+
+html, body, * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
   caret-color: var(--theme-text);
 }
 

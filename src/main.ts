@@ -125,5 +125,9 @@ async function bootstrapApp() {
   }
 }
 
+document.addEventListener('contextmenu', e => {
+  e.preventDefault()
+})
+
 // Run the bootstrap
 bootstrapApp()

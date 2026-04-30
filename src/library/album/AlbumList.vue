@@ -24,7 +24,7 @@
       </template>
 
       <!-- Context Menu -->
-      <template v-if="tileSize > 79 && !isNative" #context-menu>
+      <template v-if="tileSize > 79" #context-menu>
         <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
           Play
         </DropdownItem>
@@ -51,7 +51,7 @@
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 110 },
+      tileSize: { type: Number, default: 100 },
       twinRows: { type: Boolean, default: false },
       titleOnly: { type: Boolean, default: false },
     },
@@ -61,8 +61,7 @@
       const playerStore = usePlayerStore()
       const cacheStore = useCacheStore()
       const api = inject('$api') as any
-      const isNative = inject<boolean>('isNative', false)
-      
+
       const validItems = computed(() => {
         return (props.items || []).filter((item): item is Album => !!item?.id)
       })
@@ -103,7 +102,6 @@
         toggleFavourite,
         dragstart,
         isFavourite,
-        isNative,
       }
     },
   })
