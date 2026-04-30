@@ -41,6 +41,11 @@
   resolved "https://registry.npmjs.org/@capacitor/android/-/android-8.3.1.tgz"
   integrity sha512-hjskIG8YcBEh3X4yaTXvE9gcqpdcxunTgFruSKnuPxtMxAUzEK4Oq25x0Z1g3cz+MQPc+lRG09R7Ovc+ydKsNw==
 
+"@capacitor/app@^8.1.0":
+  version "8.1.0"
+  resolved "https://registry.npmjs.org/@capacitor/app/-/app-8.1.0.tgz"
+  integrity sha512-MlmttTOWHDedr/G4SrhNRxsXMqY+R75S4MM4eIgzsgCzOYhb/MpCkA5Q3nuOCfL1oHm26xjUzqZ5aupbOwdfYg==
+
 "@capacitor/assets@^3.0.5":
   version "3.0.5"
   resolved "https://registry.npmjs.org/@capacitor/assets/-/assets-3.0.5.tgz"

@@ -599,6 +599,44 @@ export function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
   playerStore.setMediaSessionState('none')
+
+  const isNative = inject<boolean>('isNative')
+  let pausedByFocusLoss = false
+
+  if (isNative) {
+    nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
+      const type = event?.type
+
+      switch (type) {
+        case 'lossTransient':
+          if (playerStore.isPlaying) {
+            pausedByFocusLoss = true
+            await playerStore.pause()
+          }
+          break
+
+        case 'loss':
+          pausedByFocusLoss = false
+          await playerStore.pause()
+          break
+
+        case 'gain':
+          if (
+            pausedByFocusLoss &&
+            !playerStore.wasPaused &&
+            !playerStore.isPlaying
+          ) {
+            pausedByFocusLoss = false
+            await playerStore.play()
+          }
+          break
+
+        case 'lossDuck':
+          break
+      }
+    })
+  }
+
   // auto-resume logic is for (touch-primary) devices only
   const isMobile = inject<boolean>('isMobile')
 

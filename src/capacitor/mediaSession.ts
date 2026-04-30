@@ -17,8 +17,24 @@ export interface NativePlaybackStateOptions {
   speed?: number
 }
 
+export type AudioFocusChangeType =
+  | 'gain'
+  | 'loss'
+  | 'lossTransient'
+  | 'lossDuck'
+
+export interface AudioFocusChangeEvent {
+  type: AudioFocusChangeType
+}
+
 export type NativeMediaSessionEvent =
-  | 'play' | 'pause' | 'next' | 'previous' | 'stop' | 'seek'
+  | 'play'
+  | 'pause'
+  | 'next'
+  | 'previous'
+  | 'stop'
+  | 'seek'
+  | 'audioFocusChange'
 
 interface MediaSessionPluginShape {
   setMetadata(options: NativeMetadataOptions): Promise<void>

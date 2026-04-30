@@ -23,7 +23,7 @@
               :max="playerStore.duration"
               :step="0.1"
               :tooltips="true"
-              show-tooltip="focus"
+              show-tooltip="drag"
               :format="formatter"
               orientation="horizontal"
               :lazy="true"

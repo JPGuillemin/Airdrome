@@ -43,6 +43,14 @@ async function bootstrapApp() {
   const app = createApp(AppComponent)
   app.use(pinia)
 
+  const isMobile =
+    matchMedia('(pointer: coarse)').matches &&
+    navigator.maxTouchPoints > 0
+  app.provide('isMobile', isMobile)
+
+  const isNative = Capacitor.isNativePlatform()
+  app.provide('isNative', isNative)
+
   const mainStore = useMainStore(pinia)
   const playerStore = usePlayerStore(pinia)
 
@@ -74,14 +82,6 @@ async function bootstrapApp() {
   app.use(api)
   app.provide('$api', api)
   app.use(createBootstrap())
-
-  const isMobile =
-    matchMedia('(pointer: coarse)').matches &&
-    navigator.maxTouchPoints > 0
-  app.provide('isMobile', isMobile)
-
-  const isNative = Capacitor.isNativePlatform()
-  app.provide('isNative', isNative)
 
   // --- Global properties ---
   app.config.globalProperties.$auth = auth
