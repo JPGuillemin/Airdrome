@@ -34,6 +34,10 @@
       let startX = 0
       let startY = 0
 
+      useEventListener(document, 'context-menu-open', () => {
+        visible.value = false
+      })
+
       const closeMenu = () => {
         visible.value = false
       }
@@ -65,6 +69,8 @@
         if (top < margin) top = margin
 
         position.value = { left, top }
+
+        document.dispatchEvent(new CustomEvent('context-menu-open'))
         visible.value = true
 
         if (isNative && navigator.vibrate) {
