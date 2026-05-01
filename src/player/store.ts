@@ -526,8 +526,6 @@ export const usePlayerStore = defineStore('player', {
      *  - Index past end with repeat off → stays at last track (no wrap)
      */
     setQueueIndex(index: number) {
-      const isNative = inject<boolean>('isNative')
-
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
         this.duration = 0
@@ -579,15 +577,13 @@ export const usePlayerStore = defineStore('player', {
           artwork
         });
       }
-      if (isNative) {
-        nativeMediaSession.setMetadata({
-          title: trackTitle,
-          artist: trackArtist,
-          album: trackAlbum,
-          artworkUrl: trackImage,
-          duration: this.track.duration || 0
-        })
-      }
+      nativeMediaSession.setMetadata({
+        title: trackTitle,
+        artist: trackArtist,
+        album: trackAlbum,
+        artworkUrl: trackImage,
+        duration: this.track.duration || 0
+      })
     },
   },
 })
