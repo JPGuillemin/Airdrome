@@ -526,6 +526,8 @@ export const usePlayerStore = defineStore('player', {
      *  - Index past end with repeat off → stays at last track (no wrap)
      */
     setQueueIndex(index: number) {
+      const isNative = inject<boolean>('isNative')
+
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
         this.duration = 0
@@ -577,13 +579,15 @@ export const usePlayerStore = defineStore('player', {
           artwork
         });
       }
-      nativeMediaSession.setMetadata({
-        title: trackTitle,
-        artist: trackArtist,
-        album: trackAlbum,
-        artworkUrl: trackImage,
-        duration: this.track.duration || 0
-      })
+      if (isNative) {
+        nativeMediaSession.setMetadata({
+          title: trackTitle,
+          artist: trackArtist,
+          album: trackAlbum,
+          artworkUrl: trackImage,
+          duration: this.track.duration || 0
+        })
+      }
     },
   },
 })
@@ -600,9 +604,10 @@ export function setupAudio(
 ) {
   playerStore.setMediaSessionState('none')
 
+  const isMobile = inject<boolean>('isMobile')
   const isNative = inject<boolean>('isNative')
-  let pausedByFocusLoss = false
 
+  let pausedByFocusLoss = false
   if (isNative) {
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
@@ -636,9 +641,6 @@ export function setupAudio(
       }
     })
   }
-
-  // auto-resume logic is for (touch-primary) devices only
-  const isMobile = inject<boolean>('isMobile')
 
   // ---------------------------------------------------------------------------
   // Mobile auto-resume

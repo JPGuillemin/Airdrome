@@ -135,6 +135,8 @@ public class MediaSessionManager {
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs);
         if (artworkBitmap != null) {
             b.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artworkBitmap);
+            b.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artworkBitmap);
+            b.putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artworkBitmap);
         }
         session.setMetadata(b.build());
     }
@@ -160,7 +162,8 @@ public class MediaSessionManager {
             conn.setReadTimeout(10000);
             conn.setRequestProperty("User-Agent", "Airdrome/Android");
             InputStream in = conn.getInputStream();
-            final Bitmap bm = BitmapFactory.decodeStream(in);
+            Bitmap raw = BitmapFactory.decodeStream(in);
+            final Bitmap bm = Bitmap.createScaledBitmap(raw, 300, 300, true);
             in.close();
             conn.disconnect();
             if (bm == null) return;
