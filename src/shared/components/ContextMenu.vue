@@ -13,6 +13,7 @@
 <script lang="ts">
   import { defineComponent, ref, inject } from 'vue'
   import { useEventListener } from '@vueuse/core'
+  import { Capacitor } from '@capacitor/core'
 
   export default defineComponent({
     props: {
@@ -20,7 +21,7 @@
     },
 
     setup(props) {
-      const isNative = inject<boolean>('isNative', false)
+      const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
       const el = ref<HTMLElement | null>(null)
       const visible = ref(false)

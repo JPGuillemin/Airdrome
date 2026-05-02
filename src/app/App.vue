@@ -28,9 +28,11 @@
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
 
+  import { Capacitor } from '@capacitor/core'
+  const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
+
   const route = useRoute()
   const router = useRouter()
-  const isNative = inject<boolean>('isNative')
 
   let backListener: any = null
 

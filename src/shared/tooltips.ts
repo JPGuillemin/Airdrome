@@ -62,7 +62,7 @@ export const longPressTooltip: Directive = {
 
       const tipRect = tip.getBoundingClientRect()
 
-      const isMobile = inject<boolean>('isMobile')
+      const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
       // MOBILE: place tooltip BELOW the element so it won't sit under finger
       if (isMobile) {

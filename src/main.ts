@@ -10,7 +10,6 @@ import { createPinia } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
 import { createBootstrap } from 'bootstrap-vue-next'
-import { Capacitor } from '@capacitor/core'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
@@ -42,14 +41,6 @@ async function bootstrapApp() {
 
   const app = createApp(AppComponent)
   app.use(pinia)
-
-  const isMobile =
-    matchMedia('(pointer: coarse)').matches &&
-    navigator.maxTouchPoints > 0
-  app.provide('isMobile', isMobile)
-
-  const isNative = Capacitor.isNativePlatform()
-  app.provide('isNative', isNative)
 
   const mainStore = useMainStore(pinia)
   const playerStore = usePlayerStore(pinia)

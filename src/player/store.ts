@@ -1,4 +1,4 @@
-import { watch, inject } from 'vue'
+import { watch } from 'vue'
 import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { Track } from '@/shared/api'
@@ -6,7 +6,12 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
-import { nativeMediaSession } from '@/capacitor/mediaSession'
+
+import { nativeMediaSession } from '@/player/nativeMediaSession'
+import { Capacitor } from '@capacitor/core'
+const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
+
+const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -389,11 +394,13 @@ export const usePlayerStore = defineStore('player', {
           position: _position
         })
       }
-      nativeMediaSession.setPlaybackState({
-        state: this.isPlaying ? 'playing' : 'paused',
-        position: _position,
-        speed: mediaSessionProgressRate
-      })
+      if (isNative) {
+        nativeMediaSession.setPlaybackState({
+          state: this.isPlaying ? 'playing' : 'paused',
+          position: _position,
+          speed: mediaSessionProgressRate
+        })
+      }
     },
 
     setMediaSessionState(_state?: MediaSessionPlaybackState) {
@@ -403,11 +410,13 @@ export const usePlayerStore = defineStore('player', {
       if (navigator.mediaSession) {
         mediaSession!.playbackState = _state
       }
-      nativeMediaSession.setPlaybackState({
-        state: _state,
-        position: this.currentTime,
-        speed: mediaSessionProgressRate
-      })
+      if (isNative) {
+        nativeMediaSession.setPlaybackState({
+          state: _state,
+          position: this.currentTime,
+          speed: mediaSessionProgressRate
+        })
+      }
     },
 
     /**
@@ -577,13 +586,15 @@ export const usePlayerStore = defineStore('player', {
           artwork
         });
       }
-      nativeMediaSession.setMetadata({
-        title: trackTitle,
-        artist: trackArtist,
-        album: trackAlbum,
-        artworkUrl: trackImage,
-        duration: this.track.duration || 0
-      })
+      if (isNative) {
+        nativeMediaSession.setMetadata({
+          title: trackTitle,
+          artist: trackArtist,
+          album: trackAlbum,
+          artworkUrl: trackImage,
+          duration: this.track.duration || 0
+        })
+      }
     },
   },
 })
@@ -599,9 +610,6 @@ export function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
   playerStore.setMediaSessionState('none')
-
-  const isMobile = inject<boolean>('isMobile')
-  const isNative = inject<boolean>('isNative')
 
   let pausedByFocusLoss = false
   if (isNative) {
@@ -842,26 +850,23 @@ export function setupAudio(
   // These allow OS media controls (lock screen, headphone buttons, etc.)
   // to control playback.
 
-  if (mediaSession) {
+  if (mediaSession && !isNative) {
     mediaSession.setActionHandler('play', () => { playerStore.play() })
     mediaSession.setActionHandler('pause', () => { playerStore.pause() })
     mediaSession.setActionHandler('nexttrack', () => { playerStore.next(true) })
     mediaSession.setActionHandler('previoustrack', () => { playerStore.back() })
     mediaSession.setActionHandler('stop', () => { playerStore.pause() })
-
     mediaSession.setActionHandler('seekto', async (details) => {
       // fastSeek is a hint that the browser is still scrubbing; skip those
       if (details.fastSeek || details.seekTime === undefined) return
       const position = Math.min(details.seekTime, playerStore.duration)
       playerStore.seek(position)
     })
-
     mediaSession.setActionHandler('seekforward', (details) => {
       const offset = details.seekOffset || 10
       const position = Math.min(playerStore.currentTime + offset, playerStore.duration)
       playerStore.seek(position)
     })
-
     mediaSession.setActionHandler('seekbackward', (details) => {
       const offset = details.seekOffset || 10
       const position = Math.max(playerStore.currentTime - offset, 0)
@@ -874,15 +879,31 @@ export function setupAudio(
   // Mirror of the browser handlers above so headphones / lock screen / Bluetooth
   // (e.g. Tesla) control playback the same way.
   // ---------------------------------------------------------------------------
-  nativeMediaSession.addListener('play', () => { playerStore.play() })
-  nativeMediaSession.addListener('pause', () => { playerStore.pause() })
-  nativeMediaSession.addListener('next', () => { playerStore.next(true) })
-  nativeMediaSession.addListener('previous', () => { playerStore.back() })
-  nativeMediaSession.addListener('stop', () => { playerStore.pause() })
-  nativeMediaSession.addListener('seek', (data: any) => {
-    const position = Math.min(Number(data?.position) || 0, playerStore.duration)
-    playerStore.seek(position)
-  })
+  if (isNative) {
+    nativeMediaSession.addListener('play', () => { playerStore.play() })
+    nativeMediaSession.addListener('pause', () => { playerStore.pause() })
+    nativeMediaSession.addListener('next', () => { playerStore.next(true) })
+    nativeMediaSession.addListener('previous', () => { playerStore.back() })
+    nativeMediaSession.addListener('stop', () => { playerStore.pause() })
+    nativeMediaSession.addListener('seek', (data: any) => {
+      const position = Math.min(Number(data?.position) || 0, playerStore.duration)
+      playerStore.seek(position)
+    })
+    nativeMediaSession.addListener('seekto', (data) => {
+      const pos = Math.min(Number(data?.position) || 0, playerStore.duration)
+      void playerStore.seek(pos)
+    })
+    nativeMediaSession.addListener('seekforward', (data) => {
+      const offset = Number(data?.offset) || 10
+      const pos = Math.min(playerStore.currentTime + offset, playerStore.duration)
+      void playerStore.seek(pos)
+    })
+    nativeMediaSession.addListener('seekbackward', (data) => {
+      const offset = Number(data?.offset) || 10
+      const pos = Math.max(playerStore.currentTime - offset, 0)
+      void playerStore.seek(pos)
+    })
+  }
 
   // ---------------------------------------------------------------------------
   // Periodic queue persistence

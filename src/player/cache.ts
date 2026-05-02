@@ -1,12 +1,12 @@
 // src/player/cache.ts
 import { inject } from 'vue'
 import { defineStore } from 'pinia'
-import { Capacitor } from '@capacitor/core'
-import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
-const isNative = inject<boolean>('isNative')
+import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
 const CACHE_DIR = 'audio-cache'
 const CACHE_NAME = 'airdrome-cache-v3'

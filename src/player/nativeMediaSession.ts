@@ -34,6 +34,9 @@ export type NativeMediaSessionEvent =
   | 'previous'
   | 'stop'
   | 'seek'
+  | 'seekto'
+  | 'seekforward'
+  | 'seekbackward'
   | 'audioFocusChange'
 
 interface MediaSessionPluginShape {
@@ -53,8 +56,10 @@ const noop: MediaSessionPluginShape = {
   }
 }
 
-export const isNativeMediaSession = Capacitor.getPlatform() === 'android'
+const isNative =
+  Capacitor.isNativePlatform() &&
+  Capacitor.getPlatform() === 'android'
 
-export const nativeMediaSession: MediaSessionPluginShape = isNativeMediaSession
+export const nativeMediaSession: MediaSessionPluginShape = isNative
   ? registerPlugin<MediaSessionPluginShape>('MediaSession')
   : noop

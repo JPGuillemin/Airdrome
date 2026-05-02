@@ -247,7 +247,7 @@
       const isMuted = computed(() => playerStore.volume <= 0)
       const repeatActive = computed(() => playerStore.repeat)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
-      const isMobile = inject<boolean>('isMobile')
+      const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
       const isFavourite = computed<boolean>(() => {
         return !!track.value && favouriteStore.get('track', track.value.id)
