@@ -15,7 +15,7 @@ const META_DB = 'airdrome-cache-meta'
 const META_STORE = 'entries'
 const META_INFO = 'meta'
 
-const MAX_CACHE_SIZE_BYTES = 5 * 1024 * 1024 * 1024 // 5 GB
+const MAX_CACHE_SIZE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB
 
 type MetaEntry = {
   url: string
@@ -307,7 +307,8 @@ async function enforceLimit() {
   entries.sort((a, b) => a.lastAccess - b.lastAccess)
 
   for (const e of entries) {
-    if (meta.totalBytes <= MAX_CACHE_SIZE_BYTES) break
+    const current = await getMetaInfo()
+    if (current.totalBytes <= MAX_CACHE_SIZE_BYTES) break
 
     if (isNative) {
       try {
@@ -315,16 +316,18 @@ async function enforceLimit() {
           path: `${CACHE_DIR}/${e.filename}`,
           directory: Directory.Data,
         })
-      } catch {}
+      } catch {
+        // already gone, still clean up accounting below
+      }
     } else {
       const cache = await caches.open(CACHE_NAME)
-      await cache.delete(e.url)
+      await cache.delete(e.url) // ignore return value — browser may have evicted already
     }
 
+    // Always clean up IndexedDB and accounting, regardless of whether
+    // the file/cache entry actually existed
     await deleteEntry(e.url)
     await decreaseSize(e.size)
-    meta.totalBytes -= e.size
-
     dispatch('audioCacheDeleted', e.url)
   }
 
@@ -354,39 +357,37 @@ export const useCacheStore = defineStore('albumCache', {
     async processQueue() {
       await this.init()
       if (this.processing) return
+      this.processing = true   // must be synchronous before first await
 
-      this.processing = true
+      try {
+        while (this.queue.length) {
+          const url = this.queue.shift()!
+          this.queued.delete(url)
 
-      while (this.queue.length) {
-        const url = this.queue.shift()!
-        this.queued.delete(url)
+          const exists = await this.hasTrack(url)
+          if (exists) continue
 
-        const exists = await this.hasTrack(url)
-        if (exists) continue
+          const bytes = isNative ? await nativeWrite(url) : await webWrite(url)
 
-        const bytes = isNative
-          ? await nativeWrite(url)
-          : await webWrite(url)
-
-        if (bytes !== null) {
-          await enforceLimit()
-          dispatch('audioCached', url)
+          if (bytes !== null && bytes > 0) {
+            await enforceLimit()
+            dispatch('audioCached', url)
+          }
         }
+      } finally {
+        this.processing = false
       }
-
-      this.processing = false
     },
 
     async cacheTrack(url: string) {
       if (!url || this.queued.has(url)) return
-
       this.queue.push(url)
       this.queued.add(url)
-
-      if (!this.processing) this.processQueue()
+      // processQueue guards itself with this.processing, safe to call multiple times
+      void this.processQueue()
     },
 
-    async getPlayableUrl(url: string) {
+    async getCachedUrl(url: string) {
       await this.init()
 
       const cached = await this.hasTrack(url)
@@ -407,12 +408,24 @@ export const useCacheStore = defineStore('albumCache', {
       if (isNative) {
         const ok = await nativeExists(entry.filename)
         if (ok) await touch(url)
+        // clean up phantom entry
+        if (!ok) {
+          await deleteEntry(url)
+          await decreaseSize(entry.size)
+        }
         return ok
       }
 
       const cache = await caches.open(CACHE_NAME)
       const hit = await cache.match(url)
-      if (hit) await touch(url)
+
+      if (hit) {
+        await touch(url)
+      } else {
+        // browser evicted it — clean up phantom accounting
+        await deleteEntry(url)
+        await decreaseSize(entry.size)
+      }
 
       return !!hit
     },

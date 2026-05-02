@@ -291,9 +291,9 @@ export class AudioController {
 
     // Re-use existing buffer if possible to avoid redundant network requests
     if (!this.buffer || this.buffer.src !== currentUrl || this.buffer.error) {
-      const playable = await cacheStore.getPlayableUrl(currentUrl)
-      await this.setBuffer(playable)
-      console.info('setBuffer(1):', currentUrl)
+      const cachedUrl = await cacheStore.getCachedUrl(currentUrl)
+      await this.setBuffer(cachedUrl)
+      console.info('setBuffer(1):', cachedUrl)
     }
 
     // Build the new pipeline using the buffered audio element
@@ -356,7 +356,7 @@ export class AudioController {
         stalledTimer = null
         if (token !== this.changeToken || audio.paused) return
         playFromBufferOrRetry()
-      }, 10_000)
+      }, 5000)
     }
 
     // ── Event handlers ────────────────────────────────────────────────────
@@ -402,13 +402,10 @@ export class AudioController {
 
     // After 15 s, cache the playing track and pre-buffer the next one
     setTimeout(async () => {
-      if (token === this.changeToken) {
-        this.cacheTrack(currentUrl!)
-        if (nextUrl) {
-          const nextPlayable = await cacheStore.getPlayableUrl(nextUrl)
-          this.setBuffer(nextPlayable)
-          console.info('setBuffer(2):', nextUrl)
-        }
+      if (token === this.changeToken && nextUrl) {
+        const nextCachedUrl = await cacheStore.getCachedUrl(nextUrl)
+        this.setBuffer(nextCachedUrl)
+        console.info('setBuffer(2):', nextCachedUrl)
       }
     }, Math.min(15000, (this.activePipeline.audio.duration || 30) * 0.5 * 1000))
   }

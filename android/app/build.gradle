@@ -7,8 +7,8 @@ android {
         applicationId "com.jpguillemin.airdrome"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4531
-        versionName "4.5.3.1"
+        versionCode 4532
+        versionName "4.5.3.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
