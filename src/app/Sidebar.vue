@@ -66,12 +66,10 @@
 
   .sidebar-container .sidebar-fixed::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
   }
 
   .sidebar-container .sidebar-fixed::-webkit-scrollbar-track {
     background: transparent;
-    border-radius: 4px;
   }
 
   .offcanvas {
@@ -100,17 +98,5 @@
       background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(6px);
     }
-  }
-
-  .sidebar-container .sidebar-brand {
-    padding: 1rem 1rem 0.75rem;
-  }
-
-  .sidebar-container .sidebar-heading {
-    margin-top: 1.25em;
-    padding: 0.5rem 1rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    display: block;
   }
 </style>

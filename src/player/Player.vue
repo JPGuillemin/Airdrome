@@ -5,7 +5,7 @@
     :class="{ visible: track }"
   >
     <!-- visual layer (background + radius ONLY) -->
-    <div class="player-bg" @click.stop="onBackgroundClick">
+    <div class="player-shape" @click.stop="onBackgroundClick">
       <!-- layout layer (NO clipping) -->
       <div class="player-content d-flex">
         <div class="flex-fill">
@@ -403,6 +403,7 @@
     height: 0;
     max-height: 0;
     transition: max-height 0.5s;
+    background: var(--theme-elevation-0);
   }
 
   .player.visible {
@@ -501,8 +502,10 @@
     margin: auto;
   }
 
-  .player-bg {
+  .player-shape {
+    margin: 5px 5px;
     background: var(--theme-elevation-1);
+    border-radius: 12px;
   }
 
   .slider-click-zone {
@@ -537,12 +540,12 @@
       height: 0;
       max-height: 0;
       transition: max-height 0.5s;
-      border-radius: 12px;
-      border: 1px solid var(--theme-elevation-2);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      background: var(--theme-elevation-0);
     }
 
-    .player-bg {
+    .player-shape {
+      margin: 0 2px;
+      background: var(--theme-elevation-1);
       border-radius: 12px;
     }
 

@@ -1,8 +1,8 @@
 // TopNav.vue
 <template>
-  <div>
+  <div class="top-nav">
     <ConfirmDialog ref="confirmDialog" />
-    <div class="top-nav elevated d-flex justify-content-between align-items-center pb-2 pt-2">
+    <div class="top-nav-shape elevated d-flex justify-content-between align-items-center pb-2 pt-2">
       <div class="d-flex align-items-center">
         <button
           class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
@@ -286,12 +286,23 @@
 <style scoped>
   .top-nav {
     position: fixed;
+    inset: 0;
+    background: var(--theme-elevation-0);
+    height: 56px;
+    z-index: 1000;
+  }
+
+  .top-nav-shape {
+    margin: 5px 5px;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    width: 100%;
-    z-index: 1000;
+    width: auto;
+    z-index: 1001;
     height: 46px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .logo-mask {
@@ -332,9 +343,9 @@
   }
 
   @media(max-width: 768px) {
-    .top-nav {
+    .top-nav-shape {
+      margin: 5px 2px;
       border-radius: 12px;
-      border: 1px solid var(--theme-elevation-2);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
   }

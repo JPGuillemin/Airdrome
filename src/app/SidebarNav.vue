@@ -1,7 +1,7 @@
 // SidebarNav.vue
 <template>
-  <nav class="nav adapt-text flex-column">
-    <div class="sidebar-brand d-flex justify-content-between align-items-end">
+  <nav class="nav sidebar-nav adapt-text flex-column">
+    <div class="d-flex justify-content-between align-items-end">
       <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
         <Icon icon="goback" />
       </button>
@@ -11,7 +11,7 @@
       :to="{name: 'discover'}"
       class="nav-link"
     >
-      <Icon icon="discover" class="me-2" />
+      <Icon icon="discover" class="me-2 ml-2" />
       <span class="bold">Cockpit</span>
     </router-link>
 
@@ -20,7 +20,7 @@
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/queue') }"
     >
-      <Icon icon="soundwave" class="me-2" />
+      <Icon icon="soundwave" class="me-2 ml-2" />
       <span class="bold">Playing</span>
     </router-link>
 
@@ -29,7 +29,7 @@
       class="nav-link mt-5"
       :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
     >
-      <Icon icon="albums" class="me-2" />
+      <Icon icon="albums" class="me-2 ml-2" />
       <span class="bold">Albums</span>
     </router-link>
 
@@ -38,7 +38,7 @@
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/artists/') }"
     >
-      <Icon icon="artists" class="me-2" />
+      <Icon icon="artists" class="me-2 ml-2" />
       <span class="bold">Artists</span>
     </router-link>
 
@@ -47,7 +47,7 @@
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
     >
-      <Icon icon="genres" class="me-2" />
+      <Icon icon="genres" class="me-2 ml-2" />
       <span class="bold">Genres</span>
     </router-link>
 
@@ -56,7 +56,7 @@
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/playlist') }"
     >
-      <Icon icon="playlist" class="me-2" />
+      <Icon icon="playlist" class="me-2 ml-2" />
       <span class="bold">Playlists</span>
     </router-link>
 
@@ -65,7 +65,7 @@
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/favourites/') }"
     >
-      <Icon icon="heart" class="me-2" />
+      <Icon icon="heart" class="me-2 ml-2" />
       <span class="bold">Favourites</span>
     </router-link>
   </nav>
@@ -88,3 +88,10 @@
     },
   })
 </script>
+
+<style>
+  .sidebar-nav {
+    margin: 17px 10px;
+    padding-left: 10px;
+  }
+</style>
