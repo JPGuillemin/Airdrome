@@ -1,2 +1,2 @@
-export VERSION="4.5.4.1"
-export VERSION_CODE="4541"
+export VERSION="5.0"
+export VERSION_CODE="50"
