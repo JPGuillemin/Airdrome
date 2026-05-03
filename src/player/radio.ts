@@ -1,3 +1,4 @@
+// radio.ts
 import { defineStore } from 'pinia'
 import { nextTick } from 'vue'
 import router from '@/main'

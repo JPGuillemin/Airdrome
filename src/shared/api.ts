@@ -1,3 +1,4 @@
+// api.ts
 import { inject, App, Plugin } from 'vue'
 import { AuthService } from '@/auth/service'
 import { orderBy, startCase, sumBy, uniqBy } from 'lodash-es'

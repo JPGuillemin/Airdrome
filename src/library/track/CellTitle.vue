@@ -1,3 +1,4 @@
+// CellTitle.vue
 <template>
   <td class="d-flex align-items-center gap-2">
     <!-- Optional thumbnail -->

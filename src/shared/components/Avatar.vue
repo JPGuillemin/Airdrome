@@ -1,3 +1,4 @@
+// Avatar.vue
 <template>
   <span class="bg-secondary text-white rounded-circle avatar">
     <slot />

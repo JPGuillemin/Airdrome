@@ -1,3 +1,4 @@
+// Discover.vue
 <template>
   <div class="main-content">
     <div v-if="result.genres.length > 0" class="section-wrapper pt-3">

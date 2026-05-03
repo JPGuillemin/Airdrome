@@ -1,3 +1,4 @@
+// Default.vue
 <template>
   <div>
     <div class="min-vh-100 d-flex">

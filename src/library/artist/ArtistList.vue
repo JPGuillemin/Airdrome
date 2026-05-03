@@ -1,3 +1,4 @@
+// ArtistList.vue
 <template>
   <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll">
     <Tile

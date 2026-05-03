@@ -1,3 +1,4 @@
+// SidebarNav.vue
 <template>
   <nav class="nav adapt-text flex-column">
     <div class="sidebar-brand d-flex justify-content-between align-items-end">

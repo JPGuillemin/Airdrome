@@ -1,3 +1,4 @@
+// BaseTable.vue
 <template>
   <table class="table table-borderless table-numbered border-none">
     <slot />

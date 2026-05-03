@@ -1,3 +1,4 @@
+// MobileNavBar.vue
 <template>
   <nav class="mobile-nav d-md-none">
     <button

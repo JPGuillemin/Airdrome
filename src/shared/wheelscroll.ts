@@ -1,3 +1,4 @@
+// wheelscroll.ts
 import type { DirectiveBinding } from 'vue'
 
 interface WheelScrollOptions {

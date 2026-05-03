@@ -1,3 +1,4 @@
+// AlbumDetails.vue
 <template>
   <div v-if="album" class="main-content">
     <div class="header-wrapper">

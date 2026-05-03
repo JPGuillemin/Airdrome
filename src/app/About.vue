@@ -1,3 +1,4 @@
+// About.vue
 <template>
   <div>
     <div v-if="visible" class="modal-overlay" @click="$emit('close')" />

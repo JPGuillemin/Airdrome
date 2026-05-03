@@ -1,3 +1,4 @@
+// Playlist.vue
 <template>
   <div v-if="playlist" class="main-content">
     <ConfirmDialog ref="confirmDialog" />

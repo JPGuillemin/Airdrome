@@ -1,3 +1,4 @@
+// ExternalLink.vue
 <template>
   <a :href="href" target="_blank" rel="noopener noreferrer" :class="[className]" v-bind="$attrs">
     <slot />

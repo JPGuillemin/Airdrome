@@ -1,3 +1,4 @@
+// EmptyIndicator.vue
 <template>
   <div class="d-flex flex-column align-items-center pt-5">
     <Icon icon="stack" class="empty-icon" />

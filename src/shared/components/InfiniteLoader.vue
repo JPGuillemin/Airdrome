@@ -1,3 +1,4 @@
+// InfiniteLoader.vue
 <template>
   <div ref="el" class="d-flex justify-content-center my-4">
     <span />

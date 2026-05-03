@@ -1,3 +1,4 @@
+// service.ts
 import { md5, randomString, toQueryString } from '@/shared/utils'
 import { inject, App, Plugin } from 'vue'
 import { pickBy } from 'lodash-es'

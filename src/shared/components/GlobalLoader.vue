@@ -1,3 +1,4 @@
+// GlobalLoader.vue
 <template>
   <transition name="fade">
     <div v-if="loader.loading" class="loader-overlay">

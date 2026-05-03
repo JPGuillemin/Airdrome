@@ -1,3 +1,4 @@
+// Queue.vue
 <template>
   <div class="main-content">
     <ConfirmDialog ref="confirmDialog" />

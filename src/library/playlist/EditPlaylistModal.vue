@@ -1,3 +1,4 @@
+// EditPlaylistModal.vue
 <template>
   <div>
     <div class="modal-overlay" @click="close" />

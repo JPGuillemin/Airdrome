@@ -1,3 +1,4 @@
+// CellAlbum.vue
 <template>
   <td class="d-none d-md-table-cell">
     <template v-if="track.albumId">

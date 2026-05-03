@@ -1,3 +1,4 @@
+// router.ts
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/auth/Login.vue'
 import Queue from '@/player/Queue.vue'

@@ -1,3 +1,4 @@
+// cache.ts
 // src/player/cache.ts
 import { inject } from 'vue'
 import { defineStore } from 'pinia'

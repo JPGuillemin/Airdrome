@@ -1,3 +1,4 @@
+// Tile.vue
 <template>
   <div class="tile">
     <ContextMenu

@@ -1,3 +1,4 @@
+// Favourites.vue
 <template>
   <div v-if="details" class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">

@@ -1,3 +1,4 @@
+// BaseTableHead.vue
 <template>
   <thead>
     <tr>

@@ -1,3 +1,4 @@
+// Fullscreen.vue
 <template>
   <main class="container-fluid">
     <slot />

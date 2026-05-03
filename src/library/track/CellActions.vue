@@ -1,3 +1,4 @@
+// CellActions.vue
 <template>
   <td class="text-end" @click.stop="">
     <OverflowMenu variant="transparent">

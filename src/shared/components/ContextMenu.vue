@@ -1,3 +1,4 @@
+// ContextMenu.vue
 <template>
   <div ref="el">
     <slot />

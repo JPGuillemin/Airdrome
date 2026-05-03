@@ -1,3 +1,4 @@
+// nativeMediaSession.ts
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 

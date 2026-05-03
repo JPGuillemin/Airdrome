@@ -1,3 +1,4 @@
+// GenreLibrary.vue
 <template>
   <div class="main-content">
     <div class="d-flex align-items-center justify-content-between my-3">

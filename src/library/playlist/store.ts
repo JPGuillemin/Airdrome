@@ -1,3 +1,4 @@
+// store.ts
 import { defineStore } from 'pinia'
 import { Playlist } from '@/shared/api'
 import { orderBy } from 'lodash-es'

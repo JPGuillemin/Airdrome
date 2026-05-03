@@ -1,3 +1,4 @@
+// OverflowFade.vue
 <template>
   <div ref="el" class="el" @scroll="updateScrollPosition">
     <slot />

@@ -1,3 +1,4 @@
+// SearchForm.vue
 <template>
   <form @submit.prevent="search">
     <input

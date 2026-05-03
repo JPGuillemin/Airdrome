@@ -1,3 +1,4 @@
+// CellArtist.vue
 <template>
   <td class="d-none d-lg-table-cell adapt-text">
     <span v-for="(artist, index) in track.artists" :key="artist.id">

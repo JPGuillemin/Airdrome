@@ -1,3 +1,4 @@
+// store.ts
 import { defineStore } from 'pinia'
 
 type MediaType = 'track' | 'album' | 'artist'

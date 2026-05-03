@@ -1,3 +1,4 @@
+// tooltips.ts
 import { Directive, inject } from 'vue'
 
 type LongPressEl = HTMLElement & {

@@ -1,3 +1,4 @@
+// index.ts
 import Avatar from './Avatar.vue'
 import ContextMenu from '@/shared/components/ContextMenu.vue'
 import Dropdown from '@/shared/components/Dropdown.vue'

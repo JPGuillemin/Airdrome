@@ -1,3 +1,4 @@
+// SwitchInput.vue
 <template>
   <div class="form-check form-switch">
     <input

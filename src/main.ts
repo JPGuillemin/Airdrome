@@ -1,3 +1,4 @@
+// main.ts
 import { createApp, markRaw, watch } from 'vue'
 import AppComponent from '@/app/App.vue'
 import { components } from '@/shared/components'

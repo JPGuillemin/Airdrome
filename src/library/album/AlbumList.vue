@@ -1,3 +1,4 @@
+// AlbumList.vue
 <template>
   <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll" :twin-rows="twinRows">
     <Tile

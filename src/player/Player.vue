@@ -1,3 +1,4 @@
+// Player.vue
 <template>
   <div
     class="player"

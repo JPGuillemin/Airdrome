@@ -1,3 +1,4 @@
+// store.ts
 import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 

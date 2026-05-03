@@ -1,3 +1,4 @@
+// Sidebar.vue
 <template>
   <div class="main-content sidebar-container">
     <div class="sidebar-fixed d-none d-md-block">

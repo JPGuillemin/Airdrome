@@ -1,3 +1,4 @@
+// env.d.ts
 /// <reference types="vite/client" />
 
 import { API } from '@/shared/api'

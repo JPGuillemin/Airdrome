@@ -1,3 +1,4 @@
+// InfiniteList.vue
 <template>
   <div>
     <slot :items="items" />

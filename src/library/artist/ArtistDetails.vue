@@ -1,3 +1,4 @@
+// ArtistDetails.vue
 <template>
   <div v-if="artist" class="main-content">
     <div class="header-wrapper">

@@ -1,3 +1,4 @@
+// SearchResult.vue
 <template>
   <div class="main-content">
     <div v-if="result.albums.length > 0" class="pb-2 pt-3">

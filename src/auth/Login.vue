@@ -1,3 +1,4 @@
+// Login.vue
 <template>
   <div class="d-flex align-items-center h-100 mt-5">
     <div v-if="!displayForm" class="mx-auto">

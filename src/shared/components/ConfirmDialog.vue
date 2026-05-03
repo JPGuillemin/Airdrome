@@ -1,3 +1,4 @@
+// ConfirmDialog.vue
 <template>
   <div>
     <div v-if="visible" class="modal-overlay" @click="cancel" />

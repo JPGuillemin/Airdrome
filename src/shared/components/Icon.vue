@@ -1,3 +1,4 @@
+// Icon.vue
 <template>
   <!-- eslint-disable vue/no-v-html -->
   <svg
