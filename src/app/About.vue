@@ -6,6 +6,7 @@
         <div class="d-flex justify-content-center mb-3">
           <img width="100" height="100" src="@/shared/assets/logo.svg">
         </div>
+        <p class="text-center">AIRDROME {{ appVersion }}</p>
         <div class="text-center can-select">
           <ExternalLink :href="url">
             {{ url }}
@@ -24,9 +25,6 @@
               </ExternalLink>
             </div>
             <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
-            <div v-if="auth.serverInfo?.openSubsonic">
-              OpenSubsonic extensions: {{ auth.serverInfo?.extensions?.join(', ') }}
-            </div>
           </div>
         </div>
       </div>
@@ -47,11 +45,13 @@
       const url = 'https://github.com/JPGuillemin/Airdrome'
       const build = __BUILD_VERSION__
       const buildDate = __BUILD_DATE__
+      const appVersion = __APP_VERSION__
 
       return {
         auth,
         build,
         buildDate,
+        appVersion,
         url,
       }
     },

@@ -10,6 +10,7 @@ export default defineConfig(() => {
   const buildDate = new Date().toISOString()
   let buildVersion = 'dev'
   const basePath = process.env.BASE_PATH || '/'
+  const appVersion = process.env.VERSION
 
   try {
     buildVersion = execSync('git describe --tags --always', { encoding: 'utf8' }).trim()
@@ -59,7 +60,8 @@ export default defineConfig(() => {
     },
     define: {
       __BUILD_DATE__: JSON.stringify(buildDate),
-      __BUILD_VERSION__: JSON.stringify(buildVersion)
+      __BUILD_VERSION__: JSON.stringify(buildVersion),
+      __APP_VERSION__: JSON.stringify(appVersion)
     }
   }
 })

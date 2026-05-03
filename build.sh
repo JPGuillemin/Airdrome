@@ -1,6 +1,7 @@
 #!/bin/bash
-export VERSION=$(grep versionName android/app/build.gradle | sed -E 's/.*"(.+)".*/\1/')
+source VERSION
 export BASE_PATH="/"
+echo "Building $VERSION ..."
 
 rm -rf dist docker
 

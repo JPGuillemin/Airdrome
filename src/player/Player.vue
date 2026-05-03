@@ -14,7 +14,7 @@
             class="slider-click-zone"
             @mouseenter="focusSlider"
             @mouseleave="blurSlider"
-            @click.stop="onSliderClick($event)"
+            @click="onSliderClick($event)"
           >
             <Slider
               ref="progressSlider"
@@ -23,7 +23,7 @@
               :max="playerStore.duration"
               :step="0.1"
               :tooltips="true"
-              show-tooltip="drag"
+              show-tooltip="focus"
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
@@ -203,7 +203,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, watch, ref, computed, inject } from 'vue'
+  import { defineComponent, watch, ref, computed, onBeforeUnmount } from 'vue'
   import { ReplayGainMode } from './audio'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
@@ -229,8 +229,10 @@
       const playerStore = usePlayerStore()
       const favouriteStore = useFavouriteStore()
 
+      const progressSlider = ref<any>(null)
       const sliderValue = ref(0)
       const dragging = ref(false)
+      const tooltipTimer = ref<number | null>(null)
 
       watch(
         () => playerStore.currentTime,
@@ -263,6 +265,27 @@
           .join(' • ')
       })
 
+      const showProgressTooltip = () => {
+        const root = progressSlider.value?.$el
+        if (!root) return
+
+        const handle =
+          root.querySelector('.slider-handle') ||
+          root.querySelector('[tabindex]')
+
+        if (!handle) return
+
+        ;(handle as HTMLElement).focus()
+
+        if (tooltipTimer.value) {
+          clearTimeout(tooltipTimer.value)
+        }
+
+        tooltipTimer.value = window.setTimeout(() => {
+          ;(handle as HTMLElement).blur()
+        }, 5000)
+      }
+
       watch(
         documentTitle,
         (value) => {
@@ -281,8 +304,6 @@
           router.push({ name: 'album', params: { id: t.albumId } })
         }
       }
-
-      const progressSlider = ref<any>(null)
 
       const focusSlider = () => {
         const el = progressSlider.value?.$el?.querySelector('[tabindex]')
@@ -319,16 +340,8 @@
         playerStore.seek(newTime)
       }
 
-      const onBackgroundClick = (e: MouseEvent) => {
-        if (isMobile) {
-          playerStore.playPause()
-        } else {
-          if (route.name === 'queue') {
-            router.back()
-          } else {
-            router.push({ name: 'queue' })
-          }
-        }
+      const onBackgroundClick = () => {
+        showProgressTooltip()
       }
 
       function playPause() { playerStore.playPause() }
@@ -341,6 +354,10 @@
           favouriteStore.toggle('track', track.value.id)
         }
       }
+
+      onBeforeUnmount(() => {
+        if (tooltipTimer.value) clearTimeout(tooltipTimer.value)
+      })
 
       return {
         ReplayGainMode,
