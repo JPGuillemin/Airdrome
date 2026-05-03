@@ -22,7 +22,7 @@ export const router = setupRouter(auth)
 export default router
 
 const APP_BASE = import.meta.env.BASE_URL
-const VERSION = import.meta.env.VERSION
+const APP_VERSION = import.meta.env.VERSION
 
 async function bootstrapApp() {
   // --- Theme ---

@@ -32,15 +32,15 @@
   import iconGoBack from '@iconify-icons/bi/arrow-left-circle'
   import iconHeart from '@iconify-icons/bi/heart'
   import iconHeartFill from '@iconify-icons/bi/heart-fill'
-  import iconHigh from '@iconify-icons/bi/headphones'
+  import iconHigh from '@iconify-icons/bi/thermometer-high'
   import iconDiscover from '@iconify-icons/bi/speedometer'
   import iconInfo from '@iconify-icons/bi/info-circle'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
   import iconList from '@iconify-icons/bi/list-ul'
   import iconLogout from '@iconify-icons/bi/escape'
-  import iconLow from '@iconify-icons/bi/car-front'
-  import iconMedium from '@iconify-icons/bi/speaker'
+  import iconLow from '@iconify-icons/bi/thermometer-low'
+  import iconMedium from '@iconify-icons/bi/thermometer-half'
   import iconMost from '@iconify-icons/bi/graph-up-arrow'
   import iconMusicNote from '@iconify-icons/bi/music-note'
   import iconMusicNoteBeamed from '@iconify-icons/bi/music-note-beamed'
@@ -88,6 +88,7 @@
     genres: iconGenre.body,
     goback: iconGoBack.body,
     heart: iconHeart.body,
+    high: iconHigh.body,
     'heart-fill': iconHeartFill.body,
     info: iconInfo.body,
     library: iconLibrary.body,
@@ -99,7 +100,6 @@
     most: iconMost.body,
     'music-note': iconMusicNote.body,
     'music-note-beamed': iconMusicNoteBeamed.body,
-    high: iconHigh.body,
     mute: iconMute.body,
     nav: iconNav.body,
     new: iconNew.body,

@@ -50,18 +50,17 @@
               <div class="d-flex gap-2 flex-wrap">
                 <button
                   v-for="option in [
-                    { icon: 'music-note', value: 128, shade: 0.6 },
-                    { icon: 'music-note', value: 160, shade: 0.9 },
-                    { icon: 'music-note-beamed', value: 256, shade: 0.9 }
+                    { icon: 'low', value: 128 },
+                    { icon: 'medium', value: 160 },
+                    { icon: 'high', value: 256 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
-                  :class="streamQuality === option.value ? 'btn-outline-primary active' : 'btn-outline-secondary'"
+                  :class="streamQuality === option.value ? 'btn-outline-active' : 'btn-outline-inactive'"
                   @click="setStreamQuality(option.value)"
                 >
                   <Icon
                     :icon="option.icon"
-                    :style="{ color: `rgba(var(--bs-primary-rgb), ${option.shade})` }"
                   />
                 </button>
               </div>
@@ -315,9 +314,20 @@
     padding: 0;
     background: transparent;
   }
-  .btn-outline-primary.active {
+
+  .btn-outline-active,
+  .btn-outline-active:hover,
+  .btn-outline-active:focus
+   {
     background-color: rgba(var(--bs-primary-rgb), 0.15);
     border-color: var(--bs-primary);
+  }
+
+  .btn-outline-inactive
+  .btn-outline-inactive:hover,
+  .btn-outline-inactive:focus
+  {
+    border-color: var(--bs-secondary);
   }
 
   @media(max-width: 768px) {
