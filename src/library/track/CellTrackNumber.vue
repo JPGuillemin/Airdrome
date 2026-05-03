@@ -2,8 +2,8 @@
 <template>
   <td>
     <button>
-      <Icon v-if="active" class="icon" icon="spin" :key="trackNumber" />
-      <Icon v-else class="icon" icon="play" />
+      <Icon class="icon" icon="spin" :class="{ 'visually-hidden': !active }" />
+      <Icon class="icon" icon="play" :class="{ 'visually-hidden': active }" />
       <span class="number adapt-text">{{ trackNumber ?? '-' }}</span>
     </button>
   </td>
@@ -22,3 +22,13 @@
     }
   })
 </script>
+
+<style scoped>
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+</style>
