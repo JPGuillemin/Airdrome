@@ -1,7 +1,9 @@
+// CellTrackNumber.vue
 <template>
   <td>
     <button>
-      <Icon class="icon" :icon="active ? 'spin' : 'play'" />
+      <Icon v-if="active" class="icon" icon="spin" :key="trackNumber" />
+      <Icon v-else class="icon" icon="play" />
       <span class="number adapt-text">{{ trackNumber ?? '-' }}</span>
     </button>
   </td>
