@@ -87,7 +87,8 @@
   .offcanvas-panel {
     width: 50%;
     max-width: 280px;
-    height: 100%;
+    height: calc(100% - 46px);
+    margin-top: 46px;
     background: var(--theme-elevation-0);
     overflow-y: auto;
   }

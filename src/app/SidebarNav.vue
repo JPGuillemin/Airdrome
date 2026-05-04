@@ -1,15 +1,9 @@
 // SidebarNav.vue
 <template>
   <nav class="nav sidebar-nav adapt-text flex-column">
-    <div class="d-flex justify-content-between align-items-end">
-      <button class="btn btn-link btn-lg p-0 m-0 d-md-none" @click="store.hideMenu">
-        <Icon icon="goback" />
-      </button>
-    </div>
-
     <router-link
       :to="{name: 'discover'}"
-      class="nav-link"
+      class="nav-link mt-4"
     >
       <Icon icon="discover" class="me-2 ml-2" />
       <span class="bold">Cockpit</span>

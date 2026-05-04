@@ -39,7 +39,7 @@
           <div class="row align-items-center m-0 elevated">
 
             <!-- track info -->
-            <div class="col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
+            <div class="col track-col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
               <template v-if="track">
                 <div
                   v-if="track.albumId"
@@ -63,7 +63,7 @@
                   <router-link
                     @click.stop
                     :to="{ name: 'album', params: { id: track.albumId } }"
-                    class="player-link"
+                    class="player-link title-text"
                   >
                     {{ track.title }}
                   </router-link>
@@ -415,6 +415,10 @@
     color: var(--theme-text);
     text-decoration: none;
     transition: color 0.15s ease;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .player :deep(.player-link:hover) {
@@ -552,6 +556,12 @@
     .visible {
       height: auto;
       max-height: 110px;
+    }
+
+    .track-col {
+      flex: 0 0 55%;
+      max-width: 40%;
+      min-width: 0; /* critical for truncation */
     }
 
     .title-text {

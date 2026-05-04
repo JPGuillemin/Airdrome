@@ -302,6 +302,7 @@
     z-index: 1001;
     height: 46px;
     border-radius: 12px;
+    background: var(--theme-elevation-1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
@@ -345,6 +346,7 @@
   @media(max-width: 768px) {
     .top-nav-shape {
       margin: 5px 2px;
+      background: var(--theme-elevation-1);
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
