@@ -28,7 +28,7 @@
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
-              class="playback-slider px-1 real-slider"
+              class="playback-slider real-slider mx-2"
               @start="onSliderDragStart"
               @end="onSliderDragEnd"
               @change="onSliderUpdate"
