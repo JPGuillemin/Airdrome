@@ -7,8 +7,9 @@
   >
     <!-- Left Arrow -->
     <button
-      v-if="allowHScroll && !isMobile && showLeftArrow && isHovering"
+      v-if="allowHScroll && !isMobile && isHovering"
       class="scroll-arrow scroll-arrow-left"
+      :disabled="!showLeftArrow"
       @click="scrollLeft"
       aria-label="Scroll left"
     >
@@ -19,8 +20,9 @@
 
     <!-- Right Arrow -->
     <button
-      v-if="allowHScroll && !isMobile && showRightArrow && isHovering"
+      v-if="allowHScroll && !isMobile && isHovering"
       class="scroll-arrow scroll-arrow-right"
+      :disabled="!showRightArrow"
       @click="scrollRight"
       aria-label="Scroll right"
     >
@@ -228,6 +230,18 @@
 
   .scroll-arrow:active {
     transform: translateY(-50%) scale(0.95);
+  }
+
+  /* Disabled state */
+  .scroll-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .scroll-arrow:disabled:hover {
+    background: rgba(0, 0, 0, 0.5);
+    transform: translateY(-50%);
   }
 
   .scroll-arrow-left {
