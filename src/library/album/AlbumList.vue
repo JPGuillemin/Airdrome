@@ -11,19 +11,26 @@
       :title-only="titleOnly"
       @dragstart="dragstart(item.id, $event)"
     >
-      <!-- Artists -->
+      <!-- Artists and Date -->
       <template #text>
-        <span v-for="(artist, aIndex) in item.artists" :key="artist.id">
-          <span v-if="aIndex > 0" class="text-muted">, </span>
-          <router-link
-            :to="{ name: 'artist', params: { id: artist.id } }"
-            class="text-muted"
-          >
-            {{ artist.name }}
-          </router-link>
+        <!-- Artists -->
+        <template v-if="withArtist">
+          <span v-for="(artist, aIndex) in item.artists" :key="artist.id">
+            <span v-if="aIndex > 0" class="text-muted">, </span>
+            <router-link
+              :to="{ name: 'artist', params: { id: artist.id } }"
+              class="text-muted"
+            >
+              {{ artist.name }}
+            </router-link>
+          </span>
+        </template>
+        <!-- Date -->
+        <span v-if="withDate" class="text-muted">
+          <span v-if="withArtist && item.artists?.length"> • </span>
+          {{ item.year }}
         </span>
       </template>
-
       <!-- Context Menu -->
       <template v-if="tileSize > 79" #context-menu>
         <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
@@ -36,7 +43,6 @@
     </Tile>
   </Tiles>
 </template>
-
 <script lang="ts">
   import { defineComponent, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
@@ -44,7 +50,6 @@
   import { useCacheStore } from '@/player/cache'
   import type { Album } from '@/shared/api'
   import { sleep } from '@/shared/utils'
-
   export default defineComponent({
     props: {
       items: {
@@ -55,24 +60,22 @@
       tileSize: { type: Number, default: 100 },
       twinRows: { type: Boolean, default: false },
       titleOnly: { type: Boolean, default: false },
+      withArtist: { type: Boolean, default: true },
+      withDate: { type: Boolean, default: false },
     },
-
     setup(props) {
       const favouriteStore = useFavouriteStore()
       const playerStore = usePlayerStore()
       const cacheStore = useCacheStore()
       const api = inject('$api') as any
-
       const validItems = computed(() => {
         return (props.items || []).filter((item): item is Album => !!item?.id)
       })
-
       const playNow = async(id: string) => {
         playerStore.setShuffle(false)
         const album = await api.getAlbumDetails(id)
         return playerStore.playTrackList(album.tracks!)
       }
-
       const toggleFavourite = async(id: string) => {
         favouriteStore.toggle('album', id)
         await sleep(300)
@@ -84,15 +87,12 @@
           await cacheStore.clearAlbumCache(album)
         }
       }
-
       const dragstart = (id: string, event: DragEvent) => {
         event.dataTransfer?.setData('application/x-album-id', id)
       }
-
       const isFavourite = (id: string) => {
         return favouriteStore.get('album', id)
       }
-
       return {
         favouriteStore,
         playerStore,
