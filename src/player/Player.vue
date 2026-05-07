@@ -481,9 +481,10 @@
 
   .playback-slider {
     --slider-connect-bg: var(--bs-primary);
-    --slider-bg: var(--bs-secondary);
+    --slider-bg: var(--theme-elevation-2);
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
+    --slider-handle-ring-color: transparent;
     margin: auto;
     background: transparent;
   }
@@ -499,8 +500,9 @@
 
   .volume-slider {
     --slider-connect-bg: var(--bs-primary);
-    --slider-bg: var(--bs-secondary);
+    --slider-bg: var(--theme-elevation-2);
     --slider-handle-bg: var(--bs-primary);
+    --slider-handle-ring-color: transparent;
     width: 4px !important;
     height: 120px !important;
     margin: auto;

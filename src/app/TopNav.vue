@@ -13,7 +13,7 @@
           </div>
         </button>
         <div class="brand-title mr-2">
-          Airdrome
+          AIRDROME
         </div>
       </div>
 
@@ -337,6 +337,7 @@
     align-items: center;
     height: 100%;
     margin: 0;
+    color: var(--bs-secondary);
     font-weight: 550;
   }
 
