@@ -5,13 +5,16 @@
     <div class="top-nav-shape elevated d-flex justify-content-between align-items-center pb-2 pt-2">
       <div class="d-flex align-items-center">
         <button
-          class="btn btn-transparent flex-grow-1 flex-md-grow-0 mx-2"
+          class="btn btn-transparent flex-grow-1 flex-md-grow-0 ml-1"
           @click="handleLogoClick"
         >
           <div class="logo-wrapper">
             <div :class="['logo-mask', { spinning: isPlaying }]"></div>
           </div>
         </button>
+        <div class="brand-title mr-2">
+          Airdrome
+        </div>
       </div>
 
       <div class="d-flex align-items-center">
@@ -284,6 +287,7 @@
 </script>
 
 <style scoped>
+
   .top-nav {
     position: fixed;
     inset: 0;
@@ -326,6 +330,14 @@
     outline: none;
     padding: 0;
     background: transparent;
+  }
+
+  .brand-title {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin: 0;
+    font-weight: 550;
   }
 
   .btn-outline-active,
