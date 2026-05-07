@@ -3,30 +3,28 @@
   <div>
     <div v-if="visible" class="modal-overlay" @click="$emit('close')" />
     <div v-if="visible" class="modal-dialog p-3">
-      <div class="modal-content">
-        <div class="d-flex justify-content-center mb-3">
-          <img width="100" height="100" src="@/shared/assets/logo.svg">
-        </div>
-        <p class="text-center">AIRDROME {{ appVersion }}</p>
-        <div class="text-center can-select">
-          <ExternalLink :href="url">
-            {{ url }}
-          </ExternalLink>
-          <p>Licensed under the AGPLv3 license.</p>
-          <div>Build: {{ build }}</div>
-          <div>Build date: {{ buildDate }}</div>
+      <div class="d-flex justify-content-center mb-3">
+        <img width="100" height="100" src="@/shared/assets/logo.svg">
+      </div>
+      <p class="text-center">AIRDROME {{ appVersion }}</p>
+      <div class="text-center can-select">
+        <ExternalLink :href="url">
+          {{ url }}
+        </ExternalLink>
+        <p>Licensed under the AGPLv3 license.</p>
+        <div>Build: {{ build }}</div>
+        <div>Build date: {{ buildDate }}</div>
 
-          <div class="mt-4">
-            <div>Server name: {{ auth.serverInfo?.name }}</div>
-            <div>Server version: {{ auth.serverInfo?.version }}</div>
-            <div>
-              Server URL:
-              <ExternalLink :href="auth.server">
-                {{ auth.server }}
-              </ExternalLink>
-            </div>
-            <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
+        <div class="mt-4">
+          <div>Server name: {{ auth.serverInfo?.name }}</div>
+          <div>Server version: {{ auth.serverInfo?.version }}</div>
+          <div>
+            Server URL:
+            <ExternalLink :href="auth.server">
+              {{ auth.server }}
+            </ExternalLink>
           </div>
+          <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
         </div>
       </div>
     </div>
@@ -83,12 +81,6 @@
     border: 1px solid var(--theme-elevation-2);
     z-index: 9999;
     padding: 1rem;
-  }
-
-  .modal-content {
-    background: var(--theme-elevation-1);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .modal-footer {

@@ -3,19 +3,17 @@
   <div>
     <div v-if="visible" class="modal-overlay" @click="cancel" />
     <div v-if="visible" class="modal-dialog p-3">
-      <div class="modal-content">
-        <div class="text-center mb-3">
-          <h5 class="mb-3">
-            {{ title }}
-          </h5>
-          <p class="mb-4">
-            {{ message }}
-          </p>
-          <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-primary px-4" @click="confirm">
-              Confirm
-            </button>
-          </div>
+      <div class="text-center mb-3">
+        <h5 class="mb-3">
+          {{ title }}
+        </h5>
+        <p class="mb-4">
+          {{ message }}
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-primary px-4" @click="confirm">
+            Confirm
+          </button>
         </div>
       </div>
     </div>
@@ -91,12 +89,6 @@
     border: 1px solid var(--theme-elevation-2);
     z-index: 9999;
     padding: 1rem;
-  }
-
-  .modal-content {
-    background: var(--theme-elevation-1);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .modal-footer {

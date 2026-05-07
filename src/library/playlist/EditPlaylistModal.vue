@@ -113,7 +113,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: var(--theme-elevation-1);
-    border-radius: 6px;
+    border-radius: 12px;
     max-width: 600px;
     width: auto;
     z-index: 3001;

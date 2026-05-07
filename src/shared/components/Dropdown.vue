@@ -64,20 +64,32 @@
     },
   })
 </script>
+
 <style scoped>
   .dropdown {
     display: inline-block;
   }
+
+  .dropdown-menu {
+    background: var(--theme-elevation-1);
+    border: 1px solid var(--theme-elevation-2);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
   .dropdown-menu-end {
     right: 0;
   }
+
   .dropdown-menu-center {
     left: 50%;
     transform: translateX(-50%);
   }
+
   .dropdown-toggle::after {
     display: none;
   }
+
   .dropup {
     .dropdown-menu {
       bottom: 100%;
