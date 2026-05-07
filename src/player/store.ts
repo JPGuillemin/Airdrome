@@ -8,11 +8,12 @@ import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 
+let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
+
 import { nativeMediaSession } from '@/player/nativeMediaSession'
 import { Capacitor } from '@capacitor/core'
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
-
-const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
+if (isNative) isMobile = true
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -612,41 +613,6 @@ export function setupAudio(
 ) {
   playerStore.setMediaSessionState('none')
 
-  let pausedByFocusLoss = false
-  if (isNative) {
-    nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
-      const type = event?.type
-
-      switch (type) {
-        case 'lossTransient':
-          if (playerStore.isPlaying) {
-            pausedByFocusLoss = true
-            await playerStore.pause()
-          }
-          break
-
-        case 'loss':
-          pausedByFocusLoss = false
-          await playerStore.pause()
-          break
-
-        case 'gain':
-          if (
-            pausedByFocusLoss &&
-            !playerStore.wasPaused &&
-            !playerStore.isPlaying
-          ) {
-            pausedByFocusLoss = false
-            await playerStore.play()
-          }
-          break
-
-        case 'lossDuck':
-          break
-      }
-    })
-  }
-
   // ---------------------------------------------------------------------------
   // Mobile auto-resume
   // ---------------------------------------------------------------------------
@@ -655,7 +621,6 @@ export function setupAudio(
   // resumes by itself or we force a reload from the server queue.
 
   let resumeToken = false
-
   function autoResume() {
     // Only attempt auto-resume on mobile, when the user didn't pause manually,
     // and when the page is currently visible
@@ -677,6 +642,43 @@ export function setupAudio(
         await playerStore.play()
       } catch {}
     }, 2000)
+  }
+
+  if (isNative) {
+    nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
+      const type = event?.type
+
+      switch (type) {
+        case 'lossTransient':
+          if (playerStore.isPlaying) {
+            await audio.pause()
+          }
+          break
+
+        case 'loss':
+          await audio.pause()
+          break
+
+        case 'gain':
+          if (!playerStore.isPlaying) {
+            autoResume()
+          }
+          break
+
+        case 'lossDuck':
+          break
+      }
+    })
+  } else {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        playerStore.saveQueue()
+      } else {
+        autoResume()
+      }
+    })
+
+    document.addEventListener('resume', autoResume)
   }
 
   /**
@@ -736,16 +738,6 @@ export function setupAudio(
       return ''
     }
   })
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      playerStore.saveQueue()
-    } else {
-      autoResume()
-    }
-  })
-
-  document.addEventListener('resume', autoResume)
 
   // ---------------------------------------------------------------------------
   // Playback event handlers
