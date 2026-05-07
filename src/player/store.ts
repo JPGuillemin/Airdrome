@@ -620,30 +620,6 @@ export function setupAudio(
   // the background. When the tab becomes visible again we poll until the audio
   // resumes by itself or we force a reload from the server queue.
 
-  let resumeToken = false
-  function autoResume() {
-    // Only attempt auto-resume on mobile, when the user didn't pause manually,
-    // and when the page is currently visible
-    if (!isMobile || playerStore.wasPaused || resumeToken) return
-
-    resumeToken = true
-
-    const interval = setInterval(async () => {
-      if (playerStore.isPlaying) {
-        // Audio resumed on its own – cancel the polling loop
-        clearInterval(interval)
-        resumeToken = false
-        return
-      }
-
-      try {
-        // Re-load from the server queue and re-start playback
-        await playerStore.loadQueue()
-        await playerStore.play()
-      } catch {}
-    }, 2000)
-  }
-
   if (isNative) {
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
@@ -651,17 +627,17 @@ export function setupAudio(
       switch (type) {
         case 'lossTransient':
           if (playerStore.isPlaying) {
-            await audio.pause()
+            await playerStore.pause()
           }
           break
 
         case 'loss':
-          await audio.pause()
+          await playerStore.pause()
           break
 
         case 'gain':
-          if (!playerStore.isPlaying) {
-            autoResume()
+          if (!playerStore.isPlaying && !playerStore.wasPaused) {
+            await playerStore.play()
           }
           break
 
@@ -674,11 +650,13 @@ export function setupAudio(
       if (document.visibilityState === 'hidden') {
         playerStore.saveQueue()
       } else {
-        autoResume()
+        if (!playerStore.isPlaying && !playerStore.wasPaused) {
+          playerStore.play()
+        }
       }
     })
 
-    document.addEventListener('resume', autoResume)
+    document.addEventListener('resume', playerStore.play)
   }
 
   /**
@@ -763,14 +741,12 @@ export function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    autoResume() // Kick off polling if this was an OS-level pause
   }
 
   audio.onsuspend = () => {
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    autoResume() // Kick off polling if this was an OS-level pause
   }
 
   /**
