@@ -623,23 +623,18 @@ export function setupAudio(
   if (isNative) {
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
-
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
       switch (type) {
         case 'lossTransient':
-          if (playerStore.isPlaying) {
-            playerStore.pause()
-            playerStore.wasPaused = false
-          }
           break
 
         case 'loss':
-          playerStore.pause()
-          playerStore.wasPaused = false
           break
 
         case 'gain':
-          if (!playerStore.isPlaying && !playerStore.wasPaused) {
-            playerStore.play()
+          if (!isPlaying && !wasPaused) {
+            audio.play()
           }
           break
 
@@ -650,24 +645,24 @@ export function setupAudio(
 
     nativeMediaSession.addListener('audioRouteChange', (event: any) => {
       const route = event?.route
-
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
       switch (route) {
         case 'bluetooth':
-          if (!playerStore.isPlaying && !playerStore.wasPaused) {
-            playerStore.play()
+          if (!isPlaying && !wasPaused) {
+            audio.play()
           }
           break
 
         case 'wired':
-          if (!playerStore.isPlaying && !playerStore.wasPaused) {
-            playerStore.play()
+          if (!isPlaying && !wasPaused) {
+            audio.play()
           }
           break
 
         case 'speaker':
-          if (playerStore.isPlaying) {
-            playerStore.pause()
-            playerStore.wasPaused = false
+          if (isPlaying) {
+            audio.pause()
           }
           break
       }
@@ -679,7 +674,7 @@ export function setupAudio(
         playerStore.saveQueue()
       } else {
         if (!playerStore.isPlaying && !playerStore.wasPaused) {
-          playerStore.play()
+          audio.play()
         }
       }
     })
@@ -695,14 +690,13 @@ export function setupAudio(
 
         // ---- "disconnect" heuristic ----
         if (!hasAudioOutput && playerStore.isPlaying) {
-          playerStore.pause()
-          playerStore.wasPaused = false
+          audio.pause()
           return
         }
 
         // ---- "reconnect" heuristic ----
         if (!playerStore.isPlaying && !playerStore.wasPaused) {
-          playerStore.play()
+          audio.play()
         }
       })
     }
