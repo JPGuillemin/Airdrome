@@ -4,6 +4,12 @@ import type { PluginListenerHandle } from '@capacitor/core'
 
 export type NativePlaybackState = 'playing' | 'paused' | 'stopped' | 'none'
 
+export type AudioRouteType = 'speaker' | 'bluetooth' | 'wired'
+
+export interface AudioRouteChangeEvent {
+  route: AudioRouteType
+}
+
 export interface NativeMetadataOptions {
   title?: string
   artist?: string
@@ -39,6 +45,8 @@ export type NativeMediaSessionEvent =
   | 'seekforward'
   | 'seekbackward'
   | 'audioFocusChange'
+  | 'audioRouteChange'
+  | 'deviceChange'
 
 interface MediaSessionPluginShape {
   setMetadata(options: NativeMetadataOptions): Promise<void>

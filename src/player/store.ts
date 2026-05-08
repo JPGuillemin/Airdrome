@@ -627,17 +627,19 @@ export function setupAudio(
       switch (type) {
         case 'lossTransient':
           if (playerStore.isPlaying) {
-            await playerStore.pause()
+            playerStore.pause()
+            playerStore.wasPaused = false
           }
           break
 
         case 'loss':
-          await playerStore.pause()
+          playerStore.pause()
+          playerStore.wasPaused = false
           break
 
         case 'gain':
           if (!playerStore.isPlaying && !playerStore.wasPaused) {
-            await playerStore.play()
+            playerStore.play()
           }
           break
 
@@ -645,6 +647,32 @@ export function setupAudio(
           break
       }
     })
+
+    nativeMediaSession.addListener('audioRouteChange', (event: any) => {
+      const route = event?.route
+
+      switch (route) {
+        case 'bluetooth':
+          if (!playerStore.isPlaying && !playerStore.wasPaused) {
+            playerStore.play()
+          }
+          break
+
+        case 'wired':
+          if (!playerStore.isPlaying && !playerStore.wasPaused) {
+            playerStore.play()
+          }
+          break
+
+        case 'speaker':
+          if (playerStore.isPlaying) {
+            playerStore.pause()
+            playerStore.wasPaused = false
+          }
+          break
+      }
+    })
+
   } else {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
@@ -657,6 +685,27 @@ export function setupAudio(
     })
 
     document.addEventListener('resume', playerStore.play)
+
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', async () => {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const outputs = devices.filter(d => d.kind === 'audiooutput')
+
+        const hasAudioOutput = outputs.length > 0
+
+        // ---- "disconnect" heuristic ----
+        if (!hasAudioOutput && playerStore.isPlaying) {
+          playerStore.pause()
+          playerStore.wasPaused = false
+          return
+        }
+
+        // ---- "reconnect" heuristic ----
+        if (!playerStore.isPlaying && !playerStore.wasPaused) {
+          playerStore.play()
+        }
+      })
+    }
   }
 
   /**
