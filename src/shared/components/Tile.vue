@@ -64,12 +64,25 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+
+    padding: 8px;
+    border-radius: 12px;
+
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease;
   }
 
-  /* default image */
+  .tile:hover {
+    background-color: var(--theme-elevation-1);
+  }
+
   .tile-img {
     position: relative;
     width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
   }
 
   /* make image circular without clipping children */
@@ -85,16 +98,22 @@
 
   .tile-img img {
     position: absolute;
+    inset: 0;
+
     width: 100%;
     height: 100%;
+
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: inherit;
   }
 
-    .tile:hover .tile-title {
-      color: var(--bs-primary);
-      transition: color 0.2s ease-in-out;
-    }
+  .tile-text {
+    margin-top: 8px;
+  }
+
+  .tile:hover .tile-title {
+    color: var(--bs-primary);
+  }
 
   /* ----------------------------- */
   /* 3-ROWS MODE */
@@ -120,5 +139,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+
+    margin-top: 0;
   }
 </style>
