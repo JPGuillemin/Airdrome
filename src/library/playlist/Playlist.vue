@@ -3,7 +3,7 @@
   <div v-if="playlist" class="main-content">
     <ConfirmDialog ref="confirmDialog" />
     <div class="header-wrapper">
-      <Header :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playNow">
+      <Header :image="playlist.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playPause">
         <div class="header-title-wrapper">
           <div class="header-title">
             {{ playlist.name }}
@@ -31,10 +31,10 @@
             variant="transparent"
             class="me-2"
             :disabled="playlist.tracks.length === 0"
-            title="Play"
+            title="Playlist Play"
             @click="playNow()"
           >
-            <Icon icon="play" />
+            <Icon icon="recycle" />
           </b-button>
           <b-button
             v-longpress-tooltip
@@ -46,17 +46,15 @@
           >
             <Icon icon="random" />
           </b-button>
-          <b-button
-            v-longpress-tooltip
-            variant="transparent"
-            class="me-2"
-            :disabled="playlist.tracks.length === 0"
-            title="Reload"
-            @click="reloadPlaylist()"
-          >
-            <Icon icon="reload" />
-          </b-button>
           <OverflowMenu direction="up" variant="transparent" @click.stop>
+            <DropdownItem
+              icon="reload"
+              :disabled="playlist.tracks.length === 0"
+              class="on-top"
+              @click="reloadPlaylist()"
+            >
+              Reload
+            </DropdownItem>
             <DropdownItem
               icon="edit"
               :disabled="playlist.isReadOnly"
@@ -65,7 +63,6 @@
             >
               Edit
             </DropdownItem>
-            <hr class="dropdown-divider">
             <DropdownItem
               icon="x"
               variant="danger"
@@ -185,12 +182,20 @@
         }, 300)
       }
 
-      const playNow = () => {
+      const playPause = () => {
         if (!playlist.value?.tracks?.length) return
         const currentTrack = playerStore.track
         if (currentTrack && playlist.value.tracks.some((t: any) => t.id === currentTrack.id)) {
           return playerStore.playPause()
         }
+        return playerStore.playNow(playlist.value.tracks)
+      }
+
+      const playNow = () => {
+        if (!playlist.value?.tracks?.length) return
+        const currentTrack = playerStore.track
+        const firstTrack = playlist.value.tracks[0]
+        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) return
         return playerStore.playNow(playlist.value.tracks)
       }
 
@@ -271,6 +276,7 @@
         confirmDialog,
         appendNextChunk,
         loadMore,
+        playPause,
         playNow,
         shuffleNow,
         removeTrack,

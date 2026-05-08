@@ -2,7 +2,7 @@
 <template>
   <div v-if="album" class="main-content">
     <div class="header-wrapper">
-      <Header :image="album.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playNow">
+      <Header :image="album.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="playPause">
         <div class="header-title-wrapper">
           <div class="header-title">
             {{ album.name }}
@@ -162,7 +162,19 @@
         }
       }
 
+      const playPause = () => {
+        if (!album.value?.tracks?.length) return
+        const currentTrack = playerStore.track
+        if (currentTrack && album.value.tracks.some((t: any) => t.id === currentTrack.id)) {
+          return playerStore.playPause()
+        }
+        return playerStore.playNow(album.value.tracks)
+      }
+
       const playNow = () => {
+        const currentTrack = playerStore.track
+        const firstTrack = album.value?.tracks?.[0]
+        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) return
         if (!album.value) return
         if (album.value.tracks?.length) return playerStore.playNow(album.value.tracks)
       }
@@ -221,6 +233,7 @@
         cacheStore,
         isFavourite,
         isPlaying,
+        playPause,
         playNow,
         shuffleNow,
         RadioNow,
