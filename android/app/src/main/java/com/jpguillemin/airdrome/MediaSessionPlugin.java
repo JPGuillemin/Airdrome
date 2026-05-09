@@ -1,3 +1,4 @@
+// android/app/src/main/java/com/jpguillemin/airdrome/MediaSessionPlugin.java
 package com.jpguillemin.airdrome;
 
 import android.content.BroadcastReceiver;
@@ -8,6 +9,8 @@ import android.media.AudioFocusRequest;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.media.AudioDeviceCallback;
 import android.support.v4.media.session.PlaybackStateCompat;
 
@@ -23,6 +26,9 @@ public class MediaSessionPlugin extends Plugin {
   private MediaSessionManager manager;
   private AudioManager audioManager;
   private AudioManager.OnAudioFocusChangeListener focusListener;
+  private AudioFocusRequest audioFocusRequest; // For API 26+
+  private BroadcastReceiver noisyReceiver;
+  private AudioDeviceCallback deviceCallback;
 
   @Override
   public void load() {
@@ -44,9 +50,16 @@ public class MediaSessionPlugin extends Plugin {
       @Override public void onStop() { notifyListeners("stop", new JSObject()); }
     });
 
+    setupFocusListener();
     registerAudioRouteNoisyReceiver();
     registerAudioDeviceCallback();
-    registerAudioFocusListener();
+  }
+
+  @Override
+  protected void handleOnDestroy() {
+    abandonAudioFocusInternal();
+    unregisterReceivers();
+    super.handleOnDestroy();
   }
 
   // -------------------------------------------------------------------------
@@ -82,7 +95,7 @@ public class MediaSessionPlugin extends Plugin {
       case "playing": pbState = PlaybackStateCompat.STATE_PLAYING; break;
       case "paused":  pbState = PlaybackStateCompat.STATE_PAUSED; break;
       case "stopped": pbState = PlaybackStateCompat.STATE_STOPPED; break;
-      default:    pbState = PlaybackStateCompat.STATE_NONE; break;
+      default:        pbState = PlaybackStateCompat.STATE_NONE; break;
     }
 
     long positionMs = (long) (position * 1000.0);
@@ -92,114 +105,16 @@ public class MediaSessionPlugin extends Plugin {
   }
 
   // -------------------------------------------------------------------------
-  // AUDIO ROUTE: HEADPHONES / BLUETOOTH DISCONNECT
+  // AUDIO FOCUS MANAGEMENT
   // -------------------------------------------------------------------------
 
-  private void registerAudioRouteNoisyReceiver() {
-    IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
-
-    getContext().registerReceiver(new BroadcastReceiver() {
-      @Override
-      public void onReceive(Context context, Intent intent) {
-        emitRoute("speaker");
-      }
-    }, filter);
-  }
-
-  // -------------------------------------------------------------------------
-  // AUDIO ROUTE: DEVICE CONNECT / DISCONNECT (API 23+)
-  // -------------------------------------------------------------------------
-
-  private void registerAudioDeviceCallback() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
-
-    audioManager.registerAudioDeviceCallback(new AudioDeviceCallback() {
-
-      @Override
-      public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
-        emitRouteFromDevices();
-      }
-
-      @Override
-      public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
-        emitRouteFromDevices();
-      }
-
-    }, null);
-  }
-
-  // -------------------------------------------------------------------------
-  // ROUTE RESOLUTION
-  // -------------------------------------------------------------------------
-
-  private void emitRouteFromDevices() {
-    AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-
-    String route = "speaker";
-
-    for (AudioDeviceInfo d : devices) {
-      int type = d.getType();
-
-      if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-        type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) {
-        route = "bluetooth";
-        break;
-      }
-
-      if (type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
-        type == AudioDeviceInfo.TYPE_WIRED_HEADSET) {
-        route = "wired";
-      }
-    }
-
-    emitRoute(route);
-  }
-
-  private void emitRoute(String route) {
-    JSObject data = new JSObject();
-    data.put("route", route);
-
-    notifyListeners("audioRouteChange", data);
-  }
-
-  private void notifyRoute(AudioManager audioManager) {
-    JSObject data = new JSObject();
-
-    AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-
-    String route = "speaker";
-
-    for (AudioDeviceInfo device : devices) {
-      switch (device.getType()) {
-
-        case AudioDeviceInfo.TYPE_BLUETOOTH_A2DP:
-        case AudioDeviceInfo.TYPE_BLE_HEADSET:
-          route = "bluetooth";
-          break;
-
-        case AudioDeviceInfo.TYPE_WIRED_HEADPHONES:
-        case AudioDeviceInfo.TYPE_WIRED_HEADSET:
-          route = "wired";
-          break;
-      }
-    }
-
-    data.put("route", route);
-    notifyListeners("audioRouteChange", data);
-  }
-
-  private void registerAudioFocusListener() {
-
-    audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-
+  private void setupFocusListener() {
     focusListener = new AudioManager.OnAudioFocusChangeListener() {
       @Override
       public void onAudioFocusChange(int focusChange) {
-
         String type;
 
         switch (focusChange) {
-
           case AudioManager.AUDIOFOCUS_GAIN:
             type = "gain";
             break;
@@ -222,27 +137,153 @@ public class MediaSessionPlugin extends Plugin {
 
         JSObject data = new JSObject();
         data.put("type", type);
-
         notifyListeners("audioFocusChange", data);
       }
     };
+  }
+
+  @PluginMethod
+  public void requestAudioFocus(PluginCall call) {
+    int result;
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-      AudioFocusRequest request = new AudioFocusRequest.Builder(
-        AudioManager.AUDIOFOCUS_GAIN
-      )
-      .setOnAudioFocusChangeListener(focusListener)
-      .build();
-
-      audioManager.requestAudioFocus(request);
-
+      audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+        .setOnAudioFocusChangeListener(focusListener)
+        .build();
+      result = audioManager.requestAudioFocus(audioFocusRequest);
     } else {
-      audioManager.requestAudioFocus(
+      result = audioManager.requestAudioFocus(
         focusListener,
         AudioManager.STREAM_MUSIC,
         AudioManager.AUDIOFOCUS_GAIN
       );
+    }
+
+    JSObject data = new JSObject();
+    data.put("granted", result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+    call.resolve(data);
+  }
+
+  @PluginMethod
+  public void abandonAudioFocus(PluginCall call) {
+    abandonAudioFocusInternal();
+    call.resolve();
+  }
+
+  private void abandonAudioFocusInternal() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && audioFocusRequest != null) {
+      audioManager.abandonAudioFocusRequest(audioFocusRequest);
+      audioFocusRequest = null;
+    } else if (focusListener != null) {
+      audioManager.abandonAudioFocus(focusListener);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // AUDIO ROUTE: HEADPHONES / BLUETOOTH DISCONNECT
+  // -------------------------------------------------------------------------
+
+  private void registerAudioRouteNoisyReceiver() {
+    IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+
+    noisyReceiver = new BroadcastReceiver() {
+      @Override
+      public void onReceive(Context context, Intent intent) {
+        // Delay slightly to avoid race with device callback
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+          @Override
+          public void run() {
+            emitCurrentRoute();
+          }
+        }, 100);
+      }
+    };
+
+    getContext().registerReceiver(noisyReceiver, filter);
+  }
+
+  // -------------------------------------------------------------------------
+  // AUDIO ROUTE: DEVICE CONNECT / DISCONNECT (API 23+)
+  // -------------------------------------------------------------------------
+
+  private void registerAudioDeviceCallback() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+
+    deviceCallback = new AudioDeviceCallback() {
+      @Override
+      public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
+        emitCurrentRoute();
+      }
+
+      @Override
+      public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
+        emitCurrentRoute();
+      }
+    };
+
+    audioManager.registerAudioDeviceCallback(deviceCallback, null);
+  }
+
+  // -------------------------------------------------------------------------
+  // ROUTE RESOLUTION (CONSOLIDATED)
+  // -------------------------------------------------------------------------
+
+  private void emitCurrentRoute() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+      emitRoute("speaker"); // Fallback for old Android
+      return;
+    }
+
+    AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+    String route = "speaker";
+
+    // Priority: bluetooth > wired > speaker
+    for (AudioDeviceInfo d : devices) {
+      int type = d.getType();
+
+      // Highest priority: Bluetooth
+      if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+          type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+          type == AudioDeviceInfo.TYPE_BLE_HEADSET) {
+        route = "bluetooth";
+        break; // Found bluetooth, no need to check further
+      }
+
+      // Medium priority: Wired
+      if (type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+          type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+          type == AudioDeviceInfo.TYPE_USB_HEADSET) {
+        route = "wired";
+        // Don't break - keep checking for bluetooth
+      }
+    }
+
+    emitRoute(route);
+  }
+
+  private void emitRoute(String route) {
+    JSObject data = new JSObject();
+    data.put("route", route);
+    notifyListeners("audioRouteChange", data);
+  }
+
+  // -------------------------------------------------------------------------
+  // CLEANUP
+  // -------------------------------------------------------------------------
+
+  private void unregisterReceivers() {
+    if (noisyReceiver != null) {
+      try {
+        getContext().unregisterReceiver(noisyReceiver);
+      } catch (IllegalArgumentException e) {
+        // Already unregistered
+      }
+      noisyReceiver = null;
+    }
+
+    if (deviceCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      audioManager.unregisterAudioDeviceCallback(deviceCallback);
+      deviceCallback = null;
     }
   }
 }

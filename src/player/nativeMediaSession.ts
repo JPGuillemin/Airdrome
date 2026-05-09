@@ -1,9 +1,8 @@
-// nativeMediaSession.ts
+// src/player/nativeMediaSession.ts
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 
 export type NativePlaybackState = 'playing' | 'paused' | 'stopped' | 'none'
-
 export type AudioRouteType = 'speaker' | 'bluetooth' | 'wired'
 
 export interface AudioRouteChangeEvent {
@@ -34,6 +33,10 @@ export interface AudioFocusChangeEvent {
   type: AudioFocusChangeType
 }
 
+export interface AudioFocusResult {
+  granted: boolean
+}
+
 export type NativeMediaSessionEvent =
   | 'play'
   | 'pause'
@@ -46,11 +49,12 @@ export type NativeMediaSessionEvent =
   | 'seekbackward'
   | 'audioFocusChange'
   | 'audioRouteChange'
-  | 'deviceChange'
 
 interface MediaSessionPluginShape {
   setMetadata(options: NativeMetadataOptions): Promise<void>
   setPlaybackState(options: NativePlaybackStateOptions): Promise<void>
+  requestAudioFocus(): Promise<AudioFocusResult>
+  abandonAudioFocus(): Promise<void>
   addListener(
     event: NativeMediaSessionEvent,
     handler: (data: any) => void
@@ -60,6 +64,10 @@ interface MediaSessionPluginShape {
 const noop: MediaSessionPluginShape = {
   async setMetadata() {},
   async setPlaybackState() {},
+  async requestAudioFocus() {
+    return { granted: true }
+  },
+  async abandonAudioFocus() {},
   async addListener() {
     return { remove: async () => {} } as PluginListenerHandle
   }
