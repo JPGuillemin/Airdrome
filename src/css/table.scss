@@ -18,10 +18,33 @@ table.table {
   th {
     color: var(--bs-secondary-color);
   }
-  tr {
+
+  tbody tr {
+    position: relative;
     cursor: pointer;
-    background-color: var(--bs-body-bg, white);
+    background-color: transparent;
+    isolation: isolate;
   }
+
+  tbody tr::after {
+    content: '';
+    position: absolute;
+    inset: 2px 0;
+    border-radius: 6px;
+    background: var(--theme-elevation-1);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: -1;
+  }
+
+  tbody tr:hover::after {
+    opacity: 1;
+  }
+
+  tbody tr.active::after {
+    opacity: 1;
+  }
+
   tr.active {
     td,
     td a,
@@ -29,13 +52,16 @@ table.table {
       color: var(--bs-primary);
     }
   }
+
   tr.disabled {
     cursor: default;
+
     td,
     td a,
     td button.dropdown-toggle {
       color: var(--bs-secondary-color);
     }
+
     button {
       cursor: default;
     }
