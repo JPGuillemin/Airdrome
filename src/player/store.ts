@@ -13,7 +13,6 @@ let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoin
 import { nativeMediaSession } from '@/player/nativeMediaSession'
 import { Capacitor } from '@capacitor/core'
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
-if (isNative) isMobile = true
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -612,7 +611,7 @@ export function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
   playerStore.setMediaSessionState('none')
-
+  let playTime = 0
   // ---------------------------------------------------------------------------
   // Mobile auto-resume
   // ---------------------------------------------------------------------------
@@ -623,13 +622,22 @@ export function setupAudio(
   if (isNative) {
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
+      if (Date.now() - playTime < 1000) {
+        return
+      }
       const isPlaying = playerStore.isPlaying
       const wasPaused = playerStore.wasPaused
       switch (type) {
         case 'lossTransient':
+          if (playerStore.isPlaying) {
+            audio.pause()
+          }
           break
 
         case 'loss':
+          if (playerStore.isPlaying) {
+            audio.pause()
+          }
           break
 
         case 'gain':
@@ -645,6 +653,9 @@ export function setupAudio(
 
     nativeMediaSession.addListener('audioRouteChange', (event: any) => {
       const route = event?.route
+      if (Date.now() - playTime < 1000) {
+        return
+      }
       const isPlaying = playerStore.isPlaying
       const wasPaused = playerStore.wasPaused
       switch (route) {
@@ -668,8 +679,13 @@ export function setupAudio(
       }
     })
 
-  } else {
+  }
+
+  if (isMobile && !isNative) {
     document.addEventListener('visibilitychange', () => {
+      if (Date.now() - playTime < 1000) {
+        return
+      }
       if (document.visibilityState === 'hidden') {
         playerStore.saveQueue()
       } else {
@@ -682,6 +698,9 @@ export function setupAudio(
     document.addEventListener('resume', playerStore.play)
 
     if (navigator.mediaDevices?.addEventListener) {
+      if (Date.now() - playTime < 1000) {
+        return
+      }
       navigator.mediaDevices.addEventListener('devicechange', async () => {
         const devices = await navigator.mediaDevices.enumerateDevices()
         const outputs = devices.filter(d => d.kind === 'audiooutput')
@@ -776,6 +795,7 @@ export function setupAudio(
 
   audio.onplay = () => {
     playerStore.isPlaying = true
+    playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
   }
