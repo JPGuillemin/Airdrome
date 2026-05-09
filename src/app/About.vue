@@ -1,30 +1,32 @@
 // About.vue
 <template>
   <div>
-    <div v-if="visible" class="modal-overlay" @click="$emit('close')" />
-    <div v-if="visible" class="modal-dialog p-3">
-      <div class="d-flex justify-content-center mb-3">
-        <img width="100" height="100" src="@/shared/assets/logo.svg">
-      </div>
-      <p class="text-center">AIRDROME {{ appVersion }}</p>
-      <div class="text-center can-select">
-        <ExternalLink :href="url">
-          {{ url }}
-        </ExternalLink>
-        <p>Licensed under the AGPLv3 license.</p>
-        <div>Build: {{ build }}</div>
-        <div>Build date: {{ buildDate }}</div>
+    <div v-if="visible" class="about-dialog-overlay" @click="$emit('close')" />
+    <div v-if="visible" class="about-dialog p-3">
+      <div class="about-dialog-content">
+        <div class="d-flex justify-content-center mb-3">
+          <img width="100" height="100" src="@/shared/assets/logo.svg">
+        </div>
+        <p class="text-center">AIRDROME {{ appVersion }}</p>
+        <div class="text-center can-select">
+          <ExternalLink :href="url">
+            {{ url }}
+          </ExternalLink>
+          <p>Licensed under the AGPLv3 license.</p>
+          <div>Build: {{ build }}</div>
+          <div>Build date: {{ buildDate }}</div>
 
-        <div class="mt-4">
-          <div>Server name: {{ auth.serverInfo?.name }}</div>
-          <div>Server version: {{ auth.serverInfo?.version }}</div>
-          <div>
-            Server URL:
-            <ExternalLink :href="auth.server">
-              {{ auth.server }}
-            </ExternalLink>
+          <div class="mt-4">
+            <div>Server name: {{ auth.serverInfo?.name }}</div>
+            <div>Server version: {{ auth.serverInfo?.version }}</div>
+            <div>
+              Server URL:
+              <ExternalLink :href="auth.server">
+                {{ auth.server }}
+              </ExternalLink>
+            </div>
+            <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
           </div>
-          <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
         </div>
       </div>
     </div>
@@ -58,7 +60,7 @@
 </script>
 
 <style scoped>
-  .modal-overlay {
+  .about-dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -68,7 +70,12 @@
     z-index: 1000;
   }
 
-  .modal-dialog {
+ .about-dialog-content {
+    background: transparent;
+    border-radius: 12px;
+  }
+
+  .about-dialog {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -83,7 +90,7 @@
     padding: 1rem;
   }
 
-  .modal-footer {
+  .about-dialog-footer {
     justify-content: center;
   }
 </style>

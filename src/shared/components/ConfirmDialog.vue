@@ -1,19 +1,21 @@
 // ConfirmDialog.vue
 <template>
   <div>
-    <div v-if="visible" class="modal-overlay" @click="cancel" />
-    <div v-if="visible" class="modal-dialog p-3">
-      <div class="text-center mb-3">
-        <h5 class="mb-3">
-          {{ title }}
-        </h5>
-        <p class="mb-4">
-          {{ message }}
-        </p>
-        <div class="d-flex justify-content-center gap-2">
-          <button class="btn btn-primary px-4" @click="confirm">
-            Confirm
-          </button>
+    <div v-if="visible" class="confirm-dialog-overlay" @click="cancel" />
+    <div v-if="visible" class="confirm-dialog p-3">
+      <div class="confirm-dialog-content">
+        <div class="text-center mb-3">
+          <h5 class="mb-3">
+            {{ title }}
+          </h5>
+          <p class="mb-4">
+            {{ message }}
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-primary px-4" @click="confirm">
+              Confirm
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -66,7 +68,7 @@
 </script>
 
 <style scoped>
-  .modal-overlay {
+  .confirm-dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -76,7 +78,12 @@
     z-index: 1000;
   }
 
-  .modal-dialog {
+  .confirm-dialog-content {
+    background: transparent;
+    border-radius: 12px;
+  }
+
+  .confirm-dialog {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -91,7 +98,7 @@
     padding: 1rem;
   }
 
-  .modal-footer {
+  .confirm-dialog-footer {
     justify-content: center;
   }
 </style>
