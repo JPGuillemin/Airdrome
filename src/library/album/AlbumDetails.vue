@@ -59,16 +59,16 @@
         </div>
 
         <div class="text-nowrap mt-2">
-          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Play" @click="playNow">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Album Play" @click="playNow">
             <Icon icon="recycle" />
           </b-button>
-          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Shuffle" @click="shuffleNow">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Album Shuffle" @click="shuffleNow">
             <Icon icon="random" />
           </b-button>
-          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Radio" @click="RadioNow">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Album Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Like Album" @click="toggleFavourite">
+          <b-button v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Like Album" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
           <OverflowMenu direction="up" variant="transparent">

@@ -29,7 +29,7 @@
           <b-button
             v-longpress-tooltip
             variant="transparent"
-            class="me-2"
+            class="me-2 ps-0"
             :disabled="playlist.tracks.length === 0"
             title="Playlist Play"
             @click="playNow()"
@@ -39,7 +39,7 @@
           <b-button
             v-longpress-tooltip
             variant="transparent"
-            class="me-2"
+            class="me-2 ps-0"
             :disabled="playlist.tracks.length === 0"
             title="Shuffle"
             @click="shuffleNow()"
