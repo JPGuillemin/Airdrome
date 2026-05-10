@@ -1,21 +1,21 @@
 // Header.vue
 <template>
-  <div class="custom-container">
+  <div class="header-container">
     <div
-      class="backdrop"
+      class="header-backdrop"
       :style="{
         '--backgroundImage': `url('${image || fallbackImage}')`,
         '--blurAmount': blur
       }"
     />
-    <div class="custom-content">
+    <div class="header">
       <img
         :src="image || fallbackImage"
         :title="hover"
-        class="album-cover cursor-pointer"
+        class="cover-image cursor-pointer"
         @click="$emit('click')"
       >
-      <div class="content">
+      <div class="header-content">
         <slot />
       </div>
     </div>
@@ -40,16 +40,16 @@
 </script>
 
 <style scoped>
-  .custom-container {
+  .header-container {
     position: relative;
     display: flex;
     flex-direction: row;
     align-items: center;
     padding: 1rem 0;
-    height: 170px;
+    height: 190px;
   }
 
-  .custom-content {
+  .header {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -59,15 +59,15 @@
     box-sizing: border-box;
   }
 
-  .album-cover {
-    width: 160px;
-    height: 160px;
+  .cover-image {
+    width: 150px;
+    height: 150px;
     object-fit: cover;
     border-radius: 8px;
     flex-shrink: 0;
   }
 
-  .backdrop {
+  .header-backdrop {
     position: absolute;
     top: -10px;
     left: -10px;
@@ -81,7 +81,7 @@
     background-position: center;
   }
 
-  .content {
+  .header-content {
     flex: 1;
     display: flex;
     flex-direction: column;
