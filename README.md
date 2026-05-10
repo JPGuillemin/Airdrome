@@ -2,21 +2,22 @@
 
 ![Screenshot](public/icon-128x128.png)
 
-Airdrome is a modern React web Frontend for Mobile and Desktop supporting [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), [NextCloud Music](https://apps.nextcloud.com/apps/music) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
+Airdrome is a powerful modern application for Android and Desktop, supporting [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), [NextCloud Music](https://apps.nextcloud.com/apps/music) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
 ## Features
-- "Cockpit" home page with playback suggestions based on recent listenings
+- "Cockpit" library home page with playback suggestions based on recent listenings
 - Library browsing for albums, artist, genres, playlists, favourites
-- "Radio like" dynamic playlists for anything : Genre, Album, Artist, Recent albums
-- 3 high quality codec transcoding modes : FLAC / OPUS 192 / OPUS 128
-- Gapless playback
+- "Radio like" dynamic playlists for anything : Genre, Album, Artist, Recent albums, Favourites, Random
+- 3 "CD quality" OPUS transcoding modes
+- Native Gapless playback
+- 2 modes Replay Gain support
 - Full mediaSession integration
-- Persistent queue, repeat, shuffle and Replay-Gain
+- Persistent queue, repeat, shuffle
 - 4 color themes
-- Responsive UI for desktop and mobile, will work on any browser
+- Responsive UI for Android, and WEB browser (standard page or PWA)
 - Persistant cache and download for offline listening
 - View, create, and edit playlists
-- Full text search
+- Full text search with sorted results by artists, albums, tracks
 - Favourites tagging
 
 ## Screenshots
