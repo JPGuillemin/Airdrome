@@ -38,7 +38,7 @@
   import iconInfo from '@iconify-icons/bi/info-circle'
   import iconLibrary from '@iconify-icons/bi/collection'
   import iconLink from '@iconify-icons/bi/box-arrow-up-right'
-  import iconList from '@iconify-icons/bi/list-ul'
+  import iconList from '@iconify-icons/bi/list'
   import iconLogout from '@iconify-icons/bi/escape'
   import iconLow from '@iconify-icons/bi/thermometer-low'
   import iconMedium from '@iconify-icons/bi/thermometer-half'
@@ -100,7 +100,7 @@
     medium: iconMedium.body,
     most: iconMost.body,
     'music-note': iconMusicNote.body,
-    'music-note-beamed': iconMusicNoteBeamed.body,
+    'music-notes-beamed': iconMusicNoteBeamed.body,
     mute: iconMute.body,
     nav: iconNav.body,
     new: iconNew.body,

@@ -134,8 +134,8 @@
                     @click.stop="toggleReplayGain"
                   >
                     <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
-                    <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
-                    <IconReplayGainAlbum v-else />
+                    <Icon icon="music-note" color="var(--bs-primary)" v-else-if="replayGainMode === ReplayGainMode.Track" />
+                    <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
                   </b-button>
                 </div>
 
@@ -186,8 +186,8 @@
                       @click.stop="toggleReplayGain"
                     >
                       <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
-                      <IconReplayGainTrack v-else-if="replayGainMode === ReplayGainMode.Track" />
-                      <IconReplayGainAlbum v-else />
+                      <Icon icon="music-note" color="var(--bs-primary)" v-else-if="replayGainMode === ReplayGainMode.Track" />
+                      <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
                     </b-button>
                   </div>
 
@@ -512,6 +512,7 @@
     margin: 5px 5px;
     background: var(--theme-elevation-1);
     border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .slider-click-zone {
@@ -553,6 +554,7 @@
       margin: 0 2px;
       background: var(--theme-elevation-1);
       border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .visible {
