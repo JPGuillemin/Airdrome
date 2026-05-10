@@ -44,16 +44,16 @@
         </div>
 
         <div class="text-nowrap mt-2">
-          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Play Artist Top Tracks" @click="playNow">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Play Artist Top Tracks" @click="playNow">
             <Icon icon="play" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Artist Shuffle" @click="shuffleNow">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Artist Shuffle" @click="shuffleNow">
             <Icon icon="random" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Artist Radio" @click="RadioNow">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Artist Radio" @click="RadioNow">
             <Icon icon="radio" />
           </b-button>
-          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2 ps-0" title="Like Artist" @click="toggleFavourite">
+          <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Artist" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
         </div>
