@@ -21,11 +21,11 @@
           </template>
         </div>
 
-        <OverflowFade v-if="playlist.comment" class="mt-3">
+        <OverflowFade v-if="playlist.comment" class="mt-2">
           {{ playlist.comment }}
         </OverflowFade>
 
-        <div class="text-nowrap mt-3">
+        <div class="text-nowrap mt-2">
           <b-button
             v-longpress-tooltip
             variant="transparent"

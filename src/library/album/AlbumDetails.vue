@@ -58,7 +58,7 @@
           </span>
         </div>
 
-        <div class="text-nowrap mt-3">
+        <div class="text-nowrap mt-2">
           <b-button v-longpress-tooltip variant="transparent" class="me-2" title="Album Play" @click="playNow">
             <Icon icon="recycle" />
           </b-button>

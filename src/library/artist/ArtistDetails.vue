@@ -43,7 +43,7 @@
           </span>
         </div>
 
-        <div class="text-nowrap mt-3">
+        <div class="text-nowrap mt-2">
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="me-2" title="Play Artist Top Tracks" @click="playNow">
             <Icon icon="play" />
           </b-button>
