@@ -69,19 +69,13 @@
                   </router-link>
                   <div class="text-truncate text-muted pb-3">
                     <template v-if="track.artists.length">
-                      <span
-                        v-for="(artist, index) in track.artists"
-                        :key="artist.id"
+                      <router-link
+                        @click.stop
+                        :to="{ name: 'artist', params: { id: track.artists[0].id } }"
+                        class="player-link player-link-small artist-truncate"
                       >
-                        <span v-if="index > 0">, </span>
-                        <router-link
-                          @click.stop
-                          :to="{ name: 'artist', params: { id: artist.id } }"
-                          class="player-link player-link-small"
-                        >
-                          {{ artist.name }}
-                        </router-link>
-                      </span>
+                        {{ track.artists[0].name }}
+                      </router-link>
                     </template>
                     <template v-else-if="track.album">
                       {{ track.album }}
@@ -534,6 +528,14 @@
   .slider-click-zone,
   .row.elevated {
     background: transparent !important;
+  }
+
+  .artist-truncate {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   @media(max-width: 768px) {
