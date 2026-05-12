@@ -8,7 +8,7 @@
       :spacing="1"
       :rotation="0"
       :animation-duration="0"
-      style="width: 100%; height: 70vh;"
+      style="width: 100%; height: 60vh;"
     >
       <template #default="{ text, weight, word }">
         <RouterLink
@@ -119,7 +119,7 @@
 <style scoped>
   .genre-word-cloud {
     width: 100%;
-    min-height: 70vh;
+    min-height: 60vh;
   }
 
   .genre-word {
