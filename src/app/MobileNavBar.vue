@@ -51,7 +51,7 @@
           name: 'genres',
           title: 'Genres',
           icon: 'genres',
-          to: { name: 'genres', params: { sort: 'default' }},
+          to: { name: 'genres', params: { sort: 'cloud' }},
           match: (route: any) =>
             route.path.startsWith('/genres'),
         },

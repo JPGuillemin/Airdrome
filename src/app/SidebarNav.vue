@@ -37,7 +37,7 @@
     </router-link>
 
     <router-link
-      :to="{name: 'genres', params: { sort: 'default' }}"
+      :to="{name: 'genres', params: { sort: 'cloud' }}"
       class="nav-link mt-2"
       :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
     >

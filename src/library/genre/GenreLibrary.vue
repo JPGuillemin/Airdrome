@@ -19,35 +19,57 @@
             A-z
           </router-link>
         </li>
+        <li>
+          <router-link :to="{ ...$route, params: { sort: 'cloud' } }">
+            <Icon icon="cloud" />
+          </router-link>
+        </li>
       </ul>
     </div>
     <div v-if="sortedItems.length > 0">
-      <div
-        v-for="item in sortedItems"
-        :key="item.id"
-        class="section-wrapper"
-      >
-        <div class="d-flex align-items-center justify-content-between">
-          <router-link
-            :to="{ name: 'genre', params: { id: item.id } }"
-            class="d-inline-flex align-items-center"
-          >
-            <span class="section-title">
-              {{ item.name }}  -  {{ item.albumCount }}
-            </span>
-            <Icon icon="albums" class="title-color xsmall ms-1" />
-          </router-link>
-          <b-button
-            variant="transparent"
-            class="me-2"
-            title="Genre Radio"
-            @click="radio.shuffleGenre(item.id)"
-          >
-            <Icon icon="radio" />
-          </b-button>
+      <!-- CLOUD MODE -->
+      <GenreCloud
+        v-if="sort === 'cloud'"
+        :items="sortedItems"
+      />
+
+      <!-- NORMAL MODE -->
+      <template v-else>
+        <div
+          v-for="item in sortedItems"
+          :key="item.id"
+          class="section-wrapper"
+        >
+          <div class="d-flex align-items-center justify-content-between">
+            <router-link
+              :to="{ name: 'genre', params: { id: item.id } }"
+              class="d-inline-flex align-items-center"
+            >
+              <span class="section-title">
+                {{ item.name }} - {{ item.albumCount }}
+              </span>
+
+              <Icon icon="albums" class="title-color xsmall ms-1" />
+            </router-link>
+
+            <b-button
+              variant="transparent"
+              class="me-2"
+              title="Genre Radio"
+              @click="radio.shuffleGenre(item.id)"
+            >
+              <Icon icon="radio" />
+            </b-button>
+          </div>
+
+          <AlbumList
+            :items="item.albums"
+            tile-size="60"
+            title-only
+            allow-h-scroll
+          />
         </div>
-        <AlbumList :items="item.albums" tile-size="60" title-only allow-h-scroll />
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -56,6 +78,7 @@
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
   import AlbumList from '@/library/album/AlbumList.vue'
+  import GenreCloud from './GenreCloud.vue'
   import type { Album } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
   import { useRoute } from 'vue-router'
@@ -68,7 +91,7 @@
   }
 
   export default defineComponent({
-    components: { AlbumList },
+    components: { AlbumList, GenreCloud },
     setup() {
       const api = inject('$api') as any
       const radio = useRadioStore()
@@ -87,11 +110,32 @@
       const loadGenres = async() => {
         loading.value = true
         items.value = []
+
         try {
           const genres = await api.getGenres()
+
+          // CLOUD MODE = metadata only
+          if (sort.value === 'cloud') {
+            items.value = genres.map((genre: any) => ({
+              id: genre.id,
+              name: genre.name,
+              albumCount: genre.albumCount,
+              albums: [],
+            }))
+
+            return
+          }
+
           const createGenreWithAlbums = async(genre: any) => {
             const shuffled = true
-            const albums = await api.getAlbumsByGenre(genre.id, 16, 0, shuffled)
+
+            const albums = await api.getAlbumsByGenre(
+              genre.id,
+              16,
+              0,
+              shuffled
+            )
+
             return {
               id: genre.id,
               name: genre.name,
@@ -99,14 +143,22 @@
               albums,
             }
           }
+
           const firstBatch = genres.slice(0, 4)
-          const firstItems = await Promise.all(firstBatch.map(createGenreWithAlbums))
+
+          const firstItems = await Promise.all(
+            firstBatch.map(createGenreWithAlbums)
+          )
+
           items.value = firstItems
 
           const rest = genres.slice(4)
-          Promise.all(rest.map(createGenreWithAlbums)).then(restItems => {
-            items.value.push(...restItems)
-          })
+
+          Promise.all(rest.map(createGenreWithAlbums))
+            .then(restItems => {
+              items.value.push(...restItems)
+            })
+
         } catch (error) {
           console.error('Failed to load genres or albums:', error)
         } finally {

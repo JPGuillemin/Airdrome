@@ -24,6 +24,7 @@
   import iconCheck from '@iconify-icons/bi/check'
   import iconCheckCircle from '@iconify-icons/bi/check-circle'
   import iconChevronRight from '@iconify-icons/bi/chevron-compact-right'
+  import iconCloud from '@iconify-icons/bi/clouds'
   import iconDownload from '@iconify-icons/bi/download'
   import iconEdit from '@iconify-icons/bi/pencil-square'
   import iconFiles from '@iconify-icons/bi/files'
@@ -80,6 +81,7 @@
     check: iconCheck.body,
     'check-circle': iconCheckCircle.body,
     'chevron-right': iconChevronRight.body,
+    cloud: iconCloud.body,
     discover: iconDiscover.body,
     download: iconDownload.body,
     edit: iconEdit.body,
