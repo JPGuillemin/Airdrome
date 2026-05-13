@@ -1,7 +1,7 @@
 // GenreLibrary.vue
 <template>
   <div class="main-content">
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center justify-content-between mt-3">
       <div class="d-inline-flex align-items-center">
         <Icon icon="genres" class="title-color me-2" />
         <span class="main-title">
@@ -10,7 +10,7 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: { sort: 'size' }}">
+          <router-link :to="{ ... $route, params: { sort: 'zize' }}">
             <Icon icon="most" />
           </router-link>
         </li>
