@@ -92,11 +92,11 @@
         const colorScale = d3.scaleSequential()
           .domain([0, 1])
           .interpolator(d3.interpolateRgbBasis([
-            '#f2f2f2', // very light grey
-            '#d9d9d9', // light grey
-            '#808080', // medium grey
+            '#303030', // deep grey
             '#4d4d4d', // dark grey
-            '#262626', // deep grey
+            '#808080', // medium grey
+            '#d9d9d9', // light grey
+            '#e0e0e0', // very light grey
           ]))
 
         const words: CloudWord[] = sorted.map((item) => {
