@@ -92,11 +92,11 @@
         const colorScale = d3.scaleSequential()
           .domain([0, 1])
           .interpolator(d3.interpolateRgbBasis([
-            '#303030', // deep grey
-            '#4d4d4d', // dark grey
-            '#808080', // medium grey
-            '#d9d9d9', // light grey
-            '#e0e0e0', // very light grey
+            '#c0c0c0',
+            '#b0b0b0',
+            '#a0a0a0',
+            '#908080',
+            '#808080',
           ]))
 
         const words: CloudWord[] = sorted.map((item) => {
@@ -117,7 +117,7 @@
         cloud<CloudWord>()
           .size([width, height])
           .words(words)
-          .padding(10)  // Reduced padding since we're not scaling
+          .padding(10)
           .rotate(() => 0)
           .random(rng)
           .font(props.fontFamily)
@@ -161,7 +161,7 @@
             )
             .text((d) => d.text)
             .on('mouseenter', function (this: SVGTextElement, _, d) {
-              d3.select(this).style('fill', '#fff')
+              d3.select(this).style('fill', 'var(--bs-primary)')
             })
             .on('mouseleave', function (this: SVGTextElement, _, d) {
               d3.select(this).style('fill', colorScale(d.normalized || 0))
