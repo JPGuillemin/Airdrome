@@ -22,7 +22,7 @@ Airdrome is a powerful modern application for Android and Desktop, supporting [n
 
 ## Screenshots
 
-<img src="screenshots/album-list.png" width="200" />  <img src="screenshots/album.png" width="200" />  <img src="screenshots/artist.png" width="200" />  <img src="screenshots/genre.png" width="200" />
+<img src="screenshots/cockpit.png" width="200" />  <img src="screenshots/genres.png" width="200" />  <img src="screenshots/queue.png" width="200" />  <img src="screenshots/artist.png" width="200" />
 
 <img src="screenshots/desktop.png" width="800" />
 
