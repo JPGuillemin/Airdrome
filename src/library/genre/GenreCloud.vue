@@ -18,6 +18,7 @@
   import { useRouter } from 'vue-router'
   import cloud from 'd3-cloud'
   import * as d3 from 'd3'
+  import seedrandom from 'seedrandom'
 
   type GenreItem = {
     id: string | number
@@ -29,6 +30,7 @@
     text: string
     size: number
     id: string | number
+    normalized?: number  // for color calculation
     x?: number
     y?: number
     rotate?: number
@@ -46,7 +48,7 @@
       },
       fontFamily: {
         type: String,
-        default: 'inherit',
+        default: 'Roboto',
       },
     },
 
@@ -63,7 +65,9 @@
         const height = container.value.clientHeight
         if (width === 0 || height === 0) return
 
-        const MAX_WORDS = 50
+        const rng = seedrandom('genre-cloud')
+
+        const MAX_WORDS = 100
 
         const sorted = [...props.items]
           .sort((a, b) => (b.albumCount || 0) - (a.albumCount || 0))
@@ -78,10 +82,22 @@
         const max = Math.max(...counts)
         const min = Math.min(...counts)
 
-        // Font sizes are intentionally modest — the bounding-box
-        // scale applied after layout will stretch them to fill the space
-        const MIN_SIZE = 8
-        const MAX_SIZE = 34
+        // Calculate font sizes based on actual container dimensions
+        // Use the smaller dimension to ensure words fit
+        const smallerDim = Math.min(width, height)
+        const MIN_SIZE = Math.max(10, smallerDim * 0.025)  // ~2.5% of smaller dimension
+        const MAX_SIZE = Math.max(40, smallerDim * 0.15)   // ~15% of smaller dimension
+
+        // Create color scale - vibrant gradient from cyan to purple
+        const colorScale = d3.scaleSequential()
+          .domain([0, 1])
+          .interpolator(d3.interpolateRgbBasis([
+            '#f2f2f2', // very light grey
+            '#d9d9d9', // light grey
+            '#808080', // medium grey
+            '#4d4d4d', // dark grey
+            '#262626', // deep grey
+          ]))
 
         const words: CloudWord[] = sorted.map((item) => {
           const count = Math.max(item.albumCount || 1, 1)
@@ -90,6 +106,7 @@
             text: item.name,
             id: item.id,
             size: MIN_SIZE + Math.pow(normalized, 1.2) * (MAX_SIZE - MIN_SIZE),
+            normalized,
           }
         })
 
@@ -100,8 +117,9 @@
         cloud<CloudWord>()
           .size([width, height])
           .words(words)
-          .padding(8)
+          .padding(10)  // Reduced padding since we're not scaling
           .rotate(() => 0)
+          .random(rng)
           .font(props.fontFamily)
           .fontSize((d) => d.size)
           .on('end', draw)
@@ -116,43 +134,15 @@
             )
           }
 
-          // ── Compute bounding box of placed words ──────────────────────────
-          // d3-cloud sets x/y at word center and width/height as text bounds
-          let x0 = Infinity, y0 = Infinity
-          let x1 = -Infinity, y1 = -Infinity
-
-          for (const w of layoutWords) {
-            const hw = (w.width  || 0) / 2
-            const hh = (w.height || 0) / 2
-            x0 = Math.min(x0, (w.x || 0) - hw)
-            y0 = Math.min(y0, (w.y || 0) - hh)
-            x1 = Math.max(x1, (w.x || 0) + hw)
-            y1 = Math.max(y1, (w.y || 0) + hh)
-          }
-
-          const cloudW = x1 - x0 || 1
-          const cloudH = y1 - y0 || 1
-
-          // Scale uniformly to fill container, with a small inset margin
-          const margin = 12
-          const scale = Math.min(
-            (width  - margin * 2) / cloudW,
-            (height - margin * 2) / cloudH
-          )
-
-          // ── Render ────────────────────────────────────────────────────────
+          // Simple centered rendering - no scaling needed
           const svgEl = d3
             .select(svgRef.value)
             .attr('width', width)
             .attr('height', height)
 
-          // Center the group, accounting for the bounding box offset and scale
-          const tx = width  / 2 - ((x0 + x1) / 2) * scale
-          const ty = height / 2 - ((y0 + y1) / 2) * scale
-
           const group = svgEl
             .append('g')
-            .attr('transform', `translate(${tx}, ${ty}) scale(${scale})`)
+            .attr('transform', `translate(${width / 2}, ${height / 2})`)
 
           group
             .selectAll('text')
@@ -161,7 +151,7 @@
             .append('text')
             .style('font-family', props.fontFamily)
             .style('font-size', (d) => `${d.size}px`)
-            .style('fill', '#fff')
+            .style('fill', (d) => colorScale(d.normalized || 0))
             .style('cursor', 'pointer')
             .style('user-select', 'none')
             .style('transition', 'fill 0.15s ease')
@@ -170,11 +160,11 @@
               `translate(${d.x}, ${d.y}) rotate(${d.rotate})`
             )
             .text((d) => d.text)
-            .on('mouseenter', function (this: SVGTextElement) {
-              d3.select(this).style('fill', 'var(--bs-primary)')
-            })
-            .on('mouseleave', function (this: SVGTextElement) {
+            .on('mouseenter', function (this: SVGTextElement, _, d) {
               d3.select(this).style('fill', '#fff')
+            })
+            .on('mouseleave', function (this: SVGTextElement, _, d) {
+              d3.select(this).style('fill', colorScale(d.normalized || 0))
             })
             .on('click', (_, d) => {
               router.push({ name: 'genre', params: { id: d.id } })
