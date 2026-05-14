@@ -85,7 +85,7 @@
         // Calculate font sizes based on actual container dimensions
         // Use the smaller dimension to ensure words fit
         const smallerDim = Math.min(width, height)
-        const MIN_SIZE = Math.max(10, smallerDim * 0.025)  // ~2.5% of smaller dimension
+        const MIN_SIZE = Math.max(14, smallerDim * 0.025)  // ~2.5% of smaller dimension
         const MAX_SIZE = Math.max(40, smallerDim * 0.15)   // ~15% of smaller dimension
 
         // Create color scale - vibrant gradient from cyan to purple
@@ -117,7 +117,7 @@
         cloud<CloudWord>()
           .size([width, height])
           .words(words)
-          .padding(10)
+          .padding(8)
           .rotate(() => 0)
           .random(rng)
           .font(props.fontFamily)
