@@ -647,6 +647,7 @@ export function setupAudio(
           if (!isPlaying && !wasPaused) {
             audio.play()
             playerStore.setMediaSessionState('playing')
+            playerStore.setMediaSessionPosition()
           }
           break
 
@@ -667,6 +668,7 @@ export function setupAudio(
           if (!isPlaying && !wasPaused) {
             audio.play()
             playerStore.setMediaSessionState('playing')
+            playerStore.setMediaSessionPosition()
           }
           break
 
@@ -674,6 +676,7 @@ export function setupAudio(
           if (!isPlaying && !wasPaused) {
             audio.play()
             playerStore.setMediaSessionState('playing')
+            playerStore.setMediaSessionPosition()
           }
           break
 
@@ -709,6 +712,7 @@ export function setupAudio(
         try {
           await audio.play()
           playerStore.setMediaSessionState('playing')
+          playerStore.setMediaSessionPosition()
         } catch (err) {
           console.warn('[Audio] Failed to resume after reconnect', err)
         }
@@ -730,6 +734,7 @@ export function setupAudio(
         if (!isPlaying && !wasPaused) {
           audio.play()
           playerStore.setMediaSessionState('playing')
+          playerStore.setMediaSessionPosition()
         }
       }
     })
@@ -758,6 +763,7 @@ export function setupAudio(
         if (!isPlaying && !wasPaused) {
           audio.play()
           playerStore.setMediaSessionState('playing')
+          playerStore.setMediaSessionPosition()
         }
       })
     }
