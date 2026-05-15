@@ -632,18 +632,21 @@ export function setupAudio(
         case 'lossTransient':
           if (playerStore.isPlaying) {
             audio.pause()
+            playerStore.setMediaSessionState('paused')
           }
           break
 
         case 'loss':
-          if (playerStore.isPlaying) {
+          if (isPlaying) {
             audio.pause()
+            playerStore.setMediaSessionState('paused')
           }
           break
 
         case 'gain':
           if (!isPlaying && !wasPaused) {
             audio.play()
+            playerStore.setMediaSessionState('playing')
           }
           break
 
@@ -663,18 +666,21 @@ export function setupAudio(
         case 'bluetooth':
           if (!isPlaying && !wasPaused) {
             audio.play()
+            playerStore.setMediaSessionState('playing')
           }
           break
 
         case 'wired':
           if (!isPlaying && !wasPaused) {
             audio.play()
+            playerStore.setMediaSessionState('playing')
           }
           break
 
         case 'speaker':
           if (isPlaying) {
             audio.pause()
+            playerStore.setMediaSessionState('paused')
           }
           break
       }
@@ -682,17 +688,15 @@ export function setupAudio(
 
     Network.addListener('networkStatusChange', async status => {
       console.info('[Network]', status)
-
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
       // Network lost
       if (!status.connected) {
-        if (playerStore.isPlaying) {
+        if (isPlaying) {
           console.warn('[Audio] Network lost – pausing playback')
-
           // keep wasPaused = false so auto-resume still works
           playerStore.wasPaused = false
-
           await audio.pause()
-
           playerStore.setMediaSessionState('paused')
         }
 
@@ -700,17 +704,11 @@ export function setupAudio(
       }
 
       // Network restored
-      if (!playerStore.wasPaused && !playerStore.isPlaying) {
+      if (!wasPaused && !isPlaying) {
         console.info('[Audio] Network restored – retrying current track')
-
         try {
-          await audio.retryCurrentTrack()
-
-          // retryCurrentTrack may only reload the stream
-          // so explicitly resume playback if needed
-          if (!playerStore.isPlaying) {
-            await audio.play()
-          }
+          await audio.play()
+          playerStore.setMediaSessionState('playing')
         } catch (err) {
           console.warn('[Audio] Failed to resume after reconnect', err)
         }
@@ -721,14 +719,17 @@ export function setupAudio(
 
   if (isMobile && !isNative) {
     document.addEventListener('visibilitychange', () => {
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
       if (Date.now() - playTime < 1000) {
         return
       }
       if (document.visibilityState === 'hidden') {
         playerStore.saveQueue()
       } else {
-        if (!playerStore.isPlaying && !playerStore.wasPaused) {
+        if (!isPlaying && !wasPaused) {
           audio.play()
+          playerStore.setMediaSessionState('playing')
         }
       }
     })
@@ -742,18 +743,21 @@ export function setupAudio(
       navigator.mediaDevices.addEventListener('devicechange', async () => {
         const devices = await navigator.mediaDevices.enumerateDevices()
         const outputs = devices.filter(d => d.kind === 'audiooutput')
-
+        const isPlaying = playerStore.isPlaying
+        const wasPaused = playerStore.wasPaused
         const hasAudioOutput = outputs.length > 0
 
         // ---- "disconnect" heuristic ----
-        if (!hasAudioOutput && playerStore.isPlaying) {
+        if (!hasAudioOutput && isPlaying) {
           audio.pause()
+          playerStore.setMediaSessionState('paused')
           return
         }
 
         // ---- "reconnect" heuristic ----
-        if (!playerStore.isPlaying && !playerStore.wasPaused) {
+        if (!isPlaying && !wasPaused) {
           audio.play()
+          playerStore.setMediaSessionState('playing')
         }
       })
     }
