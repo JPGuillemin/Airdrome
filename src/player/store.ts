@@ -7,6 +7,7 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
+import { Network } from '@capacitor/network'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -679,6 +680,43 @@ export function setupAudio(
       }
     })
 
+    Network.addListener('networkStatusChange', async status => {
+      console.info('[Network]', status)
+
+      // Network lost
+      if (!status.connected) {
+        if (playerStore.isPlaying) {
+          console.warn('[Audio] Network lost – pausing playback')
+
+          // keep wasPaused = false so auto-resume still works
+          playerStore.wasPaused = false
+
+          await audio.pause()
+
+          playerStore.setMediaSessionState('paused')
+        }
+
+        return
+      }
+
+      // Network restored
+      if (!playerStore.wasPaused && !playerStore.isPlaying) {
+        console.info('[Audio] Network restored – retrying current track')
+
+        try {
+          await audio.retryCurrentTrack()
+
+          // retryCurrentTrack may only reload the stream
+          // so explicitly resume playback if needed
+          if (!playerStore.isPlaying) {
+            await audio.play()
+          }
+        } catch (err) {
+          console.warn('[Audio] Failed to resume after reconnect', err)
+        }
+      }
+    })
+
   }
 
   if (isMobile && !isNative) {
@@ -854,6 +892,16 @@ export function setupAudio(
     if (!playerStore.wasPaused) {
       console.info('[Audio] Network restored – retrying current track')
       audio.retryCurrentTrack()
+    }
+  })
+
+  window.addEventListener('offline', async () => {
+    console.warn('[Audio] Network lost')
+    // only auto-pause if playback was active
+    if (playerStore.isPlaying) {
+      playerStore.wasPaused = false
+      await audio.pause()
+      playerStore.setMediaSessionState('paused')
     }
   })
 

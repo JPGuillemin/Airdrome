@@ -370,13 +370,25 @@ export class AudioController {
         playFromBufferOrRetry()
       }
     }
-    audio.onended    = () => { clearStalledTimer(); this.onended() }
-    audio.onpause    = () => { clearStalledTimer(); this.onpause() }
+    audio.onended    = () => {
+      clearStalledTimer()
+      this.onended()
+    }
+    audio.onpause    = () => {
+      clearStalledTimer()
+      this.onpause()
+    }
     audio.onplay     = () => this.onplay()
     audio.onstalled  = armStalledTimer
     audio.onwaiting  = armStalledTimer
-    audio.onplaying = () => { playbackTransition = false; clearStalledTimer() }
-    audio.onseeking = () => { playbackTransition = true }
+    audio.onplaying = () => {
+      playbackTransition = false
+      clearStalledTimer()
+      this.retryCount = 0
+    }
+    audio.onseeking = () => {
+      playbackTransition = true
+    }
     audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
 
     // Fire ondurationchange once the metadata has been parsed
