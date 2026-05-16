@@ -631,21 +631,21 @@ export function setupAudio(
       switch (type) {
         case 'lossTransient':
           if (playerStore.isPlaying) {
-            audio.pause()
+            await audio.pause()
             playerStore.setMediaSessionState('paused')
           }
           break
 
         case 'loss':
           if (isPlaying) {
-            audio.pause()
+            await audio.pause()
             playerStore.setMediaSessionState('paused')
           }
           break
 
         case 'gain':
           if (!isPlaying && !wasPaused) {
-            audio.play()
+            await audio.play()
             playerStore.setMediaSessionState('playing')
             playerStore.setMediaSessionPosition()
           }
@@ -656,7 +656,7 @@ export function setupAudio(
       }
     })
 
-    nativeMediaSession.addListener('audioRouteChange', (event: any) => {
+    nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
       const route = event?.route
       if (Date.now() - playTime < 1000) {
         return
@@ -666,7 +666,7 @@ export function setupAudio(
       switch (route) {
         case 'bluetooth':
           if (!isPlaying && !wasPaused) {
-            audio.play()
+            await audio.play()
             playerStore.setMediaSessionState('playing')
             playerStore.setMediaSessionPosition()
           }
@@ -674,7 +674,7 @@ export function setupAudio(
 
         case 'wired':
           if (!isPlaying && !wasPaused) {
-            audio.play()
+            await audio.play()
             playerStore.setMediaSessionState('playing')
             playerStore.setMediaSessionPosition()
           }
@@ -682,7 +682,7 @@ export function setupAudio(
 
         case 'speaker':
           if (isPlaying) {
-            audio.pause()
+            await audio.pause()
             playerStore.setMediaSessionState('paused')
           }
           break
@@ -722,7 +722,7 @@ export function setupAudio(
   }
 
   if (isMobile && !isNative) {
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener('visibilitychange', async () => {
       const isPlaying = playerStore.isPlaying
       const wasPaused = playerStore.wasPaused
       if (Date.now() - playTime < 1000) {
@@ -732,7 +732,7 @@ export function setupAudio(
         playerStore.saveQueue()
       } else {
         if (!isPlaying && !wasPaused) {
-          audio.play()
+          await audio.play()
           playerStore.setMediaSessionState('playing')
           playerStore.setMediaSessionPosition()
         }
@@ -754,14 +754,14 @@ export function setupAudio(
 
         // ---- "disconnect" heuristic ----
         if (!hasAudioOutput && isPlaying) {
-          audio.pause()
+          await audio.pause()
           playerStore.setMediaSessionState('paused')
           return
         }
 
         // ---- "reconnect" heuristic ----
         if (!isPlaying && !wasPaused) {
-          audio.play()
+          await audio.play()
           playerStore.setMediaSessionState('playing')
           playerStore.setMediaSessionPosition()
         }
