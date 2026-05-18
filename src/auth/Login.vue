@@ -79,7 +79,10 @@
         busy.value = true
 
         let serverValue = server.value.trim()
+
+        // Don't force HTTPS - respect what user enters
         if (!serverValue.startsWith('http://') && !serverValue.startsWith('https://')) {
+          // Try HTTPS first, but we'll fallback to HTTP if it fails
           serverValue = `https://${serverValue}`
         }
 
@@ -88,7 +91,21 @@
           store.setLoginSuccess(username.value, serverValue)
           await router.replace(props.returnTo)
         } catch (err: any) {
-          error.value = err
+          // If HTTPS failed and we auto-added it, try HTTP
+          if (serverValue.startsWith('https://') &&
+              !server.value.trim().startsWith('https://')) {
+            const httpUrl = serverValue.replace('https://', 'http://')
+            try {
+              await auth.loginWithPassword(httpUrl, username.value, password.value)
+              store.setLoginSuccess(username.value, httpUrl)
+              await router.replace(props.returnTo)
+              return
+            } catch (httpErr: any) {
+              error.value = httpErr
+            }
+          } else {
+            error.value = err
+          }
         } finally {
           busy.value = false
         }
