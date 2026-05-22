@@ -611,8 +611,78 @@ export function setupAudio(
   playerStore: ReturnType<typeof usePlayerStore>,
   mainStore: ReturnType<typeof useMainStore>
 ) {
-  playerStore.setMediaSessionState('none')
+
+  // ---------------------------------------------------------------------------
+  // Playback event handlers
+  // ---------------------------------------------------------------------------
+
   let playTime = 0
+  playerStore.setMediaSessionState('none')
+
+  audio.onplay = () => {
+    playerStore.isPlaying = true
+    playTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('playing')
+  }
+
+  audio.onpause = () => {
+    playerStore.isPlaying = false
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('paused')
+  }
+
+  audio.onsuspend = () => {
+    playerStore.isPlaying = false
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('paused')
+  }
+
+  /** When a track finishes naturally, advance to the next one or end the queue. */
+  audio.onended = async () => {
+    const { hasNext, repeat } = playerStore
+    if (hasNext || repeat) {
+      await playerStore.next(false)
+    } else {
+      await playerStore.processQueueEnd()
+    }
+  }
+
+  /**
+   * Fatal errors only (ABORTED / SRC_NOT_SUPPORTED).
+   * Transient network/decode errors are retried internally by AudioController;
+   * this fires only once all retries are exhausted via onfailed below,
+   * or immediately for errors that are never worth retrying.
+   */
+  audio.onerror = (error: any) => {
+    console.warn('[Audio] Fatal error', error)
+    mainStore.setError(error)
+    // Skip the broken track rather than looping forever on it.
+    if (playerStore.hasNext) {
+      void playerStore.next(true)
+    } else if (playerStore.hasPrevious) {
+      void playerStore.back()
+    } else {
+      void playerStore.resetQueue()
+    }
+  }
+
+  /** Fired by AudioController after every retry delay. */
+  audio.onretrying = (attempt: number, max: number) => {
+    console.info(`[Audio] Network error – retrying (${attempt}/${max})…`)
+  }
+
+  /** All retries exhausted without a successful load */
+  audio.onfailed = () => {
+    console.warn('[Audio] Retries exhausted, waiting for network')
+  }
+
+  /** Stall watchdog armed – nothing to do in the store beyond logging. */
+  audio.onstalled = () => {
+    console.info('[Audio] Playback stalled, watchdog armed')
+  }
+
+
   // ---------------------------------------------------------------------------
   // Mobile auto-resume
   // ---------------------------------------------------------------------------
@@ -630,24 +700,17 @@ export function setupAudio(
       const wasPaused = playerStore.wasPaused
       switch (type) {
         case 'lossTransient':
-          if (playerStore.isPlaying) {
-            await audio.pause()
-            playerStore.setMediaSessionState('paused')
-          }
           break
 
         case 'loss':
           if (isPlaying) {
             await audio.pause()
-            playerStore.setMediaSessionState('paused')
           }
           break
 
         case 'gain':
           if (!isPlaying && !wasPaused) {
             await audio.play()
-            playerStore.setMediaSessionState('playing')
-            playerStore.setMediaSessionPosition()
           }
           break
 
@@ -667,23 +730,18 @@ export function setupAudio(
         case 'bluetooth':
           if (!isPlaying && !wasPaused) {
             await audio.play()
-            playerStore.setMediaSessionState('playing')
-            playerStore.setMediaSessionPosition()
           }
           break
 
         case 'wired':
           if (!isPlaying && !wasPaused) {
             await audio.play()
-            playerStore.setMediaSessionState('playing')
-            playerStore.setMediaSessionPosition()
           }
           break
 
         case 'speaker':
           if (isPlaying) {
             await audio.pause()
-            playerStore.setMediaSessionState('paused')
           }
           break
       }
@@ -694,25 +752,22 @@ export function setupAudio(
       const isPlaying = playerStore.isPlaying
       const wasPaused = playerStore.wasPaused
       // Network lost
-      if (!status.connected) {
-        if (isPlaying) {
-          console.warn('[Audio] Network lost – pausing playback')
-          // keep wasPaused = false so auto-resume still works
-          playerStore.wasPaused = false
-          await audio.pause()
-          playerStore.setMediaSessionState('paused')
-        }
-
-        return
-      }
+      // if (!status.connected) {
+      //   if (isPlaying) {
+      //     console.warn('[Audio] Network lost – pausing playback')
+      //     // keep wasPaused = false so auto-resume still works
+      //     playerStore.wasPaused = false
+      //     await audio.pause()
+      //   }
+      //
+      //   return
+      // }
 
       // Network restored
       if (!wasPaused && !isPlaying) {
         console.info('[Audio] Network restored – retrying current track')
         try {
           await audio.play()
-          playerStore.setMediaSessionState('playing')
-          playerStore.setMediaSessionPosition()
         } catch (err) {
           console.warn('[Audio] Failed to resume after reconnect', err)
         }
@@ -733,8 +788,6 @@ export function setupAudio(
       } else {
         if (!isPlaying && !wasPaused) {
           await audio.play()
-          playerStore.setMediaSessionState('playing')
-          playerStore.setMediaSessionPosition()
         }
       }
     })
@@ -755,15 +808,12 @@ export function setupAudio(
         // ---- "disconnect" heuristic ----
         if (!hasAudioOutput && isPlaying) {
           await audio.pause()
-          playerStore.setMediaSessionState('paused')
           return
         }
 
         // ---- "reconnect" heuristic ----
         if (!isPlaying && !wasPaused) {
           await audio.play()
-          playerStore.setMediaSessionState('playing')
-          playerStore.setMediaSessionPosition()
         }
       })
     }
@@ -827,73 +877,6 @@ export function setupAudio(
     }
   })
 
-  // ---------------------------------------------------------------------------
-  // Playback event handlers
-  // ---------------------------------------------------------------------------
-
-  /** When a track finishes naturally, advance to the next one or end the queue. */
-  audio.onended = async () => {
-    const { hasNext, repeat } = playerStore
-    if (hasNext || repeat) {
-      await playerStore.next(false)
-    } else {
-      await playerStore.processQueueEnd()
-    }
-  }
-
-  audio.onplay = () => {
-    playerStore.isPlaying = true
-    playTime = Date.now()
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('playing')
-  }
-
-  audio.onpause = () => {
-    playerStore.isPlaying = false
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('paused')
-  }
-
-  audio.onsuspend = () => {
-    playerStore.isPlaying = false
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('paused')
-  }
-
-  /**
-   * Fatal errors only (ABORTED / SRC_NOT_SUPPORTED).
-   * Transient network/decode errors are retried internally by AudioController;
-   * this fires only once all retries are exhausted via onfailed below,
-   * or immediately for errors that are never worth retrying.
-   */
-  audio.onerror = (error: any) => {
-    console.warn('[Audio] Fatal error', error)
-    mainStore.setError(error)
-    // Skip the broken track rather than looping forever on it.
-    if (playerStore.hasNext) {
-      void playerStore.next(true)
-    } else if (playerStore.hasPrevious) {
-      void playerStore.back()
-    } else {
-      void playerStore.resetQueue()
-    }
-  }
-
-  /** Fired by AudioController after every retry delay. */
-  audio.onretrying = (attempt: number, max: number) => {
-    console.info(`[Audio] Network error – retrying (${attempt}/${max})…`)
-  }
-
-  /** All retries exhausted without a successful load */
-  audio.onfailed = () => {
-    console.warn('[Audio] Retries exhausted, waiting for network')
-  }
-
-  /** Stall watchdog armed – nothing to do in the store beyond logging. */
-  audio.onstalled = () => {
-    console.info('[Audio] Playback stalled, watchdog armed')
-  }
-
   /**
    * When the browser goes back online, immediately retry if we're supposed
    * to be playing (the user didn't deliberately pause).
@@ -905,15 +888,15 @@ export function setupAudio(
     }
   })
 
-  window.addEventListener('offline', async () => {
-    console.warn('[Audio] Network lost')
-    // only auto-pause if playback was active
-    if (playerStore.isPlaying) {
-      playerStore.wasPaused = false
-      await audio.pause()
-      playerStore.setMediaSessionState('paused')
-    }
-  })
+  // window.addEventListener('offline', async () => {
+  //   console.warn('[Audio] Network lost')
+  //   // only auto-pause if playback was active
+  //   if (playerStore.isPlaying) {
+  //     playerStore.wasPaused = false
+  //     await audio.pause()
+  //     playerStore.setMediaSessionState('paused')
+  //   }
+  // })
 
   // ---------------------------------------------------------------------------
   // Initialise audio controller with persisted settings
