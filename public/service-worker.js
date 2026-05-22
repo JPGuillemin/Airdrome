@@ -1,3 +1,5 @@
+// service-worker.js
+
 const APP_BASE = '/'
 const SW_VERSION = 'v1.2.0'
 
@@ -90,12 +92,16 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  /* IMAGES */
+  /* IMAGES + COVER ART */
 
-  if (
+  const isCoverArt =
+    url.pathname.includes('/rest/getCoverArt')
+
+  const isImage =
     request.destination === 'image' ||
     /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(url.pathname)
-  ) {
+
+  if (isCoverArt || isImage) {
     event.respondWith(imageStrategy(request))
     return
   }
@@ -163,30 +169,66 @@ async function audioStrategy(request) {
 async function imageStrategy(request) {
 
   const cache = await caches.open(IMAGE_CACHE)
-  const cached = await cache.match(request)
 
-  const networkFetch = fetch(request)
-    .then(async response => {
+  // Use normalized cache key
+  const cacheRequest = normalizeImageRequest(request)
 
-      if (response && response.status === 200) {
+  const cached = await cache.match(cacheRequest)
 
-        await cache.put(request, response.clone())
-        trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
+  // Return cached immediately
+  if (cached) {
 
-      }
+    // Background refresh
+    fetch(request)
+      .then(async response => {
 
-      return response
+        if (response && response.ok) {
 
+          await cache.put(
+            cacheRequest,
+            response.clone()
+          )
+
+          trimCache(
+            IMAGE_CACHE,
+            MAX_IMAGE_ENTRIES
+          )
+
+        }
+
+      })
+      .catch(() => {})
+
+    return cached
+  }
+
+  try {
+
+    const response = await fetch(request)
+
+    if (response && response.ok) {
+
+      await cache.put(
+        cacheRequest,
+        response.clone()
+      )
+
+      trimCache(
+        IMAGE_CACHE,
+        MAX_IMAGE_ENTRIES
+      )
+
+    }
+
+    return response
+
+  } catch {
+
+    return new Response('', {
+      status: 504
     })
-    .catch(() => null)
 
-  if (cached) return cached
-
-  const network = await networkFetch
-
-  if (network) return network
-
-  return new Response('', { status: 504 })
+  }
 
 }
 
@@ -208,7 +250,7 @@ async function networkFirst(request, cacheName) {
 
     return response
 
-  } catch {
+  } catch (err) {
 
     const cached = await cache.match(request)
 
@@ -247,6 +289,38 @@ async function cacheFirst(request, cacheName) {
 
 function isStaticAsset(path) {
   return /\.(js|css|woff2?|ttf|png|jpg|svg|webp)$/i.test(path)
+}
+
+function normalizeImageRequest(request) {
+
+  const url = new URL(request.url)
+
+  // Normalize Subsonic/Navidrome cover art URLs
+  if (url.pathname.includes('/rest/getCoverArt')) {
+
+    const normalized = new URL(
+      url.origin + url.pathname
+    )
+
+    // Stable cache identity
+    normalized.searchParams.set(
+      'id',
+      url.searchParams.get('id') || ''
+    )
+
+    normalized.searchParams.set(
+      'size',
+      url.searchParams.get('size') || '300'
+    )
+
+    return new Request(normalized.toString(), {
+      method: 'GET'
+    })
+
+  }
+
+  return request
+
 }
 
 async function trimCache(cacheName, maxEntries) {
