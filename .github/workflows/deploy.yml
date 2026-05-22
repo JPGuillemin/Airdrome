@@ -31,7 +31,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_VERSION: ${{ github.sha }}
-          BASE_PATH: /airdrome/
+          BASE_PATH: /Airdrome/
           VERSION: ${{ github.sha }}
 
       - run: ls -R dist
