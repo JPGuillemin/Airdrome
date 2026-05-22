@@ -4,6 +4,8 @@
 
 Airdrome is a powerful modern application for Android and Desktop, supporting [navidrome](https://github.com/navidrome/navidrome), [airsonic-advanced](https://github.com/airsonic-advanced/airsonic-advanced), [NextCloud Music](https://apps.nextcloud.com/apps/music) and other [subsonic](https://github.com/topics/subsonic) compatible music servers.
 
+Test the latest version here : [AIRDROME NIGHTLY](https://jpguillemin.github.io/Airdrome/)
+
 ## Features
 - "Cockpit" library home page with playback suggestions based on recent listenings
 - Library browsing for albums, artist, genres, playlists, favourites
