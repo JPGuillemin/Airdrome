@@ -9,7 +9,7 @@ import { execSync } from 'node:child_process'
 export default defineConfig(() => {
   const buildDate = new Date().toISOString()
   let buildVersion = 'dev'
-  const basePath = process.env.BASE_PATH || '/'
+  const basePath = process.env.BASE_PATH ?? '/'
   const appVersion = process.env.VERSION
 
   try {
@@ -21,7 +21,7 @@ export default defineConfig(() => {
   return {
     base: basePath,
     build: {
-      outDir: `dist${basePath}`
+      outDir: 'dist'
     },
     plugins: [
       vue(),
