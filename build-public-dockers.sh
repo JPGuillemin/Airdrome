@@ -10,6 +10,12 @@ yarn build || exit 1
 
 # Rewrite BASE_PATH in static files
 (
+rmdir .tmp${BASE_PATH} || exit "error cleaning .tmp${BASE_PATH}"
+mkdir .tmp${BASE_PATH}
+mv dist/* .tmp${BASE_PATH}
+mkdir dist${BASE_PATH}
+mv .tmp${BASE_PATH}/* dist${BASE_PATH}
+rmdir .tmp${BASE_PATH} || exit "error cleaning .tmp${BASE_PATH}"
 cd dist${BASE_PATH}
 
 # sed -i "s|\([\"\']\)/|\1$BASE_PATH|g" index.html

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export BASE_PATH="/"
 source VERSION
 echo "Building $VERSION ..."
 
