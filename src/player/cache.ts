@@ -16,7 +16,7 @@ const META_DB = 'airdrome-cache-meta'
 const META_STORE = 'entries'
 const META_INFO = 'meta'
 
-const MAX_CACHE_SIZE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB
+const MAX_CACHE_SIZE_BYTES = 3 * 1024 * 1024 * 1024 // 3 GB
 
 type MetaEntry = {
   url: string
