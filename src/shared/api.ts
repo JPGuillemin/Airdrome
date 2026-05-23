@@ -242,6 +242,82 @@ export class API {
     return albums
   }
 
+  async getArtistsByGenre(
+    genre: string,
+    size: number,
+    offset = 0,
+  ): Promise<Artist[]> {
+    // Fetch all albums for the genre to get accurate artist counts and proper pagination
+    // We need to fetch enough albums to cover all artists up to offset + size
+    const fetchSize = Math.max(500, (offset + size) * 10)
+
+    const response = await this.fetch('rest/getAlbumList2', {
+      type: 'byGenre',
+      genre,
+      size: fetchSize,
+      offset: 0,
+    })
+
+    const rawAlbums = response.albumList2?.album || []
+
+    const artistMap = new Map<
+      string,
+      {
+        id: string
+        name: string
+        albumCount: number
+        image?: string
+      }
+    >()
+
+    // Process raw album data to use AlbumArtist (or fallback to Artist)
+    for (const album of rawAlbums) {
+      // Prefer albumArtist over artist for proper genre grouping
+      const artistId = album.albumArtistId || album.artistId
+      const artistName = album.albumArtist || album.artist
+
+      if (!artistId || !artistName) continue
+
+      const existing = artistMap.get(artistId)
+
+      if (!existing) {
+        // Try to get artist image - some servers provide artistImageUrl
+        // Otherwise use album coverArt as fallback
+        const artistImage = album.artistImageUrl ||
+          (album.coverArt ? this.getCoverArtUrl(album) : undefined)
+
+        artistMap.set(artistId, {
+          id: artistId,
+          name: artistName,
+          albumCount: 1,
+          image: artistImage,
+        })
+      } else {
+        existing.albumCount += 1
+        // Update image if we don't have one yet and this album has one
+        if (!existing.image) {
+          existing.image = album.artistImageUrl ||
+            (album.coverArt ? this.getCoverArtUrl(album) : undefined)
+        }
+      }
+    }
+
+    // Sort by album count and apply offset/size to the artist list, not album list
+    return Array.from(artistMap.values())
+      .sort((a, b) => b.albumCount - a.albumCount)
+      .slice(offset, offset + size)
+      .map((artist): Artist => ({
+        id: artist.id,
+        name: artist.name,
+        description: '',
+        genres: [{ name: genre }],
+        albumCount: artist.albumCount,
+        trackCount: 0,
+        favourite: false,
+        image: artist.image,
+      }))
+  }
+
   async getTracksByGenre(id: string, size: number, offset = 0) {
     const params = {
       genre: id,

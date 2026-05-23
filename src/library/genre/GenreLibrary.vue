@@ -10,7 +10,7 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: { sort: 'zize' }}">
+          <router-link :to="{ ... $route, params: { sort: 'size' }}">
             <Icon icon="most" />
           </router-link>
         </li>
@@ -62,11 +62,9 @@
             </b-button>
           </div>
 
-          <AlbumList
-            :items="item.albums"
-            tile-size="60"
-            title-only
-            allow-h-scroll
+          <ArtistList
+            :items="item.artists"
+            :allow-h-scroll="true"
           />
         </div>
       </template>
@@ -77,26 +75,26 @@
 <script lang="ts">
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
-  import AlbumList from '@/library/album/AlbumList.vue'
+  import ArtistList from '@/library/artist/ArtistList.vue'
   import GenreCloud from './GenreCloud.vue'
-  import type { Album } from '@/shared/api'
+  import type { Artist } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
   import { useRoute } from 'vue-router'
 
-  interface GenreWithAlbums {
+  interface GenreWithArtists {
     id: string
     name: string
     albumCount: number
-    albums: Album[]
+    artists: Artist[]
   }
 
   export default defineComponent({
-    components: { AlbumList, GenreCloud },
+    components: { ArtistList, GenreCloud },
     setup() {
       const api = inject('$api') as any
       const radio = useRadioStore()
       const route = useRoute()
-      const items = ref<GenreWithAlbums[]>([])
+      const items = ref<GenreWithArtists[]>([])
       const loading = ref(true)
       const sort = ref<string | null>(route.params.sort as string || null)
 
@@ -120,47 +118,44 @@
               id: genre.id,
               name: genre.name,
               albumCount: genre.albumCount,
-              albums: [],
+              artists: [],
             }))
 
             return
           }
 
-          const createGenreWithAlbums = async(genre: any) => {
-            const shuffled = true
-
-            const albums = await api.getAlbumsByGenre(
+          const createGenreWithArtists = async(genre: any) => {
+            const artists = await api.getArtistsByGenre(
               genre.id,
               16,
-              0,
-              shuffled
+              0
             )
 
             return {
               id: genre.id,
               name: genre.name,
               albumCount: genre.albumCount,
-              albums,
+              artists,
             }
           }
 
           const firstBatch = genres.slice(0, 4)
 
           const firstItems = await Promise.all(
-            firstBatch.map(createGenreWithAlbums)
+            firstBatch.map(createGenreWithArtists)
           )
 
           items.value = firstItems
 
           const rest = genres.slice(4)
 
-          Promise.all(rest.map(createGenreWithAlbums))
+          Promise.all(rest.map(createGenreWithArtists))
             .then(restItems => {
               items.value.push(...restItems)
             })
 
         } catch (error) {
-          console.error('Failed to load genres or albums:', error)
+          console.error('Failed to load genres or artists:', error)
         } finally {
           loading.value = false
         }
