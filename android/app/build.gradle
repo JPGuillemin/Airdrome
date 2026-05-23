@@ -7,8 +7,10 @@ android {
         applicationId "com.jpguillemin.airdrome"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName System.getenv("VERSION")
-        versionCode System.getenv("VERSION_CODE").toInteger()
+        def versionNameValue = System.getenv("VERSION") ?: "0.0.0"
+        def versionCodeValue = System.getenv("VERSION_CODE") ?: "1"
+        versionName versionNameValue
+        versionCode versionCodeValue.toInteger()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
