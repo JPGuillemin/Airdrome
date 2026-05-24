@@ -19,12 +19,12 @@
     </router-link>
 
     <router-link
-      :to="{ name: 'albums-default' }"
+      :to="{name: 'genres', params: { sort: 'cloud' }}"
       class="nav-link mt-5"
-      :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
+      :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
     >
-      <Icon icon="albums" class="me-2 ml-2" />
-      <span class="bold">Albums</span>
+      <Icon icon="genres" class="me-2 ml-2" />
+      <span class="bold">Genres</span>
     </router-link>
 
     <router-link
@@ -37,12 +37,12 @@
     </router-link>
 
     <router-link
-      :to="{name: 'genres', params: { sort: 'cloud' }}"
+      :to="{ name: 'albums-default' }"
       class="nav-link mt-2"
-      :class="{ 'router-link-active': route.fullPath.includes('/genres/') }"
+      :class="{ 'router-link-active': route.fullPath.includes('/albums/') }"
     >
-      <Icon icon="genres" class="me-2 ml-2" />
-      <span class="bold">Genres</span>
+      <Icon icon="albums" class="me-2 ml-2" />
+      <span class="bold">Albums</span>
     </router-link>
 
     <router-link
