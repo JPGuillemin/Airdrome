@@ -609,7 +609,7 @@ export class API {
         ? item.artists
         : [{ id: item.artistId, name: item.artist }],
       url: this.getStreamUrl(item.id),
-      image: this.getCoverArtUrl(item),
+      image: item.albumId ? this.getCoverArtUrl({ coverArt: item.albumId }) : this.getCoverArtUrl(item),
       replayGain,
     }
   }

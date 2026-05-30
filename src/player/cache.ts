@@ -10,13 +10,16 @@ import { Filesystem, Directory } from '@capacitor/filesystem'
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
 const CACHE_DIR = 'audio-cache'
-const CACHE_NAME = 'airdrome-cache-v3'
+const CACHE_NAME = 'audio-cache-v1'
 
-const META_DB = 'airdrome-cache-meta'
+const META_DB = 'meta-cache-v1'
 const META_STORE = 'entries'
 const META_INFO = 'meta'
 
 const MAX_CACHE_SIZE_BYTES = 3 * 1024 * 1024 * 1024 // 3 GB
+
+const IMAGE_CACHE_NAME = 'images-cache-v1'
+const IMAGE_CONCURRENCY = 6
 
 type MetaEntry = {
   url: string
@@ -346,6 +349,8 @@ export const useCacheStore = defineStore('albumCache', {
     processing: false,
     initialized: false,
     activeCaching: new Map<string, { cancelled: boolean }>(),
+    isCachingImages: false,
+    imageCacheProgress: '',
   }),
 
   actions: {
@@ -468,6 +473,7 @@ export const useCacheStore = defineStore('albumCache', {
         await caches.delete(CACHE_NAME)
       }
 
+      await this.clearImageCache()
       indexedDB.deleteDatabase(META_DB)
 
       dispatch('audioCacheClearedAll')
@@ -511,6 +517,49 @@ export const useCacheStore = defineStore('albumCache', {
     async getCacheSizeMB() {
       const meta = await getMetaInfo()
       return Math.round(meta.totalBytes / 1024 ** 2)
+    },
+
+    async cacheImages(urls: string[]) {
+      if (this.isCachingImages) return
+      this.isCachingImages = true
+      this.imageCacheProgress = ''
+
+      try {
+        const cache = await caches.open(IMAGE_CACHE_NAME)
+        const all = [...new Set(urls)]
+        let done = 0
+
+        const update = () => {
+          this.imageCacheProgress = `${done}/${all.length}`
+        }
+        update()
+
+        const queue = [...all]
+        const worker = async () => {
+          while (queue.length) {
+            const url = queue.shift()!
+            try {
+              if (!(await cache.match(url))) {
+                const res = await fetch(url)
+                if (res.ok) await cache.put(url, res)
+              }
+            } catch {
+              // network error for this image — skip silently
+            }
+            done++
+            update()
+          }
+        }
+
+        await Promise.all(Array.from({ length: IMAGE_CONCURRENCY }, worker))
+      } finally {
+        this.isCachingImages = false
+        this.imageCacheProgress = ''
+      }
+    },
+
+    async clearImageCache() {
+      await caches.delete(IMAGE_CACHE_NAME)
     },
   },
 })

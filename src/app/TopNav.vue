@@ -73,8 +73,16 @@
             <div class="on-top px-3 py-2 text-muted small">
               Cache size: {{ cacheSize }} MB
             </div>
-            <DropdownItem class="on-top small" @click="scan">
+            <DropdownItem class="on-top small" @click="refresh">
               Refresh content<Icon icon="refresh" class="me-1" />
+            </DropdownItem>
+            <DropdownItem class="on-top small" :disabled="isCachingImages" @click.stop="cacheAllImages">
+              <template v-if="isCachingImages">
+                Caching … {{ imageCacheProgress }}<Icon icon="loading" class="me-1" />
+              </template>
+              <template v-else>
+                Cache images<Icon icon="download" class="me-1" />
+              </template>
             </DropdownItem>
             <DropdownItem class="on-top small" @click="clearAllCache">
               Clear cache<Icon icon="trash" class="me-1" />
@@ -123,12 +131,13 @@
       const router = useRouter()
       const route = useRoute()
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
-      const { proxy } = getCurrentInstance()!
       const isPlaying = computed(() => playerStore.isPlaying && playerStore.track !== null)
 
-      const api = proxy!.$api as {
+      const api = inject('$api') as {
         scan(): Promise<void>
         getScanStatus(): Promise<boolean>
+        getArtists(): Promise<{ image?: string }[]>
+        getAlbums(sort: string, size: number, offset?: number): Promise<{ image?: string }[]>
       }
 
       function handleLogoClick() {
@@ -191,7 +200,7 @@
       const isScanning = ref(false)
       const showAboutModal = ref(false)
 
-      async function scan() {
+      async function refresh() {
         if (isScanning.value) return
         const loader = useLoader()
         loader.showLoading()
@@ -250,6 +259,38 @@
         }
       }
 
+      async function cacheAllImages() {
+        if (cacheStore.isCachingImages) return
+
+        const PAGE_SIZE = 500
+
+        cacheStore.imageCacheProgress = 'collecting…'
+
+        const [artists, ...albumPages] = await Promise.all([
+          api.getArtists(),
+          ...Array.from({ length: 20 }, (_, i) =>
+            api.getAlbums('a-z', PAGE_SIZE, i * PAGE_SIZE)
+          ),
+        ])
+
+        const urls: string[] = []
+
+        for (const a of artists) {
+          if (a.image) urls.push(a.image)
+        }
+        for (const page of albumPages) {
+          for (const alb of page) {
+            if (alb.image) urls.push(alb.image)
+          }
+          if (page.length === 0) break
+        }
+
+        await cacheStore.cacheImages(urls)
+      }
+
+      const isCachingImages = computed(() => cacheStore.isCachingImages)
+      const imageCacheProgress = computed(() => cacheStore.imageCacheProgress)
+
       async function logout() {
         if (!confirmDialog.value) return
 
@@ -277,10 +318,13 @@
         isScanning,
         isPlaying,
         showAboutModal,
-        scan,
+        refresh,
         clearAllCache,
         logout,
         confirmDialog,
+        isCachingImages,
+        imageCacheProgress,
+        cacheAllImages,
       }
     },
   })
