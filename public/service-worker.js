@@ -1,13 +1,12 @@
 // service-worker.js
 
 const APP_BASE = '/'
-const SW_VERSION = 'v1.2.0'
 
 // Cache names
-const SHELL_CACHE = `shell-${SW_VERSION}`
-const RUNTIME_CACHE = `runtime-${SW_VERSION}`
-const IMAGE_CACHE = `images-${SW_VERSION}`
-const AUDIO_CACHE = 'airdrome-cache-v2'
+const SHELL_CACHE = 'shell-cache-v1'
+const RUNTIME_CACHE = 'runtime-cache-v1'
+const IMAGE_CACHE = 'images-cache-v1'
+const AUDIO_CACHE = 'audio-cache-v1'
 
 // Limits
 const MAX_IMAGE_ENTRIES = 10000
