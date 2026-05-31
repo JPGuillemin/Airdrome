@@ -105,6 +105,25 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  /* LIBRARY */
+
+  const isGenres =
+    url.pathname.includes('/rest/getGenre')
+
+  const isArtists =
+    url.pathname.includes('/rest/getArtist')
+
+  const isAlbums =
+    url.pathname.includes('/rest/getAlbum')
+
+  const isPlaylist =
+    url.pathname.includes('/rest/getPlaylist')
+
+  if (isGenres || isArtists || isAlbums || isPlaylist) {
+    event.respondWith(networkFirst(request, SHELL_CACHE))
+    return
+  }
+
   /* STATIC ASSETS */
 
   if (isStaticAsset(url.pathname)) {

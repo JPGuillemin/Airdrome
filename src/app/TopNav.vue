@@ -76,14 +76,26 @@
             <DropdownItem class="on-top small" @click="refresh">
               Refresh content<Icon icon="refresh" class="me-1" />
             </DropdownItem>
-            <DropdownItem class="on-top small" :disabled="isCachingImages" @click.stop="cacheAllImages">
-              <template v-if="isCachingImages">
-                Caching … {{ imageCacheProgress }}<Icon icon="loading" class="me-1" />
-              </template>
-              <template v-else>
-                Cache images<Icon icon="download" class="me-1" />
-              </template>
-            </DropdownItem>
+            <div class="on-top px-3 py-2 d-flex align-items-center justify-content-between" @click.stop>
+              <span class="small image-cache-label">
+                <template v-if="isCachingImages">
+                  {{ imageCacheProgress }}<Icon icon="loading" class="ms-1" />
+                </template>
+                <template v-else-if="imageCacheEnabled">
+                  {{ imageCachedCount !== null ? `${imageCachedCount} images` : 'Images cache' }}
+                </template>
+                <template v-else>
+                  Images cache
+                </template>
+              </span>
+              <div
+                class="cache-toggle ms-3"
+                :class="{ active: imageCacheEnabled }"
+                @click.stop="toggleImageCache"
+              >
+                <div class="cache-toggle-knob" />
+              </div>
+            </div>
             <DropdownItem class="on-top small" @click="clearAllCache">
               Clear cache<Icon icon="trash" class="me-1" />
             </DropdownItem>
@@ -189,6 +201,12 @@
         window.addEventListener('audioCached', updateCacheSize)
         window.addEventListener('audioCacheDeleted', updateCacheSize)
         window.addEventListener('audioCacheClearedAll', updateCacheSize)
+
+        // Restore image cache state: populate count and refresh in background if enabled
+        if (imageCacheEnabled.value) {
+          refreshImageCachedCount()
+          runImageCache()
+        }
       })
 
       onBeforeUnmount(() => {
@@ -291,6 +309,38 @@
       const isCachingImages = computed(() => cacheStore.isCachingImages)
       const imageCacheProgress = computed(() => cacheStore.imageCacheProgress)
 
+      // ── Image cache toggle ──────────────────────────────────────────────
+      const IMAGE_CACHE_NAME = 'images-cache-v1'
+      const imageCacheEnabled = ref(localStorage.getItem('imageCacheEnabled') === 'true')
+      const imageCachedCount = ref<number | null>(null)
+
+      async function refreshImageCachedCount() {
+        try {
+          const cache = await caches.open(IMAGE_CACHE_NAME)
+          const keys = await cache.keys()
+          imageCachedCount.value = keys.length
+        } catch {
+          imageCachedCount.value = null
+        }
+      }
+
+      async function runImageCache() {
+        await cacheAllImages()
+        await refreshImageCachedCount()
+      }
+
+      async function toggleImageCache() {
+        imageCacheEnabled.value = !imageCacheEnabled.value
+        localStorage.setItem('imageCacheEnabled', String(imageCacheEnabled.value))
+
+        if (imageCacheEnabled.value) {
+          runImageCache()
+        } else {
+          await cacheStore.clearImageCache()
+          imageCachedCount.value = null
+        }
+      }
+
       async function logout() {
         if (!confirmDialog.value) return
 
@@ -324,7 +374,9 @@
         confirmDialog,
         isCachingImages,
         imageCacheProgress,
-        cacheAllImages,
+        imageCacheEnabled,
+        imageCachedCount,
+        toggleImageCache,
       }
     },
   })
@@ -434,5 +486,42 @@
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+
+  .image-cache-label {
+    color: var(--bs-body-color);
+    min-width: 0;
+    flex: 1;
+  }
+
+  .cache-toggle {
+    flex-shrink: 0;
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--bs-secondary);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .cache-toggle.active {
+    background: var(--bs-primary);
+  }
+
+  .cache-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .cache-toggle.active .cache-toggle-knob {
+    transform: translateX(16px);
   }
 </style>
