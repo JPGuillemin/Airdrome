@@ -1,5 +1,4 @@
-// cache.ts
-// src/player/cache.ts
+// src/shared/cache.ts
 import { inject } from 'vue'
 import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'

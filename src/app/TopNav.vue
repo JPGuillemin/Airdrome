@@ -126,7 +126,7 @@
   import { useAuth } from '@/auth/service'
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
-  import { useCacheStore } from '@/player/cache'
+  import { useCacheStore } from '@/shared/cache'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { pushReload } from '@/shared/reload'
   export default defineComponent({

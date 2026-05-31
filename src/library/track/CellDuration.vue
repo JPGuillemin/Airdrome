@@ -17,7 +17,7 @@
   import { defineComponent, computed, ref, watchEffect, onMounted, onUnmounted } from 'vue'
   import Icon from '@/shared/components/Icon.vue'
   import { Track } from '@/shared/api'
-  import { useCacheStore } from '@/player/cache'
+  import { useCacheStore } from '@/shared/cache'
 
   export default defineComponent({
     components: { Icon },

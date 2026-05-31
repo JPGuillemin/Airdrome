@@ -113,7 +113,7 @@
   import { defineComponent, ref, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
-  import { useCacheStore } from '@/player/cache'
+  import { useCacheStore } from '@/shared/cache'
   import { useLoader } from '@/shared/loader'
   import { Album } from '@/shared/api'
   import TrackList from '@/library/track/TrackList.vue'

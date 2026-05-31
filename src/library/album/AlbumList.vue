@@ -47,7 +47,7 @@
   import { defineComponent, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
-  import { useCacheStore } from '@/player/cache'
+  import { useCacheStore } from '@/shared/cache'
   import type { Album } from '@/shared/api'
   import { sleep } from '@/shared/utils'
   export default defineComponent({
