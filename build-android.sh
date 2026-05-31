@@ -7,7 +7,7 @@ rm -rf dist
 yarn install
 yarn build || exit 1
 
-npx cap sync android || exit 1
+./node_modules/.bin/cap sync android || exit 1
 
 (cd android && ./gradlew --no-daemon assembleRelease) || exit 1
 
