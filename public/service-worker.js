@@ -139,7 +139,7 @@ self.addEventListener('fetch', event => {
   const isPlaylist = url.pathname.includes('/rest/getPlaylist')
 
   if (isGenres || isArtists || isAlbums || isPlaylist) {
-    event.respondWith(networkFirst(request, SHELL_CACHE))
+    event.respondWith(cacheFirst(request, SHELL_CACHE))
     return
   }
 
@@ -207,10 +207,7 @@ async function imageStrategy(request) {
 
   const cache = await caches.open(IMAGE_CACHE)
 
-  // Use normalized cache key
-  const cacheRequest = normalizeImageRequest(request)
-
-  const cached = await cache.match(cacheRequest)
+  const cached = await cache.match(request)
 
   // Return cached immediately
   if (cached) {
@@ -312,27 +309,6 @@ async function cacheFirst(request, cacheName) {
 
 function isStaticAsset(path) {
   return /\.(js|css|woff2?|ttf|png|jpg|svg|webp)$/i.test(path)
-}
-
-function normalizeImageRequest(request) {
-
-  const url = new URL(request.url)
-
-  // Normalize Subsonic/Navidrome cover art URLs
-  if (url.pathname.includes('/rest/getCoverArt')) {
-
-    const normalized = new URL(url.origin + url.pathname)
-
-    // Stable cache identity
-    normalized.searchParams.set('id',   url.searchParams.get('id')   || '')
-    normalized.searchParams.set('size', url.searchParams.get('size') || '300')
-
-    return new Request(normalized.toString(), { method: 'GET' })
-
-  }
-
-  return request
-
 }
 
 async function trimCache(cacheName, maxEntries) {

@@ -349,7 +349,8 @@ export const useCacheStore = defineStore('albumCache', {
     initialized: false,
     activeCaching: new Map<string, { cancelled: boolean }>(),
     isCachingImages: false,
-    imageCacheProgress: '',
+    imageCachedCount: null as number | null,
+    imageCacheTotal: null as number | null,
   }),
 
   actions: {
@@ -518,20 +519,20 @@ export const useCacheStore = defineStore('albumCache', {
       return Math.round(meta.totalBytes / 1024 ** 2)
     },
 
-    async cacheImages(urls: string[]) {
-      if (this.isCachingImages) return
+    beginImageCacheCollection() {
       this.isCachingImages = true
-      this.imageCacheProgress = ''
+      this.imageCacheTotal = null
+      this.imageCachedCount = null
+    },
+
+    async cacheImages(urls: string[]) {
+      if (!this.isCachingImages) this.isCachingImages = true
 
       try {
         const cache = await caches.open(IMAGE_CACHE_NAME)
         const all = [...new Set(urls)]
-        let done = 0
-
-        const update = () => {
-          this.imageCacheProgress = `${done}/${all.length}`
-        }
-        update()
+        this.imageCacheTotal = all.length
+        this.imageCachedCount = 0
 
         const queue = [...all]
         const worker = async () => {
@@ -545,20 +546,31 @@ export const useCacheStore = defineStore('albumCache', {
             } catch {
               // network error for this image — skip silently
             }
-            done++
-            update()
+            this.imageCachedCount!++
           }
         }
 
         await Promise.all(Array.from({ length: IMAGE_CONCURRENCY }, worker))
       } finally {
         this.isCachingImages = false
-        this.imageCacheProgress = ''
+        this.imageCacheTotal = null
+      }
+    },
+
+    async getImageCachedCount(): Promise<number> {
+      try {
+        const cache = await caches.open(IMAGE_CACHE_NAME)
+        const keys = await cache.keys()
+        return keys.length
+      } catch {
+        return 0
       }
     },
 
     async clearImageCache() {
       await caches.delete(IMAGE_CACHE_NAME)
+      this.imageCachedCount = 0
+      this.imageCacheTotal = null
     },
   },
 })

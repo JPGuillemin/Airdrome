@@ -82,7 +82,7 @@
                   {{ imageCacheProgress }}<Icon icon="loading" class="ms-1" />
                 </template>
                 <template v-else-if="imageCacheEnabled">
-                  {{ imageCachedCount !== null ? `${imageCachedCount} images` : 'Images cache' }}
+                  {{ imageCachedCount !== null && imageCachedCount > 0 ? `${imageCachedCount} images` : 'Images cache' }}
                 </template>
                 <template v-else>
                   Images cache
@@ -204,7 +204,6 @@
 
         // Restore image cache state: populate count and refresh in background if enabled
         if (imageCacheEnabled.value) {
-          refreshImageCachedCount()
           runImageCache()
         }
       })
@@ -282,7 +281,7 @@
 
         const PAGE_SIZE = 500
 
-        cacheStore.imageCacheProgress = 'collecting…'
+        cacheStore.beginImageCacheCollection()
 
         const [artists, ...albumPages] = await Promise.all([
           api.getArtists(),
@@ -307,26 +306,19 @@
       }
 
       const isCachingImages = computed(() => cacheStore.isCachingImages)
-      const imageCacheProgress = computed(() => cacheStore.imageCacheProgress)
+      const imageCachedCount = computed(() => cacheStore.imageCachedCount)
+      const imageCacheTotal = computed(() => cacheStore.imageCacheTotal)
+
+      const imageCacheProgress = computed(() => {
+        if (imageCacheTotal.value === null) return 'collecting…'
+        return `${imageCachedCount.value ?? 0}/${imageCacheTotal.value}`
+      })
 
       // ── Image cache toggle ──────────────────────────────────────────────
-      const IMAGE_CACHE_NAME = 'images-cache-v1'
       const imageCacheEnabled = ref(localStorage.getItem('imageCacheEnabled') === 'true')
-      const imageCachedCount = ref<number | null>(null)
-
-      async function refreshImageCachedCount() {
-        try {
-          const cache = await caches.open(IMAGE_CACHE_NAME)
-          const keys = await cache.keys()
-          imageCachedCount.value = keys.length
-        } catch {
-          imageCachedCount.value = null
-        }
-      }
 
       async function runImageCache() {
         await cacheAllImages()
-        await refreshImageCachedCount()
       }
 
       async function toggleImageCache() {
@@ -337,7 +329,6 @@
           runImageCache()
         } else {
           await cacheStore.clearImageCache()
-          imageCachedCount.value = null
         }
       }
 
@@ -374,8 +365,9 @@
         confirmDialog,
         isCachingImages,
         imageCacheProgress,
-        imageCacheEnabled,
         imageCachedCount,
+        imageCacheTotal,
+        imageCacheEnabled,
         toggleImageCache,
       }
     },
