@@ -28,6 +28,7 @@
   import GlobalLoader from '@/shared/components/GlobalLoader.vue'
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
+  import { reloadToken } from '@/shared/reload'   // ← add this
 
   import { Capacitor } from '@capacitor/core'
   const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
@@ -41,8 +42,8 @@
     const dynamicRoutes = new Set(['album', 'genre', 'artist', 'search', 'queue'])
 
     return dynamicRoutes.has(r.name as string)
-      ? { key: JSON.stringify(r.params) }
-      : {}
+      ? { key: `${JSON.stringify(r.params)}-${reloadToken.value}` }
+      : { key: `${String(r.name)}-${reloadToken.value}` }
   }
 
   const layout = computed(() => {

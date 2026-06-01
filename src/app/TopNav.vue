@@ -231,13 +231,7 @@
             scanning = await api.getScanStatus()
           } while (scanning)
 
-          pushReload()
-
-          router.replace({
-            name: route.name as string,
-            params: { ...(route.params || {}) },
-            query: { ...(route.query || {}), t: Date.now().toString() },
-          })
+          pushReload()   // ← this is now enough; remove the router.replace() below
         } finally {
           loader.hideLoading()
           isScanning.value = false
