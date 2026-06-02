@@ -43,6 +43,7 @@
     </Tile>
   </Tiles>
 </template>
+
 <script lang="ts">
   import { defineComponent, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
@@ -50,6 +51,7 @@
   import { useCacheStore } from '@/shared/cache'
   import type { Album } from '@/shared/api'
   import { sleep } from '@/shared/utils'
+
   export default defineComponent({
     props: {
       items: {
@@ -63,36 +65,44 @@
       withArtist: { type: Boolean, default: true },
       withDate: { type: Boolean, default: false },
     },
-    setup(props) {
+    emits: ['favourite-added'],
+    setup(props, { emit }) {
       const favouriteStore = useFavouriteStore()
       const playerStore = usePlayerStore()
       const cacheStore = useCacheStore()
       const api = inject('$api') as any
+
       const validItems = computed(() => {
         return (props.items || []).filter((item): item is Album => !!item?.id)
       })
-      const playNow = async(id: string) => {
+
+      const playNow = async (id: string) => {
         playerStore.setShuffle(false)
         const album = await api.getAlbumDetails(id)
         return playerStore.playTrackList(album.tracks!)
       }
-      const toggleFavourite = async(id: string) => {
-        favouriteStore.toggle('album', id)
+
+      const toggleFavourite = async (id: string) => {
+        await favouriteStore.toggle('album', id)
         await sleep(300)
         const album = await api.getAlbumDetails(id)
         if (!album) return
         if (isFavourite(id)) {
           await cacheStore.cacheAlbum(album)
+          emit('favourite-added', album)
         } else {
           await cacheStore.clearAlbumCache(album)
         }
       }
+
       const dragstart = (id: string, event: DragEvent) => {
         event.dataTransfer?.setData('application/x-album-id', id)
       }
+
       const isFavourite = (id: string) => {
         return favouriteStore.get('album', id)
       }
+
       return {
         favouriteStore,
         playerStore,

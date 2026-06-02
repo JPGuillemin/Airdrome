@@ -23,13 +23,14 @@ export const useFavouriteStore = defineStore('favourite', {
       return !!this[field][id]
     },
     toggle(type: MediaType, id: string) {
-      console.info('favouriteStore.toggle(): ', id)
       const field = getTypeKey(type)
       if (this[field][id]) {
-        delete this[field][id]
+        const updated = { ...this[field] }
+        delete updated[id]
+        this[field] = updated
         return this.api.removeFavourite(id, type)
       } else {
-        this[field][id] = true
+        this[field] = { ...this[field], [id]: true }
         return this.api.addFavourite(id, type)
       }
     },

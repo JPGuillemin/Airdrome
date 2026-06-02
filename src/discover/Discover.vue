@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div v-if="result.favartists.length > 0" class="section-wrapper">
+    <div v-if="favartists.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites', params: { section: 'artists' } }" class="d-inline-flex align-items-center">
           <Icon icon="heart" class="title-color me-2" />
@@ -33,7 +33,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <ArtistList :items="result.favartists" tile-size="120" allow-h-scroll />
+      <ArtistList :items="favartists" tile-size="120" allow-h-scroll />
     </div>
 
     <div v-if="result.mood.length > 0" class="section-wrapper">
@@ -71,10 +71,10 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.recent" tile-size="120" allow-h-scroll />
+      <AlbumList :items="result.recent" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
-    <div v-if="result.favalbums.length > 0" class="section-wrapper">
+    <div v-if="favalbums.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'favourites' }" class="d-inline-flex align-items-center">
           <Icon icon="heart" class="title-color me-2" />
@@ -90,7 +90,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.favalbums" tile-size="120" allow-h-scroll />
+      <AlbumList :items="favalbums" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.playlists.length > 0" class="section-wrapper">
@@ -128,7 +128,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.random" tile-size="45" allow-h-scroll three-rows />
+      <AlbumList :items="result.random" tile-size="45" allow-h-scroll three-rows @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
@@ -147,7 +147,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.played" tile-size="120" allow-h-scroll />
+      <AlbumList :items="result.played" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.most.length > 0" class="section-wrapper">
@@ -166,7 +166,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.most" tile-size="120" allow-h-scroll />
+      <AlbumList :items="result.most" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
   </div>
 </template>
@@ -181,6 +181,7 @@
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
+  import { useFavouriteStore } from '@/library/favourite/store'
 
   export default defineComponent({
     components: {
@@ -195,6 +196,7 @@
 
     setup() {
       const api = inject('$api') as any
+      const favouriteStore = useFavouriteStore()
 
       const loading = ref(false)
       const result = ref({
@@ -202,20 +204,20 @@
         played: [] as Album[],
         mood: [] as Album[],
         most: [] as Album[],
-        favalbums: [] as Album[],
-        favartists: [] as Artist[],
         genres: [] as Genre[],
         playlists: [] as Playlist[],
         random: [] as Album[],
       })
 
+      const favalbums = ref<Album[]>([])
+      const favartists = ref<Artist[]>([])
       const lastGenre = ref<AlbumGenre | null>(null)
 
       const empty = computed(() =>
         Object.values(result.value).findIndex(x => x.length > 0) === -1
       )
 
-      const fetchData = async() => {
+      const fetchData = async () => {
         if (loading.value) return
         loading.value = true
 
@@ -226,8 +228,8 @@
           })
 
           api.getFavourites().then(favourites => {
-            result.value.favartists = favourites.artists.slice(0, 16)
-            result.value.favalbums = favourites.albums.slice(0, 16)
+            favartists.value = favourites.artists.slice(0, 16)
+            favalbums.value = favourites.albums.slice(0, 16)
           })
 
           api.getAlbums('recently-played', 32).then(async played => {
@@ -261,6 +263,27 @@
         }
       }
 
+      // When an album is toggled ON from any AlbumList in this view, add it to favalbums
+      const onFavouriteAdded = (album: Album) => {
+        if (!favalbums.value.find(a => a.id === album.id)) {
+          favalbums.value = [album, ...favalbums.value]
+        }
+      }
+
+      // When an album/artist is toggled OFF, remove it from the fav lists
+      watch(
+        () => favouriteStore.albums,
+        (newAlbums) => {
+          favalbums.value = favalbums.value.filter(a => !!newAlbums[a.id])
+        }
+      )
+      watch(
+        () => favouriteStore.artists,
+        (newArtists) => {
+          favartists.value = favartists.value.filter(a => !!newArtists[a.id])
+        }
+      )
+
       const radio = useRadioStore()
       const radioRecentlyPlayed = () => radio.shuffleRecentlyPlayed()
       const radioMostPlayed = () => radio.shuffleMostPlayed()
@@ -275,31 +298,30 @@
 
       onMounted(fetchData)
 
-      function emptyResult() {
+      watch(reloadToken, () => {
+        favalbums.value = []
+        favartists.value = []
         Object.assign(result.value, {
           recent: [],
           played: [],
           mood: [],
           most: [],
-          favalbums: [],
-          favartists: [],
           genres: [],
           playlists: [],
           random: [],
         })
-      }
-
-      watch(reloadToken, () => {
-        emptyResult()
         fetchData()
       })
 
       return {
         result,
+        favartists,
+        favalbums,
         lastGenre,
         loading,
         empty,
         fetchData,
+        onFavouriteAdded,
         radioRecentlyPlayed,
         radioMostPlayed,
         radioFavouriteAlbums,
@@ -317,7 +339,7 @@
     color: var(--theme-text);
     white-space: nowrap;
     font-weight: 600;
-    font-size: 0.85rem; /* smaller than default */
+    font-size: 0.85rem;
     transition:
       color 0.2s ease,
       transform 0.2s ease,

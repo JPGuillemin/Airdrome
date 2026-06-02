@@ -32,7 +32,7 @@
     setup() {
       const favouriteStore = useFavouriteStore()
       const toggleFavourite = async(id: string) => {
-        favouriteStore.toggle('artist', id)
+        await favouriteStore.toggle('artist', id)
       }
 
       const isFavourite = (id: string) => favouriteStore.get('artist', id)
