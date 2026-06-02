@@ -73,8 +73,8 @@
             <div class="on-top px-3 py-2 text-muted small">
               Cache size: {{ cacheSize }} MB
             </div>
-            <DropdownItem class="on-top small" @click="refresh">
-              Refresh content<Icon icon="refresh" class="me-1" />
+            <DropdownItem class="on-top small" @click="rescan">
+              Scan Server<Icon icon="refresh" class="me-1" />
             </DropdownItem>
             <div class="on-top px-3 py-2 d-flex align-items-center justify-content-between" @click.stop>
               <span class="small image-cache-label">
@@ -204,7 +204,7 @@
 
         // Restore image cache state: populate count and refresh in background if enabled
         if (imageCacheEnabled.value) {
-          runImageCache()
+          runImageCacheAtStartup()
         }
       })
 
@@ -217,7 +217,7 @@
       const isScanning = ref(false)
       const showAboutModal = ref(false)
 
-      async function refresh() {
+      async function rescan() {
         if (isScanning.value) return
         const loader = useLoader()
         loader.showLoading()
@@ -229,9 +229,12 @@
           do {
             await sleep(1000)
             scanning = await api.getScanStatus()
+            if (imageCacheEnabled.value) {
+              runImageCache()
+            }
           } while (scanning)
 
-          pushReload()   // ← this is now enough; remove the router.replace() below
+          pushReload()
         } finally {
           loader.hideLoading()
           isScanning.value = false
@@ -314,6 +317,10 @@
       async function runImageCache() {
         await cacheAllImages()
       }
+      async function runImageCacheAtStartup() {
+        await sleep(5000)
+        await cacheAllImages()
+      }
 
       async function toggleImageCache() {
         imageCacheEnabled.value = !imageCacheEnabled.value
@@ -353,7 +360,7 @@
         isScanning,
         isPlaying,
         showAboutModal,
-        refresh,
+        rescan,
         clearAllCache,
         logout,
         confirmDialog,
