@@ -445,15 +445,6 @@
     border-color: var(--bs-secondary);
   }
 
-  @media(max-width: 768px) {
-    .top-nav-shape {
-      margin: 5px 2px;
-      background: var(--theme-elevation-1);
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
-  }
-
   .logo-wrapper {
     width: 32px;
     height: 32px;
@@ -516,5 +507,14 @@
 
   .cache-toggle.active .cache-toggle-knob {
     transform: translateX(16px);
+  }
+
+  @media(max-width: 768px) {
+    .top-nav-shape {
+      margin: 5px 2px;
+      background: var(--theme-elevation-1);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
   }
 </style>

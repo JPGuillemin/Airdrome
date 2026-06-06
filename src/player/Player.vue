@@ -503,7 +503,7 @@
   }
 
   .player-shape {
-    margin: 5px 5px;
+    margin: 0 5px 5px 5px;
     background: var(--theme-elevation-1);
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
