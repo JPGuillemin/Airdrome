@@ -28,9 +28,9 @@
         </div>
 
         <div class="modal-footer">
-          <b-button variant="primary" @click="save">
+          <button class="btn btn-primary" @click="save">
             {{ mode === 'edit' ? 'Save' : 'Create' }}
-          </b-button>
+          </button>
         </div>
       </div>
     </div>
@@ -40,12 +40,11 @@
 <script lang="ts">
   import { defineComponent, ref, watch } from 'vue'
   import SwitchInput from '@/shared/components/SwitchInput.vue'
-  import { BButton } from 'bootstrap-vue-3'
   import type { Playlist } from '@/shared/api'
   import type { PropType } from 'vue'
 
   export default defineComponent({
-    components: { SwitchInput, BButton },
+    components: { SwitchInput },
 
     props: {
       playlist: { type: Object as PropType<Playlist | null>, default: null },
@@ -129,11 +128,5 @@
 
   .modal-footer {
     justify-content: center;
-  }
-
-  .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
   }
 </style>

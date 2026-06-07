@@ -26,26 +26,24 @@
         </OverflowFade>
 
         <div class="text-nowrap mt-2">
-          <b-button
+          <button
             v-longpress-tooltip
-            variant="transparent"
-            class="header-buttons"
+            class="btn btn-transparent header-buttons"
             :disabled="playlist.tracks.length === 0"
             title="Playlist Play"
             @click="playNow()"
           >
             <Icon icon="recycle" />
-          </b-button>
-          <b-button
+          </button>
+          <button
             v-longpress-tooltip
-            variant="transparent"
-            class="header-buttons"
+            class="btn btn-transparent header-buttons"
             :disabled="playlist.tracks.length === 0"
             title="Shuffle"
             @click="shuffleNow()"
           >
             <Icon icon="random" />
-          </b-button>
+          </button>
           <OverflowMenu direction="up" variant="transparent" @click.stop>
             <DropdownItem
               icon="reload"
@@ -124,7 +122,6 @@
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
   import { formatDuration } from '@/shared/utils'
-  import { BButton } from 'bootstrap-vue-3'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { longPressTooltip } from '@/shared/tooltips'
@@ -139,7 +136,6 @@
       OverflowMenu,
       DropdownItem,
       Icon,
-      BButton,
       ConfirmDialog,
     },
 

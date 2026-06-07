@@ -1,12 +1,12 @@
 // env.d.ts
 /// <reference types="vite/client" />
 
-import { API } from '@/shared/api'
-
+declare module '@iconify-icons/svg-spinners/*';
 declare module '*.svg'
 declare module 'md5-es'
 declare module 'icecast-metadata-stats'
 
+import { API } from '@/shared/api'
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
     $api: API

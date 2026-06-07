@@ -2,9 +2,15 @@
 // Buttons
 .btn-primary {
   --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: var(--theme-elevation-4) !important;
+  --bs-btn-border-width: 0;
   --bs-btn-disabled-color: #ffffff !important;
   --bs-btn-active-color: #ffffff !important;
+  --bs-btn-active-bg: var(--bs-primary) !important;
+  --bs-btn-active-border-color: var(--bs-primary) !important;
   --bs-btn-hover-color: #ffffff !important;
+  --bs-btn-hover-bg: var(--bs-primary) !important;
+  --bs-btn-hover-border-color: var(--bs-primary) !important;
 }
 
 .btn-transparent {
@@ -15,7 +21,7 @@
   --bs-btn-active-border-color: transparent;
   --bs-btn-hover-color: var(--bs-primary);
   --bs-btn-hover-bg: transparent;
-  --bs-btn-focus-shadow-rgb: $theme-elevation-4;
+  --bs-btn-focus-shadow-rgb: --theme-elevation-4;
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
 }
@@ -25,14 +31,16 @@ $btn-close-color: var(--theme-text);
   box-shadow: none !important;
 }
 
-.btn:hover,
-.btn:active {
-  color: var(--bs-primary);
+.btn:not(.btn-transparent):not(.btn-link):not(.btn-theme-primary):hover,
+.btn:not(.btn-transparent):not(.btn-link):not(.btn-theme-primary):active {
+  color: #ffffff;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
 }
 
 @media(max-width: 768px) {
-  .btn:hover,
-  .btn:active {
+  .btn:not(.btn-transparent):not(.btn-link):not(.btn-theme-primary):hover,
+  .btn:not(.btn-transparent):not(.btn-link):not(.btn-theme-primary):active {
     color: var(--theme-text);
   }
 }

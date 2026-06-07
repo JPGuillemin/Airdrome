@@ -21,9 +21,9 @@
           </router-link>
         </li>
         <li>
-          <b-button variant="link" class="mx-2" @click="startCreate">
+          <button class="btn btn-link mx-2" @click="startCreate">
             <Icon icon="plus" />
-          </b-button>
+          </button>
         </li>
       </ul>
     </div>
@@ -57,7 +57,6 @@
   import { orderBy } from 'lodash-es'
   import { usePlaylistStore } from '@/library/playlist/store'
   import Icon from '@/shared/components/Icon.vue'
-  import { BButton } from 'bootstrap-vue-3'
   import type { Playlist } from '@/shared/api'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
 
@@ -65,7 +64,6 @@
     components: {
       PlaylistList,
       Icon,
-      BButton,
       EditPlaylistModal,
       ConfirmDialog,
     },
