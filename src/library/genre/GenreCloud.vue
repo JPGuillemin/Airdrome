@@ -48,7 +48,7 @@
       },
       fontFamily: {
         type: String,
-        default: 'Roboto',
+        default: 'Inter',
       },
     },
 

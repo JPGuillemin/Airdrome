@@ -1,6 +1,6 @@
 // theme.scss
 
-$font-family-sans-serif: 'Roboto', -apple-system, BlinkMacSystemFont,
+$font-family-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont,
   'Segoe UI', sans-serif;
 
 $headings-font-weight: 500;
@@ -13,23 +13,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-$theme-elevation-0: #0A0A0A;
-$theme-elevation-1: #161616;
-$theme-elevation-2: #1D1D1D;
-$theme-elevation-3: #2A2A2A;
-$theme-elevation-4: #3A3A3A;
-$theme-text: #C8C8C8;
-$theme-text-muted: #9A9A9A;
-$blue: #178994;
-$green: #1db954;
-$orange: #ff8c00;
-$purple: #6f42c1;
-$red: #bf0000;
+$theme-elevation-0: #0C0D0E;
+$theme-elevation-1: #181A1F;
+$theme-elevation-2: #22252A;
+$theme-elevation-3: #2E3137;
+$theme-elevation-4: #3C4143;
+$theme-text: #F1F2F3;
+$theme-text-muted: #A2A6AA;
+$blue: #0E6FA8;
+$green: #5CC05C;
+$orange: #F1813F;
+$purple: #6F42C1;
+$red: #D6432F;
 
 // Bootstrap overrides
-$primary: $blue;
-$danger: #ff4141;
+$primary: $orange;
+$danger: $red;
 $secondary: $theme-text-muted;
+
+// Splunk UI is largely square-cornered
+$border-radius: 0;
+$border-radius-sm: 0;
+$border-radius-lg: 0.125rem;
+$btn-border-radius: 0;
+$input-border-radius: 0;
+$card-border-radius: 0;
+$dropdown-border-radius: 0;
+$modal-content-border-radius: 0;
 
 $body-bg: $theme-elevation-0;
 $body-color: $theme-text;

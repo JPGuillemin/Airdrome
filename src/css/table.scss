@@ -29,10 +29,10 @@ table.table {
   tbody tr::after {
     content: '';
     position: absolute;
-    inset: 2px 0;
-    border-radius: 12px;
+    inset: 0;
+    border-radius: 0;
     background: var(--theme-elevation-1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border-left: 2px solid transparent;
     opacity: 0;
     transition: opacity 0.15s ease;
     z-index: -1;
@@ -44,6 +44,7 @@ table.table {
 
   tbody tr.active::after {
     opacity: 1;
+    border-left-color: var(--bs-primary);
   }
 
   tr.active {
