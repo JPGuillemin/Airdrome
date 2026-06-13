@@ -91,6 +91,7 @@
     <div class="content-wrapper">
       <TrackList
         :tracks="album.tracks || []"
+        class="mt-3"
         :no-album="true"
         :show-image="false"
         :no-artist="true"

@@ -27,7 +27,7 @@
     props: {
       items: { type: Array, required: true },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 100 },
+      tileSize: { type: Number, default: 105 },
     },
     setup() {
       const favouriteStore = useFavouriteStore()

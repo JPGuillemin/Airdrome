@@ -33,7 +33,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <ArtistList :items="favartists" tile-size="120" allow-h-scroll />
+      <ArtistList :items="favartists" tile-size="140" allow-h-scroll />
     </div>
 
     <div v-if="result.mood.length > 0" class="section-wrapper">
@@ -71,7 +71,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.recent" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
+      <AlbumList :items="result.recent" tile-size="140" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="favalbums.length > 0" class="section-wrapper">
@@ -90,7 +90,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="favalbums" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
+      <AlbumList :items="favalbums" tile-size="140" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.playlists.length > 0" class="section-wrapper">
@@ -109,7 +109,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <PlaylistList :items="result.playlists" tile-size="120" allow-h-scroll />
+      <PlaylistList :items="result.playlists" tile-size="140" allow-h-scroll />
     </div>
 
     <div v-if="result.random.length > 0" class="section-wrapper">
@@ -147,7 +147,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.played" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
+      <AlbumList :items="result.played" tile-size="150" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.most.length > 0" class="section-wrapper">
@@ -166,7 +166,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.most" tile-size="120" allow-h-scroll @favourite-added="onFavouriteAdded" />
+      <AlbumList :items="result.most" tile-size="140" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
   </div>
 </template>

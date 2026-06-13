@@ -59,7 +59,7 @@
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 100 },
+      tileSize: { type: Number, default: 105 },
       twinRows: { type: Boolean, default: false },
       titleOnly: { type: Boolean, default: false },
       withArtist: { type: Boolean, default: true },
