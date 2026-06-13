@@ -5,17 +5,16 @@
     "strict": true,
     "jsx": "preserve",
     "skipLibCheck": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
     "sourceMap": true,
     "noImplicitAny": false,
-    "baseUrl": "./src",
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"]
     },
     "lib": [
       "esnext",

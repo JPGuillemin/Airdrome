@@ -139,7 +139,7 @@ self.addEventListener('fetch', event => {
   const isPlaylist = url.pathname.includes('/rest/getPlaylist')
 
   if (isGenres || isArtists || isAlbums || isPlaylist) {
-    event.respondWith(cacheFirst(request, SHELL_CACHE))
+    event.respondWith(networkFirst(request, RUNTIME_CACHE))
     return
   }
 
