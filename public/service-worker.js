@@ -218,7 +218,7 @@ async function imageStrategy(request) {
 
         if (response && response.ok) {
 
-          await cache.put(cacheRequest, response.clone())
+          await cache.put(request, response.clone())
 
           trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
 
@@ -236,7 +236,7 @@ async function imageStrategy(request) {
 
     if (response && response.ok) {
 
-      await cache.put(cacheRequest, response.clone())
+      await cache.put(request, response.clone())
 
       trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
 
