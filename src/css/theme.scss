@@ -1,7 +1,13 @@
 // theme.scss
 
-$font-family-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont,
-  'Segoe UI', sans-serif;
+// Two-font system:
+//   $font-family-gui      — Inter, for all UI chrome (nav, titles, buttons, labels)
+//   $font-family-metadata — Barlow Condensed, for media data (tracks, artists, albums)
+$font-family-gui:      'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-family-metadata: 'Inter', sans-serif;
+
+// Bootstrap uses $font-family-sans-serif as the body/base font → GUI font
+$font-family-sans-serif: $font-family-gui;
 
 $headings-font-weight: 500;
 $font-weight-base: 400;
@@ -31,7 +37,6 @@ $primary: $theme-elevation-3;
 $danger: $red;
 $secondary: $theme-text-muted;
 
-
 $body-bg: $theme-elevation-0;
 $body-color: $theme-text;
 
@@ -47,6 +52,9 @@ $text-muted: $theme-text-muted;
 $border-color: $theme-elevation-2;
 
 :root {
+  --font-gui:      #{$font-family-gui};
+  --font-metadata: #{$font-family-metadata};
+
   --theme-text-muted: #{$theme-text-muted};
   --theme-text: #{$theme-text};
   --theme-elevation-0: #{$theme-elevation-0};

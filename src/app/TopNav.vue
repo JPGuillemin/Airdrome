@@ -396,7 +396,10 @@
     height: 46px;
     border-radius: 12px;
     background: var(--theme-elevation-1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--theme-elevation-3);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      0 10px 30px rgba(0,0,0,0.6);
   }
 
   .logo-mask {
@@ -514,7 +517,6 @@
       margin: 5px 2px;
       background: var(--theme-elevation-1);
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
   }
 </style>

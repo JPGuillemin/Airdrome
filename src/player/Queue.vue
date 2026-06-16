@@ -159,17 +159,3 @@
     },
   })
 </script>
-
-<style scoped>
-  .clear-btn {
-    position: relative;
-  }
-  .tooltip-inner {
-    width: 300px;
-  }
-  .clear-btn:hover .tooltip {
-    display: block;
-    opacity: 1;
-    right: 0;
-  }
-</style>

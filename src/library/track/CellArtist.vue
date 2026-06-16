@@ -1,19 +1,21 @@
 // CellArtist.vue
 <template>
-  <td class="d-none d-lg-table-cell adapt-text">
-    <span v-for="(artist, index) in track.artists" :key="artist.id">
-      <span v-if="index > 0">, </span>
-      <router-link
-        v-if="artist.id"
-        :to="{ name: 'artist', params: { id: artist.id } }"
-        @click.stop
-      >
-        {{ artist.name }}
-      </router-link>
-      <span v-else>
-        {{ artist.name }}
+  <td class="d-none d-lg-table-cell">
+    <div class="truncate-cell">
+      <span v-for="(artist, index) in track.artists" :key="artist.id">
+        <span v-if="index > 0">, </span>
+        <router-link
+          v-if="artist.id"
+          :to="{ name: 'artist', params: { id: artist.id } }"
+          @click.stop
+        >
+          {{ artist.name }}
+        </router-link>
+        <span v-else>
+          {{ artist.name }}
+        </span>
       </span>
-    </span>
+    </div>
   </td>
 </template>
 

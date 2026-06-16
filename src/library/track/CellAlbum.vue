@@ -1,14 +1,16 @@
 // CellAlbum.vue
 <template>
   <td class="d-none d-md-table-cell">
-    <template v-if="track.albumId">
-      <router-link :to="{ name: 'album', params: { id: track.albumId } }" @click.stop>
+    <div class="truncate-cell">
+      <template v-if="track.albumId">
+        <router-link :to="{ name: 'album', params: { id: track.albumId } }" @click.stop>
+          {{ track.album }}
+        </router-link>
+      </template>
+      <template v-else>
         {{ track.album }}
-      </router-link>
-    </template>
-    <template v-else>
-      {{ track.album }}
-    </template>
+      </template>
+    </div>
   </td>
 </template>
 

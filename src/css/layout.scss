@@ -28,10 +28,13 @@
   line-height: 1.5;
   color: var(--theme-text);
   font-weight: 700;
+  font-family: var(--font-gui);
+  font-variant: small-caps;
   user-select: none;
   -webkit-user-select: none;
 }
 
+// Section titles: GUI font, small-caps
 .section-title {
   display: inline-block;
   margin-block-start: 0.67em;
@@ -40,6 +43,9 @@
   line-height: 1.2;
   color: var(--theme-text);
   font-weight: 700;
+  font-family: var(--font-gui);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -49,7 +55,8 @@
   position: relative;
   z-index: auto;
   margin-top: 180px;
-  padding: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .section-wrapper {
@@ -74,6 +81,7 @@
   flex-direction: column;
 }
 
+// Page-level title (album name, artist name, etc.) — metadata font
 .header-title {
   overflow: hidden;
   display: inline-block;
@@ -86,6 +94,7 @@
   flex-shrink: 1;
   color: var(--theme-text);
   font-weight: 700;
+  font-family: var(--font-metadata);
 }
 
 .header-title--secondary {
@@ -93,6 +102,7 @@
   color: var(--theme-text);
   font-size: 1.2rem;
   font-weight: 700;
+  font-family: var(--font-metadata);
 }
 
 .header-info-wrapper {
@@ -101,6 +111,7 @@
   flex-direction: column;
 }
 
+// Subtitle metadata lines (year, genre, bitrate, …) — metadata font
 .header-info-one {
   overflow: hidden;
   display: inline-block;
@@ -111,6 +122,7 @@
   min-width: 0;
   flex-shrink: 1;
   font-size: 1rem;
+  font-family: var(--font-metadata);
 }
 
 .header-info-two {
@@ -123,6 +135,7 @@
   min-width: 0;
   flex-shrink: 1;
   font-size: 0.9rem;
+  font-family: var(--font-metadata);
 }
 
 /* Text turns primary when its tile container is hovered */
@@ -133,8 +146,8 @@
 
 /* Hover */
 .main-content a:not(.genre-link):hover {
-  color: var(--bs-primary);  /* highlight like button */
-  text-decoration: none;      /* ensure no underline */
+  color: var(--bs-primary);
+  text-decoration: none;
 }
 
 /* Active route */
@@ -152,7 +165,7 @@
 /* Section header links outside header, excluding genre-link */
 .section-wrapper > div > a.d-inline-flex:not(.genre-link) {
   text-decoration: none;
-  color: inherit; /* base color */
+  color: inherit;
   transition: color 0.15s ease;
   align-items: center;
   display: inline-flex;
@@ -176,6 +189,25 @@
 .header-buttons {
   margin-inline-end: 1rem;
   padding-inline-start: 0;
+}
+
+// Genre tag links in Discover — metadata font (moved from Discover.vue <style scoped>)
+.genre-link {
+  color: var(--theme-text);
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-family: var(--font-metadata);
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease,
+    font-size 0.2s ease;
+}
+
+.genre-link:hover {
+  color: var(--bs-primary);
+  transform: scale(1.1);
 }
 
 /* Mobile: slightly smaller font */

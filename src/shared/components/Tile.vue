@@ -107,8 +107,10 @@
     border-radius: inherit;
   }
 
+  /* Metadata font for tile captions (title + subtitle) */
   .tile-text {
     margin-top: 8px;
+    font-family: var(--font-metadata);
   }
 
   .tile:hover .tile-title {

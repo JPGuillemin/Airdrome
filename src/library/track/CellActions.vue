@@ -1,6 +1,6 @@
 // CellActions.vue
 <template>
-  <td class="text-end" @click.stop="">
+  <td class="text-end actions-cell" @click.stop="">
     <OverflowMenu variant="transparent">
       <DropdownItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
         Next

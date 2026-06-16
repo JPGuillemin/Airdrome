@@ -2,15 +2,25 @@
 <template>
   <BaseTable>
     <BaseTableHead>
+      <th>#</th>
+
+      <th class="text-start">
+        Title
+      </th>
+
       <th v-if="!noArtist" class="text-start d-none d-lg-table-cell">
         Artist
       </th>
+
       <th v-if="!noAlbum" class="text-start d-none d-md-table-cell">
         Album
       </th>
-      <th v-if="!noDuration" class="text-start d-md-table-cell">
+
+      <th v-if="!noDuration" class="text-start">
         Time
       </th>
+
+      <th class="text-end" />
     </BaseTableHead>
 
     <tbody>

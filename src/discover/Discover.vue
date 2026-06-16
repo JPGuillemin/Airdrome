@@ -333,21 +333,3 @@
     },
   })
 </script>
-
-<style scoped>
-  .genre-link {
-    color: var(--theme-text);
-    white-space: nowrap;
-    font-weight: 600;
-    font-size: 0.85rem;
-    transition:
-      color 0.2s ease,
-      transform 0.2s ease,
-      font-size 0.2s ease;
-  }
-
-  .genre-link:hover {
-    color: var(--bs-primary);
-    transform: scale(1.1);
-  }
-</style>

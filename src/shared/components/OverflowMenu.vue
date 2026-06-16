@@ -94,13 +94,11 @@
   })
 </script>
 
-<style scoped>
+<style>
   .overflow-menu-wrap {
     display: inline-block;
   }
-</style>
 
-<style>
   /* Backdrop: transparent, sits under the menu, above everything else */
   .overflow-menu-backdrop {
     position: fixed;

@@ -405,7 +405,9 @@
     max-height: 110px;
   }
 
+  /* Metadata font for track title and artist in the player bar */
   .player :deep(.player-link) {
+    font-family: var(--font-metadata);
     color: var(--theme-text);
     text-decoration: none;
     transition: color 0.15s ease;
@@ -506,7 +508,10 @@
     margin: 0 5px 5px 5px;
     background: var(--theme-elevation-1);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--theme-elevation-2);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 8px 32px rgba(0,0,0,0.30);
   }
 
   .slider-click-zone {
@@ -556,7 +561,6 @@
       margin: 0 2px;
       background: var(--theme-elevation-1);
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .visible {
@@ -570,7 +574,9 @@
       min-width: 0; /* critical for truncation */
     }
 
+    /* Metadata font for the mobile scrolling title */
     .title-text {
+      font-family: var(--font-metadata);
       color: var(--bs-primary);
       display: inline-block;
       white-space: nowrap;
