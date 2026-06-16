@@ -452,7 +452,7 @@ export const usePlayerStore = defineStore('player', {
      * track before the current one is removed.
      */
     removeFromQueue(index: number) {
-      this.queue?.splice(index, 1)
+      this.queue = this.queue.filter((_, i) => i !== index)
       if (index < this.queueIndex) {
         this.queueIndex--
       }
