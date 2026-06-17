@@ -1,6 +1,10 @@
 // utils.ts
-import MD5 from 'md5-es'
+import { md5 as md5Function } from 'js-md5'
 import { Track } from '@/shared/api'
+
+export function md5(str: string): string {
+  return md5Function(str)
+}
 
 export function randomString(): string {
   let arr = new Uint8Array(16)
@@ -26,10 +30,6 @@ export function shuffled<T>(list: T[], moveFirst?: number): T[] {
   list = [...list]
   shuffle(list, moveFirst)
   return list
-}
-
-export function md5(str: string): string {
-  return MD5.hash(str)
 }
 
 export function trackListEquals(a: Track[], b: Track[]): boolean {

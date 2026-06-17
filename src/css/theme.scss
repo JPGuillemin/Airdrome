@@ -26,14 +26,14 @@ $theme-elevation-3: #2E3137;
 $theme-elevation-4: #3C4143;
 $theme-text: #F1F2F3;
 $theme-text-muted: #A2A6AA;
-$blue: #0E6FA8;
-$green: #5CC05C;
-$orange: #F1813F;
-$purple: #6F42C1;
-$red: #D6432F;
+$blue: #178994;
+$green: #63c98a;
+$orange: #f2ad5c;
+$purple: #9a7cc7;
+$red: #c46a6a;
 
 // Bootstrap overrides
-$primary: $theme-elevation-3;
+$primary: $blue;
 $danger: $red;
 $secondary: $theme-text-muted;
 
