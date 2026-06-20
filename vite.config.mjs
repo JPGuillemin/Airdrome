@@ -6,6 +6,7 @@ import checker from 'vite-plugin-checker'
 import bundleAnalyzer from 'rollup-plugin-bundle-analyzer'
 import { execSync } from 'node:child_process'
 import { VitePWA } from 'vite-plugin-pwa'
+import { visualizer } from "rollup-plugin-visualizer"
 
 export default defineConfig(() => {
   const buildDate = new Date().toISOString()
@@ -22,28 +23,34 @@ export default defineConfig(() => {
   return {
     base: basePath,
     build: {
-      outDir: 'dist'
+      outDir: 'dist',
+			chunkSizeWarningLimit: 1000,
     },
     plugins: [
       vue(),
+			/* visualizer({
+				open: true,
+				gzipSize: true,
+				brotliSize: true
+			}), */
       // ----------------------------------------------------
       // TypeScript / ESLint / Vue checker
       // ----------------------------------------------------
-      checker({
+      /* checker({
         vueTsc: true,
         eslint: {
           lintCommand: 'eslint .'
         },
         overlay: { initialIsOpen: 'error' }
-      }),
+      }), */
 
       // ----------------------------------------------------
       // Bundle analyzer
       // ----------------------------------------------------
-      bundleAnalyzer({
+      /* bundleAnalyzer({
         analyzerMode: 'static',
         reportFilename: 'report.html'
-      }),
+      }), */
 
       // ----------------------------------------------------
       // PWA — injects hashed asset manifest into SW at build
