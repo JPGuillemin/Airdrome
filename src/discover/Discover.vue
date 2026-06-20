@@ -52,7 +52,8 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.mood" tile-size="45" allow-h-scroll three-rows />
+      <TrackTiles
+        :items="result.mood" tile-size="45" allow-h-scroll three-rows with-artist />
     </div>
 
     <div v-if="result.recent.length > 0" class="section-wrapper">
@@ -112,7 +113,7 @@
       <PlaylistList :items="result.playlists" tile-size="140" allow-h-scroll />
     </div>
 
-    <div v-if="result.random.length > 0" class="section-wrapper">
+    <div v-if="randomTracks.length > 0" class="section-wrapper">
       <div class="d-flex align-items-center justify-content-between">
         <router-link :to="{ name: 'albums', params: { sort: 'random' } }" class="d-inline-flex align-items-center">
           <Icon icon="random" class="title-color me-2" />
@@ -128,7 +129,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.random" tile-size="45" allow-h-scroll three-rows @favourite-added="onFavouriteAdded" />
+      <TrackTiles :items="randomTracks" tile-size="45" allow-h-scroll three-rows with-artist />
     </div>
 
     <div v-if="result.played.length > 0" class="section-wrapper">
@@ -172,11 +173,13 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, onMounted, watch, inject } from 'vue'
+  import { defineComponent, ref, computed, onMounted, watch } from 'vue'
+  import { inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
-  import { Album, AlbumGenre, Genre, Artist, Playlist } from '@/shared/api'
+  import TrackTiles from '@/library/track/TrackTiles.vue'
+  import { Album, AlbumGenre, Genre, Artist, Playlist, Track } from '@/shared/api'
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
@@ -188,6 +191,7 @@
       AlbumList,
       ArtistList,
       PlaylistList,
+      TrackTiles,
     },
 
     directives: {
@@ -202,19 +206,20 @@
       const result = ref({
         recent: [] as Album[],
         played: [] as Album[],
-        mood: [] as Album[],
+        mood: [] as Track[],
         most: [] as Album[],
         genres: [] as Genre[],
         playlists: [] as Playlist[],
-        random: [] as Album[],
       })
 
       const favalbums = ref<Album[]>([])
       const favartists = ref<Artist[]>([])
+      const randomTracks = ref<Track[]>([])
       const lastGenre = ref<AlbumGenre | null>(null)
 
       const empty = computed(() =>
         Object.values(result.value).findIndex(x => x.length > 0) === -1
+          && randomTracks.value.length === 0
       )
 
       const fetchData = async () => {
@@ -239,9 +244,16 @@
             const lastPlayed = played[0]
             lastGenre.value = (lastPlayed as Album).genres[0]!
             if (!lastGenre.value) return
-            const shuffled = true
-            const albumsByGenre = await api.getAlbumsByGenre(lastGenre.value.name, 72, 0, shuffled)
-            result.value.mood = albumsByGenre
+
+            const tracksByGenre = await api.getTracksByGenre(
+              lastGenre.value.name,
+              200,
+              0
+            )
+
+            result.value.mood = tracksByGenre
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 72)
           })
 
           api.getAlbums('recently-added', 32).then(recent => {
@@ -251,8 +263,8 @@
           const playlists = await api.getPlaylists()
           result.value.playlists = playlists.slice(0, 10)
 
-          api.getAlbums('random', 32).then(random => {
-            result.value.random = random
+          api.getRandomTracks({ size: 50 }).then((tracks: Track[]) => {
+            randomTracks.value = tracks
           })
 
           api.getAlbums('most-played', 32).then(most => {
@@ -301,6 +313,7 @@
       watch(reloadToken, () => {
         favalbums.value = []
         favartists.value = []
+        randomTracks.value = []
         Object.assign(result.value, {
           recent: [],
           played: [],
@@ -308,7 +321,6 @@
           most: [],
           genres: [],
           playlists: [],
-          random: [],
         })
         fetchData()
       })
@@ -317,6 +329,7 @@
         result,
         favartists,
         favalbums,
+        randomTracks,
         lastGenre,
         loading,
         empty,
