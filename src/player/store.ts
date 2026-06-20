@@ -773,47 +773,69 @@ export function setupAudio(
         }
       }
     })
-
-  }
-
-  if (isMobile && !isNative) {
-    document.addEventListener('visibilitychange', async () => {
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
-      if (Date.now() - playTime < 1000) {
-        return
-      }
-      if (document.visibilityState === 'hidden') {
-        playerStore.saveQueue()
-      } else {
-        if (!isPlaying && !wasPaused) {
-          await audio.play()
-        }
-      }
-    })
-
-    document.addEventListener('resume', playerStore.play)
-
-    if (navigator.mediaDevices?.addEventListener) {
-      if (Date.now() - playTime < 1000) {
-        return
-      }
-      navigator.mediaDevices.addEventListener('devicechange', async () => {
-        const devices = await navigator.mediaDevices.enumerateDevices()
-        const outputs = devices.filter(d => d.kind === 'audiooutput')
+  } else {
+    if (isMobile) {
+      document.addEventListener('visibilitychange', async () => {
         const isPlaying = playerStore.isPlaying
         const wasPaused = playerStore.wasPaused
-        const hasAudioOutput = outputs.length > 0
+        if (Date.now() - playTime < 1000) {
+          return
+        }
+        if (document.visibilityState === 'hidden') {
+          playerStore.saveQueue()
+        } else {
+          if (!isPlaying && !wasPaused) {
+            await audio.play()
+          }
+        }
+      })
 
-        // ---- "disconnect" heuristic ----
-        if (!hasAudioOutput && isPlaying) {
-          await audio.pause()
+      document.addEventListener('resume', playerStore.play)
+
+      if (navigator.mediaDevices?.addEventListener) {
+        if (Date.now() - playTime < 1000) {
+          return
+        }
+        navigator.mediaDevices.addEventListener('devicechange', async () => {
+          const devices = await navigator.mediaDevices.enumerateDevices()
+          const outputs = devices.filter(d => d.kind === 'audiooutput')
+          const isPlaying = playerStore.isPlaying
+          const wasPaused = playerStore.wasPaused
+          const hasAudioOutput = outputs.length > 0
+
+          // ---- "disconnect" heuristic ----
+          if (!hasAudioOutput && isPlaying) {
+            await audio.pause()
+            return
+          }
+
+          // ---- "reconnect" heuristic ----
+          if (!isPlaying && !wasPaused) {
+            await audio.play()
+          }
+        })
+      }
+    } else { // is Desktop
+      window.addEventListener('keydown', async (event) => {
+        // Ignore when typing in inputs/textareas
+        const target = event.target as HTMLElement | null
+        if (
+          target?.tagName === 'INPUT' ||
+          target?.tagName === 'TEXTAREA' ||
+          target?.isContentEditable
+        ) {
           return
         }
 
-        // ---- "reconnect" heuristic ----
-        if (!isPlaying && !wasPaused) {
-          await audio.play()
+        if (event.code === 'Space') {
+          event.preventDefault()
+          await playerStore.playPause()
+        } else if (event.code === 'ArrowLeft') {
+          event.preventDefault()
+          await playerStore.back()
+        } else if (event.code === 'ArrowRight') {
+          event.preventDefault()
+          await playerStore.next(true)
         }
       })
     }
