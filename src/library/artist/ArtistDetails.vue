@@ -4,7 +4,7 @@
     <div class="header-wrapper">
       <Header :image="artist.image" :hover="'Play/Pause'" class="cursor-pointer can-select" @click="shuffleNow">
         <div class="header-title-wrapper">
-          <div class="header-title mt-3">
+          <div class="header-title">
             {{ artist.name }}
           </div>
         </div>
@@ -43,7 +43,7 @@
           </span>
         </div>
 
-        <div class="text-nowrap mt-2">
+        <div class="text-nowrap">
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Play Artist Top Tracks" @click="playNow">
             <Icon icon="play" />
           </b-button>

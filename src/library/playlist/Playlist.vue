@@ -25,7 +25,7 @@
           {{ playlist.comment }}
         </OverflowFade>
 
-        <div class="text-nowrap mt-2">
+        <div class="text-nowrap">
           <button
             v-longpress-tooltip
             class="btn btn-transparent header-buttons"

@@ -29,7 +29,7 @@
   export default defineComponent({
     props: {
       image: { type: String, default: null },
-      blur: { type: String, default: '7px' },
+      blur: { type: String, default: '5px' },
       hover: { type: String, default: null },
     },
     emits: ['click'],
@@ -44,24 +44,24 @@
     position: relative;
     display: flex;
     flex-direction: row;
-    align-items: center;
-    padding: 1rem 0;
-    height: 190px;
+    align-items: stretch;   /* was: center — let .header fill full height */
+    height: 170px;
   }
 
   .header {
     position: relative;
     display: flex;
     flex-direction: row;
-    align-items: center;
-    padding: 0.5rem;
+    align-items: center;    /* now centers within the full 190px */
+    padding: 1rem;
     width: 100%;
+    height: 100%;           /* fill the stretched container */
     box-sizing: border-box;
   }
 
   .cover-image {
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
     object-fit: cover;
     border-radius: 8px;
     flex-shrink: 0;
@@ -69,12 +69,12 @@
 
   .header-backdrop {
     position: absolute;
-    top: -10px;
-    left: -10px;
+    top: -15px;
+    left: -15px;
     width: calc(100% + 20px);
     height: calc(100% + 20px);
     z-index: -1;
-    opacity: 0.6;
+    opacity: 0.92;
     filter: blur(var(--blurAmount));
     background-image: linear-gradient(to bottom, transparent, black), var(--backgroundImage);
     background-size: cover;
