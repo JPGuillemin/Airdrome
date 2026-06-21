@@ -53,7 +53,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;    /* now centers within the full 190px */
-    padding-left: 0.5rem;
+    padding-left: -0.5rem;
     width: 100%;
     height: 100%;           /* fill the stretched container */
     box-sizing: border-box;
