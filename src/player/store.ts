@@ -7,12 +7,14 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 import { Network } from '@capacitor/network'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
 import { nativeMediaSession } from '@/player/nativeMediaSession'
-import { Capacitor } from '@capacitor/core'
+
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
 // ---------------------------------------------------------------------------
@@ -213,6 +215,13 @@ export const usePlayerStore = defineStore('player', {
     /** Resume playback and update the MediaSession position state. */
     async play() {
       this.wasPaused = false
+      if (isNative) {
+        const { granted } = await nativeMediaSession.requestAudioFocus()
+        if (!granted) {
+          console.warn('[Audio] Audio focus not granted, aborting play')
+          return
+        }
+      }
       await audio.play()
     },
 
@@ -227,6 +236,9 @@ export const usePlayerStore = defineStore('player', {
       await audio.stop()
       this.setMediaSessionPosition(0, 0)
       this.setMediaSessionState('none')
+      if (isNative) {
+        await nativeMediaSession.abandonAudioFocus()
+      }
     },
 
     /** Toggle between play and pause. */
@@ -691,6 +703,8 @@ export function setupAudio(
   // resumes by itself or we force a reload from the server queue.
 
   if (isNative) {
+    let pendingResume = false
+
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
       if (Date.now() - playTime < 1000) {
@@ -710,12 +724,36 @@ export function setupAudio(
 
         case 'gain':
           if (!isPlaying && !wasPaused) {
-            await audio.play()
+            pendingResume = true
+            try {
+              await audio.play()
+              pendingResume = false
+            } catch {
+              // AudioContext still suspended — appStateChange will retry
+            }
           }
           break
 
         case 'lossDuck':
           break
+      }
+    })
+
+    App.addListener('appStateChange', async ({ isActive }) => {
+      if (!isActive) return
+      if (Date.now() - playTime < 1000) return
+
+      const wasPaused = playerStore.wasPaused
+      const isPlaying = playerStore.isPlaying
+
+      if (pendingResume && !isPlaying) {
+        pendingResume = false
+        try {
+          const { granted } = await nativeMediaSession.requestAudioFocus()
+          if (granted) await audio.play()
+        } catch (err) {
+          console.warn('[Audio] Resume on foreground failed', err)
+        }
       }
     })
 
