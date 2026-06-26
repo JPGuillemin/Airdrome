@@ -724,17 +724,87 @@ export function setupAudio(
 
         case 'gain':
           if (!isPlaying && !wasPaused) {
-            pendingResume = true
             try {
               await audio.play()
               pendingResume = false
             } catch {
-              // AudioContext still suspended — appStateChange will retry
+              pendingResume = true
             }
           }
           break
 
         case 'lossDuck':
+          break
+      }
+    })
+
+    nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
+      const route = event?.route
+      if (Date.now() - playTime < 1000) {
+        return
+      }
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
+      switch (route) {
+        case 'bluetooth':
+          if (!isPlaying && !wasPaused) {
+            try {
+              await audio.play()
+              pendingResume = false
+            } catch {
+              pendingResume = true
+            }
+          }
+          break
+
+        case 'wired':
+          if (!isPlaying && !wasPaused) {
+            try {
+              await audio.play()
+              pendingResume = false
+            } catch {
+              pendingResume = true
+            }
+          }
+          break
+
+        case 'speaker':
+          if (isPlaying) {
+            await audio.pause()
+          }
+          break
+      }
+    })
+
+    Network.addListener('networkStatusChange', async status => {
+      console.info('[Network]', status)
+      const isPlaying = playerStore.isPlaying
+      const wasPaused = playerStore.wasPaused
+      switch (status.connected) {
+        case true:
+          if (!wasPaused && !isPlaying) {
+            console.info('[Audio] Network restored – retrying current track')
+            try {
+              await audio.play()
+              pendingResume = false
+            } catch {
+              pendingResume = true
+            }
+          }
+          break
+
+        case false:
+          // Network lost
+          // if (!status.connected) {
+          //   if (isPlaying) {
+          //     console.warn('[Audio] Network lost – pausing playback')
+          //     // keep wasPaused = false so auto-resume still works
+          //     playerStore.wasPaused = false
+          //     await audio.pause()
+          //   }
+          //
+          //   return
+          // }
           break
       }
     })
@@ -757,60 +827,6 @@ export function setupAudio(
       }
     })
 
-    nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
-      const route = event?.route
-      if (Date.now() - playTime < 1000) {
-        return
-      }
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
-      switch (route) {
-        case 'bluetooth':
-          if (!isPlaying && !wasPaused) {
-            await audio.play()
-          }
-          break
-
-        case 'wired':
-          if (!isPlaying && !wasPaused) {
-            await audio.play()
-          }
-          break
-
-        case 'speaker':
-          if (isPlaying) {
-            await audio.pause()
-          }
-          break
-      }
-    })
-
-    Network.addListener('networkStatusChange', async status => {
-      console.info('[Network]', status)
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
-      // Network lost
-      // if (!status.connected) {
-      //   if (isPlaying) {
-      //     console.warn('[Audio] Network lost – pausing playback')
-      //     // keep wasPaused = false so auto-resume still works
-      //     playerStore.wasPaused = false
-      //     await audio.pause()
-      //   }
-      //
-      //   return
-      // }
-
-      // Network restored
-      if (!wasPaused && !isPlaying) {
-        console.info('[Audio] Network restored – retrying current track')
-        try {
-          await audio.play()
-        } catch (err) {
-          console.warn('[Audio] Failed to resume after reconnect', err)
-        }
-      }
-    })
   } else {
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
