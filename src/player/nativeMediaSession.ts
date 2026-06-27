@@ -34,7 +34,15 @@ export interface AudioFocusChangeEvent {
 }
 
 export interface AudioFocusResult {
+  /** True when focus was granted immediately. */
   granted: boolean
+  /**
+   * True when focus was not yet available (e.g. a phone call is active) but
+   * the system has queued the request. AUDIOFOCUS_GAIN will fire via the
+   * "audioFocusChange" listener once the occupier releases focus.
+   * Only possible on API 26+ when setAcceptsDelayedFocusGain(true) is set.
+   */
+  delayed: boolean
 }
 
 export type NativeMediaSessionEvent =
@@ -49,6 +57,13 @@ export type NativeMediaSessionEvent =
   | 'seekbackward'
   | 'audioFocusChange'
   | 'audioRouteChange'
+  /**
+   * Fired when a phone call (RINGING or OFFHOOK) returns to IDLE.
+   * Used as a reliable fallback for auto-resume because some OEMs do not
+   * re-fire AUDIOFOCUS_GAIN after a AUDIOFOCUS_LOSS caused by a phone call.
+   * Requires READ_PHONE_STATE runtime permission; silently absent if denied.
+   */
+  | 'phoneCallEnded'
 
 interface MediaSessionPluginShape {
   setMetadata(options: NativeMetadataOptions): Promise<void>
@@ -65,7 +80,7 @@ const noop: MediaSessionPluginShape = {
   async setMetadata() {},
   async setPlaybackState() {},
   async requestAudioFocus() {
-    return { granted: true }
+    return { granted: true, delayed: false }
   },
   async abandonAudioFocus() {},
   async addListener() {

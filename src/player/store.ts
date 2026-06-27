@@ -216,7 +216,14 @@ export const usePlayerStore = defineStore('player', {
     async play() {
       this.wasPaused = false
       if (isNative) {
-        const { granted } = await nativeMediaSession.requestAudioFocus()
+        const { granted, delayed } = await nativeMediaSession.requestAudioFocus()
+        if (delayed) {
+          // A phone call is active; Android has queued the request and will fire
+          // AUDIOFOCUS_GAIN when the call ends. wasPaused is already false from
+          // the line above, so the gain handler will resume automatically.
+          console.info('[Audio] Audio focus delayed (call in progress)')
+          return
+        }
         if (!granted) {
           console.warn('[Audio] Audio focus not granted, aborting play')
           return
@@ -629,6 +636,8 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   let playTime = 0
+  let resumeState = false
+
   playerStore.setMediaSessionState('none')
 
   audio.onplay = () => {
@@ -636,12 +645,14 @@ export function setupAudio(
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
+    resumeState = false
   }
 
   audio.onpause = () => {
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+    if (!wasPaused) resumeState = true
   }
 
   audio.onsuspend = () => {
@@ -694,7 +705,6 @@ export function setupAudio(
     console.info('[Audio] Playback stalled, watchdog armed')
   }
 
-
   // ---------------------------------------------------------------------------
   // Mobile auto-resume
   // ---------------------------------------------------------------------------
@@ -703,33 +713,26 @@ export function setupAudio(
   // resumes by itself or we force a reload from the server queue.
 
   if (isNative) {
-    let pendingResume = false
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
       if (Date.now() - playTime < 1000) {
         return
       }
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
       switch (type) {
         case 'lossTransient':
+          audio.pause()
           break
 
         case 'loss':
-          if (isPlaying) {
+          if (playerStore.isPlaying) {
             await audio.pause()
           }
           break
 
         case 'gain':
-          if (!isPlaying && !wasPaused) {
-            try {
-              await audio.play()
-              pendingResume = false
-            } catch {
-              pendingResume = true
-            }
+          if (resumeState || !playerStore.wasPaused) {
+            await audio.play()
           }
           break
 
@@ -743,53 +746,49 @@ export function setupAudio(
       if (Date.now() - playTime < 1000) {
         return
       }
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
       switch (route) {
         case 'bluetooth':
-          if (!isPlaying && !wasPaused) {
-            try {
-              await audio.play()
-              pendingResume = false
-            } catch {
-              pendingResume = true
-            }
+          if (resumeState) {
+            const { granted } = await nativeMediaSession.requestAudioFocus()
+            if (granted) await audio.play()
           }
           break
 
         case 'wired':
-          if (!isPlaying && !wasPaused) {
-            try {
-              await audio.play()
-              pendingResume = false
-            } catch {
-              pendingResume = true
-            }
+          if (resumeState) {
+            const { granted } = await nativeMediaSession.requestAudioFocus()
+            if (granted) await audio.play()
           }
           break
 
         case 'speaker':
-          if (isPlaying) {
+          if (playerStore.isPlaying) {
             await audio.pause()
           }
           break
       }
     })
 
+    nativeMediaSession.addListener('phoneCallEnded', async () => {
+      console.info('[Audio] Phone call ended — attempting resume')
+      if ((resumeState || !playerStore.wasPaused) && !playerStore.isPlaying) {
+        try {
+          const { granted } = await nativeMediaSession.requestAudioFocus()
+          if (granted) await audio.play()
+        } catch (err) {
+          console.warn('[Audio] Resume after call failed', err)
+        }
+      }
+    })
+
     Network.addListener('networkStatusChange', async status => {
       console.info('[Network]', status)
-      const isPlaying = playerStore.isPlaying
-      const wasPaused = playerStore.wasPaused
       switch (status.connected) {
         case true:
-          if (!wasPaused && !isPlaying) {
+          if (resumeState) {
             console.info('[Audio] Network restored – retrying current track')
-            try {
-              await audio.play()
-              pendingResume = false
-            } catch {
-              pendingResume = true
-            }
+            const { granted } = await nativeMediaSession.requestAudioFocus()
+            if (granted) await audio.play()
           }
           break
 
@@ -813,11 +812,7 @@ export function setupAudio(
       if (!isActive) return
       if (Date.now() - playTime < 1000) return
 
-      const wasPaused = playerStore.wasPaused
-      const isPlaying = playerStore.isPlaying
-
-      if (pendingResume && !isPlaying) {
-        pendingResume = false
+      if (resumeState) {
         try {
           const { granted } = await nativeMediaSession.requestAudioFocus()
           if (granted) await audio.play()
@@ -830,15 +825,13 @@ export function setupAudio(
   } else {
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
-        const isPlaying = playerStore.isPlaying
-        const wasPaused = playerStore.wasPaused
         if (Date.now() - playTime < 1000) {
           return
         }
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
-          if (!isPlaying && !wasPaused) {
+          if (resumeState) {
             await audio.play()
           }
         }
@@ -853,18 +846,16 @@ export function setupAudio(
         navigator.mediaDevices.addEventListener('devicechange', async () => {
           const devices = await navigator.mediaDevices.enumerateDevices()
           const outputs = devices.filter(d => d.kind === 'audiooutput')
-          const isPlaying = playerStore.isPlaying
-          const wasPaused = playerStore.wasPaused
           const hasAudioOutput = outputs.length > 0
 
           // ---- "disconnect" heuristic ----
-          if (!hasAudioOutput && isPlaying) {
+          if (!hasAudioOutput && iplayerStore.isPlaying) {
             await audio.pause()
             return
           }
 
           // ---- "reconnect" heuristic ----
-          if (!isPlaying && !wasPaused) {
+          if (resumeState) {
             await audio.play()
           }
         })
