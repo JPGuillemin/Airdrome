@@ -721,7 +721,9 @@ export function setupAudio(
       }
       switch (type) {
         case 'lossTransient':
-          audio.pause()
+          if (playerStore.isPlaying) {
+            await audio.pause()
+          }
           break
 
         case 'loss':
@@ -743,9 +745,9 @@ export function setupAudio(
 
     nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
       const route = event?.route
-      if (Date.now() - playTime < 1000) {
-        return
-      }
+
+      if (Date.now() - playTime < 1000) return
+
       switch (route) {
         case 'bluetooth':
           if (resumeState) {
@@ -770,14 +772,9 @@ export function setupAudio(
     })
 
     nativeMediaSession.addListener('phoneCallEnded', async () => {
-      console.info('[Audio] Phone call ended — attempting resume')
-      if ((resumeState || !playerStore.wasPaused) && !playerStore.isPlaying) {
-        try {
-          const { granted } = await nativeMediaSession.requestAudioFocus()
-          if (granted) await audio.play()
-        } catch (err) {
-          console.warn('[Audio] Resume after call failed', err)
-        }
+      if (resumeState) {
+        const { granted } = await nativeMediaSession.requestAudioFocus()
+        if (granted) await audio.play()
       }
     })
 
@@ -786,7 +783,6 @@ export function setupAudio(
       switch (status.connected) {
         case true:
           if (resumeState) {
-            console.info('[Audio] Network restored – retrying current track')
             const { granted } = await nativeMediaSession.requestAudioFocus()
             if (granted) await audio.play()
           }
@@ -810,15 +806,13 @@ export function setupAudio(
 
     App.addListener('appStateChange', async ({ isActive }) => {
       if (!isActive) return
+
       if (Date.now() - playTime < 1000) return
 
-      if (resumeState) {
-        try {
-          const { granted } = await nativeMediaSession.requestAudioFocus()
-          if (granted) await audio.play()
-        } catch (err) {
-          console.warn('[Audio] Resume on foreground failed', err)
-        }
+      if (isActive) {
+        resumeState = false
+      } else {
+        if (playerStore.isPlaying) resumeState = true
       }
     })
 
