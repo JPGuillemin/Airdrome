@@ -15,6 +15,7 @@
     "@capacitor/browser": "^8.0.3",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/network": "^8.0.1",
+    "@fontsource/inter": "^5.2.8",
     "@iconify-icons/bi": "^1.2.2",
     "@iconify-icons/svg-spinners": "^1.2.0",
     "@popperjs/core": "^2.11.8",
