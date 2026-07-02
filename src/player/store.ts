@@ -89,7 +89,7 @@ export const usePlayerStore = defineStore('player', {
      * Used by the mobile auto-resume logic to avoid resuming after an
      * OS-level interruption if the user had intentionally paused.
      */
-    wasPaused: true
+    userPaused: true
   }),
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -214,12 +214,12 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      this.wasPaused = false
+      this.userPaused = false
       if (isNative) {
         const { granted, delayed } = await nativeMediaSession.requestAudioFocus()
         if (delayed) {
           // A phone call is active; Android has queued the request and will fire
-          // AUDIOFOCUS_GAIN when the call ends. wasPaused is already false from
+          // AUDIOFOCUS_GAIN when the call ends. userPaused is already false from
           // the line above, so the gain handler will resume automatically.
           console.info('[Audio] Audio focus delayed (call in progress)')
           return
@@ -234,12 +234,12 @@ export const usePlayerStore = defineStore('player', {
 
     /** Pause playback and update the MediaSession position state. */
     async pause() {
-      this.wasPaused = true
+      this.userPaused = true
       await audio.pause()
     },
 
     async stop() {
-      this.wasPaused = true
+      this.userPaused = true
       await audio.stop()
       this.setMediaSessionPosition(0, 0)
       this.setMediaSessionState('none')
@@ -652,7 +652,7 @@ export function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    if (!wasPaused) resumeState = true
+    if (!playerStore.userPaused) resumeState = true
   }
 
   audio.onsuspend = () => {
@@ -708,9 +708,6 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
   // Mobile auto-resume
   // ---------------------------------------------------------------------------
-  // On iOS/Android the AudioContext is suspended when the browser tab goes to
-  // the background. When the tab becomes visible again we poll until the audio
-  // resumes by itself or we force a reload from the server queue.
 
   if (isNative) {
 
@@ -720,12 +717,11 @@ export function setupAudio(
         return
       }
       switch (type) {
-        case 'lossTransient':
-          if (playerStore.isPlaying) {
-            await audio.pause()
-          }
-          break
-
+        // case 'lossTransient':
+          // if (playerStore.isPlaying) {
+            // await audio.pause()
+          // }
+          // break
         case 'loss':
           if (playerStore.isPlaying) {
             await audio.pause()
@@ -733,7 +729,7 @@ export function setupAudio(
           break
 
         case 'gain':
-          if (resumeState || !playerStore.wasPaused) {
+          if (resumeState || !playerStore.userPaused) {
             await audio.play()
           }
           break
@@ -793,8 +789,8 @@ export function setupAudio(
           // if (!status.connected) {
           //   if (isPlaying) {
           //     console.warn('[Audio] Network lost – pausing playback')
-          //     // keep wasPaused = false so auto-resume still works
-          //     playerStore.wasPaused = false
+          //     // keep userPaused = false so auto-resume still works
+          //     playerStore.userPaused = false
           //     await audio.pause()
           //   }
           //
@@ -943,7 +939,7 @@ export function setupAudio(
    * to be playing (the user didn't deliberately pause).
    */
   window.addEventListener('online', () => {
-    if (!playerStore.wasPaused) {
+    if (!playerStore.userPaused) {
       console.info('[Audio] Network restored – retrying current track')
       audio.retryCurrentTrack()
     }
@@ -953,7 +949,7 @@ export function setupAudio(
   //   console.warn('[Audio] Network lost')
   //   // only auto-pause if playback was active
   //   if (playerStore.isPlaying) {
-  //     playerStore.wasPaused = false
+  //     playerStore.userPaused = false
   //     await audio.pause()
   //     playerStore.setMediaSessionState('paused')
   //   }
