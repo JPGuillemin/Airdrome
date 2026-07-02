@@ -138,6 +138,15 @@ export class API {
   private readonly fetch: (path: string, params?: any) => Promise<any>
   private readonly clientName = 'Airdrome'
 
+  // Simple in-memory cache for the full artist list. It's fetched by
+  // getArtists() (artist library page) and reused by getArtistsByGenre()
+  // (genre pages) so genre browsing doesn't re-fetch the whole library
+  // on every request. TTL keeps it from going stale for too long; call
+  // clearArtistsCache() after actions that could change it sooner
+  // (e.g. a library rescan, or an artist being favourited).
+  private artistsCache: { data: Artist[]; expiresAt: number } | null = null
+  private readonly artistsCacheTtlMs = 5 * 60 * 1000 // 5 minutes
+
   constructor(private auth: AuthService) {
     this.fetch = async(path: string, params: any) => {
       params = { ...params, v: '1.16.1', f: 'json', c: this.clientName }
@@ -251,12 +260,19 @@ export class API {
     // We need to fetch enough albums to cover all artists up to offset + size
     const fetchSize = Math.max(500, (offset + size) * 10)
 
-    const response = await this.fetch('rest/getAlbumList2', {
-      type: 'byGenre',
-      genre,
-      size: fetchSize,
-      offset: 0,
-    })
+    // Fetch the real artist list in parallel so we can look up each artist's
+    // *own* image (avoids falling back to an arbitrary album cover below)
+    const [response, allArtists] = await Promise.all([
+      this.fetch('rest/getAlbumList2', {
+        type: 'byGenre',
+        genre,
+        size: fetchSize,
+        offset: 0,
+      }),
+      this.getArtists(),
+    ])
+
+    const artistImageMap = new Map(allArtists.map(a => [a.id, a.image]))
 
     const rawAlbums = response.albumList2?.album || []
 
@@ -281,24 +297,14 @@ export class API {
       const existing = artistMap.get(artistId)
 
       if (!existing) {
-        // Try to get artist image - some servers provide artistImageUrl
-        // Otherwise use album coverArt as fallback
-        const artistImage = album.artistImageUrl ||
-          (album.coverArt ? this.getCoverArtUrl(album) : undefined)
-
         artistMap.set(artistId, {
           id: artistId,
           name: artistName,
           albumCount: 1,
-          image: artistImage,
+          image: artistImageMap.get(artistId),
         })
       } else {
         existing.albumCount += 1
-        // Update image if we don't have one yet and this album has one
-        if (!existing.image) {
-          existing.image = album.artistImageUrl ||
-            (album.coverArt ? this.getCoverArtUrl(album) : undefined)
-        }
       }
     }
 
@@ -347,10 +353,27 @@ export class API {
   }
 
   async getArtists(): Promise<Artist[]> {
+    if (this.artistsCache && this.artistsCache.expiresAt > Date.now()) {
+      return this.artistsCache.data
+    }
+
     const response = await this.fetch('rest/getArtists')
-    return (response.artists?.index || [])
+    const artists = (response.artists?.index || [])
       .flatMap((index: any) => index.artist)
       .map(this.normalizeArtist, this)
+
+    this.artistsCache = {
+      data: artists,
+      expiresAt: Date.now() + this.artistsCacheTtlMs,
+    }
+
+    return artists
+  }
+
+  // Call after anything that could change the artist list sooner than the
+  // TTL would naturally expire it (library rescan, artist favourited, etc.)
+  clearArtistsCache() {
+    this.artistsCache = null
   }
 
   async getAlbums(sort: AlbumSort, size: number, offset = 0): Promise<Album[]> {
