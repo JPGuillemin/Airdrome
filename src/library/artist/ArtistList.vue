@@ -11,10 +11,13 @@
       <template #text>
         <strong>{{ item.albumCount }}</strong> albums
       </template>
-      <template v-if="tileSize > 79" #context-menu>
-        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
-          Like
-        </DropdownItem>
+      <template v-if="tileSize > 79" #actions>
+        <TileActionButton icon="random" label="Artist Shuffle" @click.stop="shuffleNow(item.id)" />
+        <TileActionButton
+          :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+          label="Like"
+          @click.stop="toggleFavourite(item.id)"
+        />
       </template>
     </Tile>
   </Tiles>
@@ -22,6 +25,7 @@
 <script lang="ts">
   import { defineComponent, inject } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
+  import { useRadioStore } from '@/player/radio'
 
   export default defineComponent({
     props: {
@@ -31,16 +35,22 @@
     },
     setup() {
       const favouriteStore = useFavouriteStore()
+      const radioStore = useRadioStore()
+
       const toggleFavourite = async(id: string) => {
         await favouriteStore.toggle('artist', id)
       }
 
       const isFavourite = (id: string) => favouriteStore.get('artist', id)
 
+      const shuffleNow = (id: string) => radioStore.shuffleArtist(id)
+
       return {
         favouriteStore,
+        radioStore,
         toggleFavourite,
         isFavourite,
+        shuffleNow,
       }
     },
   })

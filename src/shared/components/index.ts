@@ -1,6 +1,5 @@
 // index.ts
 import Avatar from './Avatar.vue'
-import ContextMenu from '@/shared/components/ContextMenu.vue'
 import Dropdown from '@/shared/components/Dropdown.vue'
 import DropdownItem from '@/shared/components/DropdownItem.vue'
 import EmptyIndicator from './EmptyIndicator.vue'
@@ -11,6 +10,7 @@ import InfiniteLoader from './InfiniteLoader.vue'
 import OverflowMenu from './OverflowMenu.vue'
 import Tiles from './Tiles.vue'
 import Tile from './Tile.vue'
+import TileActionButton from './TileActionButton.vue'
 import {
   BButton,
   BModal,
@@ -20,7 +20,6 @@ export const components = {
   Avatar,
   BButton,
   BModal,
-  ContextMenu,
   Dropdown,
   DropdownItem,
   EmptyIndicator,
@@ -31,4 +30,5 @@ export const components = {
   OverflowMenu,
   Tile,
   Tiles,
+  TileActionButton,
 }

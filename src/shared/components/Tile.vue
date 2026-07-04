@@ -1,10 +1,9 @@
 // Tile.vue
 <template>
   <div class="tile">
-    <ContextMenu
+    <div
       class="tile-img"
       :class="{ 'tile-img--circle': circle }"
-      :enabled="!!$slots['context-menu']"
     >
       <router-link v-if="to" :to="to">
         <img v-if="image" :src="image" loading="lazy" alt="Album cover">
@@ -15,10 +14,10 @@
         <img v-else :src="fallback" alt="Fallback cover">
       </template>
 
-      <template #context-menu>
-        <slot name="context-menu" />
-      </template>
-    </ContextMenu>
+      <div v-if="$slots.actions" class="tile-actions">
+        <slot name="actions" />
+      </div>
+    </div>
 
     <div class="tile-text">
       <div class="text-truncate">
@@ -105,6 +104,38 @@
 
     object-fit: cover;
     border-radius: inherit;
+  }
+
+  /* Row of icon actions overlaid at the bottom of the tile image,
+     revealed on hover/focus instead of the old dropdown menu. */
+  .tile-actions {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 4px;
+
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+    border-radius: 0 0 8px 8px;
+
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .tile:hover .tile-actions,
+  .tile:focus-within .tile-actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   /* Metadata font for tile captions (title + subtitle) */

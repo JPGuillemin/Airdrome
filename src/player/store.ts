@@ -215,20 +215,7 @@ export const usePlayerStore = defineStore('player', {
     /** Resume playback and update the MediaSession position state. */
     async play() {
       this.userPaused = false
-      if (isNative) {
-        const { granted, delayed } = await nativeMediaSession.requestAudioFocus()
-        if (delayed) {
-          // A phone call is active; Android has queued the request and will fire
-          // AUDIOFOCUS_GAIN when the call ends. userPaused is already false from
-          // the line above, so the gain handler will resume automatically.
-          console.info('[Audio] Audio focus delayed (call in progress)')
-          return
-        }
-        if (!granted) {
-          console.warn('[Audio] Audio focus not granted, aborting play')
-          return
-        }
-      }
+      if (isNative) await nativeMediaSession.requestAudioFocus()
       await audio.play()
     },
 
@@ -713,9 +700,9 @@ export function setupAudio(
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
-      if (Date.now() - playTime < 1000) {
-        return
-      }
+
+      if (Date.now() - playTime < 1000) return
+
       switch (type) {
         // case 'lossTransient':
           // if (playerStore.isPlaying) {
@@ -729,7 +716,7 @@ export function setupAudio(
           break
 
         case 'gain':
-          if (resumeState || !playerStore.userPaused) {
+          if (resumeState) {
             await audio.play()
           }
           break
@@ -747,15 +734,15 @@ export function setupAudio(
       switch (route) {
         case 'bluetooth':
           if (resumeState) {
-            const { granted } = await nativeMediaSession.requestAudioFocus()
-            if (granted) await audio.play()
+            await nativeMediaSession.requestAudioFocus()
+            await audio.play()
           }
           break
 
         case 'wired':
           if (resumeState) {
-            const { granted } = await nativeMediaSession.requestAudioFocus()
-            if (granted) await audio.play()
+            await nativeMediaSession.requestAudioFocus()
+            await audio.play()
           }
           break
 
@@ -769,8 +756,8 @@ export function setupAudio(
 
     nativeMediaSession.addListener('phoneCallEnded', async () => {
       if (resumeState) {
-        const { granted } = await nativeMediaSession.requestAudioFocus()
-        if (granted) await audio.play()
+        await nativeMediaSession.requestAudioFocus()
+        await audio.play()
       }
     })
 
@@ -779,8 +766,8 @@ export function setupAudio(
       switch (status.connected) {
         case true:
           if (resumeState) {
-            const { granted } = await nativeMediaSession.requestAudioFocus()
-            if (granted) await audio.play()
+            await nativeMediaSession.requestAudioFocus()
+            await audio.play()
           }
           break
 
@@ -805,19 +792,15 @@ export function setupAudio(
 
       if (Date.now() - playTime < 1000) return
 
-      if (isActive) {
-        resumeState = false
-      } else {
-        if (playerStore.isPlaying) resumeState = true
+      if (!isActive && playerStore.isPlaying) {
+        resumeState = true
       }
     })
 
   } else {
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
-        if (Date.now() - playTime < 1000) {
-          return
-        }
+        if (Date.now() - playTime < 1000) return
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
@@ -830,9 +813,9 @@ export function setupAudio(
       document.addEventListener('resume', playerStore.play)
 
       if (navigator.mediaDevices?.addEventListener) {
-        if (Date.now() - playTime < 1000) {
-          return
-        }
+
+        if (Date.now() - playTime < 1000)  return
+
         navigator.mediaDevices.addEventListener('devicechange', async () => {
           const devices = await navigator.mediaDevices.enumerateDevices()
           const outputs = devices.filter(d => d.kind === 'audiooutput')

@@ -20,29 +20,23 @@
         <strong>{{ item.trackCount || 0 }}</strong> tracks
       </template>
 
-      <!-- Context Menu -->
-      <template v-if="tileSize > 79" #context-menu>
-        <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
-          Play
-        </DropdownItem>
+      <!-- Hover Actions -->
+      <template v-if="tileSize > 79" #actions>
+        <TileActionButton icon="play" label="Play" @click.stop="playNow(item.id)" />
 
-        <DropdownItem
+        <TileActionButton
           v-if="isPlaylistView"
           icon="edit"
-          class="on-top"
-          @click="$emit('edit-playlist', item)"
-        >
-          Edit
-        </DropdownItem>
+          label="Edit"
+          @click.stop="$emit('edit-playlist', item)"
+        />
 
-        <DropdownItem
+        <TileActionButton
           v-if="isPlaylistView"
           icon="trash"
-          class="on-top"
+          label="Remove"
           @click.stop.prevent="$emit('remove-playlist', item.id)"
-        >
-          Remove
-        </DropdownItem>
+        />
       </template>
     </Tile>
   </Tiles>

@@ -31,21 +31,15 @@
           {{ item.album }}
         </span>
       </template>
-      <!-- Context Menu -->
-      <template v-if="tileSize > 79" #context-menu>
-        <DropdownItem icon="queue-next" class="on-top" @click.stop="playNext(item)">
-          Play next
-        </DropdownItem>
-        <DropdownItem icon="queue" class="on-top" @click.stop="addToQueue(item)">
-          Add to queue
-        </DropdownItem>
-        <DropdownItem
+      <!-- Hover Actions -->
+      <template v-if="tileSize > 79" #actions>
+        <TileActionButton icon="queue-next" label="Play next" @click.stop="playNext(item)" />
+        <TileActionButton icon="queue" label="Add to queue" @click.stop="addToQueue(item)" />
+        <TileActionButton
           :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
-          class="on-top"
+          label="Like"
           @click.stop="toggleFavourite(item.id)"
-        >
-          Like
-        </DropdownItem>
+        />
       </template>
     </Tile>
   </Tiles>

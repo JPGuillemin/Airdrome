@@ -31,14 +31,14 @@
           {{ item.year }}
         </span>
       </template>
-      <!-- Context Menu -->
-      <template v-if="tileSize > 79" #context-menu>
-        <DropdownItem icon="play" class="on-top" @click="playNow(item.id)">
-          Play
-        </DropdownItem>
-        <DropdownItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
-          Like
-        </DropdownItem>
+      <!-- Hover Actions -->
+      <template v-if="tileSize > 79" #actions>
+        <TileActionButton icon="play" label="Play" @click.stop="playNow(item.id)" />
+        <TileActionButton
+          :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+          label="Like"
+          @click.stop="toggleFavourite(item.id)"
+        />
       </template>
     </Tile>
   </Tiles>
