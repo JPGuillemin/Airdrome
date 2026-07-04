@@ -18,6 +18,7 @@ import android.media.AudioDeviceCallback;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.webkit.WebView;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
@@ -92,6 +93,32 @@ public class MediaSessionPlugin extends Plugin {
   }
 
   // -------------------------------------------------------------------------
+  // WEBVIEW WAKE
+  // -------------------------------------------------------------------------
+  // When the Activity has been backgrounded/screen-locked long enough, Android
+  // throttles the WebView's JS timers even though our foreground service keeps
+  // the process alive. Any notifyListeners() call sent while that's happening
+  // gets queued on the bridge but never executed — which means audio.play()
+  // in the JS AudioController (our only audio decode path) never runs until
+  // the app is brought back to foreground.
+  //
+  // Calling onResume()/resumeTimers() here forces the WebView's JS engine to
+  // actually tick, so queued bridge messages get processed immediately instead
+  // of waiting for the user to reopen the app. Must run on the main thread.
+  //
+  // This is a no-op (safely) if the Activity/WebView have been killed outright
+  // rather than just frozen — getBridge()/getWebView() will return null.
+  private void wakeWebView() {
+    new Handler(Looper.getMainLooper()).post(() -> {
+      if (getBridge() == null) return;
+      WebView webView = getBridge().getWebView();
+      if (webView == null) return;
+      webView.onResume();
+      webView.resumeTimers();
+    });
+  }
+
+  // -------------------------------------------------------------------------
   // Metadata
   // -------------------------------------------------------------------------
 
@@ -146,6 +173,13 @@ public class MediaSessionPlugin extends Plugin {
           case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:          type = "lossTransient"; break;
           case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: type = "lossDuck";     break;
           default: return;
+        }
+
+        // "gain" after a delayed focus request (e.g. the occupier of focus just
+        // released it) is exactly the same background/frozen-WebView scenario
+        // as the phone-call-ended fallback below, so wake the WebView here too.
+        if ("gain".equals(type)) {
+          wakeWebView();
         }
 
         JSObject data = new JSObject();
@@ -270,6 +304,11 @@ public class MediaSessionPlugin extends Plugin {
         // code executes natively inside an ongoing OS broadcast pipeline, it safely bypasses
         // the background restriction rules.
         int focusResult = executeAudioFocusRequest();
+
+        // Force the WebView's JS timers to actually run before we hand off, otherwise
+        // this notifyListeners() call can sit queued indefinitely if the app has been
+        // backgrounded/screen-locked long enough for Android to throttle the WebView.
+        wakeWebView();
 
         JSObject data = new JSObject();
         data.put("focusGrantedNatively", focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
