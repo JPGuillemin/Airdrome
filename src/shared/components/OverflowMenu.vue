@@ -72,7 +72,6 @@
           top:      `${top}px`,
           left:     `${left}px`,
           zIndex:   '2000',
-          minWidth: '10rem',
         }
       }
 
@@ -109,5 +108,13 @@
   /* Menu: always on top — z-index set inline too, this is belt-and-suspenders */
   .overflow-menu-list {
     z-index: 2000 !important;
+    /* Bootstrap's .dropdown-menu forces min-width: 10rem by default,
+       which is why this ends up much wider than its content (e.g. the
+       vertical volume slider). Let it size to content instead. */
+    min-width: auto !important;
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 </style>
