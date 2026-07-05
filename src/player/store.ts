@@ -623,23 +623,21 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   let playTime = 0
-  let resumeState = false
 
   playerStore.setMediaSessionState('none')
 
   audio.onplay = () => {
     playerStore.isPlaying = true
+    playerStore.userPaused = false
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
-    resumeState = false
   }
 
   audio.onpause = () => {
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    if (!playerStore.userPaused) resumeState = true
   }
 
   audio.onsuspend = () => {
@@ -716,7 +714,7 @@ export function setupAudio(
           break
 
         case 'gain':
-          if (resumeState) {
+          if (!playerStore.isPlaying && !playerStore.userPaused) {
             await audio.play()
           }
           break
@@ -733,14 +731,14 @@ export function setupAudio(
 
       switch (route) {
         case 'bluetooth':
-          if (resumeState) {
+          if (!playerStore.isPlaying && !playerStore.userPaused) {
             await nativeMediaSession.requestAudioFocus()
             await audio.play()
           }
           break
 
         case 'wired':
-          if (resumeState) {
+          if (!playerStore.isPlaying && !playerStore.userPaused) {
             await nativeMediaSession.requestAudioFocus()
             await audio.play()
           }
@@ -755,7 +753,7 @@ export function setupAudio(
     })
 
     nativeMediaSession.addListener('phoneCallEnded', async () => {
-      if (resumeState) {
+      if (!playerStore.isPlaying && !playerStore.userPaused) {
         await nativeMediaSession.requestAudioFocus()
         await audio.play()
       }
@@ -765,7 +763,7 @@ export function setupAudio(
       console.info('[Network]', status)
       switch (status.connected) {
         case true:
-          if (resumeState) {
+          if (!playerStore.isPlaying && !playerStore.userPaused) {
             await nativeMediaSession.requestAudioFocus()
             await audio.play()
           }
@@ -787,24 +785,42 @@ export function setupAudio(
       }
     })
 
-    App.addListener('appStateChange', async ({ isActive }) => {
-      if (!isActive) return
+    // App.addListener('appStateChange', async ({ isActive }) => {
+    //  if (Date.now() - playTime < 1000) return
+    //
+    // })
 
-      if (Date.now() - playTime < 1000) return
+  } else { // is Desktop OR Mobile
 
-      if (!isActive && playerStore.isPlaying) {
-        resumeState = true
-      }
-    })
+    if (navigator.mediaDevices?.addEventListener) {
 
-  } else {
+      navigator.mediaDevices.addEventListener('devicechange', async () => {
+        if (Date.now() - playTime < 1000)  return
+
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const outputs = devices.filter(d => d.kind === 'audiooutput')
+        const hasAudioOutput = outputs.length > 0
+
+        // ---- "disconnect" heuristic ----
+        if (!hasAudioOutput && playerStore.isPlaying) {
+          await audio.pause()
+          return
+        }
+
+        // ---- "reconnect" heuristic ----
+        if (!playerStore.isPlaying && !playerStore.userPaused) {
+          await audio.play()
+        }
+      })
+    }
+
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
         if (Date.now() - playTime < 1000) return
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
-          if (resumeState) {
+          if (!playerStore.isPlaying && !playerStore.userPaused) {
             await audio.play()
           }
         }
@@ -812,27 +828,6 @@ export function setupAudio(
 
       document.addEventListener('resume', playerStore.play)
 
-      if (navigator.mediaDevices?.addEventListener) {
-
-        if (Date.now() - playTime < 1000)  return
-
-        navigator.mediaDevices.addEventListener('devicechange', async () => {
-          const devices = await navigator.mediaDevices.enumerateDevices()
-          const outputs = devices.filter(d => d.kind === 'audiooutput')
-          const hasAudioOutput = outputs.length > 0
-
-          // ---- "disconnect" heuristic ----
-          if (!hasAudioOutput && iplayerStore.isPlaying) {
-            await audio.pause()
-            return
-          }
-
-          // ---- "reconnect" heuristic ----
-          if (resumeState) {
-            await audio.play()
-          }
-        })
-      }
     } else { // is Desktop
       window.addEventListener('keydown', async (event) => {
         // Ignore when typing in inputs/textareas
