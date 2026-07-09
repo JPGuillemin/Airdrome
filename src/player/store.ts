@@ -641,9 +641,9 @@ export function setupAudio(
   }
 
   audio.onsuspend = () => {
-    playerStore.isPlaying = false
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('paused')
+    // playerStore.isPlaying = false
+    // playerStore.setMediaSessionPosition()
+    // playerStore.setMediaSessionState('paused')
   }
 
   /** When a track finishes naturally, advance to the next one or end the queue. */
@@ -675,23 +675,8 @@ export function setupAudio(
     }
   }
 
-  /** Fired by AudioController after every retry delay. */
-  audio.onretrying = (attempt: number, max: number) => {
-    console.info(`[Audio] Network error – retrying (${attempt}/${max})…`)
-  }
-
-  /** All retries exhausted without a successful load */
-  audio.onfailed = () => {
-    console.warn('[Audio] Retries exhausted, waiting for network')
-  }
-
-  /** Stall watchdog armed – nothing to do in the store beyond logging. */
-  audio.onstalled = () => {
-    console.info('[Audio] Playback stalled, watchdog armed')
-  }
-
   // ---------------------------------------------------------------------------
-  // Mobile auto-resume
+  // Auto-resume
   // ---------------------------------------------------------------------------
 
   if (isNative) {
@@ -702,11 +687,11 @@ export function setupAudio(
       if (Date.now() - playTime < 1000) return
 
       switch (type) {
-        // case 'lossTransient':
-          // if (playerStore.isPlaying) {
-            // await audio.pause()
-          // }
-          // break
+        case 'lossTransient':
+          if (playerStore.isPlaying) {
+            await audio.pause()
+          }
+          break
         case 'loss':
           if (playerStore.isPlaying) {
             await audio.pause()
@@ -717,9 +702,14 @@ export function setupAudio(
           if (!playerStore.isPlaying && !playerStore.userPaused) {
             await audio.play()
           }
+          // Also covers returning from a duck: if we were ducked rather than
+          // paused, isPlaying stayed true throughout, so this branch alone
+          // wouldn't otherwise touch volume.
+          audio.unduck()
           break
 
         case 'lossDuck':
+          audio.duck()
           break
       }
     })
@@ -877,7 +867,7 @@ export function setupAudio(
 
     // ── Auto-skip ──────────────────────────────────────────────────────
     const remaining = duration - time
-    if (remaining < 0.1 && playerStore.hasNext) {
+    if (remaining < 0.15 && playerStore.hasNext) {
       playerStore.next(false) // No fade – the gapless buffer handles the transition
       return
     }

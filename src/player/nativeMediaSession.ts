@@ -57,13 +57,6 @@ export type NativeMediaSessionEvent =
   | 'seekbackward'
   | 'audioFocusChange'
   | 'audioRouteChange'
-  /**
-   * Fired when a phone call (RINGING or OFFHOOK) returns to IDLE.
-   * Used as a reliable fallback for auto-resume because some OEMs do not
-   * re-fire AUDIOFOCUS_GAIN after a AUDIOFOCUS_LOSS caused by a phone call.
-   * Requires READ_PHONE_STATE runtime permission; silently absent if denied.
-   */
-  | 'phoneCallEnded'
 
 interface MediaSessionPluginShape {
   setMetadata(options: NativeMetadataOptions): Promise<void>

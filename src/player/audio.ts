@@ -74,20 +74,19 @@ export class AudioController {
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
 
+  /** User's actual volume setting (0–1), independent of any active ducking. */
+  private userVolume = 1
+  /** True while volume is attenuated for AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK. */
+  private isDucked = false
+
   private _context: AudioContext | null = null
 
   private pipeline: AudioPipeline | null = null
 
-  // ── Retry state ───────────────────────────────────────────────────────────
   private lastLoadOptions: {
     url?: string; nextUrl?: string; paused?: boolean
     replayGain?: ReplayGain; fade?: boolean
   } | null = null
-  private retryCount = 0
-  private retryTimer: ReturnType<typeof setTimeout> | null = null
-  private readonly maxRetries = 4
-  /** Exponential back-off delays in ms: 2 s, 4 s, 8 s, 16 s */
-  private readonly retryDelays = [2_000, 4_000, 8_000, 16_000] as const
 
   private get activePipeline(): AudioPipeline {
     if (!this.pipeline) {
@@ -110,12 +109,8 @@ export class AudioController {
   onplay = () => {}
   onended = () => {}
   onsuspend = () => {}
-  onerror = (_: MediaError | null) => {}
-  /** Fired on each retry attempt. */
-  onretrying = (_attempt: number, _max: number) => {}
-  /** Fired when all retries are exhausted without success. */
+  onerror = () => {}
   onfailed = () => {}
-  /** Fired when the browser stops fetching (stall watchdog armed). */
   onstalled = () => {}
 
   // ── Public accessors ──────────────────────────────────────────────────────
@@ -156,7 +151,36 @@ export class AudioController {
 
   /** Set master volume (0–1). Applied directly to the volumeNode gain. */
   setVolume(value: number) {
-    this.activePipeline.volumeNode.gain.value = value
+    this.userVolume = value
+    if (!this.isDucked) {
+      this.activePipeline.volumeNode.gain.value = value
+    }
+  }
+
+  /**
+   * Temporarily attenuate volume (e.g. AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK,
+   * such as a navigation prompt or notification sound). Ramped, and layered
+   * on top of the user's actual volume setting rather than replacing it, so
+   * unduck() restores exactly what the user had before — including if they
+   * change the volume slider while ducked.
+   */
+  duck(factor = 0.2, duration = 0.2) {
+    this.isDucked = true
+    this.rampVolumeNode(this.userVolume * factor, duration)
+  }
+
+  /** Reverse duck(): ramp back to the user's actual current volume setting. */
+  unduck(duration = 0.2) {
+    this.isDucked = false
+    this.rampVolumeNode(this.userVolume, duration)
+  }
+
+  private rampVolumeNode(target: number, duration: number) {
+    const gain = this.activePipeline.volumeNode.gain
+    const now = this.context.currentTime
+    gain.cancelScheduledValues(0)
+    gain.setValueAtTime(gain.value, now)
+    gain.linearRampToValueAtTime(target, now + duration)
   }
 
   /**
@@ -187,7 +211,6 @@ export class AudioController {
   /** Stop playback entirely and tear down the pipeline. */
   async stop() {
     this.changeToken++
-    this.cancelRetry()
     this.disposePipeline(this.activePipeline)
     this._context = null
   }
@@ -201,9 +224,7 @@ export class AudioController {
 
   /** Resume the AudioContext if suspended (auto-play policy), then fade in. */
   async play() {
-    if (this.context.state === 'suspended') {
-      await this.context.resume()
-    }
+    await this.context.resume()
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
   }
@@ -217,40 +238,6 @@ export class AudioController {
     if (!this.activePipeline.audio.paused) {
       this.fadeIn(this.fadeTime / 2)
     }
-  }
-
-  // ── Retry helpers ─────────────────────────────────────────────────────────
-
-  /**
-   * Re-load the last track without fade.
-   * Called by the retry scheduler and by the online event listener in the store.
-   */
-  retryCurrentTrack() {
-    if (this.lastLoadOptions) {
-      void this.loadTrack({ ...this.lastLoadOptions, fade: false })
-    }
-  }
-
-  private cancelRetry() {
-    if (this.retryTimer !== null) {
-      clearTimeout(this.retryTimer)
-      this.retryTimer = null
-    }
-  }
-
-  private scheduleRetry() {
-    if (this.retryCount >= this.maxRetries) {
-      this.retryCount = 0
-      this.onfailed()
-      return
-    }
-    const delay = this.retryDelays[this.retryCount]
-    this.onretrying(this.retryCount + 1, this.maxRetries)
-    this.retryCount++
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null
-      this.retryCurrentTrack()
-    }, delay)
   }
 
   // ── Track loading ─────────────────────────────────────────────────────────
@@ -283,11 +270,6 @@ export class AudioController {
     // Capture token before any await so we can detect stale loads later
     const token = ++this.changeToken
 
-    // Reset retry state for a fresh load request
-    this.cancelRetry()
-    this.retryCount = 0
-    this.lastLoadOptions = options // Save for retries
-
     this.replayGain = options.replayGain ?? null
 
     // Re-use existing buffer if possible to avoid redundant network requests
@@ -300,7 +282,7 @@ export class AudioController {
     // Build the new pipeline using the buffered audio element
     const nextPipeline = createPipeline(this.context, {
       audio: this.buffer!,
-      volume: this.activePipeline.volumeNode.gain.value,
+      volume: this.isDucked ? this.userVolume * 0.2 : this.userVolume,
       replayGain: this.replayGainFactor()
     })
 
@@ -322,69 +304,16 @@ export class AudioController {
 
     const audio = this.activePipeline.audio
 
-    // ── Stall watchdog ────────────────────────────────────────────────────
-    // If the audio element stalls or runs out of buffer for >10 s while we
-    // expect it to be playing, check for cached data before retrying.
-    let stalledTimer: ReturnType<typeof setTimeout> | null = null
-
-    const clearStalledTimer = () => {
-      if (stalledTimer !== null) { clearTimeout(stalledTimer); stalledTimer = null }
-    }
-
-    /**
-     * If the audio element already has enough buffered data ahead of the
-     * current position, play from it directly (no network needed).
-     * Otherwise schedule a retry with exponential back-off.
-     */
-    const playFromBufferOrRetry = () => {
-      const bufferedUpTo = audio.buffered.length > 0
-        ? audio.buffered.end(audio.buffered.length - 1)
-        : 0
-      if (bufferedUpTo > audio.currentTime + 1) {
-        // Data is already in memory – play from cache, skip the network entirely
-        void audio.play().catch(() => this.scheduleRetry())
-      } else {
-        this.scheduleRetry()
-      }
-    }
-
-    const armStalledTimer = () => {
-      if (playbackTransition) return
-      clearStalledTimer()
-      if (token !== this.changeToken) return
-      this.onstalled()
-      stalledTimer = setTimeout(() => {
-        stalledTimer = null
-        if (token !== this.changeToken || audio.paused) return
-        playFromBufferOrRetry()
-      }, 5000)
-    }
-
     // ── Event handlers ────────────────────────────────────────────────────
-    audio.onerror = () => {
-      clearStalledTimer()
-      const code = audio.error?.code
-      if (code === MediaError.MEDIA_ERR_ABORTED) {
-        this.onerror(audio.error)
-      } else {
-        playFromBufferOrRetry()
-      }
-    }
-    audio.onended    = () => {
-      clearStalledTimer()
-      this.onended()
-    }
-    audio.onpause    = () => {
-      clearStalledTimer()
-      this.onpause()
-    }
+    audio.onerror = () => this.onerror()
+    audio.onended    = () => this.onended()
+    audio.onpause    = () => this.onpause()
+    audio.onsuspend = () => this.onsuspend()
     audio.onplay     = () => this.onplay()
-    audio.onstalled  = armStalledTimer
-    audio.onwaiting  = armStalledTimer
+    audio.onstalled  = () => this.onstalled()
+    audio.onwaiting  = () => this.onwaiting()
     audio.onplaying = () => {
       playbackTransition = false
-      clearStalledTimer()
-      this.retryCount = 0
     }
     audio.onseeking = () => {
       playbackTransition = true
@@ -399,10 +328,7 @@ export class AudioController {
       }
     })
 
-    // Force metadata load if not already ready
-    if (audio.readyState < 1) {
-      try { audio.load() } catch {}
-    }
+    try { audio.load() } catch {}
 
     if (!options.paused) {
       try {
@@ -413,7 +339,7 @@ export class AudioController {
       }
     }
 
-    // After 15 s, cache the playing track and pre-buffer the next one
+    // After 15 s, pre-buffer the next track
     setTimeout(async () => {
       if (token === this.changeToken && nextUrl) {
         const nextCachedUrl = await cacheStore.getCachedUrl(nextUrl)
@@ -440,6 +366,7 @@ export class AudioController {
     pipeline.audio.onended          = null
     pipeline.audio.onerror          = null
     pipeline.audio.onpause          = null
+    pipeline.audio.onsuspend        = null
     pipeline.audio.onplay           = null
     pipeline.audio.onplaying        = null
     pipeline.audio.onstalled        = null
@@ -448,7 +375,7 @@ export class AudioController {
     pipeline.audio.ondurationchange = null
 
     // Small delay to let the current audio frame finish before disconnecting
-    setTimeout(() => pipeline.dispose(), 500)
+    setTimeout(() => pipeline.dispose(), 1000)
   }
 
   /** Linearly ramp the fade node from its current value to 1 over `duration` seconds. */
