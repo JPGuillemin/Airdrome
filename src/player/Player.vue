@@ -543,23 +543,13 @@
   @media(max-width: 768px) {
     .player {
       font-size: 0.7rem;
-      position: fixed;
-      z-index: 1000;
       bottom: var(--mobile-nav-height);
-      left: 0;
-      right: 0;
-      height: 0;
-      max-height: 0;
-      transition: max-height 0.5s;
-      background: var(--theme-elevation-0);
     }
 
     .player-shape {
-      margin: 0 2px;
-      background: var(--theme-elevation-1);
-      border-radius: 12px;
       border: 1px solid var(--theme-elevation-2);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      margin: 5px 2px 2px 2px;
     }
 
     .visible {

@@ -511,9 +511,7 @@
 
   @media(max-width: 768px) {
     .top-nav-shape {
-      margin: 5px 2px;
-      background: var(--theme-elevation-1);
-      border-radius: 12px;
+      margin: 5px 2px 5px 2px;
       border: 1px solid var(--theme-elevation-2);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
