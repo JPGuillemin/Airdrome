@@ -402,7 +402,7 @@
 
   .player.visible {
     height: auto;
-    max-height: 110px;
+    max-height: 115px;
   }
 
   /* Metadata font for track title and artist in the player bar */
@@ -505,7 +505,7 @@
   }
 
   .player-shape {
-    margin: 0 5px 5px 5px;
+    margin: 5px 5px 5px 5px;
     background: var(--theme-elevation-1);
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);

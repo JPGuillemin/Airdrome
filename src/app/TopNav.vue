@@ -386,7 +386,7 @@
   }
 
   .top-nav-shape {
-    margin: 5px 5px;
+    margin: 5px 5px 5px 5px;
     position: fixed;
     top: 0;
     left: 0;

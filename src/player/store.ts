@@ -8,8 +8,8 @@ import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 import { Capacitor } from '@capacitor/core'
-import { App } from '@capacitor/app'
 import { Network } from '@capacitor/network'
+import { App } from '@capacitor/app'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -623,6 +623,7 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   let playTime = 0
+  let saveTime = 0
 
   playerStore.setMediaSessionState('none')
 
@@ -640,11 +641,9 @@ export function setupAudio(
     playerStore.setMediaSessionState('paused')
   }
 
-  audio.onsuspend = () => {
-    // playerStore.isPlaying = false
-    // playerStore.setMediaSessionPosition()
-    // playerStore.setMediaSessionState('paused')
-  }
+  // Intentionally a no-op: onsuspend fires frequently/spuriously and does not
+  // reliably indicate a real pause, so we don't mirror state here.
+  audio.onsuspend = () => {}
 
   /** When a track finishes naturally, advance to the next one or end the queue. */
   audio.onended = async () => {
@@ -681,30 +680,31 @@ export function setupAudio(
 
   if (isNative) {
 
+    App.addListener('resume', async () => {
+        const state = await nativeMediaSession.getPendingResume()
+        if (Date.now() - playTime < 1000) return
+        if (playerStore.userPaused) return
+        if (state.resume) {
+            await audio.play()
+        }
+    })
+
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
 
       if (Date.now() - playTime < 1000) return
+      if (playerStore.userPaused) return
 
       switch (type) {
         case 'lossTransient':
-          if (playerStore.isPlaying) {
-            await audio.pause()
-          }
+          await audio.pause()
           break
         case 'loss':
-          if (playerStore.isPlaying) {
-            await audio.pause()
-          }
+          await audio.pause()
           break
 
         case 'gain':
-          if (!playerStore.isPlaying && !playerStore.userPaused) {
-            await audio.play()
-          }
-          // Also covers returning from a duck: if we were ducked rather than
-          // paused, isPlaying stayed true throughout, so this branch alone
-          // wouldn't otherwise touch volume.
+          await audio.play()
           audio.unduck()
           break
 
@@ -718,20 +718,17 @@ export function setupAudio(
       const route = event?.route
 
       if (Date.now() - playTime < 1000) return
+      if (playerStore.userPaused) return
 
       switch (route) {
         case 'bluetooth':
-          if (!playerStore.isPlaying && !playerStore.userPaused) {
-            await nativeMediaSession.requestAudioFocus()
-            await audio.play()
-          }
+          await nativeMediaSession.requestAudioFocus()
+          await audio.play()
           break
 
         case 'wired':
-          if (!playerStore.isPlaying && !playerStore.userPaused) {
-            await nativeMediaSession.requestAudioFocus()
-            await audio.play()
-          }
+          await nativeMediaSession.requestAudioFocus()
+          await audio.play()
           break
 
         case 'speaker':
@@ -742,21 +739,13 @@ export function setupAudio(
       }
     })
 
-    nativeMediaSession.addListener('phoneCallEnded', async () => {
-      if (!playerStore.isPlaying && !playerStore.userPaused) {
-        await nativeMediaSession.requestAudioFocus()
-        await audio.play()
-      }
-    })
-
     Network.addListener('networkStatusChange', async status => {
       console.info('[Network]', status)
+      if (playerStore.userPaused) return
       switch (status.connected) {
         case true:
-          if (!playerStore.isPlaying && !playerStore.userPaused) {
-            await nativeMediaSession.requestAudioFocus()
-            await audio.play()
-          }
+          await nativeMediaSession.requestAudioFocus()
+          await audio.play()
           break
 
         case false:
@@ -775,10 +764,11 @@ export function setupAudio(
       }
     })
 
-    // App.addListener('appStateChange', async ({ isActive }) => {
-    //  if (Date.now() - playTime < 1000) return
-    //
-    // })
+    // TODO: App.addListener('appStateChange', ...) from '@capacitor/app' was
+    // stubbed here but never implemented, so the import was removed above.
+    // Given the current background-audio/screen-lock focus, this may be
+    // worth revisiting as a signal alongside audioFocusChange — re-add the
+    // import if implemented.
 
   } else { // is Desktop OR Mobile
 
@@ -786,33 +776,32 @@ export function setupAudio(
 
       navigator.mediaDevices.addEventListener('devicechange', async () => {
         if (Date.now() - playTime < 1000)  return
+        if (playerStore.userPaused) return
 
         const devices = await navigator.mediaDevices.enumerateDevices()
         const outputs = devices.filter(d => d.kind === 'audiooutput')
         const hasAudioOutput = outputs.length > 0
 
         // ---- "disconnect" heuristic ----
-        if (!hasAudioOutput && playerStore.isPlaying) {
+        if (!hasAudioOutput) {
           await audio.pause()
           return
         }
 
         // ---- "reconnect" heuristic ----
-        if (!playerStore.isPlaying && !playerStore.userPaused) {
-          await audio.play()
-        }
+        await audio.play()
       })
     }
 
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
         if (Date.now() - playTime < 1000) return
+        if (playerStore.userPaused) return
+
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
-          if (!playerStore.isPlaying && !playerStore.userPaused) {
-            await audio.play()
-          }
+          await audio.play()
         }
       })
 
@@ -844,21 +833,18 @@ export function setupAudio(
     }
   }
 
-  /**
-   * Watch the playback position to handle two concerns:
-   *
-   * 1. Auto-skip: When fewer than 250 ms remain and there is a next track,
-   *    advance early so there is no audible gap between tracks.
-   *
-   * 2. Scrobbling: Once the user has listened to more than 50% of a track,
-   *    report a play to the server (Last.fm-style scrobble).
-   */
   audio.ontimeupdate = (time: number) => {
     if (playerStore.inTransition) return
     playerStore.currentTime = time
 
     const track = playerStore.track
     const isPlaying = playerStore.isPlaying
+
+    const now = Date.now()
+    if (now - saveTime > 10000) {
+      saveTime = now
+      playerStore.saveQueue()
+    }
 
     // Ignore the first 20 s to avoid false triggers on seek or slow loads
     if (!track || !isPlaying || time < 20) return
@@ -909,19 +895,9 @@ export function setupAudio(
   window.addEventListener('online', () => {
     if (!playerStore.userPaused) {
       console.info('[Audio] Network restored – retrying current track')
-      audio.retryCurrentTrack()
+      audio.play()
     }
   })
-
-  // window.addEventListener('offline', async () => {
-  //   console.warn('[Audio] Network lost')
-  //   // only auto-pause if playback was active
-  //   if (playerStore.isPlaying) {
-  //     playerStore.userPaused = false
-  //     await audio.pause()
-  //     playerStore.setMediaSessionState('paused')
-  //   }
-  // })
 
   // ---------------------------------------------------------------------------
   // Initialise audio controller with persisted settings
@@ -1003,13 +979,4 @@ export function setupAudio(
     })
   }
 
-  // ---------------------------------------------------------------------------
-  // Periodic queue persistence
-  // ---------------------------------------------------------------------------
-  // Save the play queue to the server every 10 s so the position can be
-  // restored on the next page load or on another device.
-
-  setInterval(() => {
-    playerStore.saveQueue()
-  }, 10000)
 }
