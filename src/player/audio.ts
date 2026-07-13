@@ -70,17 +70,9 @@ export class AudioController {
    * buffer the upcoming URL before it is needed.
    */
   private buffer: HTMLAudioElement | null = null
-
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
-
-  /** User's actual volume setting (0–1), independent of any active ducking. */
-  private userVolume = 1
-  /** True while volume is attenuated for AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK. */
-  private isDucked = false
-
   private _context: AudioContext | null = null
-
   private pipeline: AudioPipeline | null = null
 
   private lastLoadOptions: {
@@ -151,28 +143,7 @@ export class AudioController {
 
   /** Set master volume (0–1). Applied directly to the volumeNode gain. */
   setVolume(value: number) {
-    this.userVolume = value
-    if (!this.isDucked) {
-      this.activePipeline.volumeNode.gain.value = value
-    }
-  }
-
-  /**
-   * Temporarily attenuate volume (e.g. AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK,
-   * such as a navigation prompt or notification sound). Ramped, and layered
-   * on top of the user's actual volume setting rather than replacing it, so
-   * unduck() restores exactly what the user had before — including if they
-   * change the volume slider while ducked.
-   */
-  duck(factor = 0.2, duration = 0.2) {
-    this.isDucked = true
-    this.rampVolumeNode(this.userVolume * factor, duration)
-  }
-
-  /** Reverse duck(): ramp back to the user's actual current volume setting. */
-  unduck(duration = 0.2) {
-    this.isDucked = false
-    this.rampVolumeNode(this.userVolume, duration)
+    this.activePipeline.volumeNode.gain.value = value
   }
 
   private rampVolumeNode(target: number, duration: number) {
@@ -222,11 +193,15 @@ export class AudioController {
     audio.pause()
   }
 
-  /** Resume the AudioContext if suspended (auto-play policy), then fade in. */
+  /** Play, then fade in. */
   async play() {
-    await this.context.resume()
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
+  }
+
+  /** Resume context */
+  async resume() {
+    await this.context.resume()
   }
 
   /** Seek to an absolute position (seconds). Fades out/in when playing. */
@@ -282,7 +257,7 @@ export class AudioController {
     // Build the new pipeline using the buffered audio element
     const nextPipeline = createPipeline(this.context, {
       audio: this.buffer!,
-      volume: this.isDucked ? this.userVolume * 0.2 : this.userVolume,
+      volume: this.activePipeline.volumeNode.gain.value,
       replayGain: this.replayGainFactor()
     })
 

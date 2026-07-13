@@ -31,18 +31,4 @@ public class MainActivity extends BridgeActivity {
             startService(svc);
         }
     }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-
-        // Keep JS alive for audio callbacks
-        this.bridge.getWebView().onResume();
-    }
-
-    @Override
-    public void onDestroy() {
-        stopService(new Intent(this, MediaPlaybackService.class));
-        super.onDestroy();
-    }
 }

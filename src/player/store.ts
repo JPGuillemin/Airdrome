@@ -216,6 +216,7 @@ export const usePlayerStore = defineStore('player', {
     async play() {
       this.userPaused = false
       if (isNative) await nativeMediaSession.requestAudioFocus()
+      await audio.resume()
       await audio.play()
     },
 
@@ -641,8 +642,6 @@ export function setupAudio(
     playerStore.setMediaSessionState('paused')
   }
 
-  // Intentionally a no-op: onsuspend fires frequently/spuriously and does not
-  // reliably indicate a real pause, so we don't mirror state here.
   audio.onsuspend = () => {}
 
   /** When a track finishes naturally, advance to the next one or end the queue. */
@@ -680,15 +679,6 @@ export function setupAudio(
 
   if (isNative) {
 
-    App.addListener('resume', async () => {
-        const state = await nativeMediaSession.getPendingResume()
-        if (Date.now() - playTime < 1000) return
-        if (playerStore.userPaused) return
-        if (state.resume) {
-            await audio.play()
-        }
-    })
-
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
 
@@ -704,12 +694,13 @@ export function setupAudio(
           break
 
         case 'gain':
+          await audio.resume()
           await audio.play()
-          audio.unduck()
+          // audio.unduck()
           break
 
         case 'lossDuck':
-          audio.duck()
+          // audio.duck()
           break
       }
     })
@@ -745,6 +736,7 @@ export function setupAudio(
       switch (status.connected) {
         case true:
           await nativeMediaSession.requestAudioFocus()
+          await audio.resume()
           await audio.play()
           break
 
