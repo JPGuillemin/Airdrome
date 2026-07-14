@@ -100,10 +100,7 @@ export class AudioController {
   onpause = () => {}
   onplay = () => {}
   onended = () => {}
-  onsuspend = () => {}
   onerror = () => {}
-  onfailed = () => {}
-  onstalled = () => {}
 
   // ── Public accessors ──────────────────────────────────────────────────────
 
@@ -204,13 +201,30 @@ export class AudioController {
     await this.context.resume()
   }
 
-  /** Seek to an absolute position (seconds). Fades out/in when playing. */
+  /**
+   * Seek to an absolute position (seconds). Fades out/in when playing.
+   *
+   * Captures the pipeline + changeToken up front and re-checks the token
+   * before touching the audio element again: if loadTrack() swaps the
+   * pipeline while this seek is in flight (e.g. an auto-skip or a manual
+   * track change racing a lock-screen/MediaSession seek), we abort instead
+   * of writing currentTime or fading a pipeline that's being disposed.
+   */
   async seek(value: number) {
-    if (!this.activePipeline.audio.paused) {
+    const token = this.changeToken
+    const pipeline = this.activePipeline
+
+    if (!pipeline.audio.paused) {
       this.fadeOut(this.fadeTime / 2)
     }
-    this.activePipeline.audio.currentTime = value
-    if (!this.activePipeline.audio.paused) {
+
+    pipeline.audio.currentTime = value
+
+    // Pipeline was swapped while we were setting currentTime - bail out,
+    // the new pipeline owns fade state now.
+    if (token !== this.changeToken) return
+
+    if (!pipeline.audio.paused) {
       this.fadeIn(this.fadeTime / 2)
     }
   }
@@ -267,8 +281,6 @@ export class AudioController {
       return
     }
 
-    let playbackTransition = true
-
     if (options.fade) {
       await this.fadeOut(this.fadeTime)
     }
@@ -283,16 +295,7 @@ export class AudioController {
     audio.onerror = () => this.onerror()
     audio.onended    = () => this.onended()
     audio.onpause    = () => this.onpause()
-    audio.onsuspend = () => this.onsuspend()
     audio.onplay     = () => this.onplay()
-    audio.onstalled  = () => this.onstalled()
-    audio.onwaiting  = () => this.onwaiting()
-    audio.onplaying = () => {
-      playbackTransition = false
-    }
-    audio.onseeking = () => {
-      playbackTransition = true
-    }
     audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
 
     // Fire ondurationchange once the metadata has been parsed
@@ -341,11 +344,7 @@ export class AudioController {
     pipeline.audio.onended          = null
     pipeline.audio.onerror          = null
     pipeline.audio.onpause          = null
-    pipeline.audio.onsuspend        = null
     pipeline.audio.onplay           = null
-    pipeline.audio.onplaying        = null
-    pipeline.audio.onstalled        = null
-    pipeline.audio.onwaiting        = null
     pipeline.audio.ontimeupdate     = null
     pipeline.audio.ondurationchange = null
 

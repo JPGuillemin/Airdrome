@@ -9,7 +9,6 @@ import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 import { Capacitor } from '@capacitor/core'
 import { Network } from '@capacitor/network'
-import { App } from '@capacitor/app'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -630,7 +629,6 @@ export function setupAudio(
 
   audio.onplay = () => {
     playerStore.isPlaying = true
-    playerStore.userPaused = false
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -641,8 +639,6 @@ export function setupAudio(
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
   }
-
-  audio.onsuspend = () => {}
 
   /** When a track finishes naturally, advance to the next one or end the queue. */
   audio.onended = async () => {
@@ -682,23 +678,20 @@ export function setupAudio(
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
 
-      if (Date.now() - playTime < 1000) return
+      if (Date.now() - playTime < 2000) return
       if (playerStore.userPaused) return
 
       switch (type) {
-        case 'lossTransient':
-          await audio.pause()
-          break
         case 'loss':
-          await audio.pause()
+          if (playerStore.isPlaying) await audio.pause()
           break
 
         case 'gain':
-          await audio.resume()
-          await audio.play()
+          if (!playerStore.isPlaying) await audio.play()
           // audio.unduck()
           break
 
+        case 'lossTransient':
         case 'lossDuck':
           // audio.duck()
           break
@@ -708,24 +701,20 @@ export function setupAudio(
     nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
       const route = event?.route
 
-      if (Date.now() - playTime < 1000) return
+      if (Date.now() - playTime < 2000) return
       if (playerStore.userPaused) return
 
       switch (route) {
         case 'bluetooth':
-          await nativeMediaSession.requestAudioFocus()
-          await audio.play()
+          if (!playerStore.isPlaying) await audio.play()
           break
 
         case 'wired':
-          await nativeMediaSession.requestAudioFocus()
-          await audio.play()
+          if (!playerStore.isPlaying) await audio.play()
           break
 
         case 'speaker':
-          if (playerStore.isPlaying) {
-            await audio.pause()
-          }
+          if (playerStore.isPlaying) await audio.pause()
           break
       }
     })
@@ -735,39 +724,22 @@ export function setupAudio(
       if (playerStore.userPaused) return
       switch (status.connected) {
         case true:
-          await nativeMediaSession.requestAudioFocus()
-          await audio.resume()
-          await audio.play()
+          console.info('[Network]', status)
+          if (!playerStore.isPlaying) await audio.play()
           break
 
         case false:
-          // Network lost
-          // if (!status.connected) {
-          //   if (isPlaying) {
-          //     console.warn('[Audio] Network lost – pausing playback')
-          //     // keep userPaused = false so auto-resume still works
-          //     playerStore.userPaused = false
-          //     await audio.pause()
-          //   }
-          //
-          //   return
-          // }
+          console.info('[Network]', status)
           break
       }
     })
-
-    // TODO: App.addListener('appStateChange', ...) from '@capacitor/app' was
-    // stubbed here but never implemented, so the import was removed above.
-    // Given the current background-audio/screen-lock focus, this may be
-    // worth revisiting as a signal alongside audioFocusChange — re-add the
-    // import if implemented.
 
   } else { // is Desktop OR Mobile
 
     if (navigator.mediaDevices?.addEventListener) {
 
       navigator.mediaDevices.addEventListener('devicechange', async () => {
-        if (Date.now() - playTime < 1000)  return
+        if (Date.now() - playTime < 2000)  return
         if (playerStore.userPaused) return
 
         const devices = await navigator.mediaDevices.enumerateDevices()
@@ -776,28 +748,41 @@ export function setupAudio(
 
         // ---- "disconnect" heuristic ----
         if (!hasAudioOutput) {
-          await audio.pause()
+          if (playerStore.isPlaying) await audio.pause()
           return
         }
 
         // ---- "reconnect" heuristic ----
-        await audio.play()
+        if (!playerStore.isPlaying) await audio.play()
       })
     }
 
+    /**
+     * When the browser goes back online, immediately retry if we're supposed
+     * to be playing (the user didn't deliberately pause).
+     */
+    window.addEventListener('online', async () => {
+      if (!playerStore.userPaused) {
+        console.info('[Audio] Network restored – retrying current track')
+        if (!playerStore.isPlaying) await audio.play()
+      }
+    })
+
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
-        if (Date.now() - playTime < 1000) return
+        if (Date.now() - playTime < 2000) return
         if (playerStore.userPaused) return
 
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
-          await audio.play()
+          if (!playerStore.isPlaying) await audio.play()
         }
       })
 
-      document.addEventListener('resume', playerStore.play)
+      document.addEventListener('resume', async () => {
+        if (!playerStore.isPlaying) await audio.play()
+      })
 
     } else { // is Desktop
       window.addEventListener('keydown', async (event) => {
@@ -877,17 +862,6 @@ export function setupAudio(
       event.preventDefault()
       event.returnValue = ''
       return ''
-    }
-  })
-
-  /**
-   * When the browser goes back online, immediately retry if we're supposed
-   * to be playing (the user didn't deliberately pause).
-   */
-  window.addEventListener('online', () => {
-    if (!playerStore.userPaused) {
-      console.info('[Audio] Network restored – retrying current track')
-      audio.play()
     }
   })
 

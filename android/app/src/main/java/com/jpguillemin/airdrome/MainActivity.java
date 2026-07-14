@@ -35,6 +35,16 @@ public class MainActivity extends BridgeActivity {
     }
   }
 
+  @Override
+  public void onDestroy() {
+
+      stopService(
+          new Intent(this, MediaPlaybackService.class)
+      );
+
+      super.onDestroy();
+  }
+
   public void requestIgnoreBatteryOptimizations() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
