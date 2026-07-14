@@ -213,7 +213,6 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      this.userPaused = false
       if (isNative) await nativeMediaSession.requestAudioFocus()
       await audio.resume()
       await audio.play()
@@ -629,6 +628,7 @@ export function setupAudio(
 
   audio.onplay = () => {
     playerStore.isPlaying = true
+    playerStore.userPaused = false
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -677,17 +677,19 @@ export function setupAudio(
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
+      const userPaused = playerStore.userPaused
+      const isPlaying = playerStore.isPlaying
 
-      if (Date.now() - playTime < 2000) return
-      if (playerStore.userPaused) return
+      if (Date.now() - playTime < 1000) return
+      if (userPaused) return
 
       switch (type) {
         case 'loss':
-          if (playerStore.isPlaying) await audio.pause()
+          if (isPlaying) await audio.pause()
           break
 
         case 'gain':
-          if (!playerStore.isPlaying) await audio.play()
+          if (!isPlaying) await audio.play()
           // audio.unduck()
           break
 
@@ -699,33 +701,40 @@ export function setupAudio(
     })
 
     nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
-      const route = event?.route
 
-      if (Date.now() - playTime < 2000) return
-      if (playerStore.userPaused) return
+      const route = event?.route
+      const userPaused = playerStore.userPaused
+      const isPlaying = playerStore.isPlaying
+
+
+      if (userPaused) return
 
       switch (route) {
         case 'bluetooth':
-          if (!playerStore.isPlaying) await audio.play()
+          if (!isPlaying) await audio.play()
           break
 
         case 'wired':
-          if (!playerStore.isPlaying) await audio.play()
+          if (!isPlaying) await audio.play()
           break
 
         case 'speaker':
-          if (playerStore.isPlaying) await audio.pause()
+          if (isPlaying) await audio.pause()
           break
       }
     })
 
     Network.addListener('networkStatusChange', async status => {
       console.info('[Network]', status)
-      if (playerStore.userPaused) return
+
+      const userPaused = playerStore.userPaused
+      const isPlaying = playerStore.isPlaying
+
+      if (userPaused) return
       switch (status.connected) {
         case true:
           console.info('[Network]', status)
-          if (!playerStore.isPlaying) await audio.play()
+          if (!isPlaying) await audio.play()
           break
 
         case false:
@@ -739,7 +748,11 @@ export function setupAudio(
     if (navigator.mediaDevices?.addEventListener) {
 
       navigator.mediaDevices.addEventListener('devicechange', async () => {
-        if (Date.now() - playTime < 2000)  return
+        if (Date.now() - playTime < 1000)  return
+
+        const userPaused = playerStore.userPaused
+        const isPlaying = playerStore.isPlaying
+
         if (playerStore.userPaused) return
 
         const devices = await navigator.mediaDevices.enumerateDevices()
@@ -748,12 +761,12 @@ export function setupAudio(
 
         // ---- "disconnect" heuristic ----
         if (!hasAudioOutput) {
-          if (playerStore.isPlaying) await audio.pause()
+          if (isPlaying) await audio.pause()
           return
         }
 
         // ---- "reconnect" heuristic ----
-        if (!playerStore.isPlaying) await audio.play()
+        if (!isPlaying) await audio.play()
       })
     }
 
@@ -762,26 +775,42 @@ export function setupAudio(
      * to be playing (the user didn't deliberately pause).
      */
     window.addEventListener('online', async () => {
-      if (!playerStore.userPaused) {
+      if (Date.now() - playTime < 1000) return
+
+      const userPaused = playerStore.userPaused
+      const isPlaying = playerStore.isPlaying
+
+      if (!userPaused) {
         console.info('[Audio] Network restored – retrying current track')
-        if (!playerStore.isPlaying) await audio.play()
+        if (!isPlaying) await audio.play()
       }
     })
 
     if (isMobile) {
       document.addEventListener('visibilitychange', async () => {
-        if (Date.now() - playTime < 2000) return
-        if (playerStore.userPaused) return
+        if (Date.now() - playTime < 1000) return
+
+        const userPaused = playerStore.userPaused
+        const isPlaying = playerStore.isPlaying
+
+        if (userPaused) return
 
         if (document.visibilityState === 'hidden') {
           playerStore.saveQueue()
         } else {
-          if (!playerStore.isPlaying) await audio.play()
+          if (!isPlaying) await audio.play()
         }
       })
 
       document.addEventListener('resume', async () => {
-        if (!playerStore.isPlaying) await audio.play()
+        if (Date.now() - playTime < 1000) return
+
+        const userPaused = playerStore.userPaused
+        const isPlaying = playerStore.isPlaying
+
+        if (userPaused) return
+
+        if (!isPlaying) await audio.play()
       })
 
     } else { // is Desktop
