@@ -745,35 +745,31 @@ export function setupAudio(
 
   } else { // is Desktop OR Mobile
 
-    if (navigator.mediaDevices?.addEventListener) {
+    let knownOutputIds = new Set<string>()
 
-      navigator.mediaDevices.addEventListener('devicechange', async () => {
-        if (Date.now() - playTime < 1000)  return
+    navigator.mediaDevices.addEventListener('devicechange', async () => {
+      if (Date.now() - playTime < 1000) return
 
-        const userPaused = playerStore.userPaused
-        const isPlaying = playerStore.isPlaying
+      const userPaused = playerStore.userPaused
+      if (userPaused) return
 
-        if (playerStore.userPaused) return
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const outputs = devices.filter(d => d.kind === 'audiooutput')
+      const currentIds = new Set(outputs.map(d => d.deviceId))
 
-        const devices = await navigator.mediaDevices.enumerateDevices()
-        const outputs = devices.filter(d => d.kind === 'audiooutput')
-        const hasAudioOutput = outputs.length > 0
+      const removed = [...knownOutputIds].some(id => !currentIds.has(id))
+      const added = [...currentIds].some(id => !knownOutputIds.has(id))
+      knownOutputIds = currentIds
 
-        // ---- "disconnect" heuristic ----
-        if (!hasAudioOutput) {
-          if (isPlaying) await audio.pause()
-          return
-        }
+      const isPlaying = playerStore.isPlaying
 
-        // ---- "reconnect" heuristic ----
-        if (!isPlaying) await audio.play()
-      })
-    }
+      if (removed && isPlaying) {
+        await audio.pause()
+      } else if (added && !isPlaying) {
+        await audio.play()
+      }
+    })
 
-    /**
-     * When the browser goes back online, immediately retry if we're supposed
-     * to be playing (the user didn't deliberately pause).
-     */
     window.addEventListener('online', async () => {
       if (Date.now() - playTime < 1000) return
 
