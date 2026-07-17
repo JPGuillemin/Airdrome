@@ -622,11 +622,17 @@ export function setupAudio(
   // ---------------------------------------------------------------------------
 
   let playTime = 0
-  let saveTime = 0
+
 
   playerStore.setMediaSessionState('none')
 
+  let waitingTimer: ReturnType<typeof setTimeout> | null = null
+
   audio.onplay = () => {
+    if (waitingTimer) {
+      clearTimeout(waitingTimer)
+      waitingTimer = null
+    }
     playerStore.isPlaying = true
     playerStore.userPaused = false
     playTime = Date.now()
@@ -638,6 +644,26 @@ export function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+  }
+
+  audio.onwaiting = () => {
+    if (waitingTimer) clearTimeout(waitingTimer)
+    waitingTimer = setTimeout(() => {
+      waitingTimer = null
+      playerStore.isPlaying = false
+      playerStore.setMediaSessionPosition()
+      playerStore.setMediaSessionState('paused')
+    }, 500)
+  }
+
+  audio.onplaying = () => {
+    if (waitingTimer) {
+      clearTimeout(waitingTimer)
+      waitingTimer = null
+    }
+    playerStore.isPlaying = true
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('playing')
   }
 
   /** When a track finishes naturally, advance to the next one or end the queue. */
@@ -724,25 +750,6 @@ export function setupAudio(
       }
     })
 
-    Network.addListener('networkStatusChange', async status => {
-      console.info('[Network]', status)
-
-      const userPaused = playerStore.userPaused
-      const isPlaying = playerStore.isPlaying
-
-      if (userPaused) return
-      switch (status.connected) {
-        case true:
-          console.info('[Network]', status)
-          if (!isPlaying) await audio.play()
-          break
-
-        case false:
-          console.info('[Network]', status)
-          break
-      }
-    })
-
   } else { // is Desktop OR Mobile
 
     let knownOutputIds = new Set<string>()
@@ -770,46 +777,7 @@ export function setupAudio(
       }
     })
 
-    window.addEventListener('online', async () => {
-      if (Date.now() - playTime < 1000) return
-
-      const userPaused = playerStore.userPaused
-      const isPlaying = playerStore.isPlaying
-
-      if (!userPaused) {
-        console.info('[Audio] Network restored – retrying current track')
-        if (!isPlaying) await audio.play()
-      }
-    })
-
-    if (isMobile) {
-      document.addEventListener('visibilitychange', async () => {
-        if (Date.now() - playTime < 1000) return
-
-        const userPaused = playerStore.userPaused
-        const isPlaying = playerStore.isPlaying
-
-        if (userPaused) return
-
-        if (document.visibilityState === 'hidden') {
-          playerStore.saveQueue()
-        } else {
-          if (!isPlaying) await audio.play()
-        }
-      })
-
-      document.addEventListener('resume', async () => {
-        if (Date.now() - playTime < 1000) return
-
-        const userPaused = playerStore.userPaused
-        const isPlaying = playerStore.isPlaying
-
-        if (userPaused) return
-
-        if (!isPlaying) await audio.play()
-      })
-
-    } else { // is Desktop
+    if (!isMobile) { // is Desktop
       window.addEventListener('keydown', async (event) => {
         // Ignore when typing in inputs/textareas
         const target = event.target as HTMLElement | null
@@ -835,6 +803,7 @@ export function setupAudio(
     }
   }
 
+  let saveTime = 0
   audio.ontimeupdate = (time: number) => {
     if (playerStore.inTransition) return
     playerStore.currentTime = time
