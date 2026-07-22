@@ -88,7 +88,6 @@ table.table-numbered {
   table-layout: fixed;
   width: 100%;
 
-  // Number column
   th:first-child,
   td:first-child {
     padding-left: 0;
@@ -99,14 +98,23 @@ table.table-numbered {
     color: var(--bs-secondary-color);
   }
 
-  // Duration column
+  th:nth-child(2),
+  td:nth-child(2),
+  th:nth-child(3),
+  td:nth-child(3),
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 100%;
+  }
+
   th:nth-last-child(2),
   td:nth-last-child(2) {
-    width: 90px;
+    width: 75px;
+    max-width: 75px;
+    min-width: 75px;
     white-space: nowrap;
   }
 
-  // Actions column
   th:last-child,
   td:last-child {
     width: 48px;
@@ -190,13 +198,6 @@ table.table-numbered {
     cursor: pointer;
     vertical-align: middle;
   }
-}
-
-.actions-cell {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding-right: 0;
 }
 
 $table-cell-padding-y: 0.75rem;

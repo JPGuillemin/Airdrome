@@ -8,7 +8,7 @@
         loading="lazy"
         :alt="track.album"
         class="rounded flex-shrink-0"
-        style="width: 28px; height: 28px; object-fit: cover;"
+        style="width: 45px; height: 45px; object-fit: cover;"
       >
 
       <div class="flex-grow-1 truncate-cell">
