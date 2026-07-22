@@ -594,7 +594,7 @@
   @media(max-width:768px) {
 
     .player {
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       bottom: var(--mobile-nav-height);
     }
 
