@@ -36,10 +36,10 @@
           </div>
 
           <!-- main row -->
-          <div class="row align-items-center m-0 elevated">
+          <div class="player-row elevated">
 
             <!-- track info -->
-            <div class="col track-col p-0 d-flex flex-nowrap align-items-center justify-content-start flex-grow-1">
+            <div class="track-col">
               <template v-if="track">
                 <div
                   v-if="track.albumId"
@@ -59,7 +59,7 @@
                   >
                 </div>
 
-                <div style="min-width: 0; overflow: hidden">
+                <div style="min-width:0; flex:1;">
                   <router-link
                     @click.stop
                     :to="{ name: 'album', params: { id: track.albumId } }"
@@ -86,7 +86,7 @@
             </div>
 
             <!-- transport -->
-            <div class="col-auto pb-3 d-flex align-items-center">
+            <div class="transport-controls">
               <b-button variant="transparent" class="mx-0 btn-skip" @click.stop="back">
                 <Icon icon="skip-start" />
               </b-button>
@@ -106,7 +106,7 @@
             </div>
 
             <!-- right controls -->
-            <div class="col-auto pb-3">
+            <div class="right-controls">
               <div class="d-flex flex-nowrap justify-content-end pe-3">
 
                 <div class="m-0 d-none d-md-inline-flex align-items-center">
@@ -405,7 +405,53 @@
     max-height: 115px;
   }
 
-  /* Metadata font for track title and artist in the player bar */
+  /* Main layout */
+  .player-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 58px;
+    padding: 0;
+  }
+
+  /* Track area grows */
+  .track-col {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .track-col > div:last-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Transport */
+  .transport-controls {
+    flex: 0 0 auto;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Right side controls */
+  .right-controls {
+    flex: 0 0 auto;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .right-controls > div {
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Metadata */
   .player :deep(.player-link) {
     font-family: var(--font-metadata);
     color: var(--theme-text);
@@ -425,6 +471,13 @@
     font-size: 0.85em;
   }
 
+  .player-link.title-text {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Cover */
   .small-cover {
     display: block;
     width: 58px;
@@ -432,26 +485,17 @@
     object-fit: cover;
     border-radius: 5px;
     flex-shrink: 0;
-    filter: invert(0) hue-rotate(0deg) brightness(1) contrast(1);
   }
 
-  .col {
-    min-width: 0;
-  }
-
-  .visible {
-    height: auto;
-    max-height: 110px;
-  }
-
-  .icon {
-    display: flex;
-    align-items: center;
-  }
-
+  /* Buttons */
   .player .btn {
     --bs-btn-font-size: 1.3rem;
     color: var(--theme-text);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
 
   .player .btn-play {
@@ -470,9 +514,30 @@
     color: var(--bs-primary);
   }
 
-  .row.align-items-center.m-0.elevated {
-    padding-top: 1px;
-    padding-bottom: 1px;
+  /* Player background */
+  .player-shape {
+    margin: 5px;
+    background: var(--theme-elevation-1);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+
+  /* Progress slider */
+  .slider-click-zone {
+    position: relative;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    cursor: pointer;
+    background: transparent !important;
+  }
+
+  .slider-click-zone .real-slider {
+    pointer-events: none;
+  }
+
+  .slider-click-zone .real-slider * {
+    pointer-events: auto;
   }
 
   .playback-slider {
@@ -494,44 +559,19 @@
     caret-color: transparent !important;
   }
 
+  /* Volume */
   .volume-slider {
     --slider-connect-bg: var(--bs-primary);
     --slider-bg: var(--theme-elevation-2);
     --slider-handle-bg: var(--bs-primary);
     --slider-handle-ring-color: transparent;
+
     width: 4px !important;
     height: 120px !important;
     margin: auto;
   }
 
-  .player-shape {
-    margin: 5px 5px 5px 5px;
-    background: var(--theme-elevation-1);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  .slider-click-zone {
-    position: relative;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    cursor: pointer;
-    background: var(--theme-elevation-1) !important;
-  }
-
-  .slider-click-zone .real-slider {
-    pointer-events: none; /* so clicks go to wrapper instead */
-  }
-
-  .slider-click-zone .real-slider * {
-    pointer-events: auto; /* but slider handles still work */
-  }
-
-  .slider-click-zone,
-  .row.elevated {
-    background: transparent !important;
-  }
-
+  /* Text truncation */
   .artist-truncate {
     display: block;
     white-space: nowrap;
@@ -540,67 +580,39 @@
     max-width: 100%;
   }
 
-  @media(max-width: 768px) {
+  .transport-controls,
+  .right-controls {
+    align-items: center;
+  }
+
+  .transport-controls > *,
+  .right-controls > * {
+    transform: translateY(-4px);
+  }
+
+  /* Mobile */
+  @media(max-width:768px) {
+
     .player {
       font-size: 0.7rem;
       bottom: var(--mobile-nav-height);
     }
 
-    .player-shape {
-      border: 1px solid var(--theme-elevation-2);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      margin: 5px 2px 2px 2px;
-    }
-
-    .visible {
-      height: auto;
+    .player.visible {
       max-height: 110px;
     }
 
-    .track-col {
-      flex: 0 0 55%;
-      max-width: 40%;
-      min-width: 0; /* critical for truncation */
+    .player-row {
+      min-height: 55px;
     }
 
-    /* Metadata font for the mobile scrolling title */
-    .title-text {
-      font-family: var(--font-metadata);
-      color: var(--bs-primary);
-      display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      animation: slide-text 10s linear infinite;
-      animation-delay: 0s;
+    .transport-controls,
+    .right-controls {
+      height: 55px;
     }
 
-    @keyframes slide-text {
-      0% { transform: translateX(35%); }
-      100% { transform: translateX(-65%); }
-    }
-
-    /* Reduce padding of right column */
-    .col-auto.col-md.pb-3 {
-      padding-right: 4px !important;
-      padding-left: 0 !important;
-    }
-
-    /* Reduce spacing of the button container */
-    .d-flex.flex-nowrap.justify-content-end.pe-3 {
-      padding-right: 2px !important;
-    }
-
-    /* Reduce spacing inside the overflow menu items */
-    .on-top {
-      padding-left: 6px !important;
-      padding-right: 6px !important;
-    }
-
-    /* Reduce space between prev/play/next */
-    .col-auto.pb-3.d-flex.align-items-center .btn {
-      margin: 0 2px !important;
-      padding-left: 4px !important;
-      padding-right: 4px !important;
+    .player .btn-skip {
+      --bs-btn-font-size: 1.2rem;
     }
 
     .player .btn:hover {
@@ -611,13 +623,9 @@
       color: var(--bs-primary);
     }
 
-    /* Reduce play button size */
-    .player .btn-play {
-      --bs-btn-font-size: 1.6rem;
+    .right-controls {
+      padding-right: 2px;
     }
 
-    .player .btn-skip {
-      --bs-btn-font-size: 1.2rem;
-    }
   }
 </style>
