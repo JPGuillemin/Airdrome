@@ -587,7 +587,7 @@
 
   .transport-controls > *,
   .right-controls > * {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
   }
 
   /* Mobile */
