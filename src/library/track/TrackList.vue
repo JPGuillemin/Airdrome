@@ -20,7 +20,7 @@
         Time
       </th>
 
-      <th class="text-end" />
+      <th class="col-cachestatus" />
     </BaseTableHead>
 
     <tbody>
@@ -31,6 +31,10 @@
         draggable="true"
         @dragstart="dragstart(item, $event)"
         @click="handlePlay(index)"
+        @contextmenu.prevent="openRowMenu(index, $event)"
+        @touchstart="onTouchStart(index, $event)"
+        @touchend="onTouchEnd"
+        @touchmove="onTouchEnd"
       >
         <CellTrackNumber
           :active="isActive(item, index) && isPlaying"
@@ -40,14 +44,16 @@
         <CellArtist v-if="!noArtist" :track="item" />
         <CellAlbum v-if="!noAlbum" :track="item" />
         <CellDuration v-if="!noDuration" :track="item" />
+        <CellCacheStatus :track="item" />
 
-        <CellActions
+        <RowActionsMenu
+          :ref="(el) => setMenuRef(el, index)"
           :track="item"
           :is-playlist-view="isPlaylistView"
           @remove="$emit('remove-track', index)"
         >
           <slot name="actions" :index="index" :item="item" />
-        </CellActions>
+        </RowActionsMenu>
       </tr>
     </tbody>
   </BaseTable>
@@ -64,19 +70,23 @@
   import CellArtist from '@/library/track/CellArtist.vue'
   import CellAlbum from '@/library/track/CellAlbum.vue'
   import CellTrackNumber from '@/library/track/CellTrackNumber.vue'
-  import CellActions from '@/library/track/CellActions.vue'
+  import CellCacheStatus from '@/library/track/CellCacheStatus.vue'
   import CellTitle from '@/library/track/CellTitle.vue'
+  import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
+
+  const LONG_PRESS_MS = 500
 
   export default defineComponent({
     components: {
       BaseTable,
       BaseTableHead,
       CellTitle,
-      CellActions,
       CellTrackNumber,
       CellAlbum,
       CellArtist,
       CellDuration,
+      CellCacheStatus,
+      RowActionsMenu,
     },
 
     props: {
@@ -97,6 +107,8 @@
         default: null,
       },
     },
+
+    emits: ['remove-track'],
 
     setup(props) {
       const playerStore = usePlayerStore()
@@ -121,11 +133,55 @@
         }
       }
 
+      // --- Menu contextuel sur la ligne (clic droit) / long-press (tactile) ---
+      // On garde une référence vers chaque instance RowActionsMenu pour
+      // pouvoir ouvrir la bonne au point du clic/toucher, sans bouton
+      // déclencheur par ligne.
+      const menuRefs = new Map<number, any>()
+      const setMenuRef = (el: any, index: number) => {
+        if (el) menuRefs.set(index, el)
+        else menuRefs.delete(index)
+      }
+
+      const openRowMenu = (index: number, event: MouseEvent) => {
+        const menu = menuRefs.get(index)
+        if (!menu) return
+        const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
+        menu.openAt(point)
+      }
+
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null
+
+      const onTouchStart = (index: number, event: TouchEvent) => {
+        const row = event.currentTarget as HTMLElement
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null
+          const menu = menuRefs.get(index)
+          if (!menu) return
+          const rect = row.getBoundingClientRect()
+          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
+          // Empêche le click qui suit (déclenchant la lecture) de se
+          // propager après l'ouverture du menu par long-press.
+          row.addEventListener('click', (e) => e.stopPropagation(), { once: true, capture: true })
+        }, LONG_PRESS_MS)
+      }
+
+      const onTouchEnd = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
+        }
+      }
+
       return {
         playerStore,
         isActive,
         handlePlay,
         dragstart,
+        setMenuRef,
+        openRowMenu,
+        onTouchStart,
+        onTouchEnd,
       }
     },
 

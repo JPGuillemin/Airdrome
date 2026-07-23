@@ -1,6 +1,26 @@
 // OverflowMenu.vue
 <template>
-  <div ref="triggerRef" class="overflow-menu-wrap" @click.stop="toggle">
+  <!--
+    En mode "external" (ouvert via openAt() par un parent — ex: le
+    contextmenu ou le long-press d'une ligne de tableau) ce composant ne
+    rend aucun élément déclencheur en place, uniquement le menu téléporté.
+    Cela permet de l'utiliser dans des contextes DOM qui n'acceptent que
+    certains enfants (comme <tr>, qui n'accepte que <td>/<th>).
+  -->
+  <Teleport v-if="external" to="body">
+    <div v-if="isOpen" class="overflow-menu-backdrop" @click.stop="close" @contextmenu.prevent.stop="close" />
+    <ul
+      v-if="isOpen"
+      ref="menuRef"
+      class="dropdown-menu show overflow-menu-list"
+      :style="menuStyle"
+      @click.stop="close"
+    >
+      <slot />
+    </ul>
+  </Teleport>
+
+  <div v-else ref="triggerRef" class="overflow-menu-wrap" @click.stop="toggle">
     <button
       class="btn p-0"
       :class="`btn-${variant}`"
@@ -12,7 +32,7 @@
 
     <Teleport to="body">
       <!-- backdrop: closes menu on outside click -->
-      <div v-if="isOpen" class="overflow-menu-backdrop" @click.stop="close" />
+      <div v-if="isOpen" class="overflow-menu-backdrop" @click.stop="close" @contextmenu.prevent.stop="close" />
 
       <!-- menu: fixed-positioned, always above everything -->
       <ul
@@ -36,6 +56,10 @@
       disabled:  { type: Boolean, default: false },
       variant:   { type: String,  default: 'link' },
       direction: { type: String,  default: 'up'   },
+      // Quand true, cette instance ne rend aucun bouton déclencheur —
+      // elle est ouverte programmatiquement via openAt() par un parent
+      // (ex: clic droit / long-press sur une ligne).
+      external:  { type: Boolean, default: false },
     },
 
     setup(props) {
@@ -44,13 +68,19 @@
       const menuRef    = ref<HTMLElement | null>(null)
       const menuStyle  = ref<Record<string, string>>({})
 
+      // Point d'ancrage utilisé lors d'une ouverture programmatique
+      // (contextmenu / long-press) au lieu du rect du bouton déclencheur.
+      let anchor: { top: number; bottom: number; left: number; right: number } | null = null
+
       const positionMenu = () => {
-        if (!triggerRef.value || !menuRef.value) return
-        const trigger  = triggerRef.value.getBoundingClientRect()
-        const menuH    = menuRef.value.offsetHeight || 160
-        const menuW    = menuRef.value.offsetWidth  || 160
-        const vw       = window.innerWidth
-        const vh       = window.innerHeight
+        if (!menuRef.value) return
+        const trigger = anchor ?? triggerRef.value?.getBoundingClientRect()
+        if (!trigger) return
+
+        const menuH = menuRef.value.offsetHeight || 160
+        const menuW = menuRef.value.offsetWidth  || 160
+        const vw    = window.innerWidth
+        const vh    = window.innerHeight
 
         // Prefer direction prop; flip if no room
         let top: number
@@ -76,9 +106,19 @@
       }
 
       const toggle = () => {
-        if (props.disabled) return
+        if (props.disabled || props.external) return
+        anchor = null
         isOpen.value = !isOpen.value
         if (isOpen.value) nextTick(positionMenu)
+      }
+
+      // Ouvre le menu ancré à un point précis du viewport
+      // (coordonnées du clic droit, ou rect de la ligne en long-press).
+      const openAt = (point: { top: number; bottom: number; left: number; right: number }) => {
+        if (props.disabled) return
+        anchor = point
+        isOpen.value = true
+        nextTick(positionMenu)
       }
 
       const close = () => { isOpen.value = false }
@@ -88,7 +128,7 @@
       document.addEventListener('keydown', onKey)
       onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 
-      return { isOpen, triggerRef, menuRef, menuStyle, toggle, close }
+      return { isOpen, triggerRef, menuRef, menuStyle, toggle, close, openAt }
     },
   })
 </script>
