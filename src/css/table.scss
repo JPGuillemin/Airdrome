@@ -51,8 +51,20 @@ table.table {
     z-index: -1;
   }
 
-  tbody tr:hover::after {
+  tbody tr:hover::after,
+  tbody tr:focus-within::after {
     opacity: 1;
+  }
+
+  tbody tr:hover td .number,
+  tbody tr:focus-within td .number {
+    display: none;
+  }
+
+  tbody tr:hover td:first-child .icon,
+  tbody tr:focus-within td:first-child .icon {
+    display: inline;
+    color: var(--bs-primary);
   }
 
   tbody tr.active::after {
@@ -183,15 +195,6 @@ table.table-numbered {
     .icon {
       display: none;
     }
-  }
-
-  tbody tr:hover td .number {
-    display: none;
-  }
-
-  tbody tr:hover td:first-child .icon {
-    display: inline;
-    color: var(--bs-primary);
   }
 
   tbody tr td {

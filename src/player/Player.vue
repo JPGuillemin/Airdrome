@@ -5,7 +5,7 @@
     :class="{ visible: track }"
   >
     <!-- visual layer (background + radius ONLY) -->
-    <div class="player-shape" @click.stop="onBackgroundClick">
+    <div class="player-shape">
       <!-- layout layer (NO clipping) -->
       <div class="player-content d-flex">
         <div class="flex-fill">
@@ -24,7 +24,8 @@
               :max="playerStore.duration"
               :step="0.1"
               :tooltips="true"
-              show-tooltip="focus"
+              tooltip-position="bottom"
+              show-tooltip="drag"
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
@@ -260,27 +261,6 @@
           .join(' • ')
       })
 
-      const showProgressTooltip = () => {
-        const root = progressSlider.value?.$el
-        if (!root) return
-
-        const handle =
-          root.querySelector('.slider-handle') ||
-          root.querySelector('[tabindex]')
-
-        if (!handle) return
-
-        ;(handle as HTMLElement).focus()
-
-        if (tooltipTimer.value) {
-          clearTimeout(tooltipTimer.value)
-        }
-
-        tooltipTimer.value = window.setTimeout(() => {
-          ;(handle as HTMLElement).blur()
-        }, 5000)
-      }
-
       watch(
         documentTitle,
         (value) => {
@@ -335,10 +315,6 @@
         playerStore.seek(newTime)
       }
 
-      const onBackgroundClick = () => {
-        showProgressTooltip()
-      }
-
       function playPause() { playerStore.playPause() }
       function next() { playerStore.next(true) }
       function back() { playerStore.back() }
@@ -374,7 +350,6 @@
         onSliderDragEnd,
         onSliderUpdate,
         onSliderClick,
-        onBackgroundClick,
         formatter,
         playPause,
         next,
