@@ -25,7 +25,7 @@
               :step="0.1"
               :tooltips="true"
               tooltip-position="bottom"
-              show-tooltip="drag"
+              show-tooltip="focus"
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
