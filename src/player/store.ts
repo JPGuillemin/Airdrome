@@ -653,7 +653,7 @@ export function setupAudio(
       playerStore.isPlaying = false
       playerStore.setMediaSessionPosition()
       playerStore.setMediaSessionState('paused')
-    }, 5000)
+    }, 3000)
   }
 
   audio.onplaying = () => {

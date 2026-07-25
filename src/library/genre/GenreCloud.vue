@@ -197,11 +197,21 @@
   .genre-word-cloud {
     width: 100%;
     height: clamp(320px, 65vh, 900px);
+    transform: translateY(-20px);
   }
 
   .word-cloud-svg {
     width: 100%;
     height: 100%;
     display: block;
+  }
+
+  /* Mobile */
+  @media(max-width:768px) {
+    .genre-word-cloud {
+      width: 100%;
+      height: clamp(320px, 65vh, 900px);
+      transform: translateY(0px);
+    }
   }
 </style>

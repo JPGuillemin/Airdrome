@@ -261,6 +261,27 @@
           .join(' • ')
       })
 
+      const showProgressTooltip = () => {
+        const root = progressSlider.value?.$el
+        if (!root) return
+
+        const handle =
+          root.querySelector('.slider-handle') ||
+          root.querySelector('[tabindex]')
+
+        if (!handle) return
+
+        ;(handle as HTMLElement).focus()
+
+        if (tooltipTimer.value) {
+          clearTimeout(tooltipTimer.value)
+        }
+
+        tooltipTimer.value = window.setTimeout(() => {
+          ;(handle as HTMLElement).blur()
+        }, 5000)
+      }
+
       watch(
         documentTitle,
         (value) => {
@@ -292,6 +313,7 @@
 
       const onSliderDragStart = () => {
         dragging.value = true
+        showProgressTooltip()
       }
 
       const onSliderDragEnd = () => {
@@ -313,6 +335,7 @@
         const ratio = x / rect.width
         const newTime = ratio * playerStore.duration
         playerStore.seek(newTime)
+        showProgressTooltip()
       }
 
       function playPause() { playerStore.playPause() }
