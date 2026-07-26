@@ -44,64 +44,74 @@
               <template v-if="track">
                 <div
                   v-if="track.albumId"
-                  class="pt-0 pb-3 ps-3 pe-2"
                   style="cursor: pointer"
                   @click.stop="onAlbumClick"
                 >
                   <img
                     v-if="track.image"
                     :src="track.image"
-                    class="small-cover"
+                    class="player-cover"
                   >
                   <img
                     v-else
                     src="@/shared/assets/fallback.svg"
-                    class="small-cover"
+                    class="player-cover"
                   >
                 </div>
 
                 <div style="min-width:0; flex:1;">
-                  <router-link
-                    @click.stop
-                    :to="{ name: 'album', params: { id: track.albumId } }"
-                    class="player-link title-text"
-                  >
-                    {{ track.title }}
-                  </router-link>
-                  <div class="text-truncate text-muted pb-3">
+                  <div class="player-text-wrap">
                     <template v-if="track.artists.length">
                       <router-link
                         @click.stop
                         :to="{ name: 'artist', params: { id: track.artists[0].id } }"
-                        class="player-link player-link-small artist-truncate"
+                        class="player-link"
                       >
                         {{ track.artists[0].name }}
                       </router-link>
+
+                      <span class="text-muted"> : </span>
+
+                      <router-link
+                        @click.stop
+                        :to="{ name: 'album', params: { id: track.albumId } }"
+                        class="player-link"
+                      >
+                        {{ track.title }}
+                      </router-link>
                     </template>
-                    <template v-else-if="track.album">
-                      {{ track.album }}
+
+                    <template v-else>
+                      {{ track.title }}
                     </template>
                   </div>
                 </div>
               </template>
             </div>
 
-            <!-- transport -->
-            <div class="transport-controls">
-              <b-button variant="transparent" class="mx-0 btn-skip" @click.stop="back">
+            <!-- play control -->
+            <div class="play-controls">
+              <b-button
+                variant="transparent"
+                class="btn-skip d-none d-md-inline-flex"
+                @click.stop="back"
+              >
                 <Icon icon="skip-start" />
               </b-button>
 
               <b-button
                 variant="transparent"
-                size="lg"
-                class="btn-play mx-0"
+                class="btn-play"
                 @click.stop="playPause"
               >
                 <Icon :icon="isPlaying ? 'pause' : 'play'" />
               </b-button>
 
-              <b-button variant="transparent" class="mx-0 btn-skip" @click.stop="next">
+              <b-button
+                variant="transparent"
+                class="btn-skip"
+                @click.stop="next"
+              >
                 <Icon icon="skip-end" />
               </b-button>
             </div>
@@ -110,7 +120,7 @@
             <div class="right-controls">
               <div class="d-flex flex-nowrap justify-content-end pe-3">
 
-                <div class="m-0 d-none d-md-inline-flex align-items-center">
+                <div class="ms-2 d-none d-md-inline-flex align-items-center">
                   <b-button
                     title="Like"
                     variant="transparent"
@@ -185,7 +195,14 @@
                       <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
                     </b-button>
                   </div>
-
+                  <div class="d-md-none px-3 py-1 on-top">
+                    <b-button
+                      variant="transparent"
+                      @click.stop="back"
+                    >
+                      <Icon icon="skip-start" />
+                    </b-button>
+                  </div>
                 </OverflowMenu>
 
               </div>
@@ -426,7 +443,7 @@
   }
 
   /* Transport */
-  .transport-controls {
+  .play-controls {
     flex: 0 0 auto;
     height: 58px;
     display: flex;
@@ -449,40 +466,15 @@
     align-items: center;
   }
 
-  /* Metadata */
-  .player :deep(.player-link) {
-    font-family: var(--font-metadata);
-    color: var(--theme-text);
-    text-decoration: none;
-    transition: color 0.15s ease;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .player :deep(.player-link:hover) {
-    color: var(--bs-primary);
-  }
-
-  .player :deep(.player-link-small) {
-    font-size: 0.85em;
-  }
-
-  .player-link.title-text {
-    display: block;
-    width: 100%;
-    min-width: 0;
-  }
-
   /* Cover */
-  .small-cover {
+  .player-cover {
     display: block;
-    width: 58px;
-    height: 58px;
+    width: 56px;
+    height: 56px;
     object-fit: cover;
     border-radius: 5px;
     flex-shrink: 0;
+    margin: 10px;
   }
 
   /* Buttons */
@@ -498,10 +490,11 @@
 
   .player .btn-play {
     --bs-btn-font-size: 2rem;
+    padding: 0.2rem;
   }
 
   .player .btn-skip {
-    --bs-btn-font-size: 1.5rem;
+    --bs-btn-font-size: 1.2rem;
   }
 
   .player .btn:hover {
@@ -525,7 +518,7 @@
   .slider-click-zone {
     position: relative;
     padding-top: 10px;
-    padding-bottom: 10px;
+    padding-bottom: 5px;
     cursor: pointer;
     background: transparent !important;
   }
@@ -563,29 +556,36 @@
     --slider-bg: var(--theme-elevation-2);
     --slider-handle-bg: var(--bs-primary);
     --slider-handle-ring-color: transparent;
-
     width: 4px !important;
     height: 120px !important;
     margin: auto;
   }
 
-  /* Text truncation */
-  .artist-truncate {
-    display: block;
-    white-space: nowrap;
+  .player-text-wrap {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25em;
+    max-height: 2.5em; /* 1.25em * 2 lines */
   }
 
-  .transport-controls,
+  .player-link {
+    color: var(--theme-text);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .player-link:hover {
+    color: var(--bs-primary);
+  }
+
+  .play-controls,
   .right-controls {
     align-items: center;
-  }
-
-  .transport-controls > *,
-  .right-controls > * {
-    transform: translateY(-5px);
   }
 
   /* Mobile */
@@ -604,13 +604,13 @@
       min-height: 55px;
     }
 
-    .transport-controls,
+    .play-controls,
     .right-controls {
       height: 55px;
     }
 
     .player .btn-skip {
-      --bs-btn-font-size: 1.2rem;
+      --bs-btn-font-size: 1rem;
     }
 
     .player .btn:hover {
@@ -624,6 +624,5 @@
     .right-controls {
       padding-right: 2px;
     }
-
   }
 </style>
