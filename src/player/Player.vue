@@ -70,7 +70,7 @@
                         {{ track.artists[0].name }}
                       </router-link>
 
-                      <span class="text-muted"> : </span>
+                      <span class="text-muted"> • </span>
 
                       <router-link
                         @click.stop

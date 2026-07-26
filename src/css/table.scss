@@ -56,17 +56,6 @@ table.table {
     opacity: 1;
   }
 
-  tbody tr:hover td .number,
-  tbody tr:focus-within td .number {
-    display: none;
-  }
-
-  tbody tr:hover td:first-child .icon,
-  tbody tr:focus-within td:first-child .icon {
-    display: inline;
-    color: var(--bs-primary);
-  }
-
   tbody tr.active::after {
     opacity: 1;
     border-left-color: var(--bs-primary);
@@ -177,12 +166,24 @@ table.table-numbered {
     }
   }
 
+  tr:hover td:first-child button,
+  tr:focus-within td:first-child button {
+    .number {
+      display: none;
+    }
+
+    .icon:not(.visually-hidden) {
+      display: inline;
+      color: var(--bs-primary);
+    }
+  }
+
   tr.active td:first-child button {
     .number {
       display: none;
     }
 
-    .icon {
+    .icon:not(.visually-hidden) {
       display: inline;
     }
   }
