@@ -93,7 +93,7 @@
         :tracks="album.tracks || []"
         class="mt-3"
         :no-album="true"
-        :show-image="false"
+        :show-image="true"
         :no-artist="true"
       />
       <div v-if="album.description" class="row">

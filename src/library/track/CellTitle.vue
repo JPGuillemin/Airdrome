@@ -11,8 +11,8 @@
         style="width: 45px; height: 45px; object-fit: cover;"
       >
 
-      <div class="flex-grow-1 truncate-cell">
-        <slot>{{ formatTitle(track.title) }}</slot>
+      <div class="truncate-cell">
+        <slot>{{ track.title }}</slot>
       </div>
     </div>
   </td>
@@ -20,15 +20,11 @@
 
 <script lang="ts">
   import { defineComponent } from 'vue'
-  import { formatArtists, formatTitle } from '@/shared/utils'
 
   export default defineComponent({
     props: {
       track: { type: Object, required: true },
       showImage: { type: Boolean, default: false }
     },
-    setup() {
-      return { formatArtists, formatTitle }
-    }
   })
 </script>
