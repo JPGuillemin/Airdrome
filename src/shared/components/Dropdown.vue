@@ -137,8 +137,8 @@
 
   /* Menu: always on top — z-index set inline too, this is belt-and-suspenders */
   .dropdown-teleport-menu {
-    background: var(--theme-elevation-1);
-    border: 1px solid var(--theme-elevation-2);
+    background: var(--theme-elevation-2);
+    border: 1px solid var(--theme-elevation-3);
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     z-index: 2000 !important;

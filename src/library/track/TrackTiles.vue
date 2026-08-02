@@ -1,47 +1,58 @@
 // TrackTiles.vue
 <template>
   <Tiles :tile-size="tileSize" :allow-h-scroll="allowHScroll" :twin-rows="twinRows">
-    <Tile
-      v-for="(item, index) in validItems"
-      :key="item.id || index"
-      :title="item.title || 'Unknown Track'"
-      :image="item.image || ''"
-      draggable="true"
-      :title-only="titleOnly"
-      @dragstart="dragstart(item, $event)"
-      @click="playNow(index)"
-    >
-      <!-- Artists and Album -->
-      <template #text>
-        <!-- Artists -->
-        <template v-if="withArtist">
-          <span v-for="(artist, aIndex) in item.artists" :key="artist.id">
-            <span v-if="aIndex > 0" class="text-muted">, </span>
-            <router-link
-              :to="{ name: 'artist', params: { id: artist.id } }"
-              class="text-muted"
-            >
-              {{ artist.name }}
-            </router-link>
+    <template v-for="(item, index) in validItems" :key="item.id || index">
+      <Tile
+        :title="item.title || 'Unknown Track'"
+        :image="item.image || ''"
+        draggable="true"
+        :title-only="titleOnly"
+        @dragstart="dragstart(item, $event)"
+        @click="playNow(index)"
+        @contextmenu.prevent="openTileMenu(item.id ?? index, $event)"
+        @touchstart="onTouchStart(item.id ?? index, $event)"
+        @touchend="onTouchEnd"
+        @touchmove="onTouchEnd"
+      >
+        <!-- Artists and Album -->
+        <template #text>
+          <!-- Artists -->
+          <template v-if="withArtist">
+            <span v-for="(artist, aIndex) in item.artists" :key="artist.id">
+              <span v-if="aIndex > 0" class="text-muted">, </span>
+              <router-link
+                :to="{ name: 'artist', params: { id: artist.id } }"
+                class="text-muted"
+              >
+                {{ artist.name }}
+              </router-link>
+            </span>
+          </template>
+          <!-- Album -->
+          <span v-if="withAlbum && item.album" class="text-muted">
+            <span v-if="withArtist && item.artists?.length"> • </span>
+            {{ item.album }}
           </span>
         </template>
-        <!-- Album -->
-        <span v-if="withAlbum && item.album" class="text-muted">
-          <span v-if="withArtist && item.artists?.length"> • </span>
-          {{ item.album }}
-        </span>
-      </template>
-      <!-- Hover Actions -->
-      <template v-if="tileSize > 79" #actions>
-        <TileActionButton icon="queue-next" label="Play next" @click.stop="playNext(item)" />
-        <TileActionButton icon="queue" label="Add to queue" @click.stop="addToQueue(item)" />
-        <TileActionButton
-          :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
-          label="Like"
-          @click.stop="toggleFavourite(item.id)"
-        />
-      </template>
-    </Tile>
+        <!-- Hover Actions -->
+        <template v-if="tileSize > 79" #actions>
+          <TileActionButton icon="queue-next" label="Play next" @click.stop="playNext(item)" />
+          <TileActionButton icon="queue" label="Add to queue" @click.stop="addToQueue(item)" />
+          <TileActionButton
+            :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+            label="Like"
+            @click.stop="toggleFavourite(item.id)"
+          />
+        </template>
+      </Tile>
+
+      <!-- Tile has no default slot, so the (teleported, invisible-until-open)
+           menu is mounted as a sibling instead of slotted inside Tile. -->
+      <RowActionsMenu
+        :ref="(el) => setMenuRef(el, item.id ?? index)"
+        :track="item"
+      />
+    </template>
   </Tiles>
 </template>
 
@@ -52,8 +63,12 @@
   import { useCacheStore } from '@/shared/cache'
   import type { Track } from '@/shared/api'
   import { sleep } from '@/shared/utils'
+  import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
+
+  const LONG_PRESS_MS = 500
 
   export default defineComponent({
+    components: { RowActionsMenu },
     props: {
       items: {
         type: Array as () => Track[],
@@ -121,6 +136,47 @@
       const isFavourite = (id: string) =>
         favouriteStore.get('track', id)
 
+      // --- Menu contextuel sur la tuile (clic droit) / long-press (tactile) ---
+      // Même pattern que TrackList : on garde une référence vers chaque
+      // instance RowActionsMenu, keyed par l'id du morceau (et non son index,
+      // qui change quand la liste bouge), pour pouvoir ouvrir la bonne au
+      // point du clic/toucher, sans bouton déclencheur par tuile.
+      const menuRefs = new Map<string | number, any>()
+      const setMenuRef = (el: any, key: string | number) => {
+        if (el) menuRefs.set(key, el)
+        else menuRefs.delete(key)
+      }
+
+      const openTileMenu = (key: string | number, event: MouseEvent) => {
+        const menu = menuRefs.get(key)
+        if (!menu) return
+        const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
+        menu.openAt(point)
+      }
+
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null
+
+      const onTouchStart = (key: string | number, event: TouchEvent) => {
+        const tile = event.currentTarget as HTMLElement
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null
+          const menu = menuRefs.get(key)
+          if (!menu) return
+          const rect = tile.getBoundingClientRect()
+          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
+          // Empêche le click qui suit (déclenchant la lecture) de se
+          // propager après l'ouverture du menu par long-press.
+          tile.addEventListener('click', (e) => e.stopPropagation(), { once: true, capture: true })
+        }, LONG_PRESS_MS)
+      }
+
+      const onTouchEnd = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
+        }
+      }
+
       return {
         validItems,
         playNow,
@@ -129,6 +185,10 @@
         toggleFavourite,
         dragstart,
         isFavourite,
+        setMenuRef,
+        openTileMenu,
+        onTouchStart,
+        onTouchEnd,
       }
     },
   })

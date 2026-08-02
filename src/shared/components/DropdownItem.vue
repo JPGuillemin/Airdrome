@@ -18,6 +18,8 @@
 <script lang="ts" setup>
   import { computed } from 'vue'
 
+  defineOptions({ inheritAttrs: false })
+
   const props = defineProps({
     icon: { type: String, default: null },
     variant: { type: String, default: '' },

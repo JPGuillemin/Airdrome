@@ -180,6 +180,7 @@ export class AudioController {
 
   /** Stop playback entirely and tear down the pipeline. */
   async stop() {
+    this.pause()
     this.changeToken++
     this.disposePipeline(this.activePipeline)
     this._context = null

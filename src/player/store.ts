@@ -383,6 +383,7 @@ export const usePlayerStore = defineStore('player', {
         this.setQueueIndex(-1)
         await this.stop()
       }
+      this.saveQueue()
     },
 
     /**
@@ -428,16 +429,15 @@ export const usePlayerStore = defineStore('player', {
 
     /**
      * Append tracks to the end of the queue.
-     * Deduplicates the trivial case of adding the same single track twice.
      * In shuffle mode the tracks are randomised before appending.
      */
     addToQueue(tracks: Track[]) {
       const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
-      // Only dedup the trivial "same track added twice in a row" case
       if (tracks.length === 1 && tracks[0].id === lastTrack?.id) {
         return
       }
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
+      this.saveQueue()
     },
 
     /**
@@ -449,18 +449,52 @@ export const usePlayerStore = defineStore('player', {
         return
       }
       this.queue?.splice(this.queueIndex + 1, 0, ...(this.shuffle ? shuffled(tracks) : tracks))
+      this.saveQueue()
     },
 
     /**
      * Remove a track at the given queue index.
      * Adjusts queueIndex to keep the current track pointer correct when a
      * track before the current one is removed.
+     *
+     * If the removed track was the one currently playing, either skip to the
+     * track that takes its place, or stop playback if the queue is now empty.
      */
-    removeFromQueue(index: number) {
+    async removeFromQueue(index: number) {
+      const wasCurrent = index === this.queueIndex
+
       this.queue = this.queue.filter((_, i) => i !== index)
+
       if (index < this.queueIndex) {
         this.queueIndex--
       }
+
+      if (!wasCurrent) {
+        this.saveQueue()
+        return
+      }
+
+      if (this.queue.length === 0) {
+        this.queueIndex = -1
+        await this.stop()
+        this.saveQueue()
+        return
+      }
+
+      // Clamp in case the removed track was the last one in the queue
+      this.inTransition = true
+      this.setQueueIndex(Math.min(this.queueIndex, this.queue.length - 1))
+      const track = this.track
+      const nextTrack = this.nextTrack
+      if (track)
+        await audio.loadTrack({
+          url: track.url,
+          replayGain: track.replayGain,
+          nextUrl: nextTrack?.url,
+          fade: true
+        })
+      this.inTransition = false
+      this.saveQueue()
     },
 
     /**

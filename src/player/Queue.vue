@@ -34,7 +34,6 @@
         <DropdownItem
           icon="x"
           variant="danger"
-          :disabled="index === queueIndex"
           @click="remove(index)"
         >
           Remove
@@ -130,7 +129,7 @@
       }
 
       watch(
-        allTracks,
+        () => [allTracks.value, allTracks.value.length] as const,
         () => {
           reset()
           appendNextChunk()

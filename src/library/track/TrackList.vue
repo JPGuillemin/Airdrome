@@ -31,8 +31,8 @@
         draggable="true"
         @dragstart="dragstart(item, $event)"
         @click="handlePlay(index)"
-        @contextmenu.prevent="openRowMenu(index, $event)"
-        @touchstart="onTouchStart(index, $event)"
+        @contextmenu.prevent="openRowMenu(item.id ?? index, $event)"
+        @touchstart="onTouchStart(item.id ?? index, $event)"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
       >
@@ -47,7 +47,7 @@
         <CellCacheStatus :track="item" />
 
         <RowActionsMenu
-          :ref="(el) => setMenuRef(el, index)"
+          :ref="(el) => setMenuRef(el, item.id ?? index)"
           :track="item"
           :is-playlist-view="isPlaylistView"
           @remove="$emit('remove-track', index)"
@@ -134,17 +134,18 @@
       }
 
       // --- Menu contextuel sur la ligne (clic droit) / long-press (tactile) ---
-      // On garde une référence vers chaque instance RowActionsMenu pour
-      // pouvoir ouvrir la bonne au point du clic/toucher, sans bouton
+      // On garde une référence vers chaque instance RowActionsMenu, keyed par
+      // l'id du morceau (et non son index, qui change quand la liste bouge),
+      // pour pouvoir ouvrir la bonne au point du clic/toucher, sans bouton
       // déclencheur par ligne.
-      const menuRefs = new Map<number, any>()
-      const setMenuRef = (el: any, index: number) => {
-        if (el) menuRefs.set(index, el)
-        else menuRefs.delete(index)
+      const menuRefs = new Map<string | number, any>()
+      const setMenuRef = (el: any, key: string | number) => {
+        if (el) menuRefs.set(key, el)
+        else menuRefs.delete(key)
       }
 
-      const openRowMenu = (index: number, event: MouseEvent) => {
-        const menu = menuRefs.get(index)
+      const openRowMenu = (key: string | number, event: MouseEvent) => {
+        const menu = menuRefs.get(key)
         if (!menu) return
         const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
         menu.openAt(point)
@@ -152,11 +153,11 @@
 
       let longPressTimer: ReturnType<typeof setTimeout> | null = null
 
-      const onTouchStart = (index: number, event: TouchEvent) => {
+      const onTouchStart = (key: string | number, event: TouchEvent) => {
         const row = event.currentTarget as HTMLElement
         longPressTimer = setTimeout(() => {
           longPressTimer = null
-          const menu = menuRefs.get(index)
+          const menu = menuRefs.get(key)
           if (!menu) return
           const rect = row.getBoundingClientRect()
           menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
