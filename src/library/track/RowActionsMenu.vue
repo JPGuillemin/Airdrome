@@ -147,7 +147,7 @@
   }
 
   .playlist-box {
-    background: var(--theme-elevation-1);
+    background: var(--theme-elevation-2);
     border-radius: 12px;
     min-width: 160px;
     max-width: 90vw;
@@ -155,7 +155,7 @@
     overflow-y: auto;
     scrollbar-color: rgba(0,0,0,0.3) transparent;
     padding: 8px 0;
-    border: 1px solid var(--theme-elevation-2);
+    border: 1px solid var(--theme-elevation-3);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     text-align: left;
   }

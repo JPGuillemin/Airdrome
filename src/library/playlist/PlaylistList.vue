@@ -56,7 +56,7 @@
       },
       allowHScroll: { type: Boolean, default: false },
       isPlaylistView: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 105 },
+      tileSize: { type: Number, default: 140 },
     },
 
     setup(props) {
