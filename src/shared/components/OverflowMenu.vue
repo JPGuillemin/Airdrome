@@ -49,7 +49,10 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, nextTick, onBeforeUnmount } from 'vue'
+  import { defineComponent, ref, nextTick, onBeforeUnmount, watch } from 'vue'
+  import { useRouter } from 'vue-router'
+
+  const AUTO_CLOSE_MS = 5000
 
   export default defineComponent({
     props: {
@@ -121,12 +124,41 @@
         nextTick(positionMenu)
       }
 
-      const close = () => { isOpen.value = false }
+      let autoCloseTimer: ReturnType<typeof setTimeout> | null = null
+
+      const clearAutoCloseTimer = () => {
+        if (autoCloseTimer !== null) {
+          clearTimeout(autoCloseTimer)
+          autoCloseTimer = null
+        }
+      }
+
+      const close = () => {
+        isOpen.value = false
+        clearAutoCloseTimer()
+      }
+
+      // Auto-close after AUTO_CLOSE_MS while the menu is open
+      watch(isOpen, (open) => {
+        clearAutoCloseTimer()
+        if (open) autoCloseTimer = setTimeout(close, AUTO_CLOSE_MS)
+      })
 
       // Close on Escape
       const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
       document.addEventListener('keydown', onKey)
-      onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+      onBeforeUnmount(() => {
+        document.removeEventListener('keydown', onKey)
+        clearAutoCloseTimer()
+      })
+
+      // Close on route-back (browser back/forward, or programmatic nav)
+      const router = useRouter()
+      let stopRouterGuard: (() => void) | null = null
+      if (router) {
+        stopRouterGuard = router.afterEach(() => { close() })
+        onBeforeUnmount(() => stopRouterGuard?.())
+      }
 
       return { isOpen, triggerRef, menuRef, menuStyle, toggle, close, openAt }
     },
@@ -148,9 +180,6 @@
   /* Menu: always on top — z-index set inline too, this is belt-and-suspenders */
   .overflow-menu-list {
     z-index: 2000 !important;
-    /* Bootstrap's .dropdown-menu forces min-width: 10rem by default,
-       which is why this ends up much wider than its content (e.g. the
-       vertical volume slider). Let it size to content instead. */
     min-width: auto !important;
     width: max-content;
     display: flex;

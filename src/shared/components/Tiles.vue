@@ -61,7 +61,7 @@
   export default defineComponent({
     props: {
       allowHScroll: { type: Boolean, default: false },
-      tileSize: { type: Number, default: 110 },
+      tileSize: { type: Number, default: 140 },
       threeRows: { type: Boolean, default: false },
     },
     setup(props) {
