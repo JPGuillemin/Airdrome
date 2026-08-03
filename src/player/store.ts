@@ -486,7 +486,7 @@ export const usePlayerStore = defineStore('player', {
       this.setQueueIndex(Math.min(this.queueIndex, this.queue.length - 1))
       const track = this.track
       const nextTrack = this.nextTrack
-      if (track)
+      if (track && this.isPlaying)
         await audio.loadTrack({
           url: track.url,
           replayGain: track.replayGain,
