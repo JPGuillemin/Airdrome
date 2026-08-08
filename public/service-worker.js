@@ -8,10 +8,23 @@ const APP_BASE = '/'
 const SHELL_CACHE = `shell-cache-${__BUILD_VERSION__}`
 const RUNTIME_CACHE = 'runtime-cache-v1'
 const IMAGE_CACHE   = 'images-cache-v1'
-const AUDIO_CACHE   = 'audio-cache-v1'
+
+// Audio is deliberately NOT cached here. The app (src/shared/cache.ts) owns
+// audio persistence explicitly — Filesystem on native, Cache API on web —
+// with its own LRU/size accounting. If the SW also opportunistically cached
+// every /rest/stream response, both systems would write to the same bytes
+// without knowing about each other: cache.ts's size accounting would silently
+// undercount real disk usage, and tracks the user never asked to keep offline
+// would show up as "cached" in the UI. One owner for audio persistence.
 
 // Limits
 const MAX_IMAGE_ENTRIES = 10000
+// Trimming is checked probabilistically rather than on every write — an
+// exact key-count walk (`cache.keys()`) over up to MAX_IMAGE_ENTRIES items
+// is real work to do on every single image write. Being off by a few dozen
+// entries between checks costs nothing; doing a full keys() scan on every
+// cache.put() does.
+const TRIM_CHECK_PROBABILITY = 1 / 20
 
 // ─── App shell ────────────────────────────────────────────────────────────────
 // self.__WB_MANIFEST is replaced at build time by vite-plugin-pwa with the
@@ -32,9 +45,10 @@ self.addEventListener('install', event => {
 
   event.waitUntil(
     caches.open(SHELL_CACHE).then(cache =>
-      // FIX: use allSettled so a single 404 does not abort the whole install.
-      // Each URL is added individually; failures are logged but do not prevent
-      // the SW from activating and serving whatever was cached successfully.
+      // Use allSettled so a single 404 does not abort the whole install.
+      // Each URL is added individually; failures are logged but do not
+      // prevent the SW from activating and serving whatever was cached
+      // successfully.
       Promise.allSettled(
         WB_MANIFEST.map(({ url }) =>
           cache.add(url).catch(err =>
@@ -61,7 +75,6 @@ self.addEventListener('activate', event => {
       SHELL_CACHE,
       RUNTIME_CACHE,
       IMAGE_CACHE,
-      AUDIO_CACHE,
     ]
 
     await Promise.all(
@@ -90,7 +103,7 @@ self.addEventListener('fetch', event => {
   /* SPA navigation */
 
   if (request.mode === 'navigate') {
-    // FIX: always fall back to the cached index.html when the network is
+    // Always fall back to the cached index.html when the network is
     // unavailable so the SPA can boot and handle routing offline.
     event.respondWith(
       networkFirst(request, SHELL_CACHE).catch(() =>
@@ -100,14 +113,13 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  /* AUDIO STREAMS */
+  /* AUDIO STREAMS — deliberately pass-through, see note above */
 
   if (
     url.pathname.includes('/rest/stream') ||
     url.pathname.includes('/rest/download')
   ) {
-    event.respondWith(audioStrategy(request))
-    return
+    return // let the browser handle it natively; no event.respondWith()
   }
 
   /* IMAGES + COVER ART */
@@ -115,8 +127,8 @@ self.addEventListener('fetch', event => {
   const isCoverArt =
     url.pathname.includes('/rest/getCoverArt')
 
-  // FIX: restrict the image strategy to cover-art API calls and cross-origin
-  // images only.  Same-origin image assets (bundled SVGs, PNGs, etc.) fall
+  // Restrict the image strategy to cover-art API calls and cross-origin
+  // images only. Same-origin image assets (bundled SVGs, PNGs, etc.) fall
   // through to the static-asset handler below so they are served from
   // SHELL_CACHE where they were precached at install time.
   const isExternalImage =
@@ -157,48 +169,6 @@ self.addEventListener('fetch', event => {
 })
 
 /* -------------------------------------------------- */
-/* AUDIO STRATEGY                                     */
-/* Network first / Cache fallback                     */
-/* -------------------------------------------------- */
-
-async function audioStrategy(request) {
-
-  // Do not cache range requests
-  if (request.headers.has('range')) {
-    return fetch(request)
-  }
-
-  const cache = await caches.open(AUDIO_CACHE)
-
-  try {
-
-    const response = await fetch(request)
-
-    if (response && response.status === 200) {
-
-      const cached = await cache.match(request)
-
-      // Avoid overwriting entries managed by the app
-      if (!cached) {
-        cache.put(request, response.clone()).catch(() => {})
-      }
-
-    }
-
-    return response
-
-  } catch (err) {
-
-    const cached = await cache.match(request)
-
-    if (cached) return cached
-
-    throw err
-  }
-
-}
-
-/* -------------------------------------------------- */
 /* IMAGE STRATEGY                                     */
 /* Cache first + background update                    */
 /* -------------------------------------------------- */
@@ -219,8 +189,7 @@ async function imageStrategy(request) {
         if (response && response.ok) {
 
           await cache.put(request, response.clone())
-
-          trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
+          maybeTrimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
 
         }
 
@@ -237,8 +206,7 @@ async function imageStrategy(request) {
     if (response && response.ok) {
 
       await cache.put(request, response.clone())
-
-      trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
+      maybeTrimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES)
 
     }
 
@@ -311,7 +279,16 @@ function isStaticAsset(path) {
   return /\.(js|css|woff2?|ttf|png|jpg|svg|webp)$/i.test(path)
 }
 
-async function trimCache(cacheName, maxEntries) {
+/**
+ * Trim a cache down to maxEntries, but only bother checking on a random
+ * fraction of calls (TRIM_CHECK_PROBABILITY). A full cache.keys() walk is
+ * O(n) in stored entries — running it on every single write when the cache
+ * can hold up to 10k entries is wasted work almost every time, since going
+ * a little over the limit between checks is harmless.
+ */
+async function maybeTrimCache(cacheName, maxEntries) {
+
+  if (Math.random() > TRIM_CHECK_PROBABILITY) return
 
   const cache = await caches.open(cacheName)
   const keys  = await cache.keys()
@@ -340,10 +317,6 @@ self.addEventListener('message', event => {
 
   if (action === 'CLEAR_IMAGE_CACHE') {
     event.waitUntil(caches.delete(IMAGE_CACHE))
-  }
-
-  if (action === 'CLEAR_AUDIO_CACHE') {
-    event.waitUntil(caches.delete(AUDIO_CACHE))
   }
 
 })
