@@ -18,7 +18,7 @@ export const useFavouriteStore = defineStore('favourite', {
       })
     },
     get(type: MediaType, id: string) {
-      console.info('favouriteStore.get(): ', id)
+      // console.info('favouriteStore.get(): ', id)
       const field = getTypeKey(type)
       return !!this[field][id]
     },
