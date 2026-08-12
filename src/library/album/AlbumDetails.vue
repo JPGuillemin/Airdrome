@@ -37,16 +37,8 @@
           </div>
         </div>
 
-        <div v-if="album.lastFmUrl || listenBrainzUrl">
+        <div v-if="listenBrainzUrl">
           <span class="d-inline-flex flex-nowrap">
-            <ExternalLink
-              v-if="album.lastFmUrl"
-              :href="album.lastFmUrl"
-              class="btn btn-link p-0 me-2"
-              title="Last.fm"
-            >
-              <IconLastFm />
-            </ExternalLink>
             <ExternalLink
               v-if="listenBrainzUrl"
               :href="listenBrainzUrl"
@@ -118,7 +110,6 @@
   import { useLoader } from '@/shared/loader'
   import { Album } from '@/shared/api'
   import TrackList from '@/library/track/TrackList.vue'
-  import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useRadioStore } from '@/player/radio'
@@ -126,7 +117,7 @@
   import { getAlbumListenBrainzUrl } from '@/shared/musicbrainz'
 
   export default defineComponent({
-    components: { TrackList, IconLastFm, IconMusicBrainz },
+    components: { TrackList, IconMusicBrainz },
 
     directives: {
       'longpress-tooltip': longPressTooltip

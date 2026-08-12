@@ -32,11 +32,8 @@
           </div>
         </div>
 
-        <div v-if="artist.lastFmUrl || listenBrainzUrl">
+        <div v-if="listenBrainzUrl">
           <span class="d-inline-flex flex-nowrap">
-            <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
-              <IconLastFm />
-            </ExternalLink>
             <ExternalLink v-if="listenBrainzUrl" :href="listenBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
               <IconMusicBrainz />
             </ExternalLink>
@@ -114,7 +111,6 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { useMainStore } from '@/shared/store'
   import { usePlayerStore } from '@/player/store'
-  import IconLastFm from '@/shared/components/IconLastFm.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
@@ -124,7 +120,6 @@
   export default defineComponent({
     components: {
       IconMusicBrainz,
-      IconLastFm,
       AlbumList,
       ArtistList,
       TrackList,
