@@ -37,19 +37,6 @@
           </div>
         </div>
 
-        <div v-if="listenBrainzUrl">
-          <span class="d-inline-flex flex-nowrap">
-            <ExternalLink
-              v-if="listenBrainzUrl"
-              :href="listenBrainzUrl"
-              class="btn btn-link me-2 p-0"
-              title="MusicBrainz"
-            >
-              <IconMusicBrainz />
-            </ExternalLink>
-          </span>
-        </div>
-
         <div class="text-nowrap">
           <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Play" @click="playNow">
             <Icon icon="recycle" />
@@ -63,7 +50,10 @@
           <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Album" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
-          <OverflowMenu direction="up" variant="transparent">
+          <ExternalLink :href="listenBrainzUrl" class="btn btn-link header-buttons" title="MusicBrainz">
+            <IconMusicBrainz />
+          </ExternalLink>
+          <OverflowMenu direction="up" variant="transparent" class="header-buttons">
             <DropdownItem icon="plus" class="on-top" @click="setNextInQueue">
               Next
             </DropdownItem>

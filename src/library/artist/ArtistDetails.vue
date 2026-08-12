@@ -34,9 +34,7 @@
 
         <div v-if="listenBrainzUrl">
           <span class="d-inline-flex flex-nowrap">
-            <ExternalLink v-if="listenBrainzUrl" :href="listenBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
-              <IconMusicBrainz />
-            </ExternalLink>
+
           </span>
         </div>
 
@@ -53,6 +51,9 @@
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Artist" @click="toggleFavourite">
             <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
           </b-button>
+          <ExternalLink :href="listenBrainzUrl" class="btn btn-link header-buttons" title="MusicBrainz">
+            <IconMusicBrainz />
+          </ExternalLink>
         </div>
       </Header>
     </div>
