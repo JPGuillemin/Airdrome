@@ -32,12 +32,12 @@
           </div>
         </div>
 
-        <div v-if="artist.lastFmUrl || artist.musicBrainzUrl">
+        <div v-if="artist.lastFmUrl || listenBrainzUrl">
           <span class="d-inline-flex flex-nowrap">
             <ExternalLink v-if="artist.lastFmUrl" :href="artist.lastFmUrl" class="btn btn-link p-0 me-2" title="Last.fm">
               <IconLastFm />
             </ExternalLink>
-            <ExternalLink v-if="artist.musicBrainzUrl" :href="artist.musicBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
+            <ExternalLink v-if="listenBrainzUrl" :href="listenBrainzUrl" class="btn btn-link me-2 p-0" title="MusicBrainz">
               <IconMusicBrainz />
             </ExternalLink>
           </span>
@@ -119,6 +119,7 @@
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
   import { useLoader } from '@/shared/loader'
+  import { getArtistListenBrainzUrl } from '@/shared/musicbrainz'
 
   export default defineComponent({
     components: {
@@ -151,6 +152,8 @@
       const artist = ref<any>(null)
       const api = inject('$api') as any
 
+      const listenBrainzUrl = ref<string | null>(null)
+
       const isFavourite = computed(() => favouriteStore.get('artist', props.id))
 
       const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
@@ -163,6 +166,9 @@
           artist.value = await api.getArtistDetails(props.id)
         } finally {
           loader.hideLoading()
+          if (artist.value?.name) {
+            listenBrainzUrl.value = await getArtistListenBrainzUrl(artist.value.name)
+          }
         }
       }
 
@@ -179,6 +185,7 @@
         RadioNow,
         toggleFavourite,
         toggleAlbumSortOrder,
+        listenBrainzUrl,
       }
     },
   })

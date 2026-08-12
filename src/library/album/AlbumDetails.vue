@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <div v-if="album.lastFmUrl || album.musicBrainzUrl">
+        <div v-if="album.lastFmUrl || listenBrainzUrl">
           <span class="d-inline-flex flex-nowrap">
             <ExternalLink
               v-if="album.lastFmUrl"
@@ -48,8 +48,8 @@
               <IconLastFm />
             </ExternalLink>
             <ExternalLink
-              v-if="album.musicBrainzUrl"
-              :href="album.musicBrainzUrl"
+              v-if="listenBrainzUrl"
+              :href="listenBrainzUrl"
               class="btn btn-link me-2 p-0"
               title="MusicBrainz"
             >
@@ -123,6 +123,7 @@
   import { useRouter, useRoute } from 'vue-router'
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
+  import { getAlbumListenBrainzUrl } from '@/shared/musicbrainz'
 
   export default defineComponent({
     components: { TrackList, IconLastFm, IconMusicBrainz },
@@ -148,6 +149,7 @@
 
       const isFavourite = computed(() => favouriteStore.get('album', props.id))
       const isPlaying = computed(() => playerStore.isPlaying)
+      const listenBrainzUrl = ref<string | null>(null)
 
       // Fetch album details
       const fetchAlbum = async() => {
@@ -160,6 +162,12 @@
           }
         } finally {
           loader.hideLoading()
+          if (album.value?.name && album.value?.artists?.length) {
+            // console.log(album.value.artists[0].name)
+            // console.log(album.value.name)
+            listenBrainzUrl.value = await getAlbumListenBrainzUrl(album.value.artists[0].name, album.value.name)
+            // console.log(listenBrainzUrl.value)
+          }
         }
       }
 
@@ -243,6 +251,7 @@
         toggleFavourite,
         cacheAlbum,
         clearAlbumCache,
+        listenBrainzUrl,
       }
     },
   })
