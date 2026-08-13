@@ -661,7 +661,7 @@ export class API {
       genres: this.normalizeGenres(item),
       lastFmUrl: item.lastFmUrl,
       musicBrainzUrl: item.musicBrainzId
-        ? `https://musicbrainz.org/release/${item.musicBrainzId}`
+        ? `https://listenbrainz.org/album/${item.musicBrainzId}`
         : undefined,
       tracks: (item.song || []).map(this.normalizeTrack, this),
       releaseType: this.normalizeReleaseType(item),
@@ -706,7 +706,7 @@ export class API {
       favourite: !!item.starred,
       lastFmUrl: item.lastFmUrl,
       musicBrainzUrl: item.musicBrainzId
-        ? `https://musicbrainz.org/artist/${item.musicBrainzId}`
+        ? `https://listenbrainz.org/artist/${item.musicBrainzId}`
         : undefined,
       albums: sortedAlbums.map(a => this.normalizeAlbum(a)),
       similarArtist: (item.similarArtist || []).map(this.normalizeArtist, this),

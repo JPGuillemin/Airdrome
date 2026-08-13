@@ -141,14 +141,13 @@
           if (album.value) {
             cached.value = await cacheStore.isCached(album.value)
           }
+          if (album.value.musicBrainzUrl) {
+            listenBrainzUrl.value = album.value.musicBrainzUrl
+          } else {
+            listenBrainzUrl.value = await getAlbumListenBrainzUrl(album.value.artists[0].name, album.value.name)
+          }
         } finally {
           loader.hideLoading()
-          if (album.value?.name && album.value?.artists?.length) {
-            // console.log(album.value.artists[0].name)
-            // console.log(album.value.name)
-            listenBrainzUrl.value = await getAlbumListenBrainzUrl(album.value.artists[0].name, album.value.name)
-            // console.log(listenBrainzUrl.value)
-          }
         }
       }
 

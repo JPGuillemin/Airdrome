@@ -71,7 +71,7 @@ export async function getArtistListenBrainzUrl(
 
   return artistId
     ? `${LISTENBRAINZ}/artist/${artistId}`
-    : `${LISTENBRAINZ}`
+    : `${LISTENBRAINZ}/explore/fresh-releases/`
 }
 
 export async function getMbAlbumId(
@@ -113,6 +113,6 @@ export async function getAlbumListenBrainzUrl(
   )
 
   return releaseGroupId
-    ? `${LISTENBRAINZ}/release-group/${releaseGroupId}`
-    : `${LISTENBRAINZ}`
+    ? `${LISTENBRAINZ}/album/${releaseGroupId}`
+    : `${LISTENBRAINZ}/explore/fresh-releases/`
 }

@@ -32,12 +32,6 @@
           </div>
         </div>
 
-        <div v-if="listenBrainzUrl">
-          <span class="d-inline-flex flex-nowrap">
-
-          </span>
-        </div>
-
         <div class="text-nowrap">
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Play Artist Top Tracks" @click="playNow">
             <Icon icon="play" />
@@ -160,11 +154,13 @@
         loader.showLoading()
         try {
           artist.value = await api.getArtistDetails(props.id)
-        } finally {
-          loader.hideLoading()
-          if (artist.value?.name) {
+          if (artist.value.musicBrainzUrl) {
+            listenBrainzUrl.value = artist.value.musicBrainzUrl
+          } else {
             listenBrainzUrl.value = await getArtistListenBrainzUrl(artist.value.name)
           }
+        } finally {
+          loader.hideLoading()
         }
       }
 
