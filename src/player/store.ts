@@ -687,7 +687,7 @@ export function setupAudio(
       playerStore.isPlaying = false
       playerStore.setMediaSessionPosition()
       playerStore.setMediaSessionState('paused')
-    }, 3000)
+    }, 10000)
   }
 
   audio.onplaying = () => {
@@ -745,7 +745,7 @@ export function setupAudio(
 
       switch (type) {
         case 'loss':
-          if (isPlaying) await audio.pause()
+          // if (isPlaying) await audio.pause()
           break
 
         case 'gain':
