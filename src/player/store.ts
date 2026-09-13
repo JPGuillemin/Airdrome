@@ -736,12 +736,12 @@ export function setupAudio(
   if (isNative) {
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
+      if (playerStore.userPaused) return
       const type = event?.type
-      const userPaused = playerStore.userPaused
       const isPlaying = playerStore.isPlaying
 
       if (Date.now() - playTime < 1000) return
-      if (userPaused) return
+
 
       switch (type) {
         case 'loss':
@@ -761,13 +761,9 @@ export function setupAudio(
     })
 
     nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
-
+      if (playerStore.userPaused) return
       const route = event?.route
-      const userPaused = playerStore.userPaused
       const isPlaying = playerStore.isPlaying
-
-
-      if (userPaused) return
 
       switch (route) {
         case 'bluetooth':
@@ -789,10 +785,8 @@ export function setupAudio(
     let knownOutputIds = new Set<string>()
 
     navigator.mediaDevices.addEventListener('devicechange', async () => {
+      if (playerStore.userPaused) return
       if (Date.now() - playTime < 1000) return
-
-      const userPaused = playerStore.userPaused
-      if (userPaused) return
 
       const devices = await navigator.mediaDevices.enumerateDevices()
       const outputs = devices.filter(d => d.kind === 'audiooutput')
