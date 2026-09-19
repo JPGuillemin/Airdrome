@@ -17,8 +17,10 @@ public class MainActivity extends BridgeActivity {
 
     super.onCreate(savedInstanceState);
 
-    WebView webView = this.bridge.getWebView();
+    WebView webView = this.getBridge().getWebView();
     requestIgnoreBatteryOptimizations();
+
+    webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
     // Disable Android native long press behavior
     webView.setLongClickable(false);

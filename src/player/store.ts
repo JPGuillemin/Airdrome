@@ -9,7 +9,7 @@ import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 import { Capacitor } from '@capacitor/core'
 import { Network } from '@capacitor/network'
-
+import { KeepAwake } from '@capacitor-community/keep-awake'
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
 import { nativeMediaSession } from '@/player/nativeMediaSession'
@@ -213,7 +213,10 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      if (isNative) await nativeMediaSession.requestAudioFocus()
+      if (isNative) {
+        await nativeMediaSession.requestAudioFocus()
+        void KeepAwake.keepAwake()
+      }
       await audio.resume()
       await audio.play()
     },
@@ -222,6 +225,9 @@ export const usePlayerStore = defineStore('player', {
     async pause() {
       this.userPaused = true
       await audio.pause()
+      if (isNative) {
+        void KeepAwake.allowSleep()
+      }
     },
 
     async stop() {
