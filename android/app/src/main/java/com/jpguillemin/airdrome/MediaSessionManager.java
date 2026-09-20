@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -81,6 +82,19 @@ public class MediaSessionManager {
 
     private TransportListener listener;
     private MediaPlaybackService service;
+
+    /**
+     * Held between AUDIOFOCUS_LOSS(_TRANSIENT) and the matching
+     * AUDIOFOCUS_GAIN. OnAudioFocusChangeListener is delivered via an
+     * in-process Binder callback, which — unlike system broadcasts (e.g.
+     * Bluetooth route changes) — has no OS-guaranteed CPU wake-up. Without
+     * this wake lock, a focus-gain callback that arrives while the device
+     * is in deep sleep (long call, screen locked) can sit queued until the
+     * CPU wakes for an unrelated reason, i.e. until the app is foregrounded
+     * again. The timeout is a safety net in case focus is never regained.
+     */
+    private PowerManager.WakeLock resumeWakeLock;
+    private static final long RESUME_WAKE_LOCK_TIMEOUT_MS = 15 * 60 * 1000; // 15 min
 
     private String title = "";
     private String artist = "";
@@ -159,6 +173,32 @@ public class MediaSessionManager {
 
     public void setListener(TransportListener l) {
         this.listener = l;
+    }
+
+    /**
+     * Keep the CPU awake while we're expecting an imminent audio-focus
+     * regain (e.g. during a phone call). Safe to call repeatedly — it's a
+     * no-op if already held. Always paired with releaseResumeWakeLock(),
+     * with a hard timeout so it can never be held indefinitely.
+     */
+    public synchronized void acquireResumeWakeLock() {
+        if (resumeWakeLock == null) {
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            resumeWakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "Airdrome:audioFocusResume"
+            );
+            resumeWakeLock.setReferenceCounted(false);
+        }
+        if (!resumeWakeLock.isHeld()) {
+            resumeWakeLock.acquire(RESUME_WAKE_LOCK_TIMEOUT_MS);
+        }
+    }
+
+    public synchronized void releaseResumeWakeLock() {
+        if (resumeWakeLock != null && resumeWakeLock.isHeld()) {
+            resumeWakeLock.release();
+        }
     }
 
     public MediaSessionCompat getSession() {
@@ -552,6 +592,8 @@ public class MediaSessionManager {
 
     public synchronized void release() {
         io.shutdownNow();
+
+        releaseResumeWakeLock();
 
         artworkBitmap = null;
 

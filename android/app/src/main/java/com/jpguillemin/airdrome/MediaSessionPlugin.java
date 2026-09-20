@@ -117,14 +117,25 @@ public class MediaSessionPlugin extends Plugin {
         switch (focusChange) {
           case AudioManager.AUDIOFOCUS_GAIN:
             type = "gain";
+            // Focus regained: the resume callback we were waiting for has
+            // just fired, so the CPU no longer needs to be held awake.
+            manager.releaseResumeWakeLock();
             break;
 
           case AudioManager.AUDIOFOCUS_LOSS:
             type = "loss";
+            // Hold the CPU awake so that, whenever focus is regained, the
+            // OnAudioFocusChangeListener callback below is guaranteed to
+            // run promptly instead of being queued until the device wakes
+            // for an unrelated reason (see resumeWakeLock javadoc).
+            manager.acquireResumeWakeLock();
             break;
 
           case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
             type = "lossTransient";
+            // Same reasoning as AUDIOFOCUS_LOSS: this is the case that
+            // covers phone calls.
+            manager.acquireResumeWakeLock();
             break;
 
           case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:

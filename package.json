@@ -11,11 +11,11 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/network": "^8.0.1",
+    "@capawesome/capacitor-background-task": "^8.0.3",
     "@fontsource/inter": "^5.2.8",
     "@iconify-icons/bi": "^1.2.2",
     "@iconify-icons/svg-spinners": "^1.2.0",
@@ -26,15 +26,12 @@
     "bootstrap-vue-next": "^0.42.0",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.9",
-    "icecast-metadata-stats": "^0.1.1",
     "js-md5": "^0.8.3",
     "lodash-es": "^4.17.21",
-    "md5-es": "^1.8.2",
     "pinia": "^3.0.4",
     "seedrandom": "^3.0.5",
     "vue": "^3.5.38",
-    "vue-router": "^5.1.0",
-    "vuewordcloud": "^19.0.0"
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@capacitor/android": "^8.4.0",

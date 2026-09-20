@@ -38,13 +38,23 @@ public class MainActivity extends BridgeActivity {
   }
 
   @Override
+  public void onPause() {
+    super.onPause();
+    WebView webView = getBridge().getWebView();
+    if (webView != null) {
+      webView.onResume();
+    }
+  }
+
+  @Override
   public void onDestroy() {
-
+    if (isFinishing()) {
       stopService(
-          new Intent(this, MediaPlaybackService.class)
+        new Intent(this, MediaPlaybackService.class)
       );
+    }
 
-      super.onDestroy();
+    super.onDestroy();
   }
 
   public void requestIgnoreBatteryOptimizations() {
