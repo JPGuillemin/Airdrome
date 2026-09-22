@@ -661,16 +661,16 @@ export function setupAudio(
   playerStore.setMediaSessionState('none')
 
   let waitingTimer: ReturnType<typeof setTimeout> | null = null
-  let keepAliveTimer: ReturnType<typeof setInterval> | null = null
+  let keepAliveInterval: ReturnType<typeof setInterval> | null = null
 
   audio.onplay = () => {
     if (waitingTimer) {
       clearTimeout(waitingTimer)
       waitingTimer = null
     }
-    if (keepAliveTimer) {
-      clearInterval(keepAliveTimer)
-      keepAliveTimer = null
+    if (keepAliveInterval) {
+      clearInterval(keepAliveInterval)
+      keepAliveInterval = null
     }
     playerStore.isPlaying = true
     playerStore.userPaused = false
@@ -683,8 +683,8 @@ export function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    if (!playerStore.userPaused && !keepAliveTimer) {
-      keepAliveTimer = setInterval(async () => {
+    if (!playerStore.userPaused && !keepAliveInterval) {
+      keepAliveInterval = setInterval(async () => {
         playerStore.saveQueue()
       }, 5000)
     }
@@ -777,11 +777,11 @@ export function setupAudio(
 
       switch (route) {
         case 'bluetooth':
-          if (!isPlaying) await audio.play()
+          if (!isPlaying) await playerStore.play()
           break
 
         case 'wired':
-          if (!isPlaying) await audio.play()
+          if (!isPlaying) await playerStore.play()
           break
 
         case 'speaker':
@@ -803,6 +803,7 @@ export function setupAudio(
     })
 
     navigator.mediaDevices.addEventListener('devicechange', async () => {
+      console.info('devicechange')
       if (playerStore.userPaused) return
       if (Date.now() - playTime < 1000) return
 
@@ -819,7 +820,7 @@ export function setupAudio(
       if (removed && isPlaying) {
         await audio.pause()
       } else if (added && !isPlaying) {
-        await audio.play()
+        await playerStore.play()
       }
     })
 
