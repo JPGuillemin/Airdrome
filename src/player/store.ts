@@ -658,15 +658,19 @@ export function setupAudio(
 
   let playTime = 0
 
-
   playerStore.setMediaSessionState('none')
 
   let waitingTimer: ReturnType<typeof setTimeout> | null = null
+  let keepAliveTimer: ReturnType<typeof setInterval> | null = null
 
   audio.onplay = () => {
     if (waitingTimer) {
       clearTimeout(waitingTimer)
       waitingTimer = null
+    }
+    if (keepAliveTimer) {
+      clearInterval(keepAliveTimer)
+      keepAliveTimer = null
     }
     playerStore.isPlaying = true
     playerStore.userPaused = false
@@ -679,6 +683,11 @@ export function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+    if (!playerStore.userPaused && !keepAliveTimer) {
+      keepAliveTimer = setInterval(async () => {
+        playerStore.saveQueue()
+      }, 5000)
+    }
   }
 
   audio.onwaiting = () => {
@@ -746,10 +755,11 @@ export function setupAudio(
 
       switch (type) {
         case 'loss':
+          if (isPlaying) await audio.pause()
           break
 
         case 'gain':
-          if (!isPlaying) await audio.play()
+          if (!isPlaying) await playerStore.play()
           // audio.unduck()
           break
 
@@ -783,6 +793,14 @@ export function setupAudio(
   } else { // is Desktop OR Mobile
 
     let knownOutputIds = new Set<string>()
+
+    void navigator.mediaDevices.enumerateDevices().then(devices => {
+      knownOutputIds = new Set(
+        devices
+          .filter(d => d.kind === 'audiooutput')
+          .map(d => d.deviceId)
+      )
+    })
 
     navigator.mediaDevices.addEventListener('devicechange', async () => {
       if (playerStore.userPaused) return
