@@ -184,6 +184,7 @@ export class AudioController {
     this.changeToken++
     this.disposePipeline(this.activePipeline)
     this._context = null
+    console.info('audio.stop()')
   }
 
   /** Fade out, then pause the underlying HTMLAudioElement. */
@@ -191,17 +192,20 @@ export class AudioController {
     const audio = this.activePipeline.audio
     await this.fadeOut(this.fadeTime)
     audio.pause()
+    console.info('audio.pause()')
   }
 
   /** Play, then fade in. */
   async play() {
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
+    console.info('audio.play()')
   }
 
   /** Resume context */
   async resume() {
     await this.context.resume()
+    console.info('audio.resume()')
   }
 
   /**
@@ -268,7 +272,7 @@ export class AudioController {
     if (!this.buffer || this.buffer.src !== currentUrl || this.buffer.error) {
       const cachedUrl = await cacheStore.getCachedUrl(currentUrl)
       await this.setBuffer(cachedUrl)
-      console.info('setBuffer(1):', cachedUrl)
+      console.info('audio.setBuffer(1):', cachedUrl)
     }
 
     // Build the new pipeline using the buffered audio element
@@ -327,7 +331,7 @@ export class AudioController {
       if (token === this.changeToken && nextUrl) {
         const nextCachedUrl = await cacheStore.getCachedUrl(nextUrl)
         this.setBuffer(nextCachedUrl)
-        console.info('setBuffer(2):', nextCachedUrl)
+        console.info('audio.setBuffer(2):', nextCachedUrl)
       }
     }, Math.min(15000, (this.activePipeline.audio.duration || 30) * 0.5 * 1000))
   }

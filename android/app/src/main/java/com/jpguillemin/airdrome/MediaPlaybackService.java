@@ -31,7 +31,7 @@ public class MediaPlaybackService extends Service {
             startForeground(MediaSessionManager.NOTIFICATION_ID, n);
         }
         MediaButtonReceiver.handleIntent(manager.getSession(), intent);
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     void updateNotification(Notification n) {

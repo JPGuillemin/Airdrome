@@ -647,7 +647,7 @@ export const usePlayerStore = defineStore('player', {
 // Called once at app startup to wire the AudioController events to the store
 // and register MediaSession action handlers.
 
-export function setupAudio(
+export async function setupAudio(
   playerStore: ReturnType<typeof usePlayerStore>,
   mainStore: ReturnType<typeof useMainStore>
 ) {
@@ -685,7 +685,7 @@ export function setupAudio(
     playerStore.setMediaSessionState('paused')
     if (!playerStore.userPaused && !keepAliveInterval) {
       keepAliveInterval = setInterval(async () => {
-        playerStore.saveQueue()
+        await playerStore.saveQueue()
       }, 5000)
     }
   }
@@ -764,6 +764,8 @@ export function setupAudio(
           break
 
         case 'lossTransient':
+          break
+
         case 'lossDuck':
           // audio.duck()
           break
@@ -794,13 +796,12 @@ export function setupAudio(
 
     let knownOutputIds = new Set<string>()
 
-    void navigator.mediaDevices.enumerateDevices().then(devices => {
-      knownOutputIds = new Set(
-        devices
-          .filter(d => d.kind === 'audiooutput')
-          .map(d => d.deviceId)
-      )
-    })
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    knownOutputIds = new Set(
+      devices
+        .filter(d => d.kind === 'audiooutput')
+        .map(d => d.deviceId)
+    )
 
     navigator.mediaDevices.addEventListener('devicechange', async () => {
       console.info('devicechange')
@@ -917,7 +918,7 @@ export function setupAudio(
   const track = playerStore.track
   const nextTrack = playerStore.nextTrack
   if (track) {
-    audio.loadTrack({
+    await audio.loadTrack({
       url: track.url,
       replayGain: track.replayGain,
       nextUrl: nextTrack?.url,
