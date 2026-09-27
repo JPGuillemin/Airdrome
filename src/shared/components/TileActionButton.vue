@@ -28,33 +28,54 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     padding: 0;
+    margin: 0;
     border: none;
-    border-radius: 50%;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    outline: none;
 
-    background-color: rgba(0, 0, 0, 0.55);
     color: #fff;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1;
 
     cursor: pointer;
     transition:
-      background-color 0.15s ease,
+      color 0.15s ease,
       transform 0.1s ease;
   }
 
+  .tile-action:focus,
+  .tile-action:active {
+    outline: none;
+    box-shadow: none;
+    background: none;
+  }
+
   .tile-action:hover {
-    background-color: var(--bs-primary);
+    color: var(--bs-primary);
+    background: none;
     transform: scale(1.1);
   }
 
   /* Icon.vue may render an <i> (icon font) or an inline <svg> -
-     cover both so sizing/color inherit from the button. */
-  .tile-action :deep(svg) {
-    width: 14px;
-    height: 14px;
+     cover both so sizing/color/centering are consistent. */
+  .tile-action :deep(svg),
+  .tile-action :deep(i) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
     fill: currentColor;
+  }
+
+  .tile-action :deep(i) {
+    font-size: 16px;
+    font-style: normal;
   }
 </style>

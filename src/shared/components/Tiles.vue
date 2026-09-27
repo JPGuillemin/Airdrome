@@ -199,7 +199,7 @@
   /* Scroll Arrows - positioned relative to wrapper, not scrolling container */
   .scroll-arrow {
     position: absolute;
-    top: 50%;
+    top: 38%;
     transform: translateY(-50%);
     width: 48px;
     height: 48px;
@@ -245,11 +245,11 @@
   }
 
   .scroll-arrow-left {
-    left: 8px;
+    left: 10px;
   }
 
   .scroll-arrow-right {
-    right: 8px;
+    right: 10px;
   }
 
   /* Hide scrollbar on desktop when arrows are present */
