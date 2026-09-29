@@ -843,6 +843,11 @@
     "@babel/helper-string-parser" "^8.0.0-rc.6"
     "@babel/helper-validator-identifier" "^8.0.0-rc.6"
 
+"@capacitor-community/keep-awake@^8.0.1":
+  version "8.0.1"
+  resolved "https://registry.npmjs.org/@capacitor-community/keep-awake/-/keep-awake-8.0.1.tgz"
+  integrity sha512-wTI5A6FWl5gWoMduzJ5euuJ1P73SO+rea0jV6vNdmz5TLbwIDhufelFe/GowNvU9gog6kDYbFhJ2pOp9ua1f3w==
+
 "@capacitor/android@^8.4.0":
   version "8.4.0"
   resolved "https://registry.npmjs.org/@capacitor/android/-/android-8.4.0.tgz"
