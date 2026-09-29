@@ -9,6 +9,7 @@ import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 import { Capacitor } from '@capacitor/core'
 import { Network } from '@capacitor/network'
+import { KeepAwake } from '@capacitor-community/keep-awake';
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -664,6 +665,7 @@ export async function setupAudio(
   let keepAliveInterval: ReturnType<typeof setInterval> | null = null
 
   audio.onplay = () => {
+    if (isNative) KeepAwake.allowSleep()
     if (waitingTimer) {
       clearTimeout(waitingTimer)
       waitingTimer = null
@@ -684,6 +686,7 @@ export async function setupAudio(
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
     if (!playerStore.userPaused && !keepAliveInterval) {
+      if (isNative) KeepAwake.keepAwake()
       keepAliveInterval = setInterval(async () => {
         await playerStore.saveQueue()
       }, 5000)
