@@ -9,7 +9,6 @@ import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
 import { Capacitor } from '@capacitor/core'
 import { Network } from '@capacitor/network'
-import { KeepAwake } from '@capacitor-community/keep-awake';
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -664,16 +663,27 @@ export async function setupAudio(
   let waitingTimer: ReturnType<typeof setTimeout> | null = null
   let keepAliveInterval: ReturnType<typeof setInterval> | null = null
 
-  audio.onplay = () => {
-    if (isNative) KeepAwake.allowSleep()
-    if (waitingTimer) {
-      clearTimeout(waitingTimer)
-      waitingTimer = null
-    }
+  function keepAlive(intervalMs = 5000) {
+    if (playerStore.userPaused || keepAliveInterval) return
+    playerStore.saveQueue()
+    keepAliveInterval = setInterval(async () => {
+      await playerStore.saveQueue()
+    }, intervalMs)
+  }
+
+  function stopKeepAlive() {
     if (keepAliveInterval) {
       clearInterval(keepAliveInterval)
       keepAliveInterval = null
     }
+  }
+
+  audio.onplay = () => {
+    if (waitingTimer) {
+      clearTimeout(waitingTimer)
+      waitingTimer = null
+    }
+    stopKeepAlive()
     playerStore.isPlaying = true
     playerStore.userPaused = false
     playTime = Date.now()
@@ -685,12 +695,7 @@ export async function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    if (!playerStore.userPaused && !keepAliveInterval) {
-      if (isNative) KeepAwake.keepAwake()
-      keepAliveInterval = setInterval(async () => {
-        await playerStore.saveQueue()
-      }, 5000)
-    }
+    keepAlive()
   }
 
   audio.onwaiting = () => {
@@ -742,6 +747,16 @@ export async function setupAudio(
     }
   }
 
+  document.addEventListener('visibilitychange', () => {
+    if (playerStore.isPlaying) return
+    if (playerStore.userPaused) return
+    if (document.hidden) {
+      keepAlive()
+    } else {
+      stopKeepAlive()
+    }
+  })
+
   // ---------------------------------------------------------------------------
   // Auto-resume
   // ---------------------------------------------------------------------------
@@ -759,18 +774,20 @@ export async function setupAudio(
       switch (type) {
         case 'loss':
           if (isPlaying) await audio.pause()
+          nativeMediaSession.requestAudioFocus()
           break
 
         case 'gain':
           if (!isPlaying) await playerStore.play()
-          // audio.unduck()
           break
 
         case 'lossTransient':
+          if (isPlaying) await audio.pause()
+          nativeMediaSession.requestAudioFocus()
           break
 
         case 'lossDuck':
-          // audio.duck()
+          nativeMediaSession.requestAudioFocus()
           break
       }
     })
