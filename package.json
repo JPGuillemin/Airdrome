@@ -11,11 +11,8 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
     "@capacitor/app": "^8.1.0",
-    "@capacitor/browser": "^8.0.3",
-    "@capacitor/filesystem": "^8.1.2",
-    "@capacitor/network": "^8.0.1",
-    "@capawesome/capacitor-background-task": "^8.0.3",
     "@fontsource/inter": "^5.2.8",
     "@iconify-icons/bi": "^1.2.2",
     "@iconify-icons/svg-spinners": "^1.2.0",
@@ -34,8 +31,6 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@types/js-md5": "^0.8.0",
@@ -45,14 +40,9 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.5.38",
     "@vue/eslint-config-standard": "^8.0.1",
-    "@vue/eslint-config-typescript": "^11.0.2",
-    "@vue/test-utils": "^2.0.0",
+    "@vue/eslint-config-typescript": "^14.9.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^6.1.1",
-    "eslint-plugin-standard": "^5.0.0",
     "eslint-plugin-vue": "^9.17.0",
     "rollup-plugin-bundle-analyzer": "^1.6.6",
     "rollup-plugin-visualizer": "^7.0.1",

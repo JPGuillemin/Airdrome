@@ -3,10 +3,6 @@ import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
-import { Capacitor } from '@capacitor/core'
-import { Filesystem, Directory } from '@capacitor/filesystem'
-const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
-
 const CACHE_DIR = 'audio-cache'
 const CACHE_NAME = 'audio-cache-v1'
 
@@ -157,7 +153,6 @@ function hashName(url: string) {
 }
 
 async function initNativeDir() {
-  if (!isNative) return
 
   try {
     await Filesystem.mkdir({
@@ -318,16 +313,6 @@ async function hasTrack(url: string): Promise<boolean> {
   const entry = await getEntry(url)
   if (!entry) return false
 
-  if (isNative) {
-    const exists = await nativeExists(entry.filename)
-    if (exists) {
-      await touch(url)
-    } else {
-      await deleteEntry(url) // phantom cleanup — size is derived, nothing else to fix
-    }
-    return exists
-  }
-
   const cache = await caches.open(CACHE_NAME)
   const hit = await cache.match(url)
 
@@ -354,12 +339,8 @@ async function enforceLimit() {
   for (const e of entries) {
     if (total <= MAX_CACHE_SIZE_BYTES) break
 
-    if (isNative) {
-      await nativeDelete(e)
-    } else {
-      const cache = await caches.open(CACHE_NAME)
-      await cache.delete(e.url) // ignore result — browser may have evicted already
-    }
+    const cache = await caches.open(CACHE_NAME)
+    await cache.delete(e.url) // ignore result — browser may have evicted already
 
     await deleteEntry(e.url)
     total -= e.size
@@ -388,7 +369,6 @@ export const useCacheStore = defineStore('albumCache', {
   actions: {
     async init() {
       if (this.initialized) return
-      if (isNative) await initNativeDir()
       this.initialized = true
     },
 
@@ -404,7 +384,7 @@ export const useCacheStore = defineStore('albumCache', {
 
           if (await this.hasTrack(url)) continue
 
-          const bytes = isNative ? await nativeWrite(url) : await webWrite(url)
+          const bytes = await webWrite(url)
 
           if (bytes !== null && bytes > 0) {
             await enforceLimit()
@@ -432,7 +412,7 @@ export const useCacheStore = defineStore('albumCache', {
         return url
       }
 
-      return isNative ? await nativePlayable(url) : await webPlayable(url)
+      return await webPlayable(url)
     },
 
     async hasTrack(url: string) {
@@ -443,32 +423,16 @@ export const useCacheStore = defineStore('albumCache', {
       const entry = await getEntry(url)
       if (!entry) return
 
-      if (isNative) {
-        await nativeDelete(entry)
-      } else {
-        const cache = await caches.open(CACHE_NAME)
-        await cache.delete(url)
-      }
+
+      const cache = await caches.open(CACHE_NAME)
+      await cache.delete(url)
 
       await deleteEntry(url)
       dispatch('audioCacheDeleted', url)
     },
 
     async clearAllAudioCache() {
-      if (isNative) {
-        try {
-          await Filesystem.rmdir({
-            path: CACHE_DIR,
-            directory: Directory.Data,
-            recursive: true,
-          })
-        } catch {
-          // nothing to remove — fine
-        }
-        await initNativeDir()
-      } else {
-        await caches.delete(CACHE_NAME)
-      }
+      await caches.delete(CACHE_NAME)
 
       await this.clearImageCache()
 

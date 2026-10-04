@@ -145,14 +145,6 @@ export class AudioController {
     this.activePipeline.volumeNode.gain.value = value
   }
 
-  private rampVolumeNode(target: number, duration: number) {
-    const gain = this.activePipeline.volumeNode.gain
-    const now = this.context.currentTime
-    gain.cancelScheduledValues(0)
-    gain.setValueAtTime(gain.value, now)
-    gain.linearRampToValueAtTime(target, now + duration)
-  }
-
   /**
    * Switch ReplayGain mode and reconfigure the compressor accordingly.
    * In None mode the compressor is effectively bypassed (ratio 1:1, 0 dB threshold).

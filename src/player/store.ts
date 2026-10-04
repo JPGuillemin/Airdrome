@@ -7,13 +7,8 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
-import { Capacitor } from '@capacitor/core'
-import { Network } from '@capacitor/network'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
-
-import { nativeMediaSession } from '@/player/nativeMediaSession'
-const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -28,21 +23,11 @@ localStorage.removeItem('queueIndex')
 // These are created once and shared across the whole app lifetime.
 // Placing them outside the store avoids re-creation on hot-reload.
 
-/** Volume restored from localStorage, default 1.0. */
 const storedVolume = parseFloat(localStorage.getItem('player.volume') || '1.0')
-
-/** ReplayGain mode restored from localStorage, default None (0). */
 const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMode') ?? '0')
-
-/** Browser MediaSession API (undefined on unsupported browsers). */
-const mediaSession: MediaSession | undefined = navigator.mediaSession
-
-/** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
-
-// MediaSession requires a non-zero playback rate; 1 = normal speed
 const mediaSessionProgressRate = 1
-
+const mediaSession: MediaSession | undefined = navigator.mediaSession
 // ---------------------------------------------------------------------------
 // Pinia store
 // ---------------------------------------------------------------------------
@@ -212,9 +197,6 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      if (isNative) {
-        await nativeMediaSession.requestAudioFocus()
-      }
       await audio.resume()
       await audio.play()
     },
@@ -230,9 +212,6 @@ export const usePlayerStore = defineStore('player', {
       await audio.stop()
       this.setMediaSessionPosition(0, 0)
       this.setMediaSessionState('none')
-      if (isNative) {
-        await nativeMediaSession.abandonAudioFocus()
-      }
     },
 
     /** Toggle between play and pause. */
@@ -396,18 +375,11 @@ export const usePlayerStore = defineStore('player', {
     async setMediaSessionPosition(_duration?: number, _position?: number) {
       _duration ??= this.duration
       _position ??= this.currentTime
-      if (navigator.mediaSession) {
-        navigator.mediaSession.setPositionState({
+      if (mediaSession) {
+        mediaSession.setPositionState({
           duration: _duration,
           playbackRate: mediaSessionProgressRate,
           position: _position
-        })
-      }
-      if (isNative) {
-        nativeMediaSession.setPlaybackState({
-          state: this.isPlaying ? 'playing' : 'paused',
-          position: _position,
-          speed: mediaSessionProgressRate
         })
       }
     },
@@ -416,15 +388,8 @@ export const usePlayerStore = defineStore('player', {
       if (!_state) {
         _state = this.isPlaying ? 'playing' : 'paused'
       }
-      if (navigator.mediaSession) {
+      if (mediaSession) {
         mediaSession!.playbackState = _state
-      }
-      if (isNative) {
-        nativeMediaSession.setPlaybackState({
-          state: _state,
-          position: this.currentTime,
-          speed: mediaSessionProgressRate
-        })
       }
     },
 
@@ -568,14 +533,6 @@ export const usePlayerStore = defineStore('player', {
       this.inTransition = false
     },
 
-    /**
-     * Update queueIndex and refresh track-level metadata (duration, MediaSession).
-     *
-     * Handles edge cases:
-     *  - Empty queue → index set to -1
-     *  - Index past end with repeat on → wraps to 0
-     *  - Index past end with repeat off → stays at last track (no wrap)
-     */
     setQueueIndex(index: number) {
       if (!this.queue || this.queue.length === 0) {
         this.queueIndex = -1
@@ -609,33 +566,11 @@ export const usePlayerStore = defineStore('player', {
       const trackAlbum = this.track.album || ''
       const trackImage = this.track.image || null
       if (mediaSession) {
-        const artwork: MediaImage[] = [];
-        if (trackImage) {
-          // Provide artwork at multiple resolutions for different OS contexts
-          artwork.push(
-            { src: trackImage, sizes: '96x96', type: 'image/png' },
-            { src: trackImage, sizes: '128x128', type: 'image/png' },
-            { src: trackImage, sizes: '192x192', type: 'image/png' },
-            { src: trackImage, sizes: '256x256', type: 'image/png' },
-            { src: trackImage, sizes: '384x384', type: 'image/png' },
-            { src: trackImage, sizes: '512x512', type: 'image/png' }
-          );
-        }
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: trackTitle,
-          artist: trackArtist,
-          album: trackAlbum,
-          artwork
-        });
-      }
-      if (isNative) {
-        nativeMediaSession.setMetadata({
-          title: trackTitle,
-          artist: trackArtist,
-          album: trackAlbum,
-          artworkUrl: trackImage,
-          duration: this.track.duration || 0
-        })
+       const artwork: MediaImage[] = []
+       if (trackImage) artwork.push({ src: trackImage, sizes: '512x512' })
+       mediaSession.metadata = new MediaMetadata({
+         title: trackTitle, artist: trackArtist, album: trackAlbum, artwork
+       })
       }
     },
   },
@@ -661,29 +596,12 @@ export async function setupAudio(
   playerStore.setMediaSessionState('none')
 
   let waitingTimer: ReturnType<typeof setTimeout> | null = null
-  let keepAliveInterval: ReturnType<typeof setInterval> | null = null
-
-  function keepAlive(intervalMs = 5000) {
-    if (playerStore.userPaused || keepAliveInterval) return
-    playerStore.saveQueue()
-    keepAliveInterval = setInterval(async () => {
-      await playerStore.saveQueue()
-    }, intervalMs)
-  }
-
-  function stopKeepAlive() {
-    if (keepAliveInterval) {
-      clearInterval(keepAliveInterval)
-      keepAliveInterval = null
-    }
-  }
 
   audio.onplay = () => {
     if (waitingTimer) {
       clearTimeout(waitingTimer)
       waitingTimer = null
     }
-    stopKeepAlive()
     playerStore.isPlaying = true
     playerStore.userPaused = false
     playTime = Date.now()
@@ -695,7 +613,6 @@ export async function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    keepAlive()
   }
 
   audio.onwaiting = () => {
@@ -750,10 +667,8 @@ export async function setupAudio(
   document.addEventListener('visibilitychange', () => {
     if (playerStore.isPlaying) return
     if (playerStore.userPaused) return
-    if (document.hidden) {
-      keepAlive()
-    } else {
-      stopKeepAlive()
+    if (document.visible) {
+      playerStore.play()
     }
   })
 
@@ -761,114 +676,60 @@ export async function setupAudio(
   // Auto-resume
   // ---------------------------------------------------------------------------
 
-  if (isNative) {
+  let knownOutputIds = new Set<string>()
 
-    nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
-      if (playerStore.userPaused) return
-      const type = event?.type
-      const isPlaying = playerStore.isPlaying
+  const devices = await navigator.mediaDevices.enumerateDevices()
+  knownOutputIds = new Set(
+    devices
+      .filter(d => d.kind === 'audiooutput')
+      .map(d => d.deviceId)
+  )
 
-      if (Date.now() - playTime < 1000) return
-
-
-      switch (type) {
-        case 'loss':
-          if (isPlaying) await audio.pause()
-          nativeMediaSession.requestAudioFocus()
-          break
-
-        case 'gain':
-          if (!isPlaying) await playerStore.play()
-          break
-
-        case 'lossTransient':
-          if (isPlaying) await audio.pause()
-          nativeMediaSession.requestAudioFocus()
-          break
-
-        case 'lossDuck':
-          nativeMediaSession.requestAudioFocus()
-          break
-      }
-    })
-
-    nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
-      if (playerStore.userPaused) return
-      const route = event?.route
-      const isPlaying = playerStore.isPlaying
-
-      switch (route) {
-        case 'bluetooth':
-          if (!isPlaying) await playerStore.play()
-          break
-
-        case 'wired':
-          if (!isPlaying) await playerStore.play()
-          break
-
-        case 'speaker':
-          if (isPlaying) await audio.pause()
-          break
-      }
-    })
-
-  } else { // is Desktop OR Mobile
-
-    let knownOutputIds = new Set<string>()
+  navigator.mediaDevices.addEventListener('devicechange', async () => {
+    console.info('devicechange')
+    if (playerStore.userPaused) return
+    if (Date.now() - playTime < 1000) return
 
     const devices = await navigator.mediaDevices.enumerateDevices()
-    knownOutputIds = new Set(
-      devices
-        .filter(d => d.kind === 'audiooutput')
-        .map(d => d.deviceId)
-    )
+    const outputs = devices.filter(d => d.kind === 'audiooutput')
+    const currentIds = new Set(outputs.map(d => d.deviceId))
 
-    navigator.mediaDevices.addEventListener('devicechange', async () => {
-      console.info('devicechange')
-      if (playerStore.userPaused) return
-      if (Date.now() - playTime < 1000) return
+    const removed = [...knownOutputIds].some(id => !currentIds.has(id))
+    const added = [...currentIds].some(id => !knownOutputIds.has(id))
+    knownOutputIds = currentIds
 
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      const outputs = devices.filter(d => d.kind === 'audiooutput')
-      const currentIds = new Set(outputs.map(d => d.deviceId))
+    const isPlaying = playerStore.isPlaying
 
-      const removed = [...knownOutputIds].some(id => !currentIds.has(id))
-      const added = [...currentIds].some(id => !knownOutputIds.has(id))
-      knownOutputIds = currentIds
+    if (removed && isPlaying) {
+      await audio.pause()
+    } else {
+      await playerStore.play()
+    }
+  })
 
-      const isPlaying = playerStore.isPlaying
+  if (!isMobile) { // is Desktop
+    window.addEventListener('keydown', async (event) => {
+      // Ignore when typing in inputs/textareas
+      const target = event.target as HTMLElement | null
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return
+      }
 
-      if (removed && isPlaying) {
-        await audio.pause()
-      } else if (added && !isPlaying) {
-        await playerStore.play()
+      if (event.code === 'Space') {
+        event.preventDefault()
+        await playerStore.playPause()
+      } else if (event.code === 'ArrowLeft') {
+        event.preventDefault()
+        await playerStore.back()
+      } else if (event.code === 'ArrowRight') {
+        event.preventDefault()
+        await playerStore.next(true)
       }
     })
-
-    if (!isMobile) { // is Desktop
-      window.addEventListener('keydown', async (event) => {
-        // Ignore when typing in inputs/textareas
-        const target = event.target as HTMLElement | null
-        if (
-          target?.tagName === 'INPUT' ||
-          target?.tagName === 'TEXTAREA' ||
-          target?.isContentEditable
-        ) {
-          return
-        }
-
-        if (event.code === 'Space') {
-          event.preventDefault()
-          await playerStore.playPause()
-        } else if (event.code === 'ArrowLeft') {
-          event.preventDefault()
-          await playerStore.back()
-        } else if (event.code === 'ArrowRight') {
-          event.preventDefault()
-          await playerStore.next(true)
-        }
-      })
-    }
   }
 
   let saveTime = 0
@@ -952,7 +813,7 @@ export async function setupAudio(
   // These allow OS media controls (lock screen, headphone buttons, etc.)
   // to control playback.
 
-  if (mediaSession && !isNative) {
+  if (mediaSession) {
     mediaSession.setActionHandler('play', () => { playerStore.play() })
     mediaSession.setActionHandler('pause', () => { playerStore.pause() })
     mediaSession.setActionHandler('nexttrack', () => { playerStore.next(true) })
@@ -973,37 +834,6 @@ export async function setupAudio(
       const offset = details.seekOffset || 10
       const position = Math.max(playerStore.currentTime - offset, 0)
       playerStore.seek(position)
-    })
-  }
-
-  // ---------------------------------------------------------------------------
-  // Native Android MediaSession action events (via Capacitor plugin).
-  // Mirror of the browser handlers above so headphones / lock screen / Bluetooth
-  // (e.g. Tesla) control playback the same way.
-  // ---------------------------------------------------------------------------
-  if (isNative) {
-    nativeMediaSession.addListener('play', () => { playerStore.play() })
-    nativeMediaSession.addListener('pause', () => { playerStore.pause() })
-    nativeMediaSession.addListener('next', () => { playerStore.next(true) })
-    nativeMediaSession.addListener('previous', () => { playerStore.back() })
-    nativeMediaSession.addListener('stop', () => { playerStore.pause() })
-    nativeMediaSession.addListener('seek', (data: any) => {
-      const position = Math.min(Number(data?.position) || 0, playerStore.duration)
-      playerStore.seek(position)
-    })
-    nativeMediaSession.addListener('seekto', (data) => {
-      const pos = Math.min(Number(data?.position) || 0, playerStore.duration)
-      void playerStore.seek(pos)
-    })
-    nativeMediaSession.addListener('seekforward', (data) => {
-      const offset = Number(data?.offset) || 10
-      const pos = Math.min(playerStore.currentTime + offset, playerStore.duration)
-      void playerStore.seek(pos)
-    })
-    nativeMediaSession.addListener('seekbackward', (data) => {
-      const offset = Number(data?.offset) || 10
-      const pos = Math.max(playerStore.currentTime - offset, 0)
-      void playerStore.seek(pos)
     })
   }
 

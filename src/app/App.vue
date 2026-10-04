@@ -52,20 +52,6 @@
       : Default
   })
 
-  onMounted(async () => {
-    if (!isNative) return
-
-    backListener = await CapacitorApp.addListener('backButton', () => {
-      const canGoBack = !!router.options.history.state.back
-
-      if (canGoBack) {
-        router.back()
-      } else {
-        CapacitorApp.minimizeApp()
-      }
-    })
-  })
-
   onUnmounted(() => {
     backListener?.remove?.()
   })
