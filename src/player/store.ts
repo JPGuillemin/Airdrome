@@ -28,9 +28,6 @@ localStorage.removeItem('queueIndex')
 // These are created once and shared across the whole app lifetime.
 // Placing them outside the store avoids re-creation on hot-reload.
 
-/** Volume restored from localStorage, default 1.0. */
-const storedVolume = parseFloat(localStorage.getItem('player.volume') || '1.0')
-
 /** ReplayGain mode restored from localStorage, default None (0). */
 const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMode') ?? '0')
 
@@ -72,7 +69,7 @@ export const usePlayerStore = defineStore('player', {
     shuffle: localStorage.getItem('player.shuffle') === 'true',
 
     /** Master volume (0–1). */
-    volume: storedVolume,
+    volume: 1.0,
 
     /** True while the audio element is actively playing. */
     isPlaying: false,
@@ -660,30 +657,7 @@ export async function setupAudio(
 
   playerStore.setMediaSessionState('none')
 
-  let waitingTimer: ReturnType<typeof setTimeout> | null = null
-  let keepAliveInterval: ReturnType<typeof setInterval> | null = null
-
-  function keepAlive(intervalMs = 5000) {
-    if (playerStore.userPaused || keepAliveInterval) return
-    playerStore.saveQueue()
-    keepAliveInterval = setInterval(async () => {
-      await playerStore.saveQueue()
-    }, intervalMs)
-  }
-
-  function stopKeepAlive() {
-    if (keepAliveInterval) {
-      clearInterval(keepAliveInterval)
-      keepAliveInterval = null
-    }
-  }
-
   audio.onplay = () => {
-    if (waitingTimer) {
-      clearTimeout(waitingTimer)
-      waitingTimer = null
-    }
-    stopKeepAlive()
     playerStore.isPlaying = true
     playerStore.userPaused = false
     playTime = Date.now()
@@ -695,30 +669,8 @@ export async function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
-    keepAlive()
   }
 
-  audio.onwaiting = () => {
-    if (waitingTimer) clearTimeout(waitingTimer)
-    waitingTimer = setTimeout(() => {
-      waitingTimer = null
-      playerStore.isPlaying = false
-      playerStore.setMediaSessionPosition()
-      playerStore.setMediaSessionState('paused')
-    }, 10000)
-  }
-
-  audio.onplaying = () => {
-    if (waitingTimer) {
-      clearTimeout(waitingTimer)
-      waitingTimer = null
-    }
-    playerStore.isPlaying = true
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('playing')
-  }
-
-  /** When a track finishes naturally, advance to the next one or end the queue. */
   audio.onended = async () => {
     const { hasNext, repeat } = playerStore
     if (hasNext || repeat) {
@@ -728,12 +680,6 @@ export async function setupAudio(
     }
   }
 
-  /**
-   * Fatal errors only (ABORTED / SRC_NOT_SUPPORTED).
-   * Transient network/decode errors are retried internally by AudioController;
-   * this fires only once all retries are exhausted via onfailed below,
-   * or immediately for errors that are never worth retrying.
-   */
   audio.onerror = (error: any) => {
     console.warn('[Audio] Fatal error', error)
     mainStore.setError(error)
@@ -749,45 +695,43 @@ export async function setupAudio(
 
   document.addEventListener('visibilitychange', () => {
     if (playerStore.isPlaying) return
-    if (playerStore.userPaused) return
-    if (document.hidden) {
-      keepAlive()
-    } else {
-      stopKeepAlive()
+
+    switch (document.visibilityState) {
+      case 'visible':
+        if (!playerStore.userPaused) {
+          playerStore.play()
+        }
+        break
+
+      case 'hidden':
+        // Handle hidden state if needed in the future
+        break
     }
   })
-
-  // ---------------------------------------------------------------------------
-  // Auto-resume
-  // ---------------------------------------------------------------------------
 
   if (isNative) {
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
-      if (playerStore.userPaused) return
       const type = event?.type
-      const isPlaying = playerStore.isPlaying
 
       if (Date.now() - playTime < 1000) return
 
-
       switch (type) {
         case 'loss':
-          if (isPlaying) await audio.pause()
-          nativeMediaSession.requestAudioFocus()
-          break
-
-        case 'gain':
-          if (!isPlaying) await playerStore.play()
+          if (playerStore.isPlaying) await audio.pause()
           break
 
         case 'lossTransient':
-          if (isPlaying) await audio.pause()
-          nativeMediaSession.requestAudioFocus()
+          if (playerStore.isPlaying) await audio.pause()
+          break
+
+        case 'gain':
+          audio.setVolume(playerStore.volume)
+          if (!playerStore.userPaused) await playerStore.play()
           break
 
         case 'lossDuck':
-          nativeMediaSession.requestAudioFocus()
+          if (playerStore.isPlaying) audio.setVolume(0.2)
           break
       }
     })
@@ -932,7 +876,7 @@ export async function setupAudio(
   // ---------------------------------------------------------------------------
 
   audio.setReplayGainMode(storedReplayGainMode)
-  audio.setVolume(storedVolume)
+  audio.setVolume(playerStore.volume)
 
   // Restore the track that was playing when the page was last open (paused)
   const track = playerStore.track

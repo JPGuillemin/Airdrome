@@ -13,7 +13,7 @@
   "dependencies": {
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
-    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/filesystem": "^8.1.4",
     "@capacitor/network": "^8.0.1",
     "@capawesome/capacitor-background-task": "^8.0.3",
     "@fontsource/inter": "^5.2.8",
@@ -45,7 +45,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.5.38",
     "@vue/eslint-config-standard": "^8.0.1",
-    "@vue/eslint-config-typescript": "^11.0.2",
+    "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.0.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
