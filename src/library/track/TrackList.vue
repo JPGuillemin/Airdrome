@@ -38,7 +38,7 @@
       >
         <CellTrackNumber
           :active="isActive(item, index) && isPlaying"
-          :track-number="index + 1"
+          :track-number="index + 1 + indexOffset"
         />
         <CellTitle :track="item" :show-image="showImage" />
         <CellArtist v-if="!noArtist" :track="item" />
@@ -97,6 +97,9 @@
       noDuration: Boolean,
       showImage: { type: Boolean, default: true },
 
+      // Position of tracks[0] within the real queue (when displaying a slice of it)
+      indexOffset: { type: Number, default: 0 },
+
       activeBy: {
         type: String as PropType<'id' | 'index'>,
         default: 'id',
@@ -115,7 +118,7 @@
 
       const isActive = (item: Track, index: number) => {
         return props.activeBy === 'index'
-          ? index === playerStore.queueIndex
+          ? index + props.indexOffset === playerStore.queueIndex
           : item.id === playerStore.trackId
       }
 
@@ -123,6 +126,9 @@
         playerStore.setShuffle(false)
         if (props.tracks[index].id === playerStore.trackId) {
           return playerStore.playPause()
+        }
+        if (props.playStrategy) {
+          return props.playStrategy(index)
         }
         return playerStore.playTrackList(props.tracks, index)
       }

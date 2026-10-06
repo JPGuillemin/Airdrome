@@ -28,6 +28,8 @@
       :tracks="visibleTracks"
       active-by="index"
       :show-image="true"
+      :index-offset="startIndex"
+      :play-strategy="playFromList"
     >
       <template #actions="{ index }">
         <hr class="dropdown-divider">
@@ -51,12 +53,15 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, watch } from 'vue'
+  import { defineComponent, ref, computed, watch, onActivated } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import TrackList from '@/library/track/TrackList.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { longPressTooltip } from '@/shared/tooltips'
+
+  // Number of already-played tracks kept visible above the current one
+  const HISTORY_SIZE = 5
 
   export default defineComponent({
     components: {
@@ -81,6 +86,24 @@
       const allTracks = computed(() => playerStore.queue)
       const queueIndex = computed(() => playerStore.queueIndex)
 
+      // First queue index displayed: at most HISTORY_SIZE tracks before the current one.
+      // Computed once when the page is rendered and then kept fixed, so clicking a
+      // track (or auto-advancing) never hides or shifts the rows.
+      const computeStartIndex = () => Math.max(0, queueIndex.value - HISTORY_SIZE)
+      const startIndex = ref(computeStartIndex())
+
+      // Re-anchor every time the page is displayed (also when it comes back from
+      // the <KeepAlive> cache after navigating elsewhere).
+      onActivated(() => {
+        startIndex.value = computeStartIndex()
+      })
+
+      // Only re-anchor if the current track ends up above the window
+      // (queue cleared, shuffled or replaced).
+      watch(queueIndex, (index) => {
+        if (index < startIndex.value) startIndex.value = computeStartIndex()
+      })
+
       const reset = () => {
         visibleTracks.value = []
         nextIndex.value = 0
@@ -88,13 +111,11 @@
       }
 
       const appendNextChunk = () => {
-        const nextChunk = allTracks.value.slice(
-          nextIndex.value,
-          nextIndex.value + chunkSize.value
-        )
+        const from = startIndex.value + nextIndex.value
+        const nextChunk = allTracks.value.slice(from, from + chunkSize.value)
         visibleTracks.value.push(...nextChunk)
         nextIndex.value += nextChunk.length
-        hasMore.value = nextIndex.value < allTracks.value.length
+        hasMore.value = startIndex.value + nextIndex.value < allTracks.value.length
       }
 
       const loadMore = () => {
@@ -109,8 +130,13 @@
         return playerStore.playTrackListIndex(index)
       }
 
+      // Play a row of the displayed (sliced) list: convert to the real queue index
+      const playFromList = (index: number) => {
+        return playerStore.playTrackListIndex(startIndex.value + index)
+      }
+
       const remove = (index: number) => {
-        playerStore.removeFromQueue(index)
+        playerStore.removeFromQueue(startIndex.value + index)
       }
 
       const clear = async() => {
@@ -129,7 +155,7 @@
       }
 
       watch(
-        () => [allTracks.value, allTracks.value.length] as const,
+        () => [allTracks.value, allTracks.value.length, startIndex.value] as const,
         () => {
           reset()
           appendNextChunk()
@@ -146,11 +172,13 @@
         hasMore,
         allTracks,
         queueIndex,
+        startIndex,
         confirmDialog,
         reset,
         loadMore,
         appendNextChunk,
         play,
+        playFromList,
         remove,
         clear,
         shuffle,
