@@ -44,8 +44,16 @@
               <template v-if="track">
                 <div
                   v-if="track.albumId"
+                  ref="coverEl"
                   style="cursor: pointer"
-                  @click.stop="onAlbumClick"
+                  @click.stop="onCoverClick"
+                  @mouseenter="showPreview"
+                  @mouseleave="hidePreview"
+                  @touchstart.passive="onTouchStart"
+                  @touchmove.passive="onTouchMove"
+                  @touchend="onTouchEnd"
+                  @touchcancel="onTouchCancel"
+                  @contextmenu="onContextMenu"
                 >
                   <img
                     v-if="track.image"
@@ -212,6 +220,19 @@
         </div>
       </div>
     </div>
+
+    <!-- album cover preview (teleported so it is never clipped by the player) -->
+    <Teleport to="body">
+      <Transition name="cover-preview">
+        <img
+          v-if="previewVisible && track?.image"
+          :src="track.image"
+          :style="previewStyle"
+          class="cover-preview"
+          alt=""
+        >
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -263,6 +284,130 @@
       const repeatActive = computed(() => playerStore.repeat)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
       const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
+
+      // Album cover hover preview
+      const coverEl = ref<HTMLElement | null>(null)
+      const previewVisible = ref(false)
+      const previewStyle = ref<Record<string, string>>({})
+
+      const PREVIEW_SIZE = 250
+      const PREVIEW_MARGIN = 8
+
+      const PREVIEW_DELAY = 1500 // ms
+      let previewTimer: number | null = null
+
+      const clearPreviewTimer = () => {
+        if (previewTimer) {
+          clearTimeout(previewTimer)
+          previewTimer = null
+        }
+      }
+
+      const showPreview = () => {
+        if (isMobile) return
+        clearPreviewTimer()
+        previewTimer = window.setTimeout(openPreview, PREVIEW_DELAY)
+      }
+
+      const openPreview = () => {
+        previewTimer = null
+        if (!track.value?.image || !coverEl.value) return
+
+        const rect = coverEl.value.getBoundingClientRect()
+
+        // 500x500, shrunk only if the viewport is too small
+        const size = Math.min(
+          PREVIEW_SIZE,
+          window.innerWidth - PREVIEW_MARGIN * 2,
+          rect.top - PREVIEW_MARGIN * 2,
+        )
+
+        // above the cover, left-aligned, kept inside the viewport
+        const left = Math.min(
+          Math.max(rect.left, PREVIEW_MARGIN),
+          window.innerWidth - size - PREVIEW_MARGIN,
+        )
+        const top = rect.top - size - PREVIEW_MARGIN
+
+        previewStyle.value = {
+          width: `${size}px`,
+          height: `${size}px`,
+          left: `${left}px`,
+          top: `${top}px`,
+        }
+        previewVisible.value = true
+      }
+
+      const hidePreview = () => {
+        clearPreviewTimer()
+        previewVisible.value = false
+      }
+
+      // Long press (touch devices: Capacitor / PWA)
+      const LONG_PRESS_DELAY = 500 // ms
+      const MOVE_TOLERANCE = 10 // px before the press is considered a scroll/drag
+      let longPressTimer: number | null = null
+      let longPressFired = false
+      let touchActive = false
+      let touchOrigin = { x: 0, y: 0 }
+
+      const clearLongPressTimer = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
+        }
+      }
+
+      const onTouchStart = (e: TouchEvent) => {
+        const t = e.touches[0]
+        if (!t) return
+        touchActive = true
+        longPressFired = false
+        touchOrigin = { x: t.clientX, y: t.clientY }
+        clearLongPressTimer()
+        longPressTimer = window.setTimeout(() => {
+          longPressTimer = null
+          longPressFired = true
+          openPreview()
+        }, LONG_PRESS_DELAY)
+      }
+
+      const onTouchMove = (e: TouchEvent) => {
+        if (!longPressTimer) return
+        const t = e.touches[0]
+        if (!t) return
+        if (Math.hypot(t.clientX - touchOrigin.x, t.clientY - touchOrigin.y) > MOVE_TOLERANCE) {
+          clearLongPressTimer()
+        }
+      }
+
+      const onTouchEnd = (e: TouchEvent) => {
+        touchActive = false
+        clearLongPressTimer()
+        if (longPressFired) {
+          e.preventDefault() // no synthesized click -> no album navigation
+          hidePreview()
+        }
+      }
+
+      const onTouchCancel = () => {
+        touchActive = false
+        clearLongPressTimer()
+        hidePreview()
+      }
+
+      // Block the native image/context menu while a touch press is in progress
+      const onContextMenu = (e: Event) => {
+        if (touchActive || longPressFired) e.preventDefault()
+      }
+
+      const onCoverClick = () => {
+        if (longPressFired) {
+          longPressFired = false
+          return
+        }
+        onAlbumClick()
+      }
 
       const isFavourite = computed<boolean>(() => {
         return !!track.value && favouriteStore.get('track', track.value.id)
@@ -368,6 +513,8 @@
 
       onBeforeUnmount(() => {
         if (tooltipTimer.value) clearTimeout(tooltipTimer.value)
+        clearPreviewTimer()
+        clearLongPressTimer()
       })
 
       return {
@@ -383,6 +530,17 @@
         replayGainMode,
         isFavourite,
         progressSlider,
+        coverEl,
+        previewVisible,
+        previewStyle,
+        showPreview,
+        hidePreview,
+        onTouchStart,
+        onTouchMove,
+        onTouchEnd,
+        onTouchCancel,
+        onContextMenu,
+        onCoverClick,
         focusSlider,
         blurSlider,
         onAlbumClick,
@@ -475,6 +633,32 @@
     border-radius: 5px;
     flex-shrink: 0;
     margin: 10px;
+    /* keep long press from opening the native image menu / selection */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* Cover hover preview (teleported to body) */
+  .cover-preview {
+    position: fixed;
+    z-index: 2000; /* above .player (1000) */
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    pointer-events: none; /* prevents hover flicker */
+  }
+
+  .cover-preview-enter-active,
+  .cover-preview-leave-active {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .cover-preview-enter-from,
+  .cover-preview-leave-to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
   }
 
   /* Buttons */
