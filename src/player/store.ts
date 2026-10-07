@@ -714,15 +714,13 @@ export async function setupAudio(
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
 
-      if (Date.now() - playTime < 1000) return
-
       switch (type) {
         case 'loss':
-          if (playerStore.isPlaying) await audio.pause()
+          if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
           break
 
         case 'lossTransient':
-          if (playerStore.isPlaying) await audio.pause()
+          if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
           break
 
         case 'gain':
@@ -751,7 +749,7 @@ export async function setupAudio(
           break
 
         case 'speaker':
-          if (isPlaying) await audio.pause()
+          if (isPlaying && Date.now() - playTime > 2000) await audio.pause()
           break
       }
     })
