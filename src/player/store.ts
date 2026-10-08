@@ -715,17 +715,18 @@ export async function setupAudio(
       const type = event?.type
 
       switch (type) {
+
+        case 'gain':
+          audio.setVolume(playerStore.volume)
+          if (!playerStore.userPaused) await playerStore.play()
+          break
+
         case 'loss':
           if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
           break
 
         case 'lossTransient':
           if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
-          break
-
-        case 'gain':
-          audio.setVolume(playerStore.volume)
-          if (!playerStore.userPaused) await playerStore.play()
           break
 
         case 'lossDuck':
