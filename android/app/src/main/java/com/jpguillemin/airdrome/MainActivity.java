@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(MediaSessionPlugin.class);
+    registerPlugin(ExoPlayerPlugin.class);
 
     super.onCreate(savedInstanceState);
 

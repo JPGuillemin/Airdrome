@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
+import { ExoController, type AudioEngine } from '@/player/exo'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
@@ -34,8 +35,13 @@ const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMod
 /** Browser MediaSession API (undefined on unsupported browsers). */
 const mediaSession: MediaSession | undefined = navigator.mediaSession
 
-/** Singleton Web Audio controller – owns the AudioContext and pipeline. */
-const audio = new AudioController()
+/**
+ * Singleton audio engine.
+ *  - Android (Capacitor): Media3 ExoPlayer via ExoPlayerPlugin (exo.ts)
+ *  - Browser / PWA: Web Audio controller (audio.ts)
+ * Both expose the same public surface.
+ */
+const audio: AudioEngine = isNative ? new ExoController() : new AudioController()
 
 // MediaSession requires a non-zero playback rate; 1 = normal speed
 const mediaSessionProgressRate = 1

@@ -482,7 +482,12 @@
         dragging.value = false
       }
 
+      // The Slider's own @change and the click-zone @click both fire for the same
+      // gesture; without this guard the track is seeked twice (two fade dips).
+      let lastSeekAt = 0
+
       const onSliderUpdate = (value: number) => {
+        lastSeekAt = Date.now()
         playerStore.seek(value)
         dragging.value = false
       }
@@ -492,6 +497,7 @@
       }
 
       const onSliderClick = (e: MouseEvent) => {
+        if (Date.now() - lastSeekAt < 500) return // already handled by the Slider
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
         const x = e.clientX - rect.left
         const ratio = x / rect.width

@@ -229,7 +229,11 @@ function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
-async function nativePlayable(url: string): Promise<string> {
+/**
+ * @param raw  true → return the raw file:// URI (for native players such as ExoPlayer),
+ *             false → WebView-loadable http://localhost/_capacitor_file_/… URL.
+ */
+async function nativePlayable(url: string, raw = false): Promise<string> {
   const entry = await getEntry(url)
   if (!entry) return url
 
@@ -243,7 +247,7 @@ async function nativePlayable(url: string): Promise<string> {
     directory: Directory.Data,
   })
 
-  return Capacitor.convertFileSrc(uri.uri)
+  return raw ? uri.uri : Capacitor.convertFileSrc(uri.uri)
 }
 
 async function nativeDelete(entry: MetaEntry) {
@@ -416,15 +420,23 @@ export const useCacheStore = defineStore('albumCache', {
       }
     },
 
-    async cacheTrack(url: string) {
-      if (!url || this.queued.has(url)) return
-      this.queue.push(url)
+    async cacheTrack(url: string, first = false) {
+      if (!url) return
+      if (this.queued.has(url)) {
+        // Already waiting: optionally bump it to the front of the queue
+        if (first) {
+          this.queue = [url, ...this.queue.filter(u => u !== url)]
+        }
+        return
+      }
+      if (first) this.queue.unshift(url)
+      else this.queue.push(url)
       this.queued.add(url)
       // processQueue guards itself with this.processing — safe to call repeatedly
       void this.processQueue()
     },
 
-    async getCachedUrl(url: string) {
+    async getCachedUrl(url: string, native = false) {
       await this.init()
 
       if (!(await this.hasTrack(url))) {
@@ -432,7 +444,7 @@ export const useCacheStore = defineStore('albumCache', {
         return url
       }
 
-      return isNative ? await nativePlayable(url) : await webPlayable(url)
+      return isNative ? await nativePlayable(url, native) : await webPlayable(url)
     },
 
     async hasTrack(url: string) {
