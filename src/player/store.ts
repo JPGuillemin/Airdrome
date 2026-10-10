@@ -649,6 +649,27 @@ export async function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
 
+  function getCodec() {
+    const audio = document.createElement('audio')
+
+    // Check browser format support matching your preference order
+
+    if (audio.canPlayType('audio/aac') !== '') {
+      return 'aac'
+    }
+    if (audio.canPlayType('audio/ogg; codecs=opus') !== '' || audio.canPlayType('audio/webm; codecs=opus') !== '') {
+      return 'opus'
+    }
+    if (audio.canPlayType('audio/ogg') !== '') {
+      return 'ogg'
+    }
+    return 'mp3' // Ultimate fallback
+  }
+
+  const codec = getCodec()
+  localStorage.setItem('audioCodec', codec)
+  console.info('Codec:', codec)
+
   // ---------------------------------------------------------------------------
   // Playback event handlers
   // ---------------------------------------------------------------------------
