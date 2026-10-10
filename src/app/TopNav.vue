@@ -55,8 +55,8 @@
                 <button
                   v-for="option in [
                     { icon: 'low', value: 128 },
-                    { icon: 'medium', value: 160 },
-                    { icon: 'high', value: 256 }
+                    { icon: 'medium', value: 256 },
+                    { icon: 'high', value: 1000 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
@@ -183,7 +183,7 @@
         localStorage.setItem('themeColor', color)
       }
 
-      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 160)
+      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 256)
 
       function setStreamQuality(value: number) {
         streamQuality.value = value
