@@ -447,6 +447,16 @@ export const useCacheStore = defineStore('albumCache', {
       return isNative ? await nativePlayable(url, native) : await webPlayable(url)
     },
 
+    /**
+     * Playable URL of `url` WITHOUT queueing it for caching: the local file when
+     * cached (raw file:// URI when `native`), the remote URL otherwise.
+     */
+    async peekCachedUrl(url: string, native = false) {
+      await this.init()
+      if (!(await this.hasTrack(url))) return url
+      return isNative ? await nativePlayable(url, native) : await webPlayable(url)
+    },
+
     async hasTrack(url: string) {
       return hasTrack(url)
     },

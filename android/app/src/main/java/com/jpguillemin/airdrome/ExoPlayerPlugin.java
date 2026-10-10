@@ -545,6 +545,18 @@ public class ExoPlayerPlugin extends Plugin {
     main.post(() -> {
       window = list;
       cursor = current >= 0 && current < list.size() ? current : -1;
+      // JS may describe the queue around a track that is no longer the active one
+      // (native moved on while the WebView was frozen): re-locate the cursor.
+      if (active != null && (cursor < 0 || !list.get(cursor).key.equals(active.key))) {
+        int best = -1;
+        for (int i = 0; i < list.size(); i++) {
+          if (list.get(i).key.equals(active.key)
+              && (best < 0 || Math.abs(i - Math.max(cursor, 0)) < Math.abs(best - Math.max(cursor, 0)))) {
+            best = i;
+          }
+        }
+        if (best >= 0) cursor = best;
+      }
       if (active != null) scheduleNextPreload();
       call.resolve();
     });

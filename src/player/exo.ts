@@ -322,23 +322,27 @@ export class ExoController implements AudioEngine {
     this.lastWindow = { entries, current }
     const token = ++this.windowToken
     const cacheStore = useCacheStore()
-    const tracks: NativeWindowTrack[] = []
-    for (let i = 0; i < entries.length; i++) {
-      const e = entries[i]
-      const url = await cacheStore.getCachedUrl(e.url, i === current + 1)
-      if (token !== this.windowToken) return // a newer window superseded this one
-      tracks.push({
-        index: e.index,
-        url,
-        key: e.url,
-        title: e.title,
-        artist: e.artist,
-        album: e.album,
-        artworkUrl: e.image,
-        duration: e.duration,
-        gain: this.gainFor(e.replayGain)
-      })
-    }
+    // ExoPlayer needs raw file:// URIs (not the WebView http://localhost/_capacitor_file_ URLs).
+    // Only the track right after the current one is queued for caching.
+    const urls = await Promise.all(
+      entries.map((e, i) =>
+        i === current + 1
+          ? cacheStore.getCachedUrl(e.url, true)
+          : cacheStore.peekCachedUrl(e.url, true)
+      )
+    )
+    if (token !== this.windowToken) return // a newer window superseded this one
+    const tracks: NativeWindowTrack[] = entries.map((e, i) => ({
+      index: e.index,
+      url: urls[i],
+      key: e.url,
+      title: e.title,
+      artist: e.artist,
+      album: e.album,
+      artworkUrl: e.image,
+      duration: e.duration,
+      gain: this.gainFor(e.replayGain)
+    }))
     try {
       await Exo.setWindow({ tracks, current })
     } catch (err) {

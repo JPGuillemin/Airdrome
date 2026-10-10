@@ -23,6 +23,14 @@ public class MainActivity extends BridgeActivity {
 
     webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
+    // Keep the WebView renderer process at foreground priority even when the app
+    // is not visible. By default Android demotes ("waives") it in the background,
+    // which is what lets the JS side stall after a long idle period (phone call,
+    // screen locked) now that no <audio> element keeps the page alive.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+    }
+
     // Disable Android native long press behavior
     webView.setLongClickable(false);
     webView.setHapticFeedbackEnabled(false);

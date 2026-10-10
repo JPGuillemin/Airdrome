@@ -743,6 +743,8 @@ export async function setupAudio(
     // The native side owns next/previous/auto-advance whenever it knows the
     // surrounding tracks, so a frozen WebView can never block playback or the
     // lock-screen controls. It is told about the queue here...
+    // Native only needs a short look-ahead as long as the WebView stays alive
+    // (it refills the window on every track change).
     const WINDOW_PREV = 1
     const WINDOW_NEXT = 4
     const buildWindow = (): { entries: WindowEntry[]; current: number } => {
