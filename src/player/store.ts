@@ -1,10 +1,10 @@
 // store.ts
-import { watch } from 'vue'
 import { defineStore } from 'pinia'
+import { watch } from 'vue'
 import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
-import { ExoController, type AudioEngine, type WindowEntry } from '@/player/exo'
+import { ExoController, type AudioEngine } from '@/player/exo'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
@@ -133,6 +133,19 @@ export const usePlayerStore = defineStore('player', {
       return !!this.queue && (this.queueIndex < this.queue.length - 1)
     },
 
+    /**
+     * Changes only when the previous / current / next tracks (what the native
+     * player needs, see syncWindow) change: used to re-push the window.
+     */
+    windowKey(): string {
+      const q = this.queue ?? []
+      return [
+        this.queueIndex,
+        this.repeat,
+        ...[-1, 0, 1, 2].map(d => q[this.queueIndex + d]?.id)
+      ].join('|')
+    },
+
     /** True when the current track is not the first in the queue. */
     hasPrevious(): boolean {
       return this.queueIndex > 0
@@ -236,17 +249,6 @@ export const usePlayerStore = defineStore('player', {
       if (isNative) {
         await nativeMediaSession.abandonAudioFocus()
       }
-    },
-
-    /**
-     * The native engine changed track by itself (lock screen / notification
-     * "next", or end of track while the WebView was frozen). Follow it: only
-     * the queue position and UI move, nothing is reloaded.
-     */
-    syncFromNative(index: number) {
-      if (!this.queue || index < 0 || index >= this.queue.length) return
-      this.inTransition = false
-      this.setQueueIndex(index)
     },
 
     /** Toggle between play and pause. */
@@ -582,6 +584,50 @@ export const usePlayerStore = defineStore('player', {
       this.inTransition = false
     },
 
+    /** Native already switched track by itself: only follow, never reload. */
+    followNative(index: number) {
+      this.setQueueIndex(index)
+    },
+
+    /**
+     * Describe previous / current / next tracks to the native player so it can
+     * advance without JS (WebView frozen after a call, screen off...). JS remains
+     * the owner of the queue; at the edge of the window native falls back to
+     * emitting 'ended' and JS decides (end of queue, radio, repeat...).
+     */
+    async syncWindow() {
+      if (!isNative || !this.queue?.length || this.queueIndex < 0) return
+      const n = this.queue.length
+      const idx = [
+        ...new Set(
+          [-1, 0, 1, 2]
+            .map(d => this.queueIndex + d)
+            .map(i => (this.repeat ? (i + n) % n : i))
+            .filter(i => i >= 0 && i < n)
+        )
+      ]
+      try {
+        await (audio as ExoController).setWindow(
+          idx.map(i => {
+            const t = this.queue[i]
+            return {
+              index: i,
+              url: t.url,
+              title: t.title || '',
+              artist: formatArtists(t.artists) || '',
+              album: t.album || '',
+              artworkUrl: t.image || null,
+              duration: t.duration || 0,
+              replayGain: t.replayGain
+            }
+          }),
+          this.queueIndex
+        )
+      } catch (e) {
+        console.warn('[Player] setWindow failed', e)
+      }
+    },
+
     /**
      * Update queueIndex and refresh track-level metadata (duration, MediaSession).
      *
@@ -723,9 +769,21 @@ export async function setupAudio(
     playerStore.setMediaSessionState()
   }
 
+  // Circuit breaker: several errors in a row (plugin missing, server down...) must
+  // never turn into an endless skip loop through the whole queue.
+  let errorBurst = 0
+  let errorBurstAt = 0
   audio.onerror = (error: any) => {
     console.warn('[Audio] Fatal error', error)
     mainStore.setError(error)
+    const now = Date.now()
+    errorBurst = now - errorBurstAt < 3000 ? errorBurst + 1 : 1
+    errorBurstAt = now
+    if (errorBurst >= 3) {
+      playerStore.userPaused = true
+      playerStore.isPlaying = false
+      return
+    }
     // Skip the broken track rather than looping forever on it.
     if (playerStore.hasNext) {
       void playerStore.next(true)
@@ -737,61 +795,14 @@ export async function setupAudio(
   }
 
   if (isNative) {
-    const exo = audio as ExoController
-
-    // ── Native player ⇄ store sync ──────────────────────────────────────
-    // The native side owns next/previous/auto-advance whenever it knows the
-    // surrounding tracks, so a frozen WebView can never block playback or the
-    // lock-screen controls. It is told about the queue here...
-    // Native only needs a short look-ahead as long as the WebView stays alive
-    // (it refills the window on every track change).
-    const WINDOW_PREV = 1
-    const WINDOW_NEXT = 4
-    const buildWindow = (): { entries: WindowEntry[]; current: number } => {
-      const { queue, queueIndex, repeat } = playerStore
-      const entries: WindowEntry[] = []
-      let current = -1
-      if (!queue || queueIndex < 0 || queueIndex >= queue.length) return { entries, current }
-      for (let off = -WINDOW_PREV; off <= WINDOW_NEXT; off++) {
-        let i = queueIndex + off
-        if (i < 0) continue                       // back() never wraps
-        if (i >= queue.length) {
-          if (!repeat) break                      // next() stops at the end
-          i %= queue.length                       // ...and wraps when repeating
-        }
-        const t = queue[i]
-        if (off === 0) current = entries.length
-        entries.push({
-          index: i,
-          url: t.url,
-          title: t.title || '',
-          artist: formatArtists(t.artists) || '',
-          album: t.album || '',
-          image: t.image || null,
-          duration: t.duration || 0,
-          replayGain: t.replayGain
-        })
-      }
-      return { entries, current }
+    // JS owns the queue. It pushes a small window around the current track
+    // (syncWindow) so the native player can start the next track by itself when
+    // the WebView is frozen, then reports it with 'trackChanged' and we follow.
+    // Audio focus and audio route changes are handled by the native player.
+    ;(audio as ExoController).ontrackchanged = (index: number) => {
+      playerStore.followNative(index)
     }
-    watch(
-      () => {
-        const w = buildWindow()
-        return w.entries.map(e => `${e.index}:${e.url}`).join('|') + `@${w.current}`
-      },
-      () => {
-        const { entries, current } = buildWindow()
-        void exo.setWindow(entries, current)
-      },
-      { immediate: true }
-    )
-
-    // ...and follows it when it moves on by itself.
-    exo.ontrackchange = (index) => playerStore.syncFromNative(index)
-
-    // Audio focus (calls, other apps) and audio route (headset / Bluetooth) are
-    // handled by the native player itself: nothing to do here, so a frozen
-    // WebView can never prevent a pause / resume.
+    watch(() => playerStore.windowKey, () => { void playerStore.syncWindow() }, { immediate: true })
   } else { // is Desktop OR Mobile
     let knownOutputIds = new Set<string>()
 
