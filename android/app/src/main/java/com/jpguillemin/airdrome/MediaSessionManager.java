@@ -268,6 +268,13 @@ public class MediaSessionManager {
         updateNotification();
     }
 
+    /** Update only the position (keeps the current state and speed). */
+    public synchronized void setPosition(long positionMs) {
+        this.positionMs = positionMs;
+        applyPlaybackState();
+        updateNotification();
+    }
+
     private synchronized void applyMetadata() {
         MediaMetadataCompat.Builder b =
             new MediaMetadataCompat.Builder()

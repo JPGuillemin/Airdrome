@@ -686,6 +686,11 @@ export async function setupAudio(
     }
   }
 
+  audio.onplaying = () => {
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState()
+  }
+
   audio.onerror = (error: any) => {
     console.warn('[Audio] Fatal error', error)
     mainStore.setError(error)
@@ -699,27 +704,11 @@ export async function setupAudio(
     }
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (playerStore.isPlaying) return
-
-    switch (document.visibilityState) {
-      case 'visible':
-        if (!playerStore.userPaused) {
-          playerStore.play()
-        }
-        break
-
-      case 'hidden':
-        // Handle hidden state if needed in the future
-        break
-    }
-  })
-
   if (isNative) {
+  ;(audio as ExoController).canAdvance = () => playerStore.hasNext || playerStore.repeat
 
     nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
       const type = event?.type
-
       switch (type) {
 
         case 'gain':
@@ -762,7 +751,6 @@ export async function setupAudio(
     })
 
   } else { // is Desktop OR Mobile
-
     let knownOutputIds = new Set<string>()
 
     const devices = await navigator.mediaDevices.enumerateDevices()
@@ -794,7 +782,23 @@ export async function setupAudio(
       }
     })
 
-    if (!isMobile) { // is Desktop
+    if (isMobile) {
+      document.addEventListener('visibilitychange', () => {
+        if (playerStore.isPlaying) return
+
+        switch (document.visibilityState) {
+          case 'visible':
+            if (!playerStore.userPaused) {
+              playerStore.play()
+            }
+            break
+
+          case 'hidden':
+            // Handle hidden state if needed in the future
+            break
+        }
+      })
+    } else { // Is Desktop
       window.addEventListener('keydown', async (event) => {
         // Ignore when typing in inputs/textareas
         const target = event.target as HTMLElement | null
@@ -840,11 +844,11 @@ export async function setupAudio(
     const duration = playerStore.duration
 
     // ── Auto-skip ──────────────────────────────────────────────────────
-    const remaining = duration - time
-    if (remaining < 0.15 && playerStore.hasNext) {
-      playerStore.next(false) // No fade – the gapless buffer handles the transition
-      return
-    }
+    //const remaining = duration - time
+    //if (remaining < 0.15 && playerStore.hasNext) {
+      //playerStore.next(false)
+      //return
+    //}
 
     // ── Scrobble ───────────────────────────────────────────────────────
     const progress = duration ? time / duration : 0
@@ -855,7 +859,7 @@ export async function setupAudio(
   }
 
   audio.ondurationchange = (duration: number) => {
-    playerStore.duration = duration
+    if (!isNative || !playerStore.duration) playerStore.duration = duration
     playerStore.setMediaSessionPosition()
   }
 

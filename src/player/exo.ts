@@ -18,6 +18,7 @@
 
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { useCacheStore } from '@/shared/cache'
+import { nativeMediaSession } from '@/player/nativeMediaSession'
 import { ReplayGainMode, type AudioController } from '@/player/audio'
 
 /** Public shape of AudioController (keyof only exposes public members). */
@@ -45,6 +46,8 @@ interface ExoPlayerPlugin {
     volume: number     // user volume 0..1
     gain: number       // linear ReplayGain factor (may be > 1)
     startPosition?: number // seconds, optional initial seek
+    nextUrl?: string   // playable URI of the next track (native preload / background advance)
+    nextKey?: string   // original remote URL of the next track
   }): Promise<void>
   preload(o: { url: string; key: string }): Promise<void>
   play(o: { fadeInMs: number }): Promise<void>
@@ -52,6 +55,8 @@ interface ExoPlayerPlugin {
   stop(): Promise<void>
   seek(o: { position: number; fadeMs: number }): Promise<void>
   setLevels(o: { volume?: number; gain?: number }): Promise<void>
+  /** Debug only: native Toast. */
+  toast(o: { message: string }): Promise<void>
 
   addListener(
     event: 'play' | 'pause' | 'playing' | 'waiting' | 'ended',
@@ -74,6 +79,13 @@ interface ExoPlayerPlugin {
 const Exo = registerPlugin<ExoPlayerPlugin>('ExoPlayer')
 
 const warn = (e: unknown) => console.warn('[Exo]', e)
+
+/** Temporary on-screen diagnostics (native Toasts) – set to false once seeking is validated. */
+const DEBUG = false
+const dbg = (message: string) => {
+  console.info('[Exo]', message)
+  if (DEBUG) Exo.toast({ message }).catch(() => {})
+}
 
 // ---------------------------------------------------------------------------
 // ExoController
@@ -104,7 +116,14 @@ export class ExoController implements AudioEngine {
    * Seek requested on a remote track ExoPlayer may not be able to seek in.
    * Resolved by switching to the cached local file as soon as it is available.
    */
+  /** Set by the store: true when a track follows the current one (queue / repeat). */
+  canAdvance: () => boolean = () => true
+
+  /** Next track info resent on every native load. */
+  private currentNext: { url: string; key: string } | null = null
+
   private pending: { key: string; position: number; at: number } | null = null
+  private pollTimer: ReturnType<typeof setInterval> | null = null
   private seekAt = 0
 
   // ── Callbacks (assigned by the store via setupAudio) ──────────────────────
@@ -124,7 +143,17 @@ export class ExoController implements AudioEngine {
     Exo.addListener('pause', () => { this.playing = false; this.onpause() }).catch(warn)
     Exo.addListener('playing', () => this.onplaying()).catch(warn)
     Exo.addListener('waiting', () => this.onwaiting()).catch(warn)
-    Exo.addListener('ended', () => this.onended()).catch(warn)
+    Exo.addListener('ended', () => {
+      const token = this.changeToken
+      this.onended() // the store normally loads the next track (bumps changeToken)
+      // No next track was loaded: now report the pause (end of queue)
+      setTimeout(() => {
+        if (token === this.changeToken && this.playing) {
+          this.playing = false
+          this.onpause()
+        }
+      }, 800)
+    }).catch(warn)
 
     // The cache store dispatches this when a track has been fully written to disk
     window.addEventListener('audioCached', (e) => {
@@ -166,6 +195,21 @@ export class ExoController implements AudioEngine {
 
     Exo.addListener('error', (e) => {
       console.warn('[Exo] playback error', e)
+      dbg(`error ${e?.message ?? ''} (${e?.code ?? '?'}) at ${Math.round(this._position)}/${Math.round(this._duration)}s`)
+      // A stream that is cut a few seconds before its announced end (transcoded
+      // streams with an estimated length) is a normal end of track, not an error.
+      const nearEnd = this._duration > 0 && this._duration - this._position < 5
+      if (nearEnd && this.playing) {
+        const token = this.changeToken
+        this.onended()
+        setTimeout(() => {
+          if (token === this.changeToken && this.playing) {
+            this.playing = false
+            this.onpause()
+          }
+        }, 800)
+        return
+      }
       this.onerror(e)
     }).catch(warn)
   }
@@ -256,14 +300,32 @@ export class ExoController implements AudioEngine {
     // the seek, make caching of this track a priority, and apply the seek as
     // soon as the file is on disk (see onCached()).
     this.pending = null
-    if (this.currentKey && !this.currentPlayable.startsWith('file:')) {
+    this.stopPoll()
+    const remote = !!this.currentKey && !this.currentPlayable.startsWith('file:')
+    dbg(`seek ${Math.round(value)}s (${remote ? 'remote' : 'local'})`)
+    if (remote) {
       const token = this.changeToken
       if (await this.switchToLocal(value)) return
       if (token !== this.changeToken) return
       this.pending = { key: this.currentKey, position: value, at: Date.now() }
+      dbg('not cached yet: waiting for download')
       void useCacheStore().cacheTrack(this.currentKey, true)
+      // Safety net in case the 'audioCached' event is missed
+      const key = this.currentKey
+      this.pollTimer = setInterval(async () => {
+        if (!this.pending || this.pending.key !== key || Date.now() - this.pending.at > 120000) {
+          this.stopPoll()
+          return
+        }
+        if (await useCacheStore().hasTrack(key)) void this.onCached(key)
+      }, 1000)
     }
     await Exo.seek({ position: value, fadeMs: Math.round((this.fadeTime / 2) * 1000) })
+  }
+
+  private stopPoll() {
+    if (this.pollTimer) clearInterval(this.pollTimer)
+    this.pollTimer = null
   }
 
   /** Reload the current track from its cached local file at `position` (s). */
@@ -281,7 +343,9 @@ export class ExoController implements AudioEngine {
         fadeOutMs: 0,
         volume: this.volume,
         gain: this.replayGainFactor(),
-        startPosition: position
+        startPosition: position,
+        nextUrl: this.currentNext?.url,
+        nextKey: this.currentNext?.key
       })
     } catch (e) {
       warn(e)
@@ -294,6 +358,8 @@ export class ExoController implements AudioEngine {
     const p = this.pending
     if (!p || url !== p.key || p.key !== this.currentKey) return
     this.pending = null
+    this.stopPoll()
+    dbg('cached: switching to local file')
     const pos = p.position + (this.playing ? (Date.now() - p.at) / 1000 : 0)
     this.seekTarget = pos
     this.seekAt = Date.now()
@@ -321,6 +387,7 @@ export class ExoController implements AudioEngine {
     this._duration = 0
     this.seekTarget = null
     this.pending = null
+    this.stopPoll()
 
     // file:// URI when cached, remote URL otherwise (also queues caching)
     const playable = await cacheStore.getCachedUrl(currentUrl, true)
@@ -328,8 +395,21 @@ export class ExoController implements AudioEngine {
     this.currentKey = currentUrl
     this.currentPlayable = playable
 
+    // Hand the next track to the native side: it preloads it and can start it by
+    // itself if the WebView is throttled in the background.
+    this.currentNext = null
+    if (nextUrl && this.canAdvance()) {
+      const nextPlayable = await cacheStore.getCachedUrl(nextUrl, true)
+      if (token !== this.changeToken) return
+      this.currentNext = { url: nextPlayable, key: nextUrl }
+    }
+
     // Another loadTrack() started while we were resolving the URL
     if (token !== this.changeToken) return
+
+    // ExoPlayer does not manage audio focus (handleAudioFocus=false) and the store
+    // only requests it from play(): make sure we hold it whenever a track starts.
+    if (!options.paused) nativeMediaSession.requestAudioFocus().catch(warn)
 
     try {
       await Exo.load({
@@ -339,21 +419,15 @@ export class ExoController implements AudioEngine {
         fade: !!options.fade,
         fadeOutMs: Math.round(this.fadeTime * 1000),
         volume: this.volume,
-        gain: this.replayGainFactor()
+        gain: this.replayGainFactor(),
+        nextUrl: this.currentNext?.url,
+        nextKey: this.currentNext?.key
       })
     } catch (err) {
       console.warn('[Exo] load failed', err)
       if (token === this.changeToken) this.onerror(err)
       return
     }
-
-    // After 15 s (or half the track), pre-buffer the next track
-    setTimeout(async () => {
-      if (token === this.changeToken && nextUrl) {
-        await this.setBuffer(nextUrl)
-        console.info('exo.setBuffer:', nextUrl)
-      }
-    }, Math.min(15000, (this.duration() || 30) * 0.5 * 1000))
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

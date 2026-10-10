@@ -67,12 +67,27 @@ public class ExoPlayerPlugin extends Plugin {
   private int cmdGen = 0;  // bumped by load/play/pause/stop to cancel pending delayed pauses
   private int loadGen = 0; // bumped by load() to abandon superseded loads
 
+  // Next track known by JS (playable URI + key). Used to keep playing when the
+  // WebView is throttled/frozen in the background and cannot load the next track.
+  private String nextUrl = null;
+  private String nextKey = null;
+  // Key of a track started natively (advanceNative) that JS has not yet "loaded"
+  private String autoKey = null;
+  private static final long ADVANCE_GRACE_MS = 700; // JS gets this long to load the next track itself
+  private static final long PRELOAD_DELAY_MS = 10000;
+
   private final Runnable ticker = new Runnable() {
     @Override
     public void run() {
       Slot s = active;
-      if (s != null && s.player.isPlaying()) emitTime(s);
-      main.postDelayed(this, TICK_MS);
+      long next = TICK_MS;
+      if (s != null && s.player.isPlaying()) {
+        emitTime(s);
+        long d = s.player.getDuration();
+        // Faster ticks in the last second so the store's auto-skip fires on time
+        if (d != C.TIME_UNSET && d - s.player.getCurrentPosition() < 1000) next = 50;
+      }
+      main.postDelayed(this, next);
     }
   };
 
@@ -86,6 +101,7 @@ public class ExoPlayerPlugin extends Plugin {
 
   @Override
   protected void handleOnDestroy() {
+    if (instance == this) instance = null;
     main.removeCallbacksAndMessages(null);
     releaseSlot(active);
     releaseSlot(buffer);
@@ -110,14 +126,34 @@ public class ExoPlayerPlugin extends Plugin {
     final Float vol = call.getFloat("volume");
     final Float g = call.getFloat("gain");
     final long startMs = (long) (call.getDouble("startPosition", 0.0) * 1000.0);
+    final String nUrl = call.getString("nextUrl");
+    final String nKey = call.getString("nextKey", nUrl);
 
     main.post(() -> {
+      // The track was already started natively (JS was asleep when it ended):
+      // JS now "loads" it too -> just sync levels and the next-track info.
+      if (!paused && autoKey != null && key.equals(autoKey) && active != null && key.equals(active.key)) {
+        autoKey = null;
+        if (vol != null) volume = vol;
+        if (g != null) gain = g;
+        nextUrl = nUrl;
+        nextKey = nKey;
+        applyLevels();
+        scheduleNextPreload();
+        call.resolve();
+        return;
+      }
+      autoKey = null;
+      nextUrl = nUrl;
+      nextKey = nKey;
+
       final int gen = ++loadGen;
       cmdGen++;
       if (vol != null) volume = vol;
       if (g != null) gain = g;
 
       final Runnable swap = () -> {
+       try {
         if (gen != loadGen) { // a newer load() took over
           call.resolve();
           return;
@@ -136,6 +172,7 @@ public class ExoPlayerPlugin extends Plugin {
         releaseSlot(old);
 
         if (startMs > 0) next.player.seekTo(startMs);
+        scheduleNextPreload();
 
         if (!paused) {
           next.player.setPlayWhenReady(true);
@@ -144,6 +181,9 @@ public class ExoPlayerPlugin extends Plugin {
         } else {
           call.resolve();
         }
+       } catch (Exception e) {
+        call.reject("load failed: " + e);
+       }
       };
 
       Slot cur = active;
@@ -188,7 +228,9 @@ public class ExoPlayerPlugin extends Plugin {
       }
       cmdGen++;
       if (s.player.getPlaybackState() == Player.STATE_ENDED) s.player.seekTo(0);
+      final boolean wasReady = s.player.getPlayWhenReady();
       s.player.setPlayWhenReady(true);
+      if (wasReady) emit("play"); // no state change after an ended track: notify manually
       fadeTo(1f, fadeMs);
       main.postDelayed(call::resolve, fadeMs);
     });
@@ -219,6 +261,9 @@ public class ExoPlayerPlugin extends Plugin {
       cmdGen++;
       loadGen++;
       fadeGen++;
+      nextUrl = null;
+      nextKey = null;
+      autoKey = null;
       Slot s = active;
       boolean wasPlaying = s != null && s.player.getPlayWhenReady();
       active = null; // detaches events from the old player
@@ -235,23 +280,51 @@ public class ExoPlayerPlugin extends Plugin {
     final long posMs = (long) (call.getDouble("position", 0.0) * 1000.0);
     final long fadeMs = call.getInt("fadeMs", 150);
     main.post(() -> {
-      Slot s = active;
-      if (s == null) {
-        call.resolve();
-        return;
-      }
-      boolean playing = s.player.getPlayWhenReady();
-      if (playing) { // brief dip to avoid a click at the seek point
-        fadeGen++;
-        fade = 0f;
-        applyLevels();
-      }
-      Log.d("ExoPlayerPlugin", "seek to=" + posMs + "ms seekable=" + s.player.isCurrentMediaItemSeekable()
-        + " state=" + s.player.getPlaybackState() + " duration=" + s.player.getDuration()
-        + " url=" + s.url);
-      s.player.seekTo(posMs);
-      if (playing) fadeTo(1f, fadeMs);
-      emitTime(s);
+      seekTo(posMs, fadeMs);
+      call.resolve();
+    });
+  }
+
+  /** Seek the active player (main thread). Returns false when nothing is loaded. */
+  private boolean seekTo(long posMs, long fadeMs) {
+    Slot s = active;
+    if (s == null) return false;
+    boolean playing = s.player.getPlayWhenReady();
+    if (playing) { // brief dip to avoid a click at the seek point
+      fadeGen++;
+      fade = 0f;
+      applyLevels();
+    }
+    s.player.seekTo(posMs);
+    if (playing) fadeTo(1f, fadeMs);
+    emitTime(s);
+    return true;
+  }
+
+  // Lock screen / notification / Bluetooth seeks are handled here, natively, so
+  // they work even when the WebView is throttled in the background.
+  private static ExoPlayerPlugin instance;
+
+  @Override
+  public void load() {
+    super.load();
+    instance = this;
+  }
+
+  /** Called by MediaSessionPlugin on the main thread. @return true if handled. */
+  static boolean seekFromSession(long posMs) {
+    ExoPlayerPlugin p = instance;
+    if (p == null || !p.seekTo(posMs, 150)) return false;
+    MediaSessionManager.get(p.getContext()).setPosition(posMs);
+    return true;
+  }
+
+  /** Debug helper: shows a native Toast. */
+  @PluginMethod
+  public void toast(final PluginCall call) {
+    final String m = call.getString("message", "");
+    main.post(() -> {
+      android.widget.Toast.makeText(getContext(), m, android.widget.Toast.LENGTH_SHORT).show();
       call.resolve();
     });
   }
@@ -266,6 +339,55 @@ public class ExoPlayerPlugin extends Plugin {
       applyLevels();
       call.resolve();
     });
+  }
+
+  // ── Native track advance (works while the WebView is asleep) ─────────────
+
+  /** Pre-build the next track's player a while after the current one started. */
+  private void scheduleNextPreload() {
+    final int gen = loadGen;
+    main.postDelayed(() -> {
+      if (gen != loadGen || nextUrl == null || nextKey == null) return;
+      if (buffer != null && nextKey.equals(buffer.key) && nextUrl.equals(buffer.url)
+          && buffer.player.getPlayerError() == null) return;
+      releaseSlot(buffer);
+      buffer = build(nextUrl, nextKey);
+      buffer.player.setVolume(0f);
+    }, PRELOAD_DELAY_MS);
+  }
+
+  /**
+   * The active track ended. JS normally loads the next one right away. If it has
+   * not done so after a short grace period (WebView throttled in background),
+   * start the next track here so that playback never stalls.
+   */
+  private void scheduleAdvance(final Slot ended) {
+    if (nextUrl == null || nextKey == null) return;
+    final int gen = loadGen;
+    main.postDelayed(() -> {
+      if (gen == loadGen && active == ended && nextUrl != null) advanceNative();
+    }, ADVANCE_GRACE_MS);
+  }
+
+  private void advanceNative() {
+    final String url = nextUrl;
+    final String key = nextKey;
+    nextUrl = null;
+    nextKey = null;
+    loadGen++;
+    cmdGen++;
+    Slot next = takeBuffer(key, url);
+    if (next == null) next = build(url, key);
+    Slot old = active;
+    active = next;
+    fadeGen++;
+    fade = 1f;
+    attach(next);
+    createEnhancer(next, next.player.getAudioSessionId());
+    applyLevels();
+    releaseSlot(old);
+    next.player.setPlayWhenReady(true);
+    autoKey = key;
   }
 
   // ── Player management ─────────────────────────────────────────────────────
@@ -348,8 +470,11 @@ public class ExoPlayerPlugin extends Plugin {
         } else if (state == Player.STATE_BUFFERING && s.player.getPlayWhenReady()) {
           emit("waiting");
         } else if (state == Player.STATE_ENDED) {
-          emit("pause"); // HTMLAudioElement fires pause, then ended
+          // No "pause" here: it would flash the UI / media session to "paused"
+          // between two tracks (Android can then suspend a backgrounded app).
+          // exo.ts emits the pause itself if no next track is loaded.
           emit("ended");
+          scheduleAdvance(s);
         }
       }
 

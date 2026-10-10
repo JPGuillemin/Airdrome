@@ -43,6 +43,8 @@ public class MediaSessionPlugin extends Plugin {
       @Override public void onSkipToNext() { notifyListeners("next", new JSObject()); }
       @Override public void onSkipToPrevious() { notifyListeners("previous", new JSObject()); }
       @Override public void onSeekTo(long pos) {
+        // Handle natively first: JS may be throttled while the app is in background
+        if (ExoPlayerPlugin.seekFromSession(pos)) return;
         JSObject data = new JSObject();
         data.put("position", pos / 1000.0);
         notifyListeners("seek", data);
