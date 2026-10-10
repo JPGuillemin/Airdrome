@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
     requestIgnoreBatteryOptimizations();
 
     webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+    webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
 
     // Disable Android native long press behavior
     webView.setLongClickable(false);
