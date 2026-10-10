@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import { shuffle, shuffled, trackListEquals, formatArtists, sleep } from '@/shared/utils'
 import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
-import { ExoController, type AudioEngine } from '@/player/exo'
+import { ExoController, type AudioEngine, type WindowEntry } from '@/player/exo'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
@@ -236,6 +236,17 @@ export const usePlayerStore = defineStore('player', {
       if (isNative) {
         await nativeMediaSession.abandonAudioFocus()
       }
+    },
+
+    /**
+     * The native engine changed track by itself (lock screen / notification
+     * "next", or end of track while the WebView was frozen). Follow it: only
+     * the queue position and UI move, nothing is reloaded.
+     */
+    syncFromNative(index: number) {
+      if (!this.queue || index < 0 || index >= this.queue.length) return
+      this.inTransition = false
+      this.setQueueIndex(index)
     },
 
     /** Toggle between play and pause. */
@@ -705,51 +716,59 @@ export async function setupAudio(
   }
 
   if (isNative) {
-  ;(audio as ExoController).canAdvance = () => playerStore.hasNext || playerStore.repeat
+    const exo = audio as ExoController
 
-    nativeMediaSession.addListener('audioFocusChange', async (event: any) => {
-      const type = event?.type
-      switch (type) {
-
-        case 'gain':
-          audio.setVolume(playerStore.volume)
-          if (!playerStore.userPaused) await playerStore.play()
-          break
-
-        case 'loss':
-          if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
-          break
-
-        case 'lossTransient':
-          if (playerStore.isPlaying && Date.now() - playTime > 2000) await audio.pause()
-          break
-
-        case 'lossDuck':
-          if (playerStore.isPlaying) audio.setVolume(0.2)
-          break
+    // ── Native player ⇄ store sync ──────────────────────────────────────
+    // The native side owns next/previous/auto-advance whenever it knows the
+    // surrounding tracks, so a frozen WebView can never block playback or the
+    // lock-screen controls. It is told about the queue here...
+    const WINDOW_PREV = 1
+    const WINDOW_NEXT = 4
+    const buildWindow = (): { entries: WindowEntry[]; current: number } => {
+      const { queue, queueIndex, repeat } = playerStore
+      const entries: WindowEntry[] = []
+      let current = -1
+      if (!queue || queueIndex < 0 || queueIndex >= queue.length) return { entries, current }
+      for (let off = -WINDOW_PREV; off <= WINDOW_NEXT; off++) {
+        let i = queueIndex + off
+        if (i < 0) continue                       // back() never wraps
+        if (i >= queue.length) {
+          if (!repeat) break                      // next() stops at the end
+          i %= queue.length                       // ...and wraps when repeating
+        }
+        const t = queue[i]
+        if (off === 0) current = entries.length
+        entries.push({
+          index: i,
+          url: t.url,
+          title: t.title || '',
+          artist: formatArtists(t.artists) || '',
+          album: t.album || '',
+          image: t.image || null,
+          duration: t.duration || 0,
+          replayGain: t.replayGain
+        })
       }
-    })
+      return { entries, current }
+    }
+    watch(
+      () => {
+        const w = buildWindow()
+        return w.entries.map(e => `${e.index}:${e.url}`).join('|') + `@${w.current}`
+      },
+      () => {
+        const { entries, current } = buildWindow()
+        void exo.setWindow(entries, current)
+      },
+      { immediate: true }
+    )
 
-    nativeMediaSession.addListener('audioRouteChange', async (event: any) => {
-      if (playerStore.userPaused) return
-      const route = event?.route
-      const isPlaying = playerStore.isPlaying
+    // ...and follows it when it moves on by itself.
+    exo.ontrackchange = (index) => playerStore.syncFromNative(index)
 
-      switch (route) {
-        case 'bluetooth':
-          if (!isPlaying) await playerStore.play()
-          break
-
-        case 'wired':
-          if (!isPlaying) await playerStore.play()
-          break
-
-        case 'speaker':
-          if (isPlaying && Date.now() - playTime > 2000) await audio.pause()
-          break
-      }
-    })
-
+    // Audio focus (calls, other apps) and audio route (headset / Bluetooth) are
+    // handled by the native player itself: nothing to do here, so a frozen
+    // WebView can never prevent a pause / resume.
   } else { // is Desktop OR Mobile
     let knownOutputIds = new Set<string>()
 

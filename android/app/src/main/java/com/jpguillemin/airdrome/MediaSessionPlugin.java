@@ -37,11 +37,17 @@ public class MediaSessionPlugin extends Plugin {
     manager = MediaSessionManager.get(getContext());
     audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
 
+    // Routing policy: every transport action is offered to the native player
+    // first (it works while the WebView is frozen, e.g. after a long call).
+    // JS only gets the actions native cannot decide.
     manager.setListener(new MediaSessionManager.TransportListener() {
-      @Override public void onPlay() { notifyListeners("play", new JSObject()); }
-      @Override public void onPause() { notifyListeners("pause", new JSObject()); }
-      @Override public void onSkipToNext() { notifyListeners("next", new JSObject()); }
-      @Override public void onSkipToPrevious() { notifyListeners("previous", new JSObject()); }
+      @Override public void onPlay() {
+        requestAudioFocusInternal(); // ExoPlayer does not manage focus itself
+        route("play");
+      }
+      @Override public void onPause() { route("pause"); }
+      @Override public void onSkipToNext() { route("next"); }
+      @Override public void onSkipToPrevious() { route("previous"); }
       @Override public void onSeekTo(long pos) {
         // Handle natively first: JS may be throttled while the app is in background
         if (ExoPlayerPlugin.seekFromSession(pos)) return;
@@ -49,7 +55,7 @@ public class MediaSessionPlugin extends Plugin {
         data.put("position", pos / 1000.0);
         notifyListeners("seek", data);
       }
-      @Override public void onStop() { notifyListeners("stop", new JSObject()); }
+      @Override public void onStop() { route("stop"); }
     });
 
     setupFocusListener();
@@ -62,6 +68,16 @@ public class MediaSessionPlugin extends Plugin {
     abandonAudioFocusInternal();
     unregisterReceivers();
     super.handleOnDestroy();
+  }
+
+  // -------------------------------------------------------------------------
+  // Transport routing (native first, JS as fallback)
+  // -------------------------------------------------------------------------
+
+  private void route(String action) {
+    if (!ExoPlayerPlugin.handleTransport(action)) {
+      notifyListeners(action, new JSObject());
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -148,6 +164,10 @@ public class MediaSessionPlugin extends Plugin {
             return;
         }
 
+        // Native player reacts by itself (pause / resume / duck)...
+        ExoPlayerPlugin.onAudioFocusChange(type);
+
+        // ...JS is only informed.
         JSObject data = new JSObject();
         data.put("type", type);
         notifyListeners("audioFocusChange", data);
@@ -157,12 +177,20 @@ public class MediaSessionPlugin extends Plugin {
 
   @PluginMethod
   public void requestAudioFocus(PluginCall call) {
+    JSObject data = new JSObject();
+    data.put("granted", requestAudioFocusInternal());
+    call.resolve(data);
+  }
+
+  private boolean requestAudioFocusInternal() {
     int result;
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-        .setOnAudioFocusChangeListener(focusListener)
-        .build();
+      if (audioFocusRequest == null) {
+        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+          .setOnAudioFocusChangeListener(focusListener)
+          .build();
+      }
       result = audioManager.requestAudioFocus(audioFocusRequest);
     } else {
       result = audioManager.requestAudioFocus(
@@ -172,9 +200,7 @@ public class MediaSessionPlugin extends Plugin {
       );
     }
 
-    JSObject data = new JSObject();
-    data.put("granted", result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
-    call.resolve(data);
+    return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
   }
 
   @PluginMethod
@@ -275,6 +301,9 @@ public class MediaSessionPlugin extends Plugin {
   }
 
   private void emitRoute(String route) {
+    // Native player reacts by itself (auto-play / auto-pause); JS is only informed.
+    ExoPlayerPlugin.onAudioRoute(route, this::requestAudioFocusInternal);
+
     JSObject data = new JSObject();
     data.put("route", route);
     notifyListeners("audioRouteChange", data);

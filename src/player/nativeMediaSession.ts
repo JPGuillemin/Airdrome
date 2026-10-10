@@ -45,6 +45,7 @@ export interface AudioFocusResult {
   delayed: boolean
 }
 
+/** audioFocusChange / audioRouteChange are informational only: the native player already reacted. */
 export type NativeMediaSessionEvent =
   | 'play'
   | 'pause'

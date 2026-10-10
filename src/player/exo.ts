@@ -24,11 +24,38 @@ import { ReplayGainMode, type AudioController } from '@/player/audio'
 /** Public shape of AudioController (keyof only exposes public members). */
 export type AudioEngine = Pick<AudioController, keyof AudioController>
 
-type ReplayGain = {
+export type ReplayGain = {
   trackGain: number
   trackPeak: number
   albumGain: number
   albumPeak: number
+}
+
+/**
+ * A queue entry handed to the native side (see setWindow()). The native player
+ * uses it to skip / auto-advance by itself while the WebView is frozen.
+ */
+export interface WindowEntry {
+  index: number            // position in the store queue
+  url: string              // original remote URL (track key)
+  title: string
+  artist: string
+  album: string
+  image: string | null
+  duration: number         // seconds
+  replayGain?: ReplayGain
+}
+
+interface NativeWindowTrack {
+  index: number
+  url: string              // playable URI (file:// or remote)
+  key: string              // original remote URL
+  title: string
+  artist: string
+  album: string
+  artworkUrl: string | null
+  duration: number
+  gain: number             // linear ReplayGain factor
 }
 
 // ---------------------------------------------------------------------------
@@ -46,9 +73,9 @@ interface ExoPlayerPlugin {
     volume: number     // user volume 0..1
     gain: number       // linear ReplayGain factor (may be > 1)
     startPosition?: number // seconds, optional initial seek
-    nextUrl?: string   // playable URI of the next track (native preload / background advance)
-    nextKey?: string   // original remote URL of the next track
   }): Promise<void>
+  /** Previous / current / next tracks, so native can change track on its own. */
+  setWindow(o: { tracks: NativeWindowTrack[]; current: number }): Promise<void>
   preload(o: { url: string; key: string }): Promise<void>
   play(o: { fadeInMs: number }): Promise<void>
   pause(o: { fadeOutMs: number }): Promise<void>
@@ -61,6 +88,10 @@ interface ExoPlayerPlugin {
   addListener(
     event: 'play' | 'pause' | 'playing' | 'waiting' | 'ended',
     cb: () => void
+  ): Promise<PluginListenerHandle>
+  addListener(
+    event: 'trackChanged',
+    cb: (e: { index: number; key: string; url: string; duration: number }) => void
   ): Promise<PluginListenerHandle>
   addListener(
     event: 'time',
@@ -116,12 +147,6 @@ export class ExoController implements AudioEngine {
    * Seek requested on a remote track ExoPlayer may not be able to seek in.
    * Resolved by switching to the cached local file as soon as it is available.
    */
-  /** Set by the store: true when a track follows the current one (queue / repeat). */
-  canAdvance: () => boolean = () => true
-
-  /** Next track info resent on every native load. */
-  private currentNext: { url: string; key: string } | null = null
-
   private pending: { key: string; position: number; at: number } | null = null
   private pollTimer: ReturnType<typeof setInterval> | null = null
   private seekAt = 0
@@ -135,6 +160,12 @@ export class ExoController implements AudioEngine {
   onerror = (_?: any) => {}
   onplaying = () => {}
   onwaiting = () => {}
+  /** Native started another track by itself (lock screen / auto-advance): follow it. */
+  ontrackchange = (_index: number) => {}
+
+  /** Last window given to setWindow(), re-sent when the ReplayGain mode changes. */
+  private lastWindow: { entries: WindowEntry[]; current: number } | null = null
+  private windowToken = 0
 
   constructor() {
     // Callbacks are looked up at call time, so the store can (re)assign them
@@ -153,6 +184,21 @@ export class ExoController implements AudioEngine {
           this.onpause()
         }
       }, 800)
+    }).catch(warn)
+
+    // The native side changed track on its own (next/previous from the lock
+    // screen, or end of track, possibly while this WebView was frozen). Native
+    // already loaded and started it: only align our state, never reload.
+    Exo.addListener('trackChanged', ({ index, key, url, duration }) => {
+      this.changeToken++ // abandon any in-flight JS load: native has moved on
+      this.currentKey = key
+      this.currentPlayable = url
+      this._position = 0
+      this._duration = Number.isFinite(duration) && duration > 0 ? duration : 0
+      this.seekTarget = null
+      this.pending = null
+      this.stopPoll()
+      this.ontrackchange(index)
     }).catch(warn)
 
     // The cache store dispatches this when a track has been fully written to disk
@@ -263,6 +309,41 @@ export class ExoController implements AudioEngine {
   setReplayGainMode(value: ReplayGainMode) {
     this.replayGainMode = value
     Exo.setLevels({ gain: this.replayGainFactor() }).catch(warn)
+    // Gains of the tracks native may start by itself depend on the mode too
+    if (this.lastWindow) void this.setWindow(this.lastWindow.entries, this.lastWindow.current)
+  }
+
+  /**
+   * Describe the queue around the current track to the native side
+   * (`current` = position of the current track in `entries`). Only the first
+   * following track is queued for caching, like the former nextUrl.
+   */
+  async setWindow(entries: WindowEntry[], current: number) {
+    this.lastWindow = { entries, current }
+    const token = ++this.windowToken
+    const cacheStore = useCacheStore()
+    const tracks: NativeWindowTrack[] = []
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i]
+      const url = await cacheStore.getCachedUrl(e.url, i === current + 1)
+      if (token !== this.windowToken) return // a newer window superseded this one
+      tracks.push({
+        index: e.index,
+        url,
+        key: e.url,
+        title: e.title,
+        artist: e.artist,
+        album: e.album,
+        artworkUrl: e.image,
+        duration: e.duration,
+        gain: this.gainFor(e.replayGain)
+      })
+    }
+    try {
+      await Exo.setWindow({ tracks, current })
+    } catch (err) {
+      warn(err)
+    }
   }
 
   // ── Playback control ──────────────────────────────────────────────────────
@@ -343,9 +424,7 @@ export class ExoController implements AudioEngine {
         fadeOutMs: 0,
         volume: this.volume,
         gain: this.replayGainFactor(),
-        startPosition: position,
-        nextUrl: this.currentNext?.url,
-        nextKey: this.currentNext?.key
+        startPosition: position
       })
     } catch (e) {
       warn(e)
@@ -377,7 +456,8 @@ export class ExoController implements AudioEngine {
   }) {
     if (!options.url) return
     const currentUrl = options.url
-    const nextUrl = options.nextUrl
+    // options.nextUrl is ignored: the native side gets the following tracks
+    // through setWindow() and preloads / starts them by itself.
     const cacheStore = useCacheStore()
 
     const token = ++this.changeToken
@@ -395,15 +475,6 @@ export class ExoController implements AudioEngine {
     this.currentKey = currentUrl
     this.currentPlayable = playable
 
-    // Hand the next track to the native side: it preloads it and can start it by
-    // itself if the WebView is throttled in the background.
-    this.currentNext = null
-    if (nextUrl && this.canAdvance()) {
-      const nextPlayable = await cacheStore.getCachedUrl(nextUrl, true)
-      if (token !== this.changeToken) return
-      this.currentNext = { url: nextPlayable, key: nextUrl }
-    }
-
     // Another loadTrack() started while we were resolving the URL
     if (token !== this.changeToken) return
 
@@ -419,9 +490,7 @@ export class ExoController implements AudioEngine {
         fade: !!options.fade,
         fadeOutMs: Math.round(this.fadeTime * 1000),
         volume: this.volume,
-        gain: this.replayGainFactor(),
-        nextUrl: this.currentNext?.url,
-        nextKey: this.currentNext?.key
+        gain: this.replayGainFactor()
       })
     } catch (err) {
       console.warn('[Exo] load failed', err)
@@ -437,19 +506,19 @@ export class ExoController implements AudioEngine {
    * per-track / per-album peak so we never clip. Identical to audio.ts.
    */
   private replayGainFactor(): number {
-    if (this.replayGainMode === ReplayGainMode.None || !this.replayGain) {
+    return this.gainFor(this.replayGain)
+  }
+
+  private gainFor(rg: ReplayGain | null | undefined): number {
+    if (this.replayGainMode === ReplayGainMode.None || !rg) {
       return 1
     }
 
     const gain =
-      this.replayGainMode === ReplayGainMode.Track
-        ? this.replayGain.trackGain
-        : this.replayGain.albumGain
+      this.replayGainMode === ReplayGainMode.Track ? rg.trackGain : rg.albumGain
 
     const peak =
-      this.replayGainMode === ReplayGainMode.Track
-        ? this.replayGain.trackPeak
-        : this.replayGain.albumPeak
+      this.replayGainMode === ReplayGainMode.Track ? rg.trackPeak : rg.albumPeak
 
     if (!Number.isFinite(gain) || !Number.isFinite(peak) || peak <= 0) {
       return 1

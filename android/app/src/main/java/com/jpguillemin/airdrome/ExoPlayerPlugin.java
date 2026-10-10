@@ -5,6 +5,7 @@ import android.media.audiofx.LoudnessEnhancer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.media3.common.AudioAttributes;
@@ -16,11 +17,17 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ExoPlayer (Media3) backend for exo.ts.
@@ -32,6 +39,24 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *
  * Audio focus and "becoming noisy" are NOT handled here: MediaSessionPlugin
  * already does it and the store reacts to its events, exactly as before.
+ *
+ * Routing policy (the WebView can be frozen for a long time, e.g. after a phone
+ * call, so nothing a user can do from the lock screen may depend on JS):
+ *  - JS pushes a small "window" of the queue around the current track
+ *    (setWindow): previous track, current, next tracks, with their metadata.
+ *  - Transport actions coming from the media session (next / previous / play /
+ *    pause / stop) are executed natively whenever possible (handleTransport).
+ *    Only what native cannot decide (end of queue, radio, ...) goes to JS.
+ *  - End of track: the next track of the window is started natively. JS only
+ *    gets "ended" when the window is exhausted.
+ *  - Whenever native changes track by itself it emits "trackChanged"; JS then
+ *    just follows (queue index, UI) without reloading anything.
+ *  - The media session metadata / state are published from here too.
+ *  - Audio focus changes (phone call, other app) and audio route changes
+ *    (headset / Bluetooth in or out) are reacted to here, natively: pause on
+ *    loss and remember it, resume on gain unless the user paused meanwhile,
+ *    duck, auto-play / auto-pause on route change. JS is not involved at all;
+ *    it only sees the resulting play / pause events.
  *
  * Final output level = volume * gain(ReplayGain) * fade
  *  - up to 1.0 : ExoPlayer.setVolume()
@@ -64,17 +89,39 @@ public class ExoPlayerPlugin extends Plugin {
   private float gain = 1f;
   private float fade = 1f;
   private int fadeGen = 0; // bumped to cancel a running fade
+  private float duck = 1f;    // temporary attenuation while another app asks us to duck
   private int cmdGen = 0;  // bumped by load/play/pause/stop to cancel pending delayed pauses
   private int loadGen = 0; // bumped by load() to abandon superseded loads
 
-  // Next track known by JS (playable URI + key). Used to keep playing when the
-  // WebView is throttled/frozen in the background and cannot load the next track.
-  private String nextUrl = null;
-  private String nextKey = null;
-  // Key of a track started natively (advanceNative) that JS has not yet "loaded"
-  private String autoKey = null;
-  private static final long ADVANCE_GRACE_MS = 700; // JS gets this long to load the next track itself
   private static final long PRELOAD_DELAY_MS = 10000;
+  private static final long FOCUS_GUARD_MS = 2000; // ignore focus / route pauses right after a play
+  private static final float DUCK_LEVEL = 0.2f;
+
+  // Playback intent. "User" = lock screen / notification / in-app buttons.
+  private boolean userPaused = true;          // nothing plays until the user (or a track start) says so
+  private boolean resumeOnFocusGain = false;  // we paused because focus was lost
+  private long playStartedAt = 0;             // uptime of the last playWhenReady=true
+  private String lastRoute = null;            // last audio route seen (speaker / wired / bluetooth)
+  private static final long RESTART_THRESHOLD_MS = 3000; // same rule as playerStore.back()
+
+  /** A queue entry described by JS (see exo.ts setWindow). */
+  private static class Track {
+    int index;          // position in the JS queue (reported back in trackChanged)
+    String url;         // playable URI (file:// or remote)
+    String key;         // original remote URL, identifies the track
+    String title = "";
+    String artist = "";
+    String album = "";
+    String artworkUrl;
+    double duration;    // seconds
+    float gain = 1f;    // linear ReplayGain factor
+  }
+
+  // Previous / current / next tracks, pushed by JS. `cursor` is the position of
+  // the active track in `window`; it is only trusted while window[cursor].key
+  // equals the active key (see peek()).
+  private List<Track> window = new ArrayList<>();
+  private int cursor = -1;
 
   private final Runnable ticker = new Runnable() {
     @Override
@@ -107,6 +154,7 @@ public class ExoPlayerPlugin extends Plugin {
     releaseSlot(buffer);
     active = null;
     buffer = null;
+    window = new ArrayList<>();
     super.handleOnDestroy();
   }
 
@@ -126,36 +174,33 @@ public class ExoPlayerPlugin extends Plugin {
     final Float vol = call.getFloat("volume");
     final Float g = call.getFloat("gain");
     final long startMs = (long) (call.getDouble("startPosition", 0.0) * 1000.0);
-    final String nUrl = call.getString("nextUrl");
-    final String nKey = call.getString("nextKey", nUrl);
 
     main.post(() -> {
-      // The track was already started natively (JS was asleep when it ended):
-      // JS now "loads" it too -> just sync levels and the next-track info.
-      if (!paused && autoKey != null && key.equals(autoKey) && active != null && key.equals(active.key)) {
-        autoKey = null;
-        if (vol != null) volume = vol;
-        if (g != null) gain = g;
-        nextUrl = nUrl;
-        nextKey = nKey;
-        applyLevels();
-        scheduleNextPreload();
-        call.resolve();
-        return;
-      }
-      autoKey = null;
-      nextUrl = nUrl;
-      nextKey = nKey;
-
-      final int gen = ++loadGen;
-      cmdGen++;
       if (vol != null) volume = vol;
       if (g != null) gain = g;
+      if (!paused) markPlayIntent();
+      swapTo(url, key, paused, startMs, doFade ? fadeOutMs : 0, null, call);
+    });
+  }
 
-      final Runnable swap = () -> {
-       try {
-        if (gen != loadGen) { // a newer load() took over
-          call.resolve();
+  /**
+   * Replace the active track (re-using the preloaded one when it matches).
+   * Main thread only. Shared by JS-driven load() and native track changes.
+   *
+   * @param beforePlay run once the new player is installed, right before it
+   *                   starts (may be null)
+   * @param call       resolved when the track is playing (may be null)
+   */
+  private void swapTo(final String url, final String key, final boolean paused,
+                      final long startMs, final long fadeOutMs,
+                      final Runnable beforePlay, final PluginCall call) {
+    final int gen = ++loadGen;
+    cmdGen++;
+
+    final Runnable swap = () -> {
+      try {
+        if (gen != loadGen) { // a newer load took over
+          if (call != null) call.resolve();
           return;
         }
         Slot next = takeBuffer(key, url);
@@ -173,27 +218,27 @@ public class ExoPlayerPlugin extends Plugin {
 
         if (startMs > 0) next.player.seekTo(startMs);
         scheduleNextPreload();
+        if (beforePlay != null) beforePlay.run();
 
         if (!paused) {
           next.player.setPlayWhenReady(true);
           // audio.ts awaited a short fadeIn after play(); keep the same timing
-          main.postDelayed(call::resolve, 150);
-        } else {
+          if (call != null) main.postDelayed(call::resolve, 150);
+        } else if (call != null) {
           call.resolve();
         }
-       } catch (Exception e) {
-        call.reject("load failed: " + e);
-       }
-      };
-
-      Slot cur = active;
-      if (doFade && cur != null && cur.player.getPlayWhenReady()) {
-        fadeTo(0f, fadeOutMs);
-        main.postDelayed(swap, fadeOutMs);
-      } else {
-        swap.run();
+      } catch (Exception e) {
+        if (call != null) call.reject("load failed: " + e);
       }
-    });
+    };
+
+    Slot cur = active;
+    if (fadeOutMs > 0 && cur != null && cur.player.getPlayWhenReady()) {
+      fadeTo(0f, fadeOutMs);
+      main.postDelayed(swap, fadeOutMs);
+    } else {
+      swap.run();
+    }
   }
 
   @PluginMethod
@@ -221,17 +266,8 @@ public class ExoPlayerPlugin extends Plugin {
   public void play(final PluginCall call) {
     final long fadeMs = call.getInt("fadeInMs", 150);
     main.post(() -> {
-      Slot s = active;
-      if (s == null) {
-        call.resolve();
-        return;
-      }
-      cmdGen++;
-      if (s.player.getPlaybackState() == Player.STATE_ENDED) s.player.seekTo(0);
-      final boolean wasReady = s.player.getPlayWhenReady();
-      s.player.setPlayWhenReady(true);
-      if (wasReady) emit("play"); // no state change after an ended track: notify manually
-      fadeTo(1f, fadeMs);
+      markPlayIntent();
+      playNow(fadeMs);
       main.postDelayed(call::resolve, fadeMs);
     });
   }
@@ -240,19 +276,53 @@ public class ExoPlayerPlugin extends Plugin {
   public void pause(final PluginCall call) {
     final long fadeMs = call.getInt("fadeOutMs", 300);
     main.post(() -> {
-      final Slot s = active;
-      if (s == null || !s.player.getPlayWhenReady()) {
-        call.resolve();
-        return;
-      }
-      final int gen = ++cmdGen;
-      fadeTo(0f, fadeMs);
-      main.postDelayed(() -> {
-        // Ignore if a play()/load()/stop() happened during the fade
-        if (gen == cmdGen && active == s) s.player.setPlayWhenReady(false);
-        call.resolve();
-      }, fadeMs);
+      if (userPause(fadeMs)) main.postDelayed(call::resolve, fadeMs);
+      else call.resolve();
     });
+  }
+
+  /** The user wants playback: forget any pending automatic resume. */
+  private void markPlayIntent() {
+    userPaused = false;
+    setResumeOnFocusGain(false);
+  }
+
+  /** The user wants silence: no automatic resume must override that. */
+  private boolean userPause(long fadeMs) {
+    userPaused = true;
+    setResumeOnFocusGain(false);
+    return pauseNow(fadeMs);
+  }
+
+  private void setResumeOnFocusGain(boolean v) {
+    resumeOnFocusGain = v;
+    // The CPU only has to stay awake while a resume is actually expected
+    if (!v) MediaSessionManager.get(getContext()).releaseResumeWakeLock();
+  }
+
+  /** Resume the active player with a short fade-in (main thread). */
+  private void playNow(long fadeMs) {
+    Slot s = active;
+    if (s == null) return;
+    cmdGen++;
+    if (s.player.getPlaybackState() == Player.STATE_ENDED) s.player.seekTo(0);
+    final boolean wasReady = s.player.getPlayWhenReady();
+    s.player.setPlayWhenReady(true);
+    if (wasReady) emit("play"); // no state change after an ended track: notify manually
+    fadeTo(1f, fadeMs);
+  }
+
+  /** Fade out then pause the active player (main thread). @return false if nothing was playing. */
+  private boolean pauseNow(long fadeMs) {
+    final Slot s = active;
+    if (s == null || !s.player.getPlayWhenReady()) return false;
+    final int gen = ++cmdGen;
+    fadeTo(0f, fadeMs);
+    main.postDelayed(() -> {
+      // Ignore if a play()/load()/stop() happened during the fade
+      if (gen == cmdGen && active == s) s.player.setPlayWhenReady(false);
+    }, fadeMs);
+    return true;
   }
 
   @PluginMethod
@@ -261,9 +331,11 @@ public class ExoPlayerPlugin extends Plugin {
       cmdGen++;
       loadGen++;
       fadeGen++;
-      nextUrl = null;
-      nextKey = null;
-      autoKey = null;
+      userPaused = true;
+      setResumeOnFocusGain(false);
+      duck = 1f;
+      window = new ArrayList<>();
+      cursor = -1;
       Slot s = active;
       boolean wasPlaying = s != null && s.player.getPlayWhenReady();
       active = null; // detaches events from the old player
@@ -298,6 +370,7 @@ public class ExoPlayerPlugin extends Plugin {
     s.player.seekTo(posMs);
     if (playing) fadeTo(1f, fadeMs);
     emitTime(s);
+    publishState();
     return true;
   }
 
@@ -317,6 +390,164 @@ public class ExoPlayerPlugin extends Plugin {
     if (p == null || !p.seekTo(posMs, 150)) return false;
     MediaSessionManager.get(p.getContext()).setPosition(posMs);
     return true;
+  }
+
+  /**
+   * Called by MediaSessionPlugin (main thread) for next / previous / play /
+   * pause / stop coming from the lock screen, notification, headset or car.
+   * @return true if executed natively; false if JS has to decide (nothing
+   *         loaded, end of the pushed window, ...).
+   */
+  static boolean handleTransport(String action) {
+    ExoPlayerPlugin p = instance;
+    if (p == null || Looper.myLooper() != Looper.getMainLooper()) return false;
+    return p.transport(action);
+  }
+
+  private boolean transport(String action) {
+    final Slot s = active;
+    if (s == null) return false;
+    switch (action) {
+      case "next": {
+        Track n = peek(1);
+        if (n == null) return false;
+        startNative(n, cursor + 1);
+        return true;
+      }
+      case "previous": {
+        // Same rule as playerStore.back(): restart when already past a few seconds
+        if (s.player.getCurrentPosition() > RESTART_THRESHOLD_MS) {
+          seekTo(0, 150);
+          return true;
+        }
+        Track p = peek(-1);
+        if (p == null) return false;
+        startNative(p, cursor - 1);
+        return true;
+      }
+      case "play":
+        markPlayIntent();
+        playNow(150);
+        return true;
+      case "pause":
+      case "stop":
+        userPause(300);
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // ── Audio focus & audio route (called by MediaSessionPlugin) ──────────────
+
+  /** type: "gain" | "loss" | "lossTransient" | "lossDuck". Any thread. */
+  static void onAudioFocusChange(final String type) {
+    final ExoPlayerPlugin p = instance;
+    if (p != null) p.main.post(() -> p.focusChange(type));
+  }
+
+  /**
+   * route: "speaker" | "wired" | "bluetooth". Any thread.
+   * @param requestFocus run right before an automatic resume
+   */
+  static void onAudioRoute(final String route, final Runnable requestFocus) {
+    final ExoPlayerPlugin p = instance;
+    if (p != null) p.main.post(() -> p.routeChange(route, requestFocus));
+  }
+
+  private boolean wantsToPlay() {
+    return active != null && active.player.getPlayWhenReady();
+  }
+
+  private boolean recentlyStarted() {
+    return SystemClock.uptimeMillis() - playStartedAt < FOCUS_GUARD_MS;
+  }
+
+  private void focusChange(String type) {
+    switch (type) {
+      case "gain":
+        duck = 1f;
+        applyLevels();
+        if (resumeOnFocusGain && !userPaused) playNow(150);
+        setResumeOnFocusGain(false);
+        break;
+
+      case "loss":
+      case "lossTransient": // phone calls
+        if (wantsToPlay() && !recentlyStarted()) {
+          setResumeOnFocusGain(true);
+          pauseNow(300);
+        } else if (!resumeOnFocusGain) {
+          // nothing to resume: don't keep the CPU awake for nothing
+          MediaSessionManager.get(getContext()).releaseResumeWakeLock();
+        }
+        break;
+
+      case "lossDuck":
+        if (wantsToPlay()) {
+          duck = DUCK_LEVEL;
+          applyLevels();
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  private void routeChange(String route, Runnable requestFocus) {
+    final boolean changed = !route.equals(lastRoute);
+    lastRoute = route;
+    // Callbacks fire for every device event and at registration: only react to real changes
+    if (!changed || userPaused || active == null) return;
+
+    switch (route) {
+      case "bluetooth":
+      case "wired":
+        if (!wantsToPlay()) {
+          if (requestFocus != null) requestFocus.run();
+          playNow(150);
+        }
+        break;
+      case "speaker": // headset unplugged / Bluetooth gone
+        if (wantsToPlay() && !recentlyStarted()) pauseNow(300);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** JS describes the queue around the current track (see exo.ts). */
+  @PluginMethod
+  public void setWindow(final PluginCall call) {
+    final JSArray arr = call.getArray("tracks");
+    final int current = call.getInt("current", -1);
+    final List<Track> list = new ArrayList<>();
+    try {
+      for (int i = 0; arr != null && i < arr.length(); i++) {
+        JSONObject o = arr.getJSONObject(i);
+        Track t = new Track();
+        t.index = o.optInt("index", -1);
+        t.url = o.getString("url");
+        t.key = o.getString("key");
+        t.title = o.optString("title", "");
+        t.artist = o.optString("artist", "");
+        t.album = o.optString("album", "");
+        t.artworkUrl = o.isNull("artworkUrl") ? null : o.optString("artworkUrl", null);
+        t.duration = o.optDouble("duration", 0.0);
+        t.gain = (float) o.optDouble("gain", 1.0);
+        list.add(t);
+      }
+    } catch (Exception e) {
+      call.reject("invalid window: " + e);
+      return;
+    }
+    main.post(() -> {
+      window = list;
+      cursor = current >= 0 && current < list.size() ? current : -1;
+      if (active != null) scheduleNextPreload();
+      call.resolve();
+    });
   }
 
   /** Debug helper: shows a native Toast. */
@@ -341,53 +572,62 @@ public class ExoPlayerPlugin extends Plugin {
     });
   }
 
-  // ── Native track advance (works while the WebView is asleep) ─────────────
+  // ── Native track changes (work while the WebView is frozen) ──────────────
+
+  /** Track at `delta` from the active one in the pushed window, or null. */
+  private Track peek(int delta) {
+    if (active == null || cursor < 0 || cursor >= window.size()) return null;
+    if (!window.get(cursor).key.equals(active.key)) return null; // window is stale
+    int i = cursor + delta;
+    return i >= 0 && i < window.size() ? window.get(i) : null;
+  }
 
   /** Pre-build the next track's player a while after the current one started. */
   private void scheduleNextPreload() {
     final int gen = loadGen;
     main.postDelayed(() -> {
-      if (gen != loadGen || nextUrl == null || nextKey == null) return;
-      if (buffer != null && nextKey.equals(buffer.key) && nextUrl.equals(buffer.url)
+      if (gen != loadGen) return;
+      Track n = peek(1);
+      if (n == null) return;
+      if (buffer != null && n.key.equals(buffer.key) && n.url.equals(buffer.url)
           && buffer.player.getPlayerError() == null) return;
       releaseSlot(buffer);
-      buffer = build(nextUrl, nextKey);
+      buffer = build(n.url, n.key);
       buffer.player.setVolume(0f);
     }, PRELOAD_DELAY_MS);
   }
 
   /**
-   * The active track ended. JS normally loads the next one right away. If it has
-   * not done so after a short grace period (WebView throttled in background),
-   * start the next track here so that playback never stalls.
+   * Start `t` (window[newCursor]) without any help from JS: publish its
+   * metadata to the media session and tell JS to follow ("trackChanged").
+   * No fade on purpose: the cursor then always matches the active player, so
+   * several quick skips in a row stay consistent.
    */
-  private void scheduleAdvance(final Slot ended) {
-    if (nextUrl == null || nextKey == null) return;
-    final int gen = loadGen;
-    main.postDelayed(() -> {
-      if (gen == loadGen && active == ended && nextUrl != null) advanceNative();
-    }, ADVANCE_GRACE_MS);
+  private void startNative(final Track t, final int newCursor) {
+    gain = t.gain;
+    markPlayIntent();
+    swapTo(t.url, t.key, false, 0, 0, () -> {
+      cursor = newCursor;
+      MediaSessionManager.get(getContext()).setMetadata(
+        t.title, t.artist, t.album, t.artworkUrl, (long) (t.duration * 1000.0));
+      JSObject o = new JSObject();
+      o.put("index", t.index);
+      o.put("key", t.key);
+      o.put("url", t.url);
+      o.put("duration", t.duration);
+      notifyListeners("trackChanged", o); // before "play": JS must reset its position first
+    }, null);
   }
 
-  private void advanceNative() {
-    final String url = nextUrl;
-    final String key = nextKey;
-    nextUrl = null;
-    nextKey = null;
-    loadGen++;
-    cmdGen++;
-    Slot next = takeBuffer(key, url);
-    if (next == null) next = build(url, key);
-    Slot old = active;
-    active = next;
-    fadeGen++;
-    fade = 1f;
-    attach(next);
-    createEnhancer(next, next.player.getAudioSessionId());
-    applyLevels();
-    releaseSlot(old);
-    next.player.setPlayWhenReady(true);
-    autoKey = key;
+  /** Mirror the player state into the media session (JS may be asleep). */
+  private void publishState() {
+    Slot s = active;
+    if (s == null) return;
+    int st = s.player.getPlayWhenReady()
+      ? PlaybackStateCompat.STATE_PLAYING
+      : PlaybackStateCompat.STATE_PAUSED;
+    MediaSessionManager.get(getContext())
+      .setPlaybackState(st, Math.max(0L, s.player.getCurrentPosition()), 1f);
   }
 
   // ── Player management ─────────────────────────────────────────────────────
@@ -452,13 +692,18 @@ public class ExoPlayerPlugin extends Plugin {
       @Override
       public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
         if (s != active) return;
+        if (playWhenReady) playStartedAt = SystemClock.uptimeMillis();
         emit(playWhenReady ? "play" : "pause");
+        publishState();
       }
 
       @Override
       public void onIsPlayingChanged(boolean isPlaying) {
         if (s != active) return;
-        if (isPlaying) emit("playing");
+        if (isPlaying) {
+          emit("playing");
+          publishState();
+        }
       }
 
       @Override
@@ -470,11 +715,17 @@ public class ExoPlayerPlugin extends Plugin {
         } else if (state == Player.STATE_BUFFERING && s.player.getPlayWhenReady()) {
           emit("waiting");
         } else if (state == Player.STATE_ENDED) {
+          // Next track of the window: started natively, JS only follows.
           // No "pause" here: it would flash the UI / media session to "paused"
           // between two tracks (Android can then suspend a backgrounded app).
-          // exo.ts emits the pause itself if no next track is loaded.
-          emit("ended");
-          scheduleAdvance(s);
+          // Otherwise JS decides (end of queue, radio...); exo.ts emits the
+          // pause itself if no next track gets loaded.
+          main.post(() -> {
+            if (s != active) return;
+            Track n = peek(1);
+            if (n != null) startNative(n, cursor + 1);
+            else emit("ended");
+          });
         }
       }
 
@@ -521,7 +772,7 @@ public class ExoPlayerPlugin extends Plugin {
   private void applyLevels() {
     Slot s = active;
     if (s == null) return;
-    float total = volume * gain * fade;
+    float total = volume * gain * fade * duck;
     s.player.setVolume(Math.min(1f, Math.max(0f, total)));
     if (s.enhancer != null) {
       try {
