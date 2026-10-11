@@ -18,6 +18,8 @@ import '@/css/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import wheelScroll from '@/shared/wheelscroll'
 
+import '@/shared/debugLog'
+
 const auth = createAuth()
 export const router = setupRouter(auth)
 export default router
