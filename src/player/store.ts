@@ -642,11 +642,25 @@ export async function setupAudio(
 
   let playTime = 0
 
+  const RESUME_WINDOW_MS = 10 * 60 * 1000
+  let externalPauseAt = 0      // last pause NOT initiated by the user (BT noisy, call, focus loss…)
+  let pausedByDevice = false   // paused because an output device disappeared
+
   playerStore.setMediaSessionState('none')
 
   audio.onplay = () => {
     playerStore.isPlaying = true
     playerStore.userPaused = false
+    pausedByDevice = false
+    playTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('playing')
+  }
+
+  audio.onplaying = () => {
+    playerStore.isPlaying = true
+    playerStore.userPaused = false
+    pausedByDevice = false
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -656,6 +670,9 @@ export async function setupAudio(
     playerStore.isPlaying = false
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+    if (!playerStore.userPaused && !playerStore.inTransition && !audio.audioElement?.ended) {
+      externalPauseAt = Date.now()
+    }
   }
 
   audio.onended = async () => {
@@ -685,7 +702,8 @@ export async function setupAudio(
 
     switch (document.visibilityState) {
       case 'visible':
-        if (!playerStore.userPaused) {
+        // Resume after an interruption (call…), but not after a device pause
+        if (!playerStore.userPaused && !pausedByDevice) {
           playerStore.play()
         }
         break
@@ -696,35 +714,64 @@ export async function setupAudio(
     }
   })
 
-  let knownOutputIds = new Set<string>()
+  // ---------------------------------------------------------------------------
+  // Output device changes (BT disconnect -> pause, reconnect -> play)
+  // ---------------------------------------------------------------------------
 
-  const devices = await navigator.mediaDevices.enumerateDevices()
-  knownOutputIds = new Set(
-    devices
-      .filter(d => d.kind === 'audiooutput')
-      .map(d => d.deviceId)
-  )
+  const VIRTUAL_OUTPUT_IDS = new Set(['default', 'communications', ''])
 
-  navigator.mediaDevices.addEventListener('devicechange', async () => {
-    console.info('devicechange')
-    if (playerStore.userPaused) return
-    if (Date.now() - playTime < 1000) return
-
+  async function readOutputIds(): Promise<Set<string>> {
     const devices = await navigator.mediaDevices.enumerateDevices()
-    const outputs = devices.filter(d => d.kind === 'audiooutput')
-    const currentIds = new Set(outputs.map(d => d.deviceId))
+    return new Set(
+      devices
+        .filter(d => d.kind === 'audiooutput')
+        .map(d => d.deviceId)
+        .filter(id => !VIRTUAL_OUTPUT_IDS.has(id))
+    )
+  }
 
-    const removed = [...knownOutputIds].some(id => !currentIds.has(id))
-    const added = [...currentIds].some(id => !knownOutputIds.has(id))
-    knownOutputIds = currentIds
+  let knownOutputIds = await readOutputIds()
+  let deviceChangeTimer: ReturnType<typeof setTimeout> | undefined
 
-    const isPlaying = playerStore.isPlaying
+  async function handleDeviceChange() {
+    // Always refresh the baseline first, whatever happens next
+    const prev = knownOutputIds
+    const next = await readOutputIds()
+    knownOutputIds = next
 
-    if (removed && isPlaying) {
-      await audio.pause()
-    } else if (added && !isPlaying) {
-      await playerStore.play()
+    const idsHidden = prev.size === 0 && next.size === 0 // no mic permission: ids are anonymous
+    const removed = [...prev].some(id => !next.has(id))
+    const added = [...next].some(id => !prev.has(id))
+    console.info('devicechange', { removed, added, idsHidden })
+
+    if (removed) {
+      if (playerStore.userPaused) return
+      if (playerStore.isPlaying) {
+        pausedByDevice = true
+        await audio.pause(false) // no fade: don't leak to the speaker
+      } else if (Date.now() - externalPauseAt < 5000) {
+        pausedByDevice = true // the browser paused first (Android)
+      }
+      return
     }
+
+    // Resume: a device was added, or (ids hidden) the event isn't the echo of the disconnect
+    const looksLikeAdd = added || (idsHidden && Date.now() - externalPauseAt > 3000)
+    if (!looksLikeAdd) return
+    if (!pausedByDevice || playerStore.userPaused || playerStore.isPlaying) return
+    if (Date.now() - externalPauseAt > RESUME_WINDOW_MS) {
+      pausedByDevice = false
+      return
+    }
+    pausedByDevice = false
+    try { await playerStore.play() } catch (e) { console.warn('[devicechange] resume failed', e) }
+  }
+
+  navigator.mediaDevices.addEventListener('devicechange', () => {
+    console.info('devicechange (raw event)')
+    clearTimeout(deviceChangeTimer)
+    // Debounce: BT connect/disconnect often fires several events in a row
+    deviceChangeTimer = setTimeout(() => void handleDeviceChange().catch(console.warn), 350)
   })
 
   if (!isMobile) { // is Desktop
@@ -815,18 +862,6 @@ export async function setupAudio(
   audio.setReplayGainMode(storedReplayGainMode)
   audio.setVolume(playerStore.volume)
 
-  // Restore the track that was playing when the page was last open (paused)
-  const track = playerStore.track
-  const nextTrack = playerStore.nextTrack
-  if (track) {
-    await audio.loadTrack({
-      url: track.url,
-      replayGain: track.replayGain,
-      nextUrl: nextTrack?.url,
-      paused: true
-    })
-  }
-
   // ---------------------------------------------------------------------------
   // MediaSession action handlers
   // ---------------------------------------------------------------------------
@@ -854,6 +889,18 @@ export async function setupAudio(
       const offset = details.seekOffset || 10
       const position = Math.max(playerStore.currentTime - offset, 0)
       playerStore.seek(position)
+    })
+  }
+
+  // Restore the track that was playing when the page was last open (paused)
+  const track = playerStore.track
+  const nextTrack = playerStore.nextTrack
+  if (track) {
+    await audio.loadTrack({
+      url: track.url,
+      replayGain: track.replayGain,
+      nextUrl: nextTrack?.url,
+      paused: true
     })
   }
 }

@@ -179,10 +179,14 @@ export class AudioController {
     console.info('audio.stop()')
   }
 
-  /** Fade out, then pause the underlying HTMLAudioElement. */
-  async pause() {
+  /**
+   * Fade out (unless `fade` is false), then pause the HTMLAudioElement.
+   * Pass fade = false when the output device just vanished, so audio doesn't
+   * leak to the speaker during the fade.
+   */
+  async pause(fade = true) {
     const audio = this.activePipeline.audio
-    await this.fadeOut(this.fadeTime)
+    if (fade) await this.fadeOut(this.fadeTime)
     audio.pause()
     console.info('audio.pause()')
   }
