@@ -153,7 +153,7 @@ export function setupRouter(auth: AuthService) {
       },
     ],
 
-    // Native scroll restoration logic
+    // scroll restoration logic
     scrollBehavior(to, from, savedPosition) {
       const heavyRoutes = ['discover', 'albums', 'artists', 'genre']
       if (savedPosition) {

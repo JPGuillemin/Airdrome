@@ -23,15 +23,11 @@
 <script setup lang="ts">
   import { computed, inject, onMounted, onUnmounted } from 'vue'
   import { useRoute, useRouter, type RouteLocationNormalizedLoaded } from 'vue-router'
-  import { App as CapacitorApp } from '@capacitor/app'
 
   import GlobalLoader from '@/shared/components/GlobalLoader.vue'
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
   import { reloadToken } from '@/shared/reload'   // ← add this
-
-  import { Capacitor } from '@capacitor/core'
-  const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 
   const route = useRoute()
   const router = useRouter()
@@ -50,20 +46,6 @@
     return route.meta.layout === 'fullscreen'
       ? Fullscreen
       : Default
-  })
-
-  onMounted(async () => {
-    if (!isNative) return
-
-    backListener = await CapacitorApp.addListener('backButton', () => {
-      const canGoBack = !!router.options.history.state.back
-
-      if (canGoBack) {
-        router.back()
-      } else {
-        CapacitorApp.minimizeApp()
-      }
-    })
   })
 
   onUnmounted(() => {
