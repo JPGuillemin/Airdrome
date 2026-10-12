@@ -712,6 +712,82 @@ export async function setupAudio(
     }
   })
 
+  // ---------------------------------------------------------------------------
+  // Output device hot-plug (Bluetooth headphones / speakers…)
+  // ---------------------------------------------------------------------------
+  // Mic permission is required: without it Chrome may not fire `devicechange`
+  // and enumerateDevices() returns entries without usable ids/labels.
+
+  if (navigator.mediaDevices?.enumerateDevices) {
+    const getOutputIds = async (): Promise<Set<string>> => {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      return new Set(
+        devices
+          .filter(d => d.kind === 'audiooutput' && d.deviceId
+            && d.deviceId !== 'default' && d.deviceId !== 'communications')
+          .map(d => d.deviceId)
+      )
+    }
+
+    let knownOutputs = await getOutputIds()
+
+    const onDeviceChange = throttle(async () => {
+      const current = await getOutputIds()
+      const added = [...current].some(id => !knownOutputs.has(id))
+      const removed = [...knownOutputs].some(id => !current.has(id))
+      knownOutputs = current
+
+      if (removed) {
+        console.info('[devices] output removed -> pause')
+        await audio.pause()
+      } else if (added && !playerStore.userPaused && !playerStore.isPlaying) {
+        console.info('[devices] output added -> play')
+        await playerStore.play()
+      }
+    }, 500, { leading: false, trailing: true })
+
+    navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
+
+    // ── Microphone permission ───────────────────────────────────────────
+    const requestMicAccess = async () => {
+      try {
+        // Permission only: open the mic, then release it immediately
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(t => t.stop())
+        // Ids are now exposed: re-baseline so the first diff isn't bogus
+        knownOutputs = await getOutputIds()
+        console.info('[devices] mic permission granted')
+      } catch (err) {
+        console.warn('[devices] mic permission denied/unavailable:', err)
+      }
+    }
+
+    const ensureMicAccess = async () => {
+      let state: PermissionState = 'prompt'
+      try {
+        state = (await navigator.permissions.query({ name: 'microphone' as PermissionName })).state
+      } catch {
+        // Permissions API unsupported for 'microphone' (Safari, older browsers)
+      }
+      if (state === 'granted') {
+        knownOutputs = await getOutputIds()
+        return
+      }
+      if (state === 'denied') return
+
+      // 'prompt': wait for the first user gesture, then ask once
+      const onGesture = () => {
+        window.removeEventListener('pointerdown', onGesture, true)
+        window.removeEventListener('keydown', onGesture, true)
+        void requestMicAccess()
+      }
+      window.addEventListener('pointerdown', onGesture, true)
+      window.addEventListener('keydown', onGesture, true)
+    }
+
+    void ensureMicAccess()
+  }
+
   if (!isMobile) { // is Desktop
     window.addEventListener('keydown', async (event) => {
       // Ignore when typing in inputs/textareas
