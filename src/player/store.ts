@@ -689,43 +689,85 @@ export async function setupAudio(
           playerStore.play()
         }
         break
-
       case 'hidden':
         // Handle hidden state if needed in the future
         break
     }
   })
 
-  let knownOutputIds = new Set<string>()
+  // ── Output devices (Bluetooth, headphones…) ─────────────────────────────
 
-  const devices = await navigator.mediaDevices.enumerateDevices()
-  knownOutputIds = new Set(
-    devices
-      .filter(d => d.kind === 'audiooutput')
-      .map(d => d.deviceId)
-  )
-
-  navigator.mediaDevices.addEventListener('devicechange', async () => {
-    console.info('devicechange')
-    if (playerStore.userPaused) return
-    if (Date.now() - playTime < 1000) return
-
+  /** Snapshot of current audio device IDs (excluding virtual defaults). */
+  const getDeviceIds = async (): Promise<Set<string>> => {
     const devices = await navigator.mediaDevices.enumerateDevices()
-    const outputs = devices.filter(d => d.kind === 'audiooutput')
-    const currentIds = new Set(outputs.map(d => d.deviceId))
+    return new Set(
+      devices
+        .filter(d => d.kind === 'audiooutput' || d.kind === 'audioinput')
+        .map(d => `${d.kind}:${d.deviceId}:${d.label}`)
+        .filter(id => !id.includes(':default:') && !id.includes(':communications:'))
+    )
+  }
 
-    const removed = [...knownOutputIds].some(id => !currentIds.has(id))
-    const added = [...currentIds].some(id => !knownOutputIds.has(id))
-    knownOutputIds = currentIds
+  let knownOutputs = await getDeviceIds()
 
-    const isPlaying = playerStore.isPlaying
+  // Pause when a device is removed, play when one is added
+  const onDeviceChange = throttle(async () => {
+    console.info('[devices] change')
+    if (playerStore.userPaused) return
+    const current = await getDeviceIds()
+    const added = [...current].some(id => !knownOutputs.has(id))
+    const removed = [...knownOutputs].some(id => !current.has(id))
+    knownOutputs = current
 
-    if (removed && isPlaying) {
+    if (removed && Date.now() - playTime > 1000) {
+      console.info('[devices] output removed -> pause')
       await audio.pause()
-    } else if (added && !isPlaying) {
+    } else if (added && Date.now() - pauseTime > 1000) {
+      console.info('[devices] output added -> play')
       await playerStore.play()
     }
-  })
+  }, 500, { leading: false, trailing: true })
+
+  navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
+
+  // ── Microphone permission (exposes device labels) ───────────────────────
+
+  /** Request mic permission, then release the stream. */
+  const requestMicAccess = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(t => t.stop())
+      knownOutputs = await getDeviceIds() // re-baseline now that IDs are exposed
+      console.info('[devices] mic permission granted')
+    } catch (err) {
+      console.warn('[devices] mic permission unavailable:', err)
+    }
+  }
+
+  /** Ask for mic permission on the first user gesture, if not already decided. */
+  const ensureMicAccess = async () => {
+    let state: PermissionState = 'prompt'
+    try {
+      state = (await navigator.permissions.query({ name: 'microphone' as PermissionName })).state
+    } catch {
+      // Not supported (e.g. Safari)
+    }
+    if (state === 'granted') {
+      knownOutputs = await getDeviceIds()
+      return
+    }
+    if (state === 'denied') return
+
+    const onGesture = () => {
+      window.removeEventListener('pointerdown', onGesture, true)
+      window.removeEventListener('keydown', onGesture, true)
+      void requestMicAccess()
+    }
+    window.addEventListener('pointerdown', onGesture, true)
+    window.addEventListener('keydown', onGesture, true)
+  }
+
+  void ensureMicAccess()
 
   if (!isMobile) { // is Desktop
     window.addEventListener('keydown', async (event) => {
