@@ -64,29 +64,42 @@ export const useRadioStore = defineStore('radio', {
       }
     },
 
-    async continueFromTrack(track: Track) {
-      if (!track) return
+    /** Genre of a track: explicit `genre` if present, else the first genre of its album. */
+    async resolveGenre(track: Track): Promise<string | undefined> {
+      const direct = (track as any).genre as string | undefined
+      if (direct) return direct
+      if (!track.albumId) return undefined
+      try {
+        const album = await this.api.getAlbumDetails(track.albumId)
+        return album.genres?.[0]?.name
+      } catch (err) {
+        console.warn('Radio: failed to resolve album genre', err)
+        return undefined
+      }
+    },
 
-      // Prefer explicit genre if present
-      let genreName: string | undefined = (track as any).genre
+    /**
+     * Append random tracks (same genre as `track`) to the END of the current
+     * queue. Does not replace the queue, start playback or change route.
+     * Returns true if at least one track was appended.
+     */
+    async extendQueue(track: Track, size = 50): Promise<boolean> {
+      if (!track) return false
+      const playerStore = usePlayerStore()
 
-      if (!genreName && track.albumId) {
-        try {
-          const album = await this.api.getAlbumDetails(track.albumId)
-          genreName = album.genres?.[0]?.name
-        } catch (err) {
-          console.warn('Radio: failed to resolve album genre', err)
-        }
+      const genre = await this.resolveGenre(track)
+      if (!genre) {
+        console.warn('Radio: no genre found, cannot extend queue')
+        return false
       }
 
-      if (!genreName) {
-        console.warn('Radio: no genre found, cannot continue')
-        return
-      }
+      const random = await this.api.getRandomTracks({ genre, size })
+      const queued = new Set(playerStore.queue.map(t => t.id))
+      const fresh = (random ?? []).filter(t => !queued.has(t.id))
+      if (!fresh.length) return false
 
-      await this.playRandomOrTracks({
-        params: { genre: genreName, size: 100 }
-      })
+      playerStore.appendTracks(fresh)
+      return true
     },
 
     // -------- RADIOS --------

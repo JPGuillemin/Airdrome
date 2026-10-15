@@ -32,6 +32,12 @@ const mediaSession: MediaSession | undefined = navigator.mediaSession
 /** Singleton Web Audio controller – owns the AudioContext and pipeline. */
 const audio = new AudioController()
 
+/**
+ * In-flight radio extension (if any). Shared so that two near-simultaneous
+ * loads never trigger two fetches.
+ */
+let extending: Promise<boolean> | null = null
+
 // MediaSession requires a non-zero playback rate; 1 = normal speed
 const mediaSessionProgressRate = 1
 
@@ -92,13 +98,13 @@ export const usePlayerStore = defineStore('player', {
       return null
     },
 
-    /** The track that will play after the current one (wraps around). */
+    /** The track that will play after the current one (wraps only when repeat is on). */
     nextTrack(): Track | null {
-      if (this.queue && this.queue.length > 0) {
-        const next = (this.queueIndex + 1) % this.queue.length
-        return this.queue[next]
-      }
-      return null
+      if (!this.queue?.length) return null
+      // On the last track with repeat off there is no next track (do not wrap),
+      // otherwise the gapless preload would queue the first track again.
+      if (!this.hasNext && !this.repeat) return null
+      return this.queue[(this.queueIndex + 1) % this.queue.length]
     },
 
     /** Shorthand for the current track's ID (null when nothing is loaded). */
@@ -130,6 +136,56 @@ export const usePlayerStore = defineStore('player', {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   actions: {
+    /** Append tracks to the end of the queue as-is (no shuffle, no dedupe). */
+    appendTracks(tracks: Track[]) {
+      if (!tracks.length) return
+      this.queue.push(...tracks)
+      this.saveQueue()
+    },
+
+    /**
+     * If the current track is the last one (and repeat is off), ask the radio
+     * store to enqueue more tracks so that `nextTrack` exists.
+     * Never throws: on failure the queue is simply left unchanged.
+     */
+    async ensureNextTrack() {
+      if (this.hasNext || this.repeat) return
+      const track = this.track
+      if (!track) return
+
+      if (!extending) {
+        extending = useRadioStore()
+          .extendQueue(track)
+          .catch(err => {
+            console.warn('[Radio] queue extension failed', err)
+            return false
+          })
+          .finally(() => { extending = null })
+      }
+      await extending
+    },
+
+    /**
+     * Single entry point to load the current queue track into the audio
+     * controller. Makes sure a next track exists first (radio extension),
+     * so the gapless preload always has a `nextUrl` when possible.
+     */
+    async loadCurrent(opts: { fade?: boolean; paused?: boolean } = {}) {
+      const index = this.queueIndex
+      await this.ensureNextTrack()
+      // The user may have skipped / changed the queue while the radio was fetching
+      if (this.queueIndex !== index) return
+
+      const track = this.track
+      if (!track) return
+      await audio.loadTrack({
+        url: track.url,
+        replayGain: track.replayGain,
+        nextUrl: this.nextTrack?.url,
+        ...opts
+      })
+    },
+
     /**
      * Replace the queue with `tracks` and start playing from the first track.
      * Shuffle is disabled so the order matches what was passed in.
@@ -155,15 +211,7 @@ export const usePlayerStore = defineStore('player', {
     async playTrackListIndex(index: number) {
       this.inTransition = true
       this.setQueueIndex(index)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (track)
-        await audio.loadTrack({
-          url: track.url,
-          replayGain: track.replayGain,
-          nextUrl: nextTrack?.url,
-          fade: true
-        })
+      await this.loadCurrent({ fade: true })
       this.inTransition = false
     },
 
@@ -190,15 +238,7 @@ export const usePlayerStore = defineStore('player', {
         this.setQueue(tracks)
       }
       this.setQueueIndex(index)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (track)
-        await audio.loadTrack({
-          url: track.url,
-          replayGain: track.replayGain,
-          nextUrl: nextTrack?.url,
-          fade: true
-        })
+      await this.loadCurrent({ fade: true })
       this.inTransition = false
     },
 
@@ -243,15 +283,7 @@ export const usePlayerStore = defineStore('player', {
         this.inTransition = true
         this.setQueueIndex(this.queueIndex + 1)
 
-        const track = this.track
-        const nextTrack = this.nextTrack
-        if (track)
-          await audio.loadTrack({
-            url: track.url,
-            replayGain: track.replayGain,
-            nextUrl: nextTrack?.url,
-            fade
-          })
+        await this.loadCurrent({ fade })
         this.inTransition = false
         await sleep(200)
         this.setMediaSessionPosition()
@@ -273,15 +305,7 @@ export const usePlayerStore = defineStore('player', {
       } else {
         this.inTransition = true
         this.setQueueIndex(this.queueIndex - 1)
-        const track = this.track
-        const nextTrack = this.nextTrack
-        if (track)
-          await audio.loadTrack({
-            url: track.url,
-            replayGain: track.replayGain,
-            nextUrl: nextTrack?.url,
-            fade: true
-          })
+        await this.loadCurrent({ fade: true })
         this.inTransition = false
         await sleep(200)
         this.setMediaSessionPosition()
@@ -308,16 +332,8 @@ export const usePlayerStore = defineStore('player', {
       }
       this.setQueue(tracks)
       this.setQueueIndex(currentTrack)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true,
-        paused: true // Don't auto-play on restore
-      })
+      if (!this.track) return
+      await this.loadCurrent({ fade: true, paused: true }) // Don't auto-play on restore
       await this.seek(currentTrackPosition)
     },
 
@@ -341,16 +357,8 @@ export const usePlayerStore = defineStore('player', {
         return
       }
       this.setQueueIndex(0)
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (!track) return
-      await audio.loadTrack({
-        url: track.url,
-        replayGain: track.replayGain,
-        nextUrl: nextTrack?.url,
-        fade: true,
-        paused: true
-      })
+      if (!this.track) return
+      await this.loadCurrent({ fade: true, paused: true })
     },
 
     /**
@@ -457,15 +465,8 @@ export const usePlayerStore = defineStore('player', {
       // Clamp in case the removed track was the last one in the queue
       this.inTransition = true
       this.setQueueIndex(Math.min(this.queueIndex, this.queue.length - 1))
-      const track = this.track
-      const nextTrack = this.nextTrack
-      if (track && this.isPlaying)
-        await audio.loadTrack({
-          url: track.url,
-          replayGain: track.replayGain,
-          nextUrl: nextTrack?.url,
-          fade: true
-        })
+      if (this.track && this.isPlaying)
+        await this.loadCurrent({ fade: true })
       this.inTransition = false
       this.saveQueue()
     },
@@ -523,21 +524,18 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * Called when the queue has no more tracks.
-     * Hands off to the radio store to continue playback from the last track.
-     * Falls back to resetQueue() if radio continuation is unavailable.
+     * Safety net, called when the queue ended without a next track (i.e. the
+     * radio extension done in loadCurrent() failed or was not possible).
+     * Retries the extension once; falls back to resetQueue().
      */
     async processQueueEnd() {
-      const track = this.track
-      if (!track?.url) return
-      this.inTransition = true
-      try {
-        const radioStore = useRadioStore()
-        await radioStore.continueFromTrack(track)
-      } catch {
-        this.resetQueue()
+      if (!this.track?.url) return
+      await this.ensureNextTrack()
+      if (this.hasNext) {
+        await this.next(false)
+      } else {
+        await this.resetQueue()
       }
-      this.inTransition = false
     },
 
     /**
@@ -858,15 +856,8 @@ export async function setupAudio(
   audio.setVolume(playerStore.volume)
 
   // Restore the track that was playing when the page was last open (paused)
-  const track = playerStore.track
-  const nextTrack = playerStore.nextTrack
-  if (track) {
-    await audio.loadTrack({
-      url: track.url,
-      replayGain: track.replayGain,
-      nextUrl: nextTrack?.url,
-      paused: true
-    })
+  if (playerStore.track) {
+    await playerStore.loadCurrent({ paused: true })
   }
 
   // ---------------------------------------------------------------------------
