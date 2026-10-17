@@ -225,9 +225,12 @@ export const usePlayerStore = defineStore('player', {
      */
     async playTrackListIndex(index: number) {
       this.inTransition = true
-      this.setQueueIndex(index)
-      await this.loadTrack({ fade: true })
-      this.inTransition = false
+      try {
+        this.setQueueIndex(index)
+        await this.loadTrack({ fade: true })
+      } finally {
+        this.inTransition = false
+      }
     },
 
     /**
@@ -238,23 +241,40 @@ export const usePlayerStore = defineStore('player', {
      * chosen starting track ends up at index 0.
      */
     async playTrackList(tracks: Track[], index?: number) {
-      this.inTransition = true
       if (index == null) {
         // Pick a random start position when shuffling, otherwise start at 0
         index = this.shuffle ? Math.floor(Math.random() * tracks.length) : 0
       }
-      if (this.shuffle) {
-        tracks = [...tracks]
-        shuffle(tracks, index) // Moves the chosen track to position 0
-        index = 0
+
+      // Clicking the track that is already loaded, from the same list: don't
+      // reload the same URL (that is what stalled the progress slider) – just
+      // make sure it is playing.
+      const target = tracks[index]
+      if (target && this.track?.id === target.id && tracks.length === this.queue.length) {
+        const queueIds = new Set(this.queue.map(t => t.id))
+        if (tracks.every(t => queueIds.has(t.id))) {
+          if (!this.isPlaying) await this.play()
+          return
+        }
       }
-      // Avoid resetting the queue if the contents haven't changed
-      if (!trackListEquals(this.queue || [], tracks)) {
-        this.setQueue(tracks)
+
+      this.inTransition = true
+      try {
+        if (this.shuffle) {
+          tracks = [...tracks]
+          shuffle(tracks, index) // Moves the chosen track to position 0
+          index = 0
+        }
+        // Avoid resetting the queue if the contents haven't changed
+        if (!trackListEquals(this.queue || [], tracks)) {
+          this.setQueue(tracks)
+        }
+        this.setQueueIndex(index)
+        await this.loadTrack({ fade: true })
+      } finally {
+        // Never leave inTransition stuck, or ontimeupdate is ignored forever
+        this.inTransition = false
       }
-      this.setQueueIndex(index)
-      await this.loadTrack({ fade: true })
-      this.inTransition = false
     },
 
     /** Resume playback and update the MediaSession position state. */
@@ -296,10 +316,12 @@ export const usePlayerStore = defineStore('player', {
     async next(fade = true) {
       if (this.hasNext || this.repeat) {
         this.inTransition = true
-        this.setQueueIndex(this.queueIndex + 1)
-
-        await this.loadTrack({ fade })
-        this.inTransition = false
+        try {
+          this.setQueueIndex(this.queueIndex + 1)
+          await this.loadTrack({ fade })
+        } finally {
+          this.inTransition = false
+        }
         await sleep(200)
         this.setMediaSessionPosition()
         this.setMediaSessionState()
@@ -320,14 +342,17 @@ export const usePlayerStore = defineStore('player', {
         await this.seek(0)
       } else {
         this.inTransition = true
-        const previous = this.queueIndex - 1
-        this.setQueueIndex(
-          previous < 0 && this.repeat && this.queue.length > 0
-            ? this.queue.length - 1
-            : previous
-        )
-        await this.loadTrack({ fade: true })
-        this.inTransition = false
+        try {
+          const previous = this.queueIndex - 1
+          this.setQueueIndex(
+            previous < 0 && this.repeat && this.queue.length > 0
+              ? this.queue.length - 1
+              : previous
+          )
+          await this.loadTrack({ fade: true })
+        } finally {
+          this.inTransition = false
+        }
         await sleep(200)
         this.setMediaSessionPosition()
         this.setMediaSessionState()
@@ -485,10 +510,13 @@ export const usePlayerStore = defineStore('player', {
 
       // Clamp in case the removed track was the last one in the queue
       this.inTransition = true
-      this.setQueueIndex(Math.min(this.queueIndex, this.queue.length - 1))
-      if (this.track && this.isPlaying)
-        await this.loadTrack({ fade: true })
-      this.inTransition = false
+      try {
+        this.setQueueIndex(Math.min(this.queueIndex, this.queue.length - 1))
+        if (this.track && this.isPlaying)
+          await this.loadTrack({ fade: true })
+      } finally {
+        this.inTransition = false
+      }
       this.saveQueue()
     },
 
