@@ -173,7 +173,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, onMounted, watch } from 'vue'
+  import { defineComponent, ref, computed, onMounted, onActivated, onBeforeUnmount, watch } from 'vue'
   import { inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
@@ -183,8 +183,13 @@
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
+  import { usePlayerStore } from '@/player/store'
   import { longPressTooltip } from '@/shared/tooltips'
   import { useFavouriteStore } from '@/library/favourite/store'
+
+  // Short delay after a scrobble so the server has time to register it
+  // before we refetch the "recently played" albums.
+  const PLAYED_REFRESH_DELAY_MS = 1500
 
   export default defineComponent({
     components: {
@@ -201,6 +206,7 @@
     setup() {
       const api = inject('$api') as any
       const favouriteStore = useFavouriteStore()
+      const player = usePlayerStore()
 
       const loading = ref(false)
       const result = ref({
@@ -222,6 +228,38 @@
           && randomTracks.value.length === 0
       )
 
+      // Fetch "recently played" albums. On the initial load (initial = true) it also
+      // builds the "Current mood" section; on later refreshes the mood is left untouched
+      // so the tiles don't reshuffle under the user's cursor.
+      const fetchPlayed = async (initial = false) => {
+        const played: Album[] = await api.getAlbums('recently-played', 32)
+        console.info('[Discover] recently-played fetched, first =', played[0]?.name ?? played[0]?.id)
+
+        // Skip the update if nothing changed (avoids needless re-renders / scroll jumps)
+        const sameOrder =
+          played.length === result.value.played.length
+          && played.every((a, i) => a.id === result.value.played[i].id)
+        if (!sameOrder) {
+          result.value.played = played
+        }
+
+        if (!initial || played.length === 0) return
+
+        const lastPlayed = played[0]
+        lastGenre.value = (lastPlayed as Album).genres[0]!
+        if (!lastGenre.value) return
+
+        const tracksByGenre = await api.getTracksByGenre(
+          lastGenre.value.name,
+          200,
+          0
+        )
+
+        result.value.mood = tracksByGenre
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 72)
+      }
+
       const fetchData = async () => {
         if (loading.value) return
         loading.value = true
@@ -237,24 +275,7 @@
             favalbums.value = favourites.albums.slice(0, 16)
           })
 
-          api.getAlbums('recently-played', 32).then(async played => {
-            result.value.played = played
-            if (played.length === 0) return
-
-            const lastPlayed = played[0]
-            lastGenre.value = (lastPlayed as Album).genres[0]!
-            if (!lastGenre.value) return
-
-            const tracksByGenre = await api.getTracksByGenre(
-              lastGenre.value.name,
-              200,
-              0
-            )
-
-            result.value.mood = tracksByGenre
-              .sort(() => Math.random() - 0.5)
-              .slice(0, 72)
-          })
+          fetchPlayed(true)
 
           api.getAlbums('recently-added', 32).then(recent => {
             result.value.recent = recent
@@ -274,6 +295,57 @@
           loading.value = false
         }
       }
+
+      // --- Dynamic "Recently played" -------------------------------------------------
+      let refreshTimer: ReturnType<typeof setTimeout> | undefined
+
+      const schedulePlayedRefresh = () => {
+        if (refreshTimer) clearTimeout(refreshTimer)
+        refreshTimer = setTimeout(() => {
+          refreshTimer = undefined
+          fetchPlayed(false).catch(() => { /* ignore transient network errors */ })
+        }, PLAYED_REFRESH_DELAY_MS)
+      }
+
+      // Immediate, optimistic update: when a track starts, move its album to the
+      // front of the list if it is already there (no server round-trip needed).
+      watch(
+        () => player.track?.albumId,
+        (albumId) => {
+          if (!albumId) return
+          const list = result.value.played
+          const i = list.findIndex(a => a.id === albumId)
+          if (i > 0) {
+            result.value.played = [list[i], ...list.slice(0, i), ...list.slice(i + 1)]
+          }
+        }
+      )
+
+      // The player scrobbles once the current track passes 50 %
+      // (player.scrobbled flips to true, and back to false on the next track).
+      // That is the moment the server's "recently played" list actually changes.
+      watch(
+        () => player.scrobbled,
+        (scrobbled) => {
+          console.info('[Discover] scrobbled =', scrobbled)
+          if (scrobbled) schedulePlayedRefresh()
+        }
+      )
+
+      // If the view is kept alive (<keep-alive>), refresh when it becomes active again
+      let firstActivation = true
+      onActivated(() => {
+        if (firstActivation) {
+          firstActivation = false
+          return
+        }
+        fetchPlayed(false).catch(() => {})
+      })
+
+      onBeforeUnmount(() => {
+        if (refreshTimer) clearTimeout(refreshTimer)
+      })
+      // -------------------------------------------------------------------------------
 
       // When an album is toggled ON from any AlbumList in this view, add it to favalbums
       const onFavouriteAdded = (album: Album) => {
