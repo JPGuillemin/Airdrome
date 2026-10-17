@@ -61,7 +61,7 @@
   import { longPressTooltip } from '@/shared/tooltips'
 
   // Number of already-played tracks kept visible above the current one
-  const HISTORY_SIZE = 5
+  const HISTORY_SIZE = 2
 
   export default defineComponent({
     components: {
