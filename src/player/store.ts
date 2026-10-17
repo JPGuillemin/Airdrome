@@ -166,7 +166,7 @@ export const usePlayerStore = defineStore('player', {
      *   then returns the first appended track (null if the extension failed).
      * Never throws: on failure the queue is simply left unchanged.
      */
-    async nextTrack(): Promise<Track | null> {
+    async nextTrack() {
       if (!this.queue?.length || this.queueIndex === -1) return null
 
       const index = this.queueIndex
@@ -189,7 +189,7 @@ export const usePlayerStore = defineStore('player', {
      * controller. Resolves the next track first (which may trigger a radio
      * extension), so the gapless preload always has a `nextUrl` when possible.
      */
-    async loadTrack(opts: { fade?: boolean; paused?: boolean } = {}) {
+    async loadTrack(options: {fade?: boolean, paused?: boolean} = {}) {
       const index = this.queueIndex
       const next = await this.nextTrack() // may extend the queue via radio
       // The user may have skipped / changed the queue while the radio was fetching
@@ -201,7 +201,8 @@ export const usePlayerStore = defineStore('player', {
         url: track.url,
         replayGain: track.replayGain,
         nextUrl: next?.url,
-        ...opts
+        fade: options.fade,
+        paused: options.paused
       })
     },
 
