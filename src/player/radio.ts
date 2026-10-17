@@ -6,12 +6,15 @@ import { useLoader } from '@/shared/loader'
 import { usePlayerStore } from '@/player/store'
 import type { API, Track } from '@/shared/api'
 
+/** Number of tracks a radio queues (initial queue and extensions). */
+const RADIO_SIZE = 50
+
 export const useRadioStore = defineStore('radio', {
   actions: {
     // -------- HELPERS --------
     takeUpToX(acc: Track[], next: Track[]): Track[] {
-      if (acc.length >= 100) return acc
-      const remaining = 100 - acc.length
+      if (acc.length >= RADIO_SIZE) return acc
+      const remaining = RADIO_SIZE - acc.length
       return acc.concat(next.slice(0, remaining))
     },
 
@@ -83,7 +86,7 @@ export const useRadioStore = defineStore('radio', {
      * queue. Does not replace the queue, start playback or change route.
      * Returns true if at least one track was appended.
      */
-    async extendQueue(track: Track, size = 50): Promise<boolean> {
+    async extendQueue(track: Track, size = RADIO_SIZE): Promise<boolean> {
       if (!track) return false
       const playerStore = usePlayerStore()
 
@@ -104,15 +107,15 @@ export const useRadioStore = defineStore('radio', {
 
     // -------- RADIOS --------
     async shuffleGenre(genreId: string) {
-      await this.playRandomOrTracks({ params: { genre: genreId, size: 100 } })
+      await this.playRandomOrTracks({ params: { genre: genreId, size: RADIO_SIZE } })
     },
 
     async shuffleMood(genreName: string) {
-      await this.playRandomOrTracks({ params: { genre: genreName, size: 100 } })
+      await this.playRandomOrTracks({ params: { genre: genreName, size: RADIO_SIZE } })
     },
 
     async luckyRadio() {
-      await this.playRandomOrTracks({ params: { size: 100 } })
+      await this.playRandomOrTracks({ params: { size: RADIO_SIZE } })
     },
 
     async shuffleRecentlyPlayed() {
@@ -126,7 +129,7 @@ export const useRadioStore = defineStore('radio', {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
             tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= 100) break
+            if (tracks.length >= RADIO_SIZE) break
           }
         }
 
@@ -149,7 +152,7 @@ export const useRadioStore = defineStore('radio', {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
             tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= 100) break
+            if (tracks.length >= RADIO_SIZE) break
           }
         }
 
@@ -172,7 +175,7 @@ export const useRadioStore = defineStore('radio', {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
             tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= 100) break
+            if (tracks.length >= RADIO_SIZE) break
           }
         }
 
@@ -197,7 +200,7 @@ export const useRadioStore = defineStore('radio', {
           const fullAlbum = await this.api.getAlbumDetails(album.id)
           if (fullAlbum.tracks?.length) {
             tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= 100) break
+            if (tracks.length >= RADIO_SIZE) break
           }
         }
 
@@ -226,8 +229,11 @@ export const useRadioStore = defineStore('radio', {
             if (artistTracks.length >= 20) break
           }
           tracks = tracks.concat(artistTracks.slice(0, 20))
-          if (tracks.length >= 100) break
+          if (tracks.length >= RADIO_SIZE) break
         }
+
+        // Hard cap: the last artist can push us past RADIO_SIZE
+        tracks = tracks.slice(0, RADIO_SIZE)
 
         if (tracks.length) {
           await this.playRandomOrTracks({ tracks })
@@ -248,7 +254,7 @@ export const useRadioStore = defineStore('radio', {
           const full = await this.api.getPlaylist(p.id)
           if (full.tracks?.length) {
             allTracks = this.takeUpToX(allTracks, full.tracks)
-            if (allTracks.length >= 100) break
+            if (allTracks.length >= RADIO_SIZE) break
           }
         }
 
@@ -267,7 +273,7 @@ export const useRadioStore = defineStore('radio', {
         let tracks: Track[] = []
         for await (const batch of this.api.getTracksByArtist(artistId)) {
           tracks = this.takeUpToX(tracks, batch)
-          if (tracks.length >= 100) break
+          if (tracks.length >= RADIO_SIZE) break
         }
         await this.playRandomOrTracks({ tracks })
       } finally {
@@ -277,7 +283,7 @@ export const useRadioStore = defineStore('radio', {
 
     async radioArtist(artistId: string) {
       await this.playRandomOrTracks({
-        tracks: await this.api.getSimilarTracksByArtist(artistId, 50)
+        tracks: await this.api.getSimilarTracksByArtist(artistId, RADIO_SIZE)
       })
     },
 
@@ -287,7 +293,7 @@ export const useRadioStore = defineStore('radio', {
       const playerStore = usePlayerStore()
       playerStore.setShuffle(false)
 
-      const similarTracks = await this.api.getSimilarTracksByArtist(artists[0].id, 50)
+      const similarTracks = await this.api.getSimilarTracksByArtist(artists[0].id, RADIO_SIZE)
       if (similarTracks?.length) {
         await this.playRandomOrTracks({ tracks: similarTracks })
       }
@@ -295,7 +301,7 @@ export const useRadioStore = defineStore('radio', {
 
     async shuffleAlbum(tracks: Track[]) {
       if (!tracks?.length) return
-      await this.playRandomOrTracks({ tracks: tracks.slice(0, 100) })
+      await this.playRandomOrTracks({ tracks: tracks.slice(0, RADIO_SIZE) })
     }
   }
 })
