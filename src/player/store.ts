@@ -699,8 +699,18 @@ export async function setupAudio(
 
   playerStore.setMediaSessionState('none')
 
+  let waitingTimer: ReturnType<typeof setTimeout> | null = null
+
+  const cancelWaiting = () => {
+    if (waitingTimer) {
+      clearTimeout(waitingTimer)
+      waitingTimer = null
+    }
+  }
+
   audio.onplay = () => {
     loader.hideLoading()
+    cancelWaiting()
     playerStore.isPlaying = true
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -709,13 +719,27 @@ export async function setupAudio(
 
   audio.onpause = () => {
     loader.hideLoading()
+    cancelWaiting()
     playerStore.isPlaying = false
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
   }
 
+  audio.onwaiting = () => {
+    cancelWaiting() // never stack timers
+    waitingTimer = setTimeout(() => {
+      waitingTimer = null
+      loader.showLoading()
+      playerStore.isPlaying = false
+      pauseTime = Date.now()
+      playerStore.setMediaSessionPosition()
+      playerStore.setMediaSessionState('paused')
+    }, 300)
+  }
+
   audio.onplaying = () => {
+    cancelWaiting()
     loader.hideLoading()
     playerStore.isPlaying = true
     playTime = Date.now()
@@ -723,36 +747,22 @@ export async function setupAudio(
     playerStore.setMediaSessionState('playing')
   }
 
-  audio.onwaiting = () => {
-    loader.showLoading()
-    playerStore.isPlaying = false
-    pauseTime = Date.now()
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('paused')
-  }
-
   let recovering = false
 
   audio.onerror = async (error: any) => {
     console.warn('[Audio] error', error)
     if (recovering) return
+    cancelWaiting()
     recovering = true
     playerStore.isPlaying = false
-
     mainStore.setError(error)
     loader.showLoading()
-
     try {
-      // Give the network / server a moment to recover
       await sleep(5000)
-
-      // The user may have changed track or paused during the wait
       if (!playerStore.track || playerStore.userPaused) {
         loader.hideLoading()
         return
       }
-
-      // Retry the current track from the beginning
       await playerStore.loadTrack({ fade: true })
       await playerStore.play()
       loader.hideLoading()
