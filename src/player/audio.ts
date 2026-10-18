@@ -189,14 +189,15 @@ export class AudioController {
 
   /** Play, then fade in. */
   async play() {
+    void this.context.resume().catch(() => {})
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
-    console.info('audio.play()')
+    console.info('audio.play()', this.context.state)
   }
 
   /** Resume context */
   async resume() {
-    await this.context.resume()
+    void this.context.resume().catch(() => {})
     console.info('audio.resume()')
   }
 

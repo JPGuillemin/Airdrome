@@ -281,7 +281,6 @@ export const usePlayerStore = defineStore('player', {
     /** Resume playback and update the MediaSession position state. */
     async play() {
       this.userPaused = false
-      await audio.resume()
       await audio.play()
     },
 
@@ -711,6 +710,7 @@ export async function setupAudio(
   audio.onplay = () => {
     loader.hideLoading()
     cancelWaiting()
+    playerStore.userPaused = false
     playerStore.isPlaying = true
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
