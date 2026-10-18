@@ -1,34 +1,34 @@
 // GlobalLoader.vue
 <template>
   <transition name="fade">
-    <div v-if="loader.loading" class="loader-overlay">
-      <img src="@/shared/assets/spinner.png" alt="Loading..." class="spinner-png">
-    </div>
+    <img
+      v-if="loader.loading"
+      :src="spinner"
+      alt="Loading..."
+      width="80"
+      height="80"
+      class="spinner-png"
+      aria-live="polite"
+      aria-busy="true"
+    >
   </transition>
 </template>
 
 <script setup lang="ts">
+  import spinner from '@/shared/assets/spinner.svg?inline'
   import { useLoader } from '@/shared/loader'
   const loader = useLoader()
 </script>
 
 <style>
-  .loader-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 99999;
-  }
-
   .spinner-png {
+    position: fixed;
+    top: calc(50vh - 40px);
+    left: calc(50vw - 40px);
     width: 80px;
     height: 80px;
+    pointer-events: none;
+    z-index: 99999;
     animation: spin 1s linear infinite;
   }
 

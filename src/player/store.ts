@@ -7,6 +7,7 @@ import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
 import { useRadioStore } from './radio'
+import { useLoader } from '@/shared/loader'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
@@ -279,6 +280,7 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
+      this.userPaused = false
       await audio.resume()
       await audio.play()
     },
@@ -693,22 +695,75 @@ export async function setupAudio(
 
   let playTime = 0
   let pauseTime = 0
+  const loader = useLoader()
 
   playerStore.setMediaSessionState('none')
 
   audio.onplay = () => {
+    loader.hideLoading()
     playerStore.isPlaying = true
-    playerStore.userPaused = false
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
   }
 
   audio.onpause = () => {
+    loader.hideLoading()
     playerStore.isPlaying = false
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+  }
+
+  audio.onplaying = () => {
+    loader.hideLoading()
+    playerStore.isPlaying = true
+    playTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('playing')
+  }
+
+  audio.onwaiting = () => {
+    loader.showLoading()
+    playerStore.isPlaying = false
+    pauseTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('paused')
+  }
+
+  let recovering = false
+
+  audio.onerror = async (error: any) => {
+    console.warn('[Audio] error', error)
+    if (recovering) return
+    recovering = true
+    playerStore.isPlaying = false
+
+    mainStore.setError(error)
+    loader.showLoading()
+
+    try {
+      // Give the network / server a moment to recover
+      await sleep(5000)
+
+      // The user may have changed track or paused during the wait
+      if (!playerStore.track || playerStore.userPaused) {
+        loader.hideLoading()
+        return
+      }
+
+      // Retry the current track from the beginning
+      await playerStore.loadTrack({ fade: true })
+      await playerStore.play()
+      loader.hideLoading()
+    } catch (err) {
+      console.warn('[Audio] retry failed', err)
+      loader.hideLoading()
+      playerStore.pause()
+      playerStore.loadQueue()
+    } finally {
+      recovering = false
+    }
   }
 
   audio.onended = async () => {
@@ -717,19 +772,6 @@ export async function setupAudio(
       await playerStore.next(false)
     } else {
       await playerStore.processQueueEnd()
-    }
-  }
-
-  audio.onerror = (error: any) => {
-    console.warn('[Audio] Fatal error', error)
-    mainStore.setError(error)
-    // Skip the broken track rather than looping forever on it.
-    if (playerStore.hasNext) {
-      void playerStore.next(true)
-    } else if (playerStore.hasPrevious) {
-      void playerStore.back()
-    } else {
-      void playerStore.resetQueue()
     }
   }
 
