@@ -70,6 +70,16 @@ export class AudioController {
    * buffer the upcoming URL before it is needed.
    */
   private buffer: HTMLAudioElement | null = null
+
+  /** URL of the track that should be pre-buffered next (kept up to date by setNextUrl). */
+  private nextUrl: string | undefined = undefined
+
+  /** True once the pre-buffer delay has elapsed for the current track. */
+  private preloadReady = false
+
+  /** Original (non-cached) URL currently held in this.buffer as the next track. */
+  private preloadedFor: string | undefined = undefined
+
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
   private _context: AudioContext | null = null
@@ -138,6 +148,58 @@ export class AudioController {
     try { this.buffer.load() } catch {}
   }
 
+  /**
+   * Update the track that should be pre-buffered for gapless playback.
+   * Called by the store whenever its `nextTrack` changes (radio extension
+   * finishing late, queue edits…). Pass undefined when there is no next track.
+   *
+   * - Before the pre-buffer delay has elapsed, only the target URL is
+   *   remembered; the delayed pre-buffer in loadTrack() will pick it up.
+   * - After it has elapsed, the buffer is refreshed immediately.
+   */
+  setNextUrl(url?: string) {
+    this.nextUrl = url
+    if (!this.preloadReady) return
+
+    if (!url) {
+      this.discardPreload()
+      return
+    }
+    void this.preloadNext()
+  }
+
+  /** Pre-buffer this.nextUrl (no-op if already buffered or stale). */
+  private async preloadNext() {
+    const url = this.nextUrl
+    if (!url || this.preloadedFor === url) return
+
+    const token = this.changeToken
+    this.preloadedFor = url
+    const cachedUrl = await useCacheStore().getCachedUrl(url)
+
+    // Track changed or next URL was updated again while awaiting the cache
+    if (token !== this.changeToken || this.nextUrl !== url) return
+
+    this.discardPreload(false)
+    await this.setBuffer(cachedUrl)
+    this.preloadedFor = url
+    console.info('audio.setBuffer(2):', cachedUrl)
+  }
+
+  /**
+   * Drop the pre-buffered next track (and free its network request).
+   * Never touches the element owned by the active pipeline.
+   */
+  private discardPreload(resetUrl = true) {
+    const buffer = this.buffer
+    if (buffer && buffer !== this.pipeline?.audio) {
+      buffer.src = ''
+      try { buffer.load() } catch {}
+    }
+    this.buffer = null
+    if (resetUrl) this.preloadedFor = undefined
+  }
+
   // ── Volume & ReplayGain ───────────────────────────────────────────────────
 
   /** Set master volume (0–1). Applied directly to the volumeNode gain. */
@@ -174,6 +236,9 @@ export class AudioController {
   async stop() {
     this.pause()
     this.changeToken++
+    this.preloadReady = false
+    this.nextUrl = undefined
+    this.preloadedFor = undefined
     this.disposePipeline(this.activePipeline)
     this._context = null
     console.info('audio.stop()')
@@ -189,15 +254,14 @@ export class AudioController {
 
   /** Play, then fade in. */
   async play() {
-    void this.context.resume().catch(() => {})
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
-    console.info('audio.play()', this.context.state)
+    console.info('audio.play()')
   }
 
   /** Resume context */
   async resume() {
-    void this.context.resume().catch(() => {})
+    await this.context.resume()
     console.info('audio.resume()')
   }
 
@@ -242,7 +306,8 @@ export class AudioController {
    *  4. Optionally fade out the old pipeline before swapping.
    *  5. Wire up all HTML5 audio event handlers.
    *  6. Start playback (unless paused: true).
-   *  7. After 15 s, cache the current URL and start pre-buffering the next.
+   *  7. After 15 s, cache the current URL and start pre-buffering the next
+   *     (the target may be updated meanwhile through setNextUrl()).
    */
   async loadTrack(options: {
     url?: string
@@ -253,13 +318,17 @@ export class AudioController {
   }) {
     if (!options.url) return
     const currentUrl = options.url
-    const nextUrl = options.nextUrl
     const cacheStore = useCacheStore()
 
     // Capture token before any await so we can detect stale loads later
     const token = ++this.changeToken
 
     this.replayGain = options.replayGain ?? null
+
+    // New track: reset the pre-buffer state, remember the target next URL
+    this.nextUrl = options.nextUrl
+    this.preloadReady = false
+    this.preloadedFor = undefined
 
     // Re-use existing buffer if possible to avoid redundant network requests
     if (!this.buffer || this.buffer.src !== currentUrl || this.buffer.error) {
@@ -319,13 +388,11 @@ export class AudioController {
       }
     }
 
-    // After 15 s, pre-buffer the next track
-    setTimeout(async () => {
-      if (token === this.changeToken && nextUrl) {
-        const nextCachedUrl = await cacheStore.getCachedUrl(nextUrl)
-        this.setBuffer(nextCachedUrl)
-        console.info('audio.setBuffer(2):', nextCachedUrl)
-      }
+    // After the delay, pre-buffer whichever next track is current at that time
+    setTimeout(() => {
+      if (token !== this.changeToken) return
+      this.preloadReady = true
+      void this.preloadNext()
     }, Math.min(15000, (this.activePipeline.audio.duration || 30) * 0.5 * 1000))
   }
 
