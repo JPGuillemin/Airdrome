@@ -35,20 +35,5 @@ sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
 mv dist${BASE_PATH}.well-known dist/
 
 # Build the docker image
-docker build -f docker/Dockerfile -t local/airdrome:latest . || exit "error docker build"
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION --push . || exit "error docker buildx"
-exit
-
-# Build the docker container
-docker stop airdrome
-docker rm airdrome
-docker network create --subnet=172.25.0.0/24 darkstar
-docker run -d \
-  --name=airdrome \
-  --restart=always \
-  --network=darkstar \
-  -p 4321:80 \
-  -v /data:/root \
-  local/airdrome:latest || exit "error run airdrome"
-
