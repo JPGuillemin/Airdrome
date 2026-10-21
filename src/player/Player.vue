@@ -29,7 +29,7 @@
               :format="formatter"
               orientation="horizontal"
               :lazy="true"
-              class="playback-slider real-slider mx-2"
+              class="playback-slider real-slider"
               @start="onSliderDragStart"
               @end="onSliderDragEnd"
               @change="onSliderUpdate"
@@ -492,11 +492,12 @@
       }
 
       const onSliderClick = (e: MouseEvent) => {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-        const x = e.clientX - rect.left
-        const ratio = x / rect.width
-        const newTime = ratio * playerStore.duration
-        playerStore.seek(newTime)
+        // Measure the slider bar itself (not the padded wrapper) so the
+        // click position maps exactly onto the visible bar.
+        const sliderEl = progressSlider.value?.$el as HTMLElement | undefined
+        const rect = (sliderEl ?? (e.currentTarget as HTMLElement)).getBoundingClientRect()
+        const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+        playerStore.seek(ratio * playerStore.duration)
         showProgressTooltip()
       }
 
@@ -698,11 +699,13 @@
     overflow: hidden;
   }
 
-  /* Progress slider */
+  /* Progress slider
+     Horizontal padding (10px) matches .player-cover's margin, so the
+     slider bar's left edge lines up with the cover's left edge. */
   .slider-click-zone {
     position: relative;
-    padding-top: 10px;
-    padding-bottom: 5px;
+    box-sizing: border-box;
+    padding: 15px 15px 5px;
     cursor: pointer;
     background: transparent !important;
   }
@@ -721,7 +724,7 @@
     --slider-handle-bg: var(--bs-primary);
     --slider-tooltip-bg: var(--bs-primary);
     --slider-handle-ring-color: transparent;
-    margin: auto;
+    margin: 0 !important;
     background: transparent;
   }
 

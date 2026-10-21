@@ -5,6 +5,8 @@ export BASE_PATH="/"
 
 rm -rf dist docker
 
+docker run --privileged --rm tonistiigi/binfmt --install all
+
 # Build the project
 yarn build || exit 1
 
@@ -37,3 +39,5 @@ mv dist${BASE_PATH}.well-known dist/
 # Build the docker image
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION --push . || exit "error docker buildx"
+docker buildx prune -af
+docker buildx rm "$(docker buildx inspect | awk '/^Name:/ {print $2; exit}')"
