@@ -2,7 +2,19 @@
 <template>
   <BaseTable>
     <BaseTableHead>
-      <th>#</th>
+      <th v-if="selectable" class="col-select">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          aria-label="Select all tracks"
+          :checked="allSelected"
+          :indeterminate="someSelected && !allSelected"
+          @change="$emit('toggle-select-all')"
+        >
+      </th>
+      <th v-else>
+        #
+      </th>
 
       <th class="text-start">
         Title
@@ -30,13 +42,23 @@
         :class="{ active: isActive(item, index) }"
         draggable="true"
         @dragstart="dragstart(item, $event)"
-        @click="handlePlay(index)"
+        @click="onRowClick(index)"
         @contextmenu.prevent="openRowMenu(item.id ?? index, $event)"
         @touchstart="onTouchStart(item.id ?? index, $event)"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
       >
+        <td v-if="selectable" class="col-select" @click.stop>
+          <input
+            type="checkbox"
+            class="form-check-input"
+            :checked="selected.includes(index)"
+            :aria-label="`Select track ${index + 1 + indexOffset}`"
+            @change="$emit('toggle-select', index)"
+          >
+        </td>
         <CellTrackNumber
+          v-else
           :active="isActive(item, index) && isPlaying"
           :track-number="index + 1 + indexOffset"
         />
@@ -92,6 +114,13 @@
     props: {
       tracks: { type: Array as PropType<Track[]>, required: true },
       isPlaylistView: { type: Boolean, default: false },
+
+      // Selection mode: shows a checkbox in place of the track number.
+      // `selected` holds the indexes (within `tracks`) of the checked rows.
+      selectable: { type: Boolean, default: false },
+      selected: { type: Array as PropType<number[]>, default: () => [] },
+      // Total selectable rows when `tracks` is only a loaded slice (lazy loading)
+      selectionTotal: { type: Number, default: null },
       noAlbum: Boolean,
       noArtist: Boolean,
       noDuration: Boolean,
@@ -111,9 +140,9 @@
       },
     },
 
-    emits: ['remove-track'],
+    emits: ['remove-track', 'toggle-select', 'toggle-select-all'],
 
-    setup(props) {
+    setup(props, { emit }) {
       const playerStore = usePlayerStore()
 
       const isActive = (item: Track, index: number) => {
@@ -131,6 +160,12 @@
           return props.playStrategy(index)
         }
         return playerStore.playTrackList(props.tracks, index)
+      }
+
+      // In selection mode a row click toggles the selection instead of playing
+      const onRowClick = (index: number) => {
+        if (props.selectable) return emit('toggle-select', index)
+        return handlePlay(index)
       }
 
       const dragstart = (item: Track, event: DragEvent) => {
@@ -184,6 +219,7 @@
         playerStore,
         isActive,
         handlePlay,
+        onRowClick,
         dragstart,
         setMenuRef,
         openRowMenu,
@@ -193,6 +229,13 @@
     },
 
     computed: {
+      allSelected(): boolean {
+        const total = this.selectionTotal ?? this.tracks.length
+        return total > 0 && this.selected.length >= total
+      },
+      someSelected(): boolean {
+        return this.selected.length > 0
+      },
       isPlaying(): boolean {
         return this.playerStore.isPlaying
       },

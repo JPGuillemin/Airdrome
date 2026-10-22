@@ -44,6 +44,16 @@
           >
             <Icon icon="random" />
           </button>
+          <button
+            v-if="selectedIndexes.length > 0"
+            v-longpress-tooltip
+            class="btn btn-transparent header-buttons"
+            :disabled="playlist.isReadOnly"
+            :title="`Remove ${selectedIndexes.length} selected`"
+            @click.stop="removeSelected()"
+          >
+            <Icon icon="trash" />
+          </button>
           <OverflowMenu direction="up" variant="transparent" @click.stop>
             <DropdownItem
               icon="reload"
@@ -81,16 +91,20 @@
         :tracks="visibleTracks"
         class="mt-3"
         :is-playlist-view="true"
+        :selectable="selectedIndexes.length > 0"
+        :selected="selectedIndexes"
+        :selection-total="playlist.tracks.length"
+        @toggle-select="toggleSelect"
+        @toggle-select-all="toggleSelectAll"
         @remove-track="removeTrack"
       >
-        <template #context-menu="{ index }">
-          <hr class="dropdown-divider">
+        <template #actions="{ index }">
           <DropdownItem
-            icon="x"
-            variant="danger"
-            @click="removeTrack(index)"
+            icon="check"
+            :disabled="playlist.isReadOnly"
+            @click="toggleSelect(index)"
           >
-            Remove
+            {{ selectedIndexes.includes(index) ? 'Deselect' : 'Select' }}
           </DropdownItem>
         </template>
       </TrackList>
@@ -155,6 +169,8 @@
       const hasMore = ref(true)
       const loadingTracks = ref(false)
       const showEditModal = ref(false)
+      // Selection is index-based: the same track can appear several times in a playlist
+      const selectedIndexes = ref<number[]>([])
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
       const api = inject('$api') as any
       const loader = useLoader()
@@ -200,10 +216,49 @@
         nextTick(() => router.push({ name: 'queue' }))
       }
 
+      const toggleSelect = (index: number) => {
+        selectedIndexes.value = selectedIndexes.value.includes(index)
+          ? selectedIndexes.value.filter(i => i !== index)
+          : [...selectedIndexes.value, index]
+      }
+
+      // Selects every track of the playlist, including ones not loaded yet by the infinite loader
+      const toggleSelectAll = () => {
+        const total = playlist.value.tracks.length
+        selectedIndexes.value = selectedIndexes.value.length >= total
+          ? []
+          : Array.from({ length: total }, (_, i) => i)
+      }
+
       const removeTrack = (index: number) => {
         playlist.value.tracks.splice(index, 1)
         visibleTracks.value.splice(index, 1)
+        playlist.value.trackCount = playlist.value.tracks.length
+        // keep the selection aligned with the shifted indexes
+        selectedIndexes.value = selectedIndexes.value
+          .filter(i => i !== index)
+          .map(i => (i > index ? i - 1 : i))
         return playlistStore.removeTrack(props.id, index)
+      }
+
+      const removeSelected = async() => {
+        if (!confirmDialog.value || !selectedIndexes.value.length) return
+        const count = selectedIndexes.value.length
+        const userConfirmed = await confirmDialog.value.open(
+          'Remove',
+          `About to remove ${count} track${count > 1 ? 's' : ''} : continue?`
+        )
+        if (!userConfirmed) return
+
+        // highest index first, so earlier removals don't shift the later ones
+        const indexes = [...selectedIndexes.value].sort((a, b) => b - a)
+        indexes.forEach(i => {
+          playlist.value.tracks.splice(i, 1)
+          visibleTracks.value.splice(i, 1)
+        })
+        playlist.value.trackCount = playlist.value.tracks.length
+        selectedIndexes.value = []
+        await playlistStore.removeTracks(props.id, indexes)
       }
 
       const fetchPlaylist = async(id: string) => {
@@ -212,6 +267,7 @@
           const data = await api.getPlaylist(id)
           playlist.value = data
           visibleTracks.value = []
+          selectedIndexes.value = []
           nextIndex.value = 0
           hasMore.value = true
           appendNextChunk()
@@ -269,13 +325,17 @@
         hasMore,
         loadingTracks,
         showEditModal,
+        selectedIndexes,
         confirmDialog,
         appendNextChunk,
         loadMore,
         playPause,
         playNow,
         shuffleNow,
+        toggleSelect,
+        toggleSelectAll,
         removeTrack,
+        removeSelected,
         fetchPlaylist,
         reloadPlaylist,
         deletePlaylist,

@@ -86,6 +86,16 @@ export const usePlaylistStore = defineStore('playlist', {
         playlist.trackCount = (playlist?.trackCount || 0) - 1
       }
     },
+    /**
+     * Removes several tracks by index. Indexes are removed from highest to lowest
+     * so that each removal leaves the remaining indexes valid.
+     */
+    async removeTracks(playlistId: string, indexes: number[]) {
+      const sorted = uniq(indexes).sort((a, b) => b - a)
+      for (const index of sorted) {
+        await this.removeTrack(playlistId, index)
+      }
+    },
     async delete(id: string) {
       await this.api.deletePlaylist(id)
       this.playlists = this.playlists!.filter(p => p.id !== id)
