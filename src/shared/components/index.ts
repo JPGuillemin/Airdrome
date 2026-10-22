@@ -1,7 +1,7 @@
 // index.ts
 import Avatar from './Avatar.vue'
-import Dropdown from '@/shared/components/Dropdown.vue'
-import DropdownItem from '@/shared/components/DropdownItem.vue'
+import TrackMenu from '@/shared/components/TrackMenu.vue'
+import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
 import EmptyIndicator from './EmptyIndicator.vue'
 import ExternalLink from './ExternalLink.vue'
 import Header from './Header.vue'
@@ -20,8 +20,8 @@ export const components = {
   Avatar,
   BButton,
   BModal,
-  Dropdown,
-  DropdownItem,
+  TrackMenu,
+  TrackMenuItem,
   EmptyIndicator,
   ExternalLink,
   Header,

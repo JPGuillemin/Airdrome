@@ -33,13 +33,13 @@
     >
       <template #actions="{ index }">
         <hr class="dropdown-divider">
-        <DropdownItem
+        <TrackMenuItem
           icon="x"
           variant="danger"
           @click="remove(index)"
         >
           Remove
-        </DropdownItem>
+        </TrackMenuItem>
       </template>
     </TrackList>
 

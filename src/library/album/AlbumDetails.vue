@@ -53,21 +53,21 @@
             <IconMusicBrainz />
           </ExternalLink>
           <OverflowMenu direction="up" variant="transparent" class="header-buttons">
-            <DropdownItem icon="plus" class="on-top" @click="setNextInQueue">
+            <TrackMenuItem icon="plus" class="on-top" @click="setNextInQueue">
               Next
-            </DropdownItem>
-            <DropdownItem icon="plus" class="on-top" @click="addToQueue">
+            </TrackMenuItem>
+            <TrackMenuItem icon="plus" class="on-top" @click="addToQueue">
               Queue
-            </DropdownItem>
-            <DropdownItem icon="plus" class="on-top" @click="addToPlaylist">
+            </TrackMenuItem>
+            <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist">
               Playlist
-            </DropdownItem>
-            <DropdownItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
+            </TrackMenuItem>
+            <TrackMenuItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
               Cache
-            </DropdownItem>
-            <DropdownItem v-if="cached" icon="trash" class="on-top" @click="clearAlbumCache">
+            </TrackMenuItem>
+            <TrackMenuItem v-if="cached" icon="trash" class="on-top" @click="clearAlbumCache">
               Cache
-            </DropdownItem>
+            </TrackMenuItem>
           </OverflowMenu>
         </div>
       </Header>

@@ -55,23 +55,23 @@
             <Icon icon="trash" />
           </button>
           <OverflowMenu direction="up" variant="transparent" @click.stop>
-            <DropdownItem
+            <TrackMenuItem
               icon="reload"
               :disabled="playlist.tracks.length === 0"
               class="on-top"
               @click="reloadPlaylist()"
             >
               Reload
-            </DropdownItem>
-            <DropdownItem
+            </TrackMenuItem>
+            <TrackMenuItem
               icon="edit"
               :disabled="playlist.isReadOnly"
               class="on-top"
               @click="openEditModal"
             >
               Edit
-            </DropdownItem>
-            <DropdownItem
+            </TrackMenuItem>
+            <TrackMenuItem
               icon="x"
               variant="danger"
               :disabled="playlist.isReadOnly"
@@ -79,7 +79,7 @@
               @click.stop.prevent="deletePlaylist()"
             >
               Delete
-            </DropdownItem>
+            </TrackMenuItem>
           </OverflowMenu>
         </div>
       </Header>
@@ -99,13 +99,13 @@
         @remove-track="removeTrack"
       >
         <template #actions="{ index }">
-          <DropdownItem
+          <TrackMenuItem
             icon="check"
             :disabled="playlist.isReadOnly"
             @click="toggleSelect(index)"
           >
             {{ selectedIndexes.includes(index) ? 'Deselect' : 'Select' }}
-          </DropdownItem>
+          </TrackMenuItem>
         </template>
       </TrackList>
       <EmptyIndicator v-else-if="!loadingTracks" />
@@ -130,7 +130,7 @@
   import InfiniteLoader from '@/shared/components/InfiniteLoader.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
   import OverflowMenu from '@/shared/components/OverflowMenu.vue'
-  import DropdownItem from '@/shared/components/DropdownItem.vue'
+  import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
   import Icon from '@/shared/components/Icon.vue'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
@@ -148,7 +148,7 @@
       InfiniteLoader,
       EmptyIndicator,
       OverflowMenu,
-      DropdownItem,
+      TrackMenuItem,
       Icon,
       ConfirmDialog,
     },

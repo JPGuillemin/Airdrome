@@ -13,24 +13,24 @@
           </div>
 
           <div class="modal-body py-1">
-            <DropdownItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
+            <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
               Next
-            </DropdownItem>
-            <DropdownItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="addToQueue()">
+            </TrackMenuItem>
+            <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="addToQueue()">
               Queue
-            </DropdownItem>
+            </TrackMenuItem>
 
             <!-- Conditional playlist action -->
-            <DropdownItem
+            <TrackMenuItem
               v-if="!isPlaylistView"
               icon="plus"
               class="on-top"
               @click="showPlaylistSelect = true"
             >
               Playlist
-            </DropdownItem>
+            </TrackMenuItem>
 
-            <DropdownItem
+            <TrackMenuItem
               v-if="isPlaylistView"
               icon="x"
               variant="danger"
@@ -38,14 +38,14 @@
               @click="$emit('remove'); close()"
             >
               Remove
-            </DropdownItem>
+            </TrackMenuItem>
 
-            <DropdownItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
+            <TrackMenuItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
               Like
-            </DropdownItem>
-            <DropdownItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
+            </TrackMenuItem>
+            <TrackMenuItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
               Download
-            </DropdownItem>
+            </TrackMenuItem>
 
             <slot :item="track" />
           </div>

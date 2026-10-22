@@ -20,7 +20,7 @@
       <div class="d-flex align-items-center">
         <SearchForm class="flex-grow-1 flex-md-grow-0 mx-2" />
         <template v-if="store.username">
-          <Dropdown variant="link" align="end" no-caret toggle-class="px-2">
+          <TrackMenu variant="link" align="end" no-caret toggle-class="px-2">
             <template #button-content>
               <Icon icon="list" color="var(--bs-secondary)" />
             </template>
@@ -73,9 +73,9 @@
             <div class="on-top px-3 py-2 text-muted small">
               Cache size: {{ cacheSize }} MB
             </div>
-            <DropdownItem class="on-top small" @click="rescan">
+            <TrackMenuItem class="on-top small" @click="rescan">
               Scan Server<Icon icon="refresh" class="me-1" />
-            </DropdownItem>
+            </TrackMenuItem>
             <div class="on-top px-3 py-2 d-flex align-items-center justify-content-between" @click.stop>
               <span class="small image-cache-label">
                 <template v-if="isCachingImages">
@@ -96,16 +96,16 @@
                 <div class="cache-toggle-knob" />
               </div>
             </div>
-            <DropdownItem class="on-top small" @click="clearAllCache">
+            <TrackMenuItem class="on-top small" @click="clearAllCache">
               Clear cache<Icon icon="trash" class="me-1" />
-            </DropdownItem>
-            <DropdownItem class="on-top small" @click="logout">
+            </TrackMenuItem>
+            <TrackMenuItem class="on-top small" @click="logout">
               Log out<Icon icon="logout" class="me-1" />
-            </DropdownItem>
-            <DropdownItem class="on-top small" @click="showAboutModal = true">
+            </TrackMenuItem>
+            <TrackMenuItem class="on-top small" @click="showAboutModal = true">
               About<Icon icon="info" class="me-1" />
-            </DropdownItem>
-          </Dropdown>
+            </TrackMenuItem>
+          </TrackMenu>
         </template>
         <Teleport to="body">
           <About :visible="showAboutModal" @close="showAboutModal = false" />

@@ -48,9 +48,9 @@
             <IconMusicBrainz />
           </ExternalLink>
           <OverflowMenu v-if="artist.trackCount > 0" direction="up" variant="transparent" class="header-buttons">
-            <DropdownItem icon="plus" class="on-top" @click="addToPlaylist">
+            <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist">
               Playlist
-            </DropdownItem>
+            </TrackMenuItem>
           </OverflowMenu>
         </div>
       </Header>

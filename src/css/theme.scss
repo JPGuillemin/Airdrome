@@ -51,7 +51,7 @@ $link-hover-decoration: underline;
 $text-muted: $theme-text-muted;
 $border-color: $theme-elevation-2;
 
-// Dropdown / overflow menu — otherwise falls back to Bootstrap's default
+// TrackMenu / overflow menu — otherwise falls back to Bootstrap's default
 // bg, which doesn't follow the elevation scale used elsewhere (e.g. .playlist-box)
 $dropdown-bg: $theme-elevation-1;
 $dropdown-border-color: $theme-elevation-2;
