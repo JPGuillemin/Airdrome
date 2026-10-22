@@ -9,7 +9,9 @@
         :title-only="titleOnly"
         @dragstart="dragstart(item, $event)"
         @click="playNow(index)"
-        @contextmenu.prevent="openTileMenu(item.id ?? index, $event)"
+        @mousedown="onMouseDown(item.id ?? index, $event)"
+        @mouseup="onMouseUp"
+        @mouseleave="onMouseUp"
         @touchstart="onTouchStart(item.id ?? index, $event)"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
@@ -46,8 +48,7 @@
         </template>
       </Tile>
 
-      <!-- Tile has no default slot, so the (teleported, invisible-until-open)
-           menu is mounted as a sibling instead of slotted inside Tile. -->
+      <!-- Tile has no default slot, so the (teleported) menu is mounted as a sibling. -->
       <RowActionsMenu
         :ref="(el) => setMenuRef(el, item.id ?? index)"
         :track="item"
@@ -91,10 +92,17 @@
         (props.items || []).filter((item): item is Track => !!item?.id)
       )
 
+      let pressTimer: ReturnType<typeof setTimeout> | null = null
+      let isLongPressTriggered = false
+
       // Append only the clicked track to the end of the existing queue,
       // then jump to it. Keeps the queue state intact and the playing track
       // correctly highlighted in the queue view.
       const playNow = (index: number) => {
+        if (isLongPressTriggered) {
+          isLongPressTriggered = false
+          return
+        }
         const track = validItems.value[index]
         if (track?.url) cacheStore.cacheTrack(track.url)
         playerStore.setShuffle(false)
@@ -111,7 +119,6 @@
         await sleep(300)
 
         if (isFavourite(id)) {
-          // cache.ts stores/retrieves by stream URL, not by track id
           if (track.url) await cacheStore.cacheTrack(track.url)
           emit('favourite-added', track)
         } else {
@@ -136,44 +143,46 @@
       const isFavourite = (id: string) =>
         favouriteStore.get('track', id)
 
-      // --- Menu contextuel sur la tuile (clic droit) / long-press (tactile) ---
-      // Même pattern que TrackList : on garde une référence vers chaque
-      // instance RowActionsMenu, keyed par l'id du morceau (et non son index,
-      // qui change quand la liste bouge), pour pouvoir ouvrir la bonne au
-      // point du clic/toucher, sans bouton déclencheur par tuile.
       const menuRefs = new Map<string | number, any>()
       const setMenuRef = (el: any, key: string | number) => {
         if (el) menuRefs.set(key, el)
         else menuRefs.delete(key)
       }
 
-      const openTileMenu = (key: string | number, event: MouseEvent) => {
+      const triggerMenu = (key: string | number) => {
+        isLongPressTriggered = true
         const menu = menuRefs.get(key)
-        if (!menu) return
-        const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
-        menu.openAt(point)
+        if (menu && typeof menu.open === 'function') {
+          menu.open()
+        }
       }
 
-      let longPressTimer: ReturnType<typeof setTimeout> | null = null
+      const onMouseDown = (key: string | number, event: MouseEvent) => {
+        if (event.button !== 0) return
+        pressTimer = setTimeout(() => {
+          pressTimer = null
+          triggerMenu(key)
+        }, LONG_PRESS_MS)
+      }
 
-      const onTouchStart = (key: string | number, event: TouchEvent) => {
-        const tile = event.currentTarget as HTMLElement
-        longPressTimer = setTimeout(() => {
-          longPressTimer = null
-          const menu = menuRefs.get(key)
-          if (!menu) return
-          const rect = tile.getBoundingClientRect()
-          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
-          // Empêche le click qui suit (déclenchant la lecture) de se
-          // propager après l'ouverture du menu par long-press.
-          tile.addEventListener('click', (e) => e.stopPropagation(), { once: true, capture: true })
+      const onMouseUp = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer)
+          pressTimer = null
+        }
+      }
+
+      const onTouchStart = (key: string | number, _event: TouchEvent) => {
+        pressTimer = setTimeout(() => {
+          pressTimer = null
+          triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
       const onTouchEnd = () => {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer)
-          longPressTimer = null
+        if (pressTimer) {
+          clearTimeout(pressTimer)
+          pressTimer = null
         }
       }
 
@@ -186,7 +195,8 @@
         dragstart,
         isFavourite,
         setMenuRef,
-        openTileMenu,
+        onMouseDown,
+        onMouseUp,
         onTouchStart,
         onTouchEnd,
       }
