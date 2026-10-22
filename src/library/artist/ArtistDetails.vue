@@ -1,4 +1,3 @@
-// ArtistDetails.vue
 <template>
   <div v-if="artist" class="main-content">
     <div class="header-wrapper">
@@ -48,6 +47,11 @@
           <ExternalLink :href="listenBrainzUrl" class="btn btn-link header-buttons" title="MusicBrainz">
             <IconMusicBrainz />
           </ExternalLink>
+          <OverflowMenu v-if="artist.trackCount > 0" direction="up" variant="transparent" class="header-buttons">
+            <DropdownItem icon="plus" class="on-top" @click="addToPlaylist">
+              Playlist
+            </DropdownItem>
+          </OverflowMenu>
         </div>
       </Header>
     </div>
@@ -96,6 +100,16 @@
         </span>
       </template>
     </div>
+    <Teleport to="body">
+      <EditPlaylistModal
+        v-if="showPlaylistModal"
+        :playlist="playlistDraft"
+        mode="add"
+        @add-to-playlist="addToExistingPlaylist"
+        @create-playlist="createPlaylist"
+        @close="showPlaylistModal = false"
+      />
+    </Teleport>
   </div>
 </template>
 <script lang="ts">
@@ -103,7 +117,10 @@
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
+  import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
+  import type { Playlist } from '@/shared/api'
   import { useFavouriteStore } from '@/library/favourite/store'
+  import { usePlaylistStore } from '@/library/playlist/store'
   import { useMainStore } from '@/shared/store'
   import { usePlayerStore } from '@/player/store'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
@@ -118,6 +135,7 @@
       AlbumList,
       ArtistList,
       TrackList,
+      EditPlaylistModal,
     },
 
     directives: {
@@ -131,6 +149,7 @@
     setup(props) {
       const mainStore = useMainStore()
       const favouriteStore = useFavouriteStore()
+      const playlistStore = usePlaylistStore()
       const playerStore = usePlayerStore()
       const loader = useLoader()
       const radioStore = useRadioStore()
@@ -148,6 +167,65 @@
 
       const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
       const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()
+
+      // "Playlist +": open a form to pick an existing playlist or create a new
+      // one (name pre-filled with the artist name), then add all tracks of the
+      // artist (from all their albums). Tracks are only fetched once the
+      // target playlist is known.
+      const showPlaylistModal = ref(false)
+      const playlistDraft = computed(() => ({
+        name: artist.value?.name || '',
+        comment: '',
+        isPublic: false,
+      }) as Playlist)
+
+      const fetchAllTrackIds = async(): Promise<string[]> => {
+        const ids: string[] = []
+        for await (const tracks of api.getTracksByArtist(props.id)) {
+          ids.push(...tracks.map((t: any) => t.id))
+        }
+        return ids
+      }
+
+      const addToPlaylist = async() => {
+        if (!artist.value) return
+        if (playlistStore.playlists === null) {
+          loader.showLoading()
+          try {
+            await playlistStore.load()
+          } catch (err) {
+            console.error(err)
+            return
+          } finally {
+            loader.hideLoading()
+          }
+        }
+        showPlaylistModal.value = true
+      }
+
+      const addToExistingPlaylist = async(playlistId: string) => {
+        showPlaylistModal.value = false
+        loader.showLoading()
+        try {
+          await playlistStore.addUniqueTracks(playlistId, await fetchAllTrackIds())
+        } catch (err) {
+          console.error(err)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
+      const createPlaylist = async(name: string) => {
+        showPlaylistModal.value = false
+        loader.showLoading()
+        try {
+          await playlistStore.addToPlaylistByName(name, await fetchAllTrackIds())
+        } catch (err) {
+          console.error(err)
+        } finally {
+          loader.hideLoading()
+        }
+      }
 
       // Fetch artist details
       const fetchArtist = async() => {
@@ -169,6 +247,7 @@
       return {
         mainStore,
         favouriteStore,
+        playlistStore,
         playerStore,
         artist,
         isFavourite,
@@ -177,6 +256,11 @@
         RadioNow,
         toggleFavourite,
         toggleAlbumSortOrder,
+        addToPlaylist,
+        addToExistingPlaylist,
+        createPlaylist,
+        showPlaylistModal,
+        playlistDraft,
         listenBrainzUrl,
       }
     },

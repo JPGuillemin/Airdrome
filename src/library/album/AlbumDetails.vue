@@ -1,4 +1,3 @@
-// AlbumDetails.vue
 <template>
   <div v-if="album" class="main-content">
     <div class="header-wrapper">
@@ -60,6 +59,9 @@
             <DropdownItem icon="plus" class="on-top" @click="addToQueue">
               Queue
             </DropdownItem>
+            <DropdownItem icon="plus" class="on-top" @click="addToPlaylist">
+              Playlist
+            </DropdownItem>
             <DropdownItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
               Cache
             </DropdownItem>
@@ -90,16 +92,28 @@
         </span>
       </div>
     </div>
+    <Teleport to="body">
+      <EditPlaylistModal
+        v-if="showPlaylistModal"
+        :playlist="playlistDraft"
+        mode="add"
+        @add-to-playlist="addToExistingPlaylist"
+        @create-playlist="createPlaylist"
+        @close="showPlaylistModal = false"
+      />
+    </Teleport>
   </div>
 </template>
 <script lang="ts">
   import { defineComponent, ref, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
+  import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/shared/cache'
   import { useLoader } from '@/shared/loader'
-  import { Album } from '@/shared/api'
+  import { Album, Playlist } from '@/shared/api'
   import TrackList from '@/library/track/TrackList.vue'
+  import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useRadioStore } from '@/player/radio'
@@ -107,7 +121,7 @@
   import { getAlbumListenBrainzUrl } from '@/shared/musicbrainz'
 
   export default defineComponent({
-    components: { TrackList, IconMusicBrainz },
+    components: { TrackList, IconMusicBrainz, EditPlaylistModal },
 
     directives: {
       'longpress-tooltip': longPressTooltip
@@ -117,6 +131,7 @@
 
     setup(props) {
       const favouriteStore = useFavouriteStore()
+      const playlistStore = usePlaylistStore()
       const playerStore = usePlayerStore()
       const cacheStore = useCacheStore()
       const api = inject('$api') as any
@@ -180,6 +195,63 @@
         }
       }
 
+      // "Playlist +": open a form to pick an existing playlist or create a new
+      // one (name pre-filled with the album name), then add all album tracks.
+      const showPlaylistModal = ref(false)
+      const playlistDraft = computed(() => ({
+        name: album.value?.name || '',
+        comment: '',
+        isPublic: false,
+      }) as Playlist)
+
+      const addToPlaylist = async() => {
+        if (!album.value?.tracks?.length) return
+        if (playlistStore.playlists === null) {
+          loader.showLoading()
+          try {
+            await playlistStore.load()
+          } catch (err) {
+            console.error(err)
+            return
+          } finally {
+            loader.hideLoading()
+          }
+        }
+        showPlaylistModal.value = true
+      }
+
+      const addToExistingPlaylist = async(playlistId: string) => {
+        if (!album.value?.tracks?.length) return
+        showPlaylistModal.value = false
+        loader.showLoading()
+        try {
+          await playlistStore.addUniqueTracks(
+            playlistId,
+            album.value.tracks.map(t => t.id)
+          )
+        } catch (err) {
+          console.error(err)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
+      const createPlaylist = async(name: string) => {
+        if (!album.value?.tracks?.length) return
+        showPlaylistModal.value = false
+        loader.showLoading()
+        try {
+          await playlistStore.addToPlaylistByName(
+            name,
+            album.value.tracks.map(t => t.id)
+          )
+        } catch (err) {
+          console.error(err)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
       const toggleFavourite = async() => {
         favouriteStore.toggle('album', props.id)
       }
@@ -218,6 +290,7 @@
         album,
         cached,
         favouriteStore,
+        playlistStore,
         playerStore,
         cacheStore,
         isFavourite,
@@ -228,6 +301,11 @@
         RadioNow,
         setNextInQueue,
         addToQueue,
+        addToPlaylist,
+        addToExistingPlaylist,
+        createPlaylist,
+        showPlaylistModal,
+        playlistDraft,
         toggleFavourite,
         cacheAlbum,
         clearAlbumCache,

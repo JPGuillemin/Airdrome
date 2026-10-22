@@ -1,7 +1,6 @@
-// store.ts
 import { defineStore } from 'pinia'
 import { Playlist } from '@/shared/api'
-import { orderBy } from 'lodash-es'
+import { orderBy, uniq } from 'lodash-es'
 
 export const usePlaylistStore = defineStore('playlist', {
   state: () => ({
@@ -37,6 +36,47 @@ export const usePlaylistStore = defineStore('playlist', {
         playlist.updatedAt = new Date().toISOString()
         playlist.trackCount = (playlist?.trackCount || 0) + trackIds.length
       }
+    },
+    findByName(name: string) {
+      const cleanName = name.trim().toLowerCase()
+      return this.playlists?.find(p => p.name.trim().toLowerCase() === cleanName) || null
+    },
+    /**
+     * Adds tracks to the playlist with this name (case-insensitive).
+     * If it doesn't exist, it is created with those tracks.
+     * Tracks already in the playlist are not added twice.
+     */
+    async addToPlaylistByName(name: string, trackIds: string[]) {
+      const cleanName = name.trim()
+      const ids = uniq(trackIds)
+      if (!cleanName || !ids.length) return { created: false, added: 0 }
+
+      if (this.playlists === null) {
+        await this.load()
+      }
+
+      const existing = this.findByName(cleanName)
+
+      if (!existing) {
+        await this.create(cleanName, ids)
+        return { created: true, added: ids.length }
+      }
+
+      return this.addUniqueTracks(existing.id, ids)
+    },
+    /**
+     * Adds tracks to an existing playlist, skipping the ones already in it.
+     */
+    async addUniqueTracks(playlistId: string, trackIds: string[]) {
+      const ids = uniq(trackIds)
+      if (!ids.length) return { created: false, added: 0 }
+      const current = await this.api.getPlaylist(playlistId)
+      const present = new Set((current.tracks || []).map(t => t.id))
+      const toAdd = ids.filter(id => !present.has(id))
+      if (toAdd.length) {
+        await this.addTracks(playlistId, toAdd)
+      }
+      return { created: false, added: toAdd.length }
     },
     async removeTrack(playlistId: string, index: number) {
       const playlist = this.playlists?.find(x => x.id === playlistId)

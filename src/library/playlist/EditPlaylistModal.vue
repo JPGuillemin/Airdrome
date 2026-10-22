@@ -1,4 +1,3 @@
-// EditPlaylistModal.vue
 <template>
   <div>
     <div class="modal-overlay" @click="close" />
@@ -6,14 +5,27 @@
       <div class="modal-content">
         <div class="modal-header mb-3">
           <h5 class="modal-title">
-            {{ mode === 'edit' ? 'Edit Playlist' : 'New Playlist' }}
+            {{ title }}
           </h5>
         </div>
 
         <div>
-          <div class="mb-3">
+          <!-- Add mode: pick an existing playlist or create a new one -->
+          <div v-if="mode === 'add'" class="mb-3">
+            <label class="form-label">Playlist</label>
+            <select v-model="selectedId" class="form-select">
+              <option :value="NEW_PLAYLIST">
+                + New playlist
+              </option>
+              <option v-for="p in playlists" :key="p.id" :value="p.id">
+                {{ p.name }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="showName" class="mb-3">
             <label class="form-label">Name</label>
-            <input v-model="local.name" type="text" class="form-control">
+            <input v-model="local.name" type="text" class="form-control" @keyup.enter="save">
           </div>
 
           <div v-if="mode === 'edit'" class="mb-3">
@@ -29,7 +41,7 @@
 
         <div class="modal-footer">
           <button class="btn btn-primary" @click="save">
-            {{ mode === 'edit' ? 'Save' : 'Create' }}
+            {{ buttonLabel }}
           </button>
         </div>
       </div>
@@ -38,22 +50,30 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, watch } from 'vue'
+  import { computed, defineComponent, ref, watch } from 'vue'
+  import { orderBy } from 'lodash-es'
   import SwitchInput from '@/shared/components/SwitchInput.vue'
+  import { usePlaylistStore } from '@/library/playlist/store'
   import type { Playlist } from '@/shared/api'
   import type { PropType } from 'vue'
+
+  const NEW_PLAYLIST = '__new__'
 
   export default defineComponent({
     components: { SwitchInput },
 
     props: {
+      // In 'add' mode, `playlist` is only used to prefill the name
+      // used when creating a new playlist.
       playlist: { type: Object as PropType<Playlist | null>, default: null },
-      mode: { type: String as PropType<'create' | 'edit'>, default: 'edit' }
+      mode: { type: String as PropType<'create' | 'edit' | 'add'>, default: 'edit' }
     },
 
-    emits: ['close', 'update-playlist', 'create-playlist'],
+    emits: ['close', 'update-playlist', 'create-playlist', 'add-to-playlist'],
 
     setup(props, { emit }) {
+      const playlistStore = usePlaylistStore()
+
       const local = ref(
         props.playlist
           ? { ...props.playlist }
@@ -70,11 +90,42 @@
         { immediate: true }
       )
 
+      const playlists = computed(() => orderBy(playlistStore.playlists || [], 'name'))
+
+      // Default selection: the playlist matching the prefilled name if there
+      // is one, otherwise "New playlist".
+      const selectedId = ref<string>(
+        props.mode === 'add'
+          ? playlistStore.findByName(local.value.name || '')?.id ?? NEW_PLAYLIST
+          : NEW_PLAYLIST
+      )
+
+      const isNew = computed(() => props.mode === 'add' && selectedId.value === NEW_PLAYLIST)
+      const showName = computed(() => props.mode !== 'add' || isNew.value)
+
+      const title = computed(() => {
+        if (props.mode === 'edit') return 'Edit Playlist'
+        if (props.mode === 'add') return 'Add to Playlist'
+        return 'New Playlist'
+      })
+
+      const buttonLabel = computed(() => {
+        if (props.mode === 'edit') return 'Save'
+        if (props.mode === 'add') return isNew.value ? 'Create' : 'Add'
+        return 'Create'
+      })
+
       const close = () => {
         emit('close')
       }
 
       const save = () => {
+        if (props.mode === 'add' && !isNew.value) {
+          emit('add-to-playlist', selectedId.value)
+          close()
+          return
+        }
+
         if (!local.value.name?.trim()) {
           alert('Name cannot be empty')
           return
@@ -91,6 +142,12 @@
 
       return {
         local,
+        playlists,
+        selectedId,
+        NEW_PLAYLIST,
+        showName,
+        title,
+        buttonLabel,
         save,
         close,
       }
