@@ -42,8 +42,10 @@
         :class="{ active: isActive(item, index) }"
         draggable="true"
         @dragstart="dragstart(item, $event)"
-        @click="onRowClick(index)"
-        @contextmenu.prevent="openRowMenu(item.id ?? index, $event)"
+        @click="onRowClick(index, item.id ?? index)"
+        @mousedown="onMouseDown(item.id ?? index, $event)"
+        @mouseup="onMouseUp"
+        @mouseleave="onMouseUp"
         @touchstart="onTouchStart(item.id ?? index, $event)"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
@@ -115,18 +117,14 @@
       tracks: { type: Array as PropType<Track[]>, required: true },
       isPlaylistView: { type: Boolean, default: false },
 
-      // Selection mode: shows a checkbox in place of the track number.
-      // `selected` holds the indexes (within `tracks`) of the checked rows.
       selectable: { type: Boolean, default: false },
       selected: { type: Array as PropType<number[]>, default: () => [] },
-      // Total selectable rows when `tracks` is only a loaded slice (lazy loading)
       selectionTotal: { type: Number, default: null },
       noAlbum: Boolean,
       noArtist: Boolean,
       noDuration: Boolean,
       showImage: { type: Boolean, default: true },
 
-      // Position of tracks[0] within the real queue (when displaying a slice of it)
       indexOffset: { type: Number, default: 0 },
 
       activeBy: {
@@ -162,8 +160,11 @@
         return playerStore.playTrackList(props.tracks, index)
       }
 
-      // In selection mode a row click toggles the selection instead of playing
-      const onRowClick = (index: number) => {
+      const onRowClick = (index: number, key: string | number) => {
+        if (isLongPressTriggered) {
+          isLongPressTriggered = false
+          return
+        }
         if (props.selectable) return emit('toggle-select', index)
         return handlePlay(index)
       }
@@ -174,44 +175,50 @@
         }
       }
 
-      // --- Menu contextuel sur la ligne (clic droit) / long-press (tactile) ---
-      // On garde une référence vers chaque instance RowActionsMenu, keyed par
-      // l'id du morceau (et non son index, qui change quand la liste bouge),
-      // pour pouvoir ouvrir la bonne au point du clic/toucher, sans bouton
-      // déclencheur par ligne.
       const menuRefs = new Map<string | number, any>()
       const setMenuRef = (el: any, key: string | number) => {
         if (el) menuRefs.set(key, el)
         else menuRefs.delete(key)
       }
 
-      const openRowMenu = (key: string | number, event: MouseEvent) => {
+      let pressTimer: ReturnType<typeof setTimeout> | null = null
+      let isLongPressTriggered = false
+
+      const triggerMenu = (key: string | number) => {
+        isLongPressTriggered = true
         const menu = menuRefs.get(key)
-        if (!menu) return
-        const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
-        menu.openAt(point)
+        if (menu && typeof menu.open === 'function') {
+          menu.open()
+        }
       }
 
-      let longPressTimer: ReturnType<typeof setTimeout> | null = null
+      const onMouseDown = (key: string | number, event: MouseEvent) => {
+        // Only primary click
+        if (event.button !== 0) return
+        pressTimer = setTimeout(() => {
+          pressTimer = null
+          triggerMenu(key)
+        }, LONG_PRESS_MS)
+      }
+
+      const onMouseUp = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer)
+          pressTimer = null
+        }
+      }
 
       const onTouchStart = (key: string | number, event: TouchEvent) => {
-        const row = event.currentTarget as HTMLElement
-        longPressTimer = setTimeout(() => {
-          longPressTimer = null
-          const menu = menuRefs.get(key)
-          if (!menu) return
-          const rect = row.getBoundingClientRect()
-          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
-          // Empêche le click qui suit (déclenchant la lecture) de se
-          // propager après l'ouverture du menu par long-press.
-          row.addEventListener('click', (e) => e.stopPropagation(), { once: true, capture: true })
+        pressTimer = setTimeout(() => {
+          pressTimer = null
+          triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
       const onTouchEnd = () => {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer)
-          longPressTimer = null
+        if (pressTimer) {
+          clearTimeout(pressTimer)
+          pressTimer = null
         }
       }
 
@@ -222,7 +229,8 @@
         onRowClick,
         dragstart,
         setMenuRef,
-        openRowMenu,
+        onMouseDown,
+        onMouseUp,
         onTouchStart,
         onTouchEnd,
       }
