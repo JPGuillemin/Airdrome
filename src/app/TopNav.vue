@@ -54,9 +54,9 @@
               <div class="d-flex gap-2 flex-wrap">
                 <button
                   v-for="option in [
-                    { icon: 'low', value: 128 },
-                    { icon: 'medium', value: 160 },
-                    { icon: 'high', value: 256 }
+                    { icon: 'low', value: 92 },
+                    { icon: 'medium', value: 128 },
+                    { icon: 'high', value: 192 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
@@ -183,7 +183,7 @@
         localStorage.setItem('themeColor', color)
       }
 
-      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 160)
+      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
 
       function setStreamQuality(value: number) {
         streamQuality.value = value
