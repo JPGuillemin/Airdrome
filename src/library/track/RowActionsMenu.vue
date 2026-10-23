@@ -7,45 +7,48 @@
         <div class="modal-content" @click="onClickInside">
           <div class="modal-header mb-2">
             <h5 class="modal-title text-truncate fs-6">
-              {{ track.title || 'Track Options' }}
+              {{ title || track.title || 'Track Options' }}
             </h5>
             <button type="button" class="btn-close" aria-label="Close" @click="close" />
           </div>
 
           <div class="modal-body py-1">
-            <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
-              Next
-            </TrackMenuItem>
-            <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="addToQueue()">
-              Queue
-            </TrackMenuItem>
+            <!-- Track actions (disabled for albums / artists, which provide their own items through the slot) -->
+            <template v-if="defaultActions">
+              <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
+                Next
+              </TrackMenuItem>
+              <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="addToQueue()">
+                Queue
+              </TrackMenuItem>
 
-            <!-- Conditional playlist action -->
-            <TrackMenuItem
-              v-if="!isPlaylistView"
-              icon="plus"
-              class="on-top"
-              @click="showPlaylistSelect = true"
-            >
-              Playlist
-            </TrackMenuItem>
+              <!-- Conditional playlist action -->
+              <TrackMenuItem
+                v-if="!isPlaylistView"
+                icon="plus"
+                class="on-top"
+                @click="showPlaylistSelect = true"
+              >
+                Playlist
+              </TrackMenuItem>
 
-            <TrackMenuItem
-              v-if="isPlaylistView"
-              icon="x"
-              variant="danger"
-              class="on-top"
-              @click="$emit('remove'); close()"
-            >
-              Remove
-            </TrackMenuItem>
+              <TrackMenuItem
+                v-if="isPlaylistView"
+                icon="x"
+                variant="danger"
+                class="on-top"
+                @click="$emit('remove'); close()"
+              >
+                Remove
+              </TrackMenuItem>
 
-            <TrackMenuItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
-              Like
-            </TrackMenuItem>
-            <TrackMenuItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
-              Download
-            </TrackMenuItem>
+              <TrackMenuItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
+                Like
+              </TrackMenuItem>
+              <TrackMenuItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
+                Download
+              </TrackMenuItem>
+            </template>
 
             <slot :item="track" />
           </div>
@@ -87,7 +90,13 @@
 
   export default defineComponent({
     props: {
+      // Track (or album / artist when `defaultActions` is false)
       track: { type: Object, required: true },
+      // Overrides the modal title (defaults to the track title)
+      title: { type: String, default: '' },
+      // Built-in track actions (Next, Queue, Playlist, Like, Download).
+      // Set to false to only render the items provided through the slot.
+      defaultActions: { type: Boolean, default: true },
       isPlaylistView: { type: Boolean, default: false },
     },
 

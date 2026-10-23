@@ -22,8 +22,19 @@
 
       <!-- Hover Actions -->
       <template v-if="tileSize > 79" #actions>
-        <TileActionButton icon="play" label="Play" @click.stop="playNow(item.id)" />
-
+        <TileActionButton
+          icon="play"
+          label="Play"
+          @click.stop="playNow(item.id)"
+        />
+        
+        <TileActionButton
+          v-if="!isPlaylistView"
+          icon="random"
+          label="Shuffle"
+          @click.stop="shuffleNow(item.id)"
+        />
+        
         <TileActionButton
           v-if="isPlaylistView"
           icon="edit"
@@ -45,6 +56,7 @@
 <script lang="ts">
   import { defineComponent, computed, inject } from 'vue'
   import { usePlayerStore } from '@/player/store'
+  import { useRadioStore } from '@/player/radio'
   import type { Playlist } from '@/shared/api'
   import type { PropType } from 'vue'
 
@@ -61,6 +73,7 @@
 
     setup(props) {
       const playerStore = usePlayerStore()
+      const radioStore = useRadioStore()
       const api = inject('$api') as any
       const validItems = computed(() =>
         (props.items || []).filter((item): item is Playlist => !!item?.id)
@@ -72,7 +85,14 @@
         return playerStore.playTrackList(playlist.tracks!)
       }
 
-      return { playerStore, validItems, playNow }
+
+      const shuffleNow = async(id: string) => {
+        const playlist = await api.getPlaylist(id)
+        if (!playlist?.tracks?.length) return
+        await radioStore.playRandomOrTracks({ tracks: playlist.tracks })
+      }
+
+      return { playerStore, radioStore, validItems, playNow, shuffleNow }
     },
   })
 </script>
