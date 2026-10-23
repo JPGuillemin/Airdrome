@@ -140,8 +140,11 @@
 
       const onClickInside = (event: Event) => {
         const target = event.target as (Element | null)
-        if (target && (['A', 'BUTTON'].includes(target.tagName) || target.closest('button, a'))) {
-          // Action item clicked
+        // Items injected through the default slot (Select, Remove...) don't call close() themselves.
+        // When an item opens the playlist sub-modal, the menu must stay open.
+        const item = target?.closest('.modal-body > *')
+        if (item && item.tagName !== 'HR' && !showPlaylistSelect.value) {
+          close()
         }
       }
 

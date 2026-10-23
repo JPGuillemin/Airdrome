@@ -17,7 +17,18 @@
         <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Shuffle" @click="shuffle">
           <Icon icon="random" />
         </b-button>
-        <b-button v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Delete" @click="clear">
+        <!-- With a selection, the trash button removes the selected tracks instead of clearing the queue -->
+        <b-button
+          v-if="selectedIndexes.length"
+          v-longpress-tooltip
+          variant="transparent"
+          class="me-2"
+          :title="`Remove ${selectedIndexes.length} selected`"
+          @click="removeSelected"
+        >
+          <Icon icon="trash" />
+        </b-button>
+        <b-button v-else v-longpress-tooltip variant="transparent" class="me-2" :disabled="!allTracks.length" title="Delete" @click="clear">
           <Icon icon="trash" />
         </b-button>
       </div>
@@ -30,8 +41,19 @@
       :show-image="true"
       :index-offset="startIndex"
       :play-strategy="playFromList"
+      :selectable="selectedIndexes.length > 0"
+      :selected="selectedIndexes"
+      :selection-total="Math.max(0, allTracks.length - startIndex)"
+      @toggle-select="toggleSelect"
+      @toggle-select-all="toggleSelectAll"
     >
       <template #actions="{ index }">
+        <TrackMenuItem
+          icon="check"
+          @click="toggleSelect(index)"
+        >
+          {{ selectedIndexes.includes(index) ? 'Deselect' : 'Select' }}
+        </TrackMenuItem>
         <hr class="dropdown-divider">
         <TrackMenuItem
           icon="x"
@@ -56,6 +78,7 @@
   import { defineComponent, ref, computed, watch, onActivated } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import TrackList from '@/library/track/TrackList.vue'
+  import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
   import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
   import { longPressTooltip } from '@/shared/tooltips'
@@ -66,6 +89,7 @@
   export default defineComponent({
     components: {
       TrackList,
+      TrackMenuItem,
       EmptyIndicator,
       ConfirmDialog,
     },
@@ -83,6 +107,8 @@
       const nextIndex = ref(0)
       const hasMore = ref(true)
       const confirmDialog = ref<ConfirmDialogExpose | null>(null)
+      // Indexes within the displayed list (real queue index = startIndex + index)
+      const selectedIndexes = ref<number[]>([])
       const allTracks = computed(() => playerStore.queue)
       const queueIndex = computed(() => playerStore.queueIndex)
 
@@ -135,9 +161,52 @@
         return playerStore.playTrackListIndex(startIndex.value + index)
       }
 
+      const toggleSelect = (index: number) => {
+        selectedIndexes.value = selectedIndexes.value.includes(index)
+          ? selectedIndexes.value.filter(i => i !== index)
+          : [...selectedIndexes.value, index]
+      }
+
+      // Selects the whole queue from the first displayed row, including rows not loaded yet
+      const toggleSelectAll = () => {
+        const total = Math.max(0, allTracks.value.length - startIndex.value)
+        selectedIndexes.value = selectedIndexes.value.length >= total
+          ? []
+          : Array.from({ length: total }, (_, i) => i)
+      }
+
       const remove = (index: number) => {
+        // keep the selection aligned with the shifted rows
+        selectedIndexes.value = selectedIndexes.value
+          .filter(i => i !== index)
+          .map(i => (i > index ? i - 1 : i))
         playerStore.removeFromQueue(startIndex.value + index)
       }
+
+      const removeSelected = async() => {
+        if (!confirmDialog.value || !selectedIndexes.value.length) return
+        const count = selectedIndexes.value.length
+        const userConfirmed = await confirmDialog.value.open(
+          'Remove',
+          `About to remove ${count} track${count > 1 ? 's' : ''} from the play queue : continue?`
+        )
+        if (!userConfirmed) return
+
+        // highest index first, so earlier removals don't shift the later ones
+        const queueIndexes = selectedIndexes.value
+          .map(i => startIndex.value + i)
+          .sort((a, b) => b - a)
+        selectedIndexes.value = []
+        for (const index of queueIndexes) {
+          await playerStore.removeFromQueue(index)
+        }
+      }
+
+      // Row indexes are no longer reliable when the window moves or tracks get added
+      watch(startIndex, () => { selectedIndexes.value = [] })
+      watch(() => allTracks.value.length, (length, previous) => {
+        if (length > previous) selectedIndexes.value = []
+      })
 
       const clear = async() => {
         if (!confirmDialog.value) return
@@ -174,12 +243,16 @@
         queueIndex,
         startIndex,
         confirmDialog,
+        selectedIndexes,
         reset,
         loadMore,
         appendNextChunk,
         play,
         playFromList,
+        toggleSelect,
+        toggleSelectAll,
         remove,
+        removeSelected,
         clear,
         shuffle,
       }

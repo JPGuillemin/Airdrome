@@ -42,10 +42,12 @@
         :class="{ active: isActive(item, index) }"
         draggable="true"
         @dragstart="dragstart(item, $event)"
-        @click="onRowClick(index, item.id ?? index)"
         @mousedown="onMouseDown(item.id ?? index, $event)"
-        @mouseup="onMouseUp"
-        @mouseleave="onMouseUp"
+        @mousemove="onMouseMove"
+        @mouseup="cancelMousePress"
+        @mouseleave="cancelMousePress"
+        @click="onRowClick(index)"
+        @contextmenu.prevent="openRowMenu(item.id ?? index, $event)"
         @touchstart="onTouchStart(item.id ?? index, $event)"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
@@ -99,6 +101,8 @@
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
 
   const LONG_PRESS_MS = 500
+  // Pixels the mouse may drift during a long press before it is cancelled
+  const MOUSE_MOVE_TOLERANCE = 5
 
   export default defineComponent({
     components: {
@@ -117,14 +121,18 @@
       tracks: { type: Array as PropType<Track[]>, required: true },
       isPlaylistView: { type: Boolean, default: false },
 
+      // Selection mode: shows a checkbox in place of the track number.
+      // `selected` holds the indexes (within `tracks`) of the checked rows.
       selectable: { type: Boolean, default: false },
       selected: { type: Array as PropType<number[]>, default: () => [] },
+      // Total selectable rows when `tracks` is only a loaded slice (lazy loading)
       selectionTotal: { type: Number, default: null },
       noAlbum: Boolean,
       noArtist: Boolean,
       noDuration: Boolean,
       showImage: { type: Boolean, default: true },
 
+      // Position of tracks[0] within the real queue (when displaying a slice of it)
       indexOffset: { type: Number, default: 0 },
 
       activeBy: {
@@ -160,9 +168,11 @@
         return playerStore.playTrackList(props.tracks, index)
       }
 
-      const onRowClick = (index: number, key: string | number) => {
-        if (isLongPressTriggered) {
-          isLongPressTriggered = false
+      // In selection mode a row click toggles the selection instead of playing
+      const onRowClick = (index: number) => {
+        // The click that ends a mouse long-press must not play / toggle the row
+        if (suppressNextClick) {
+          suppressNextClick = false
           return
         }
         if (props.selectable) return emit('toggle-select', index)
@@ -170,55 +180,89 @@
       }
 
       const dragstart = (item: Track, event: DragEvent) => {
+        cancelMousePress()
         if (!item.isStream) {
           event.dataTransfer?.setData('application/x-track-id', item.id)
         }
       }
 
+      // --- Menu contextuel sur la ligne (clic droit) / long-press (tactile) ---
+      // On garde une référence vers chaque instance RowActionsMenu, keyed par
+      // l'id du morceau (et non son index, qui change quand la liste bouge),
+      // pour pouvoir ouvrir la bonne au point du clic/toucher, sans bouton
+      // déclencheur par ligne.
       const menuRefs = new Map<string | number, any>()
       const setMenuRef = (el: any, key: string | number) => {
         if (el) menuRefs.set(key, el)
         else menuRefs.delete(key)
       }
 
-      let pressTimer: ReturnType<typeof setTimeout> | null = null
-      let isLongPressTriggered = false
-
-      const triggerMenu = (key: string | number) => {
-        isLongPressTriggered = true
+      const openRowMenu = (key: string | number, event: MouseEvent) => {
         const menu = menuRefs.get(key)
-        if (menu && typeof menu.open === 'function') {
-          menu.open()
+        if (!menu) return
+        const point = { top: event.clientY, bottom: event.clientY, left: event.clientX, right: event.clientX }
+        menu.openAt(point)
+      }
+
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null
+
+      const onTouchStart = (key: string | number, event: TouchEvent) => {
+        const row = event.currentTarget as HTMLElement
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null
+          const menu = menuRefs.get(key)
+          if (!menu) return
+          const rect = row.getBoundingClientRect()
+          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
+          // Empêche le click qui suit (déclenchant la lecture) de se
+          // propager après l'ouverture du menu par long-press.
+          row.addEventListener('click', (e) => e.stopPropagation(), { once: true, capture: true })
+        }, LONG_PRESS_MS)
+      }
+
+      // --- Long-press with the mouse (desktop): same menu as right-click ---
+      let mouseTimer: ReturnType<typeof setTimeout> | null = null
+      let mouseStart = { x: 0, y: 0 }
+      let suppressNextClick = false
+
+      const cancelMousePress = () => {
+        if (mouseTimer) {
+          clearTimeout(mouseTimer)
+          mouseTimer = null
         }
       }
 
       const onMouseDown = (key: string | number, event: MouseEvent) => {
-        // Only primary click
+        suppressNextClick = false
+        cancelMousePress()
         if (event.button !== 0) return
-        pressTimer = setTimeout(() => {
-          pressTimer = null
-          triggerMenu(key)
+        // Checkboxes and other controls keep their normal behaviour
+        if ((event.target as Element | null)?.closest('input, button, a')) return
+
+        mouseStart = { x: event.clientX, y: event.clientY }
+        mouseTimer = setTimeout(() => {
+          mouseTimer = null
+          const menu = menuRefs.get(key)
+          if (!menu) return
+          suppressNextClick = true
+          menu.openAt({ top: mouseStart.y, bottom: mouseStart.y, left: mouseStart.x, right: mouseStart.x })
         }, LONG_PRESS_MS)
       }
 
-      const onMouseUp = () => {
-        if (pressTimer) {
-          clearTimeout(pressTimer)
-          pressTimer = null
+      const onMouseMove = (event: MouseEvent) => {
+        if (!mouseTimer) return
+        if (
+          Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
+          Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
+        ) {
+          cancelMousePress()
         }
       }
 
-      const onTouchStart = (key: string | number, event: TouchEvent) => {
-        pressTimer = setTimeout(() => {
-          pressTimer = null
-          triggerMenu(key)
-        }, LONG_PRESS_MS)
-      }
-
       const onTouchEnd = () => {
-        if (pressTimer) {
-          clearTimeout(pressTimer)
-          pressTimer = null
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
         }
       }
 
@@ -229,10 +273,12 @@
         onRowClick,
         dragstart,
         setMenuRef,
-        onMouseDown,
-        onMouseUp,
+        openRowMenu,
         onTouchStart,
         onTouchEnd,
+        onMouseDown,
+        onMouseMove,
+        cancelMousePress,
       }
     },
 

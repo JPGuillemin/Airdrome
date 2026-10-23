@@ -9,7 +9,9 @@
         :title-only="titleOnly"
         @dragstart="dragstart(item, $event)"
         @click="playNow(index)"
+        @contextmenu.prevent="openMenu(item.id ?? index)"
         @mousedown="onMouseDown(item.id ?? index, $event)"
+        @mousemove="onMouseMove"
         @mouseup="onMouseUp"
         @mouseleave="onMouseUp"
         @touchstart="onTouchStart(item.id ?? index, $event)"
@@ -67,6 +69,8 @@
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
 
   const LONG_PRESS_MS = 500
+  // Pixels the mouse may drift during a long press before it is cancelled
+  const MOUSE_MOVE_TOLERANCE = 5
 
   export default defineComponent({
     components: { RowActionsMenu },
@@ -135,6 +139,7 @@
       }
 
       const dragstart = (item: Track, event: DragEvent) => {
+        onMouseUp()
         if (!item.isStream) {
           event.dataTransfer?.setData('application/x-track-id', item.id)
         }
@@ -149,20 +154,41 @@
         else menuRefs.delete(key)
       }
 
-      const triggerMenu = (key: string | number) => {
-        isLongPressTriggered = true
+      const openMenu = (key: string | number) => {
         const menu = menuRefs.get(key)
         if (menu && typeof menu.open === 'function') {
           menu.open()
         }
       }
 
+      // Long press: the click that may follow must not start playback
+      const triggerMenu = (key: string | number) => {
+        isLongPressTriggered = true
+        openMenu(key)
+      }
+
+      let mouseStart = { x: 0, y: 0 }
+
       const onMouseDown = (key: string | number, event: MouseEvent) => {
+        // The menu overlay can swallow the click that ends a long press,
+        // so a stale flag must never leak into the next press.
+        isLongPressTriggered = false
         if (event.button !== 0) return
+        mouseStart = { x: event.clientX, y: event.clientY }
         pressTimer = setTimeout(() => {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
+      }
+
+      const onMouseMove = (event: MouseEvent) => {
+        if (!pressTimer) return
+        if (
+          Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
+          Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
+        ) {
+          onMouseUp()
+        }
       }
 
       const onMouseUp = () => {
@@ -173,6 +199,7 @@
       }
 
       const onTouchStart = (key: string | number, _event: TouchEvent) => {
+        isLongPressTriggered = false
         pressTimer = setTimeout(() => {
           pressTimer = null
           triggerMenu(key)
@@ -195,7 +222,9 @@
         dragstart,
         isFavourite,
         setMenuRef,
+        openMenu,
         onMouseDown,
+        onMouseMove,
         onMouseUp,
         onTouchStart,
         onTouchEnd,
