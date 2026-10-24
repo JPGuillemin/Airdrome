@@ -396,7 +396,8 @@
     height: 46px;
     border-radius: 12px;
     background: var(--theme-elevation-1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--theme-elevation-2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
   .logo-mask {

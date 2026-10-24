@@ -695,7 +695,8 @@
     margin: 5px;
     background: var(--theme-elevation-1);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid var(--theme-elevation-2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     overflow: hidden;
   }
 
