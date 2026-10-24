@@ -99,7 +99,10 @@ export class AudioController {
 
   private get context(): AudioContext {
     if (!this._context) {
-      this._context = new AudioContext()
+      const ctx = new AudioContext()
+      console.info('[ctx] created:', ctx.state)
+      ctx.onstatechange = () => console.info('[ctx] state ->', ctx.state)
+      this._context = ctx
     }
     return this._context
   }
@@ -252,11 +255,15 @@ export class AudioController {
     console.info('audio.pause()')
   }
 
-  /** Play, then fade in. */
+  /** Resume the context if needed, play, then fade in. */
   async play() {
+    const ctx = this.context
+    if (ctx.state !== 'running') {
+      ctx.resume().catch(() => {})
+    }
     await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
-    console.info('audio.play()')
+    console.info('audio.play()', ctx.state)
   }
 
   /** Resume context */
