@@ -41,6 +41,17 @@ let extending: Promise<boolean> | null = null
 // MediaSession requires a non-zero playback rate; 1 = normal speed
 const mediaSessionProgressRate = 1
 
+/** How often the active device checks whether another device took over playback. */
+const TAKEOVER_POLL_MS = 5000
+let takeoverTimer: ReturnType<typeof setInterval> | null = null
+let checkingTakeover = false
+/** In-flight claim write; takeover checks wait for it so they never read a pre-claim queue. */
+let claimPromise: Promise<void> | null = null
+/** True once our claim write has actually reached the server. */
+let claimConfirmed = false
+/** Verbose [session] logging (set to false once the feature is stable). */
+const DEBUG_SESSION = false
+
 // ---------------------------------------------------------------------------
 // Pinia store
 // ---------------------------------------------------------------------------
@@ -85,7 +96,17 @@ export const usePlayerStore = defineStore('player', {
      * Used by the mobile auto-resume logic to avoid resuming after an
      * OS-level interruption if the user had intentionally paused.
      */
-    userPaused: true
+    userPaused: true,
+
+    /**
+     * True while THIS device is the user's active playback session (set when
+     * playback starts, cleared on pause or when another device takes over).
+     * Only the owner writes to the server play queue unconditionally.
+     */
+    ownsSession: false,
+
+    /** Timestamp (ms) of the last takeover by another device; watch it to show a toast. */
+    takeoverAt: 0
   }),
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -337,13 +358,149 @@ export const usePlayerStore = defineStore('player', {
       await this.seek(currentTrackPosition)
     },
 
-    async saveQueue() {
+    async saveQueue(opts: { blind?: boolean } = {}) {
       const queue = this.queue
       const track = this.track
       const currentTime = this.currentTime
-      if (navigator.onLine && queue && track) {
-        this.api.savePlayQueue(queue, track, Math.trunc(currentTime))
-          .catch(err => { console.info('savePlayQueue aborted:', err) })
+      if (!navigator.onLine || !queue || !track) return
+      try {
+        // Never write blindly: another device may have claimed the session since
+        // our last check, and overwriting its queue would erase its claim
+        // (it would keep playing while we get paused).
+        // - owner: if the queue now belongs to someone else, handle the takeover
+        // - idle device: only write while the server queue is still ours
+        // `blind` skips the check (page unload, where async work is unreliable).
+        if (!opts.blind) {
+          if (this.ownsSession) {
+            if (claimPromise) await claimPromise
+            if (!claimConfirmed) {
+              // Our claim never landed (e.g. network error right at resume). The
+              // server still shows the previous device, which is NOT a takeover:
+              // retry the claim instead of pausing ourselves.
+              await this.writeClaim()
+              return
+            }
+            if (await this.detectTakeover()) return
+          } else if (!(await this.queueIsOurs())) {
+            return
+          }
+        }
+        await this.api.savePlayQueue(queue, track, Math.trunc(currentTime))
+        // Recovers from a failed claim write (e.g. brief offline at play time)
+        if (this.ownsSession && claimConfirmed && !takeoverTimer) this.startTakeoverWatch()
+      } catch (err) {
+        console.info('savePlayQueue aborted:', err)
+      }
+    },
+
+    // ── Single active playback session ──────────────────────────────────
+
+    /** True if the server-side play queue was last written by this device. */
+    async queueIsOurs(): Promise<boolean> {
+      const pq = await this.api.getPlayQueue()
+      return this.api.isOwnQueueWriter(pq.changedBy)
+    },
+
+    /**
+     * Called when playback starts. Writes the queue FIRST (so the server shows
+     * us as the last writer), and only then starts polling for a takeover;
+     * otherwise the first poll could still see the previous device and
+     * pause us straight away.
+     */
+    async claimSession() {
+      if (this.ownsSession) return
+      this.ownsSession = true
+      claimConfirmed = false
+      if (!navigator.onLine || !this.queue?.length || !this.track) return
+      // The first request after resume can fail (backgrounded WebView, stale
+      // connection), so retry a few times with a short backoff.
+      claimPromise = (async () => {
+        for (const delay of [0, 400, 1200, 2500, 5000]) {
+          if (delay) await sleep(delay)
+          if (!this.ownsSession || claimConfirmed) return // released or already done
+          if (await this.writeClaim()) return
+        }
+        console.info('[session] claim failed after retries; will retry on next save')
+      })().finally(() => { claimPromise = null })
+      await claimPromise
+    },
+
+    /** One attempt to write the queue as the active device. True when it landed. */
+    async writeClaim(): Promise<boolean> {
+      const track = this.track
+      if (!navigator.onLine || !this.queue?.length || !track) return false
+      try {
+        const ok = await this.api.savePlayQueue(this.queue, track, Math.trunc(this.currentTime))
+        if (!ok) return false
+        if (this.ownsSession) {
+          claimConfirmed = true
+          if (DEBUG_SESSION) console.info(`[session] claimed as ${this.api.sessionClient}`)
+          this.startTakeoverWatch()
+        }
+        return true
+      } catch (err) {
+        console.info('[session] claim write failed', err)
+        return false
+      }
+    },
+
+    /** Give up the session WITHOUT writing anything to the server. */
+    releaseSession() {
+      this.ownsSession = false
+      claimConfirmed = false
+      this.stopTakeoverWatch()
+    },
+
+    /** Called when playback stops: persist the final position, then release. */
+    async handlePlaybackStopped() {
+      if (!this.ownsSession) return // already released (e.g. takeover)
+      await this.saveQueue()
+      // Playback may have resumed while the save was in flight
+      if (!this.isPlaying) this.releaseSession()
+    },
+
+    startTakeoverWatch() {
+      this.stopTakeoverWatch()
+      takeoverTimer = setInterval(() => { void this.checkTakeover() }, TAKEOVER_POLL_MS)
+    },
+
+    stopTakeoverWatch() {
+      if (takeoverTimer) clearInterval(takeoverTimer)
+      takeoverTimer = null
+    },
+
+    /**
+     * Returns true when we must NOT write to the queue: another device took
+     * the session (we release it and pause) or it was already released.
+     */
+    async detectTakeover(): Promise<boolean> {
+      // Our own claim write must land before we read, or we would see the previous device
+      if (claimPromise) await claimPromise
+      // Without a confirmed claim the server still names the previous device: not a takeover
+      if (!claimConfirmed) return false
+      const pq = await this.api.getPlayQueue()
+      if (DEBUG_SESSION) {
+        console.info(`[session] check: changedBy=${pq.changedBy} me=${this.api.sessionClient} changed=${pq.changed}`)
+      }
+      if (!this.ownsSession) return true // released while the request was in flight
+      if (this.api.isOwnQueueWriter(pq.changedBy)) return false
+      console.info(`[session] taken over by ${pq.changedBy} -> pause`)
+      this.releaseSession() // first: nothing may write back and trigger a ping-pong
+      this.takeoverAt = Date.now()
+      await this.pause() // sets userPaused so visibility/device handlers don't resume
+      return true
+    },
+
+    /** Poll tick: if another device saved the queue since we claimed it, stop playing. */
+    async checkTakeover() {
+      if (checkingTakeover || !this.ownsSession || !this.isPlaying || !navigator.onLine) return
+      checkingTakeover = true
+      try {
+        await this.detectTakeover()
+      } catch {
+        // Offline or transient error: try again on the next tick
+      } finally {
+        checkingTakeover = false
       }
     },
 
@@ -670,6 +827,7 @@ export async function setupAudio(
   audio.onplay = () => {
     playerStore.isPlaying = true
     playerStore.userPaused = false
+    void playerStore.claimSession()
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -677,6 +835,7 @@ export async function setupAudio(
 
   audio.onpause = () => {
     playerStore.isPlaying = false
+    void playerStore.handlePlaybackStopped()
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
@@ -863,8 +1022,9 @@ export async function setupAudio(
 
   /** On unload: pause, then persist the queue position to the server. */
   window.addEventListener('beforeunload', (event) => {
-    // Save queue position regardless of playback state
-    playerStore.saveQueue()
+    // Only the active device saves on unload. An idle device already saved
+    // when it paused, and writing now would steal the session.
+    if (playerStore.ownsSession) playerStore.saveQueue({ blind: true })
 
     // Show confirmation dialog if playback is active
     if (playerStore.isPlaying) {

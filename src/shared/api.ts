@@ -114,6 +114,10 @@ export interface PlayQueue {
   tracks: Track[]
   currentTrack: number
   currentTrackPosition: number
+  /** Server timestamp (ISO) of the last savePlayQueue. */
+  changed?: string
+  /** Client name (`c` param) of the device that last saved the queue. */
+  changedBy?: string
 }
 
 export class OfflineError extends Error {
@@ -138,6 +142,30 @@ export class API {
   private readonly fetch: (path: string, params?: any) => Promise<any>
   private readonly clientName = 'Airdrome'
 
+  /** Stable per-install ID, used to tell devices apart in getPlayQueue().changedBy. */
+  readonly deviceId: string = (() => {
+    const key = 'airdrome.deviceId'
+    let id = localStorage.getItem(key)
+    if (!id) {
+      id = crypto.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10)
+      localStorage.setItem(key, id)
+    }
+    return id
+  })()
+
+  /** Client name sent with savePlayQueue; Navidrome echoes it back as `changedBy`. */
+  get sessionClient(): string {
+    return `${this.clientName}-${this.deviceId}`
+  }
+
+  /**
+   * True if the play queue was last written by this device, or if the writer is
+   * unknown / a legacy build without a device id (never treated as a takeover).
+   */
+  isOwnQueueWriter(changedBy?: string): boolean {
+    return !changedBy || changedBy === this.sessionClient || changedBy === this.clientName
+  }
+
   // Simple in-memory cache for the full artist list. It's fetched by
   // getArtists() (artist library page) and reused by getArtistsByGenre()
   // (genre pages) so genre browsing doesn't re-fetch the whole library
@@ -149,7 +177,7 @@ export class API {
 
   constructor(private auth: AuthService) {
     this.fetch = async(path: string, params: any) => {
-      params = { ...params, v: '1.16.1', f: 'json', c: this.clientName }
+      params = { v: '1.16.1', f: 'json', c: this.clientName, ...params }
 
       const request = this.auth.serverInfo?.extensions.includes('formPost')
         ? new Request(`${this.auth.server}/${path}`, {
@@ -483,7 +511,8 @@ export class API {
   }
 
   async getPlayQueue(): Promise<PlayQueue> {
-    const response = await this.fetch('rest/getPlayQueue')
+    // `_` makes every URL unique so no HTTP cache or service worker can serve a stale queue
+    const response = await this.fetch('rest/getPlayQueue', { _: Date.now() })
     const tracks = (response.playQueue?.entry || []).map(this.normalizeTrack, this) as Track[]
     const currentTrackId = response.playQueue?.current?.toString()
     const index = tracks.findIndex(track => track.id === currentTrackId)
@@ -492,18 +521,22 @@ export class API {
       tracks,
       currentTrack,
       currentTrackPosition: (response.playQueue?.position || 0) / 1000,
+      changed: response.playQueue?.changed,
+      changedBy: response.playQueue?.changedBy,
     }
   }
 
+  /** Resolves true when the queue was written, false when the error was swallowed (offline etc.). */
   async savePlayQueue(
     tracks: Track[],
     currentTrack: Track | null,
     currentTime: number | null
-  ) {
+  ): Promise<boolean> {
     try {
       const tracksIds = tracks.filter(t => !t.isStream).map(t => t.id)
 
       await this.fetch('rest/savePlayQueue', {
+        c: this.sessionClient, // identifies this device in getPlayQueue().changedBy
         id: tracksIds,
         current: !currentTrack?.isStream ? currentTrack?.id : undefined,
         position:
@@ -511,9 +544,10 @@ export class API {
             ? Math.round(currentTime * 1000)
             : undefined,
       })
+      return true
     } catch (err: any) {
-      if (err instanceof OfflineError) return
-      if (err.code === 0 || err.code === 10) return
+      if (err instanceof OfflineError) return false
+      if (err.code === 0 || err.code === 10) return false
       throw err
     }
   }
