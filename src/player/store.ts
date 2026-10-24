@@ -833,12 +833,28 @@ export async function setupAudio(
     playerStore.setMediaSessionState('playing')
   }
 
-  audio.onpause = () => {
+  /** Everything that must reflect "paused": UI button, session release, MediaSession mini-player. */
+  const applyPausedState = () => {
     playerStore.isPlaying = false
     void playerStore.handlePlaybackStopped()
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+  }
+
+  audio.onpause = applyPausedState
+
+  /**
+   * Pause that did not come from us (OS interruption, audio focus loss…).
+   * Show "paused" everywhere, but keep the element alive (muted, rate ≈ 0) so
+   * it can be resumed later: by visibilitychange (below) or by any play button
+   * (store.play() -> audio.play() restores rate and volume).
+   * userPaused is only ever set by pause()/stop(), so false here = not the user.
+   */
+  audio.onsystempause = async () => {
+    applyPausedState()
+    if (playerStore.userPaused) return
+    await audio.enterSilentHold()
   }
 
   audio.onended = async () => {
@@ -864,6 +880,8 @@ export async function setupAudio(
   }
 
   document.addEventListener('visibilitychange', () => {
+    // After a system pause isPlaying is false (silent hold): play() below
+    // exits the hold (rate back to 1, volume faded back in).
     if (playerStore.isPlaying) return
 
     switch (document.visibilityState) {
