@@ -2,9 +2,6 @@
 import { sleep } from '@/shared/utils'
 import { useCacheStore } from '@/shared/cache'
 
-/** Playback rate used during a silent hold (near-frozen, below the audible floor). */
-const HOLD_PLAYBACK_RATE = 0.0001
-
 // ---------------------------------------------------------------------------
 // ReplayGain
 // ---------------------------------------------------------------------------
@@ -83,19 +80,6 @@ export class AudioController {
   /** Original (non-cached) URL currently held in this.buffer as the next track. */
   private preloadedFor: string | undefined = undefined
 
-  /**
-   * "Silent hold": after a pause we did not ask for (OS interruption, audio
-   * focus loss…) the element is immediately restarted muted (fadeNode gain 0)
-   * and almost frozen (playbackRate ≈ 0). The element therefore stays a live
-   * "playing" media element, which keeps it resumable without a user gesture.
-   * While held, the controller reports itself as paused (no onplay/onpause
-   * callbacks) so the UI and MediaSession show "paused".
-   */
-  private silentHold = false
-
-  /** Set right before WE call audio.pause(), so its 'pause' event is not mistaken for a system pause. */
-  private expectedPause = false
-
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
   private _context: AudioContext | null = null
@@ -124,8 +108,6 @@ export class AudioController {
   ontimeupdate = (_: number) => {}
   ondurationchange = (_: number) => {}
   onpause = () => {}
-  /** The element was paused by the system (not by pause()/stop()/end of track). */
-  onsystempause = () => {}
   onplay = () => {}
   onended = () => {}
   onerror = () => {}
@@ -136,11 +118,6 @@ export class AudioController {
 
   get audioElement(): HTMLAudioElement | undefined {
     return this.activePipeline.audio
-  }
-
-  /** True while the element is kept alive muted/slowed after a system pause. */
-  get isHolding(): boolean {
-    return this.silentHold
   }
 
   currentTime() {
@@ -258,7 +235,6 @@ export class AudioController {
   /** Stop playback entirely and tear down the pipeline. */
   async stop() {
     this.pause()
-    this.silentHold = false
     this.changeToken++
     this.preloadReady = false
     this.nextUrl = undefined
@@ -271,80 +247,16 @@ export class AudioController {
   /** Fade out, then pause the underlying HTMLAudioElement. */
   async pause() {
     const audio = this.activePipeline.audio
-    if (this.silentHold) {
-      // Already silent (fadeNode at 0): just leave hold mode and really pause
-      this.leaveHold()
-    } else {
-      await this.fadeOut(this.fadeTime)
-    }
-    this.pauseElement(audio)
+    await this.fadeOut(this.fadeTime)
+    audio.pause()
     console.info('audio.pause()')
   }
 
-  /** Play, then fade in. Also exits silent hold (rate back to 1, gain faded back in). */
+  /** Play, then fade in. */
   async play() {
-    const audio = this.activePipeline.audio
-    const wasHeld = this.silentHold
-    const wasRunning = !audio.paused
-    if (wasHeld) this.leaveHold()
-
-    await audio.play()
-
-    // Element kept running during the hold: no 'play' event will fire, so tell the store ourselves
-    if (wasHeld && wasRunning) this.onplay()
-
+    await this.activePipeline.audio.play()
     await this.fadeIn(this.fadeTime / 2)
     console.info('audio.play()')
-  }
-
-  /**
-   * Called after a system pause: restart the element muted and nearly frozen so
-   * it stays alive and resumable. onplay/onpause are NOT fired while held.
-   * Returns false when the system refuses the restart (caller keeps the plain
-   * paused state, i.e. the pre-hold behaviour).
-   */
-  async enterSilentHold(): Promise<boolean> {
-    if (this.silentHold) return true
-    const pipeline = this.activePipeline
-    const audio = pipeline.audio
-    const token = this.changeToken
-
-    this.silentHold = true
-
-    // Mute first (fadeNode, so the user's volume setting is untouched)…
-    const gain = pipeline.fadeNode.gain
-    gain.cancelScheduledValues(0)
-    gain.value = 0
-
-    // …then slow down. 0.0001 is below the 0.0625 audible floor, so it is silent
-    // anyway; position drift is ~0.36 s per hour of hold.
-    try { audio.playbackRate = HOLD_PLAYBACK_RATE } catch {
-      try { audio.playbackRate = 0.0625 } catch {}
-    }
-
-    try {
-      await audio.play()
-      console.info('audio: silent hold')
-      return true
-    } catch (err) {
-      // System refuses to restart: degrade to an ordinary pause
-      if (token === this.changeToken && this.silentHold) this.leaveHold()
-      console.info('audio: silent hold refused', err)
-      return false
-    }
-  }
-
-  /** Leave hold mode: restore normal speed. The gain is brought back by fadeIn() in play(). */
-  private leaveHold() {
-    this.silentHold = false
-    try { this.activePipeline.audio.playbackRate = 1 } catch {}
-  }
-
-  /** Pause the element, flagging the upcoming 'pause' event as ours (not a system pause). */
-  private pauseElement(audio: HTMLAudioElement) {
-    if (audio.paused) return // no event would fire, the flag would stay stale
-    this.expectedPause = true
-    audio.pause()
   }
 
   /** Resume context */
@@ -366,10 +278,7 @@ export class AudioController {
     const token = this.changeToken
     const pipeline = this.activePipeline
 
-    // During a silent hold the element is "running" but must stay muted: no fades
-    const audible = !pipeline.audio.paused && !this.silentHold
-
-    if (audible) {
+    if (!pipeline.audio.paused) {
       this.fadeOut(this.fadeTime / 2)
     }
 
@@ -379,7 +288,7 @@ export class AudioController {
     // the new pipeline owns fade state now.
     if (token !== this.changeToken) return
 
-    if (audible) {
+    if (!pipeline.audio.paused) {
       this.fadeIn(this.fadeTime / 2)
     }
   }
@@ -454,23 +363,8 @@ export class AudioController {
     // ── Event handlers ────────────────────────────────────────────────────
     audio.onerror = () => this.onerror()
     audio.onended    = () => this.onended()
-    audio.onpause    = () => {
-      // Held and the system paused us again: stay held, the store already shows "paused"
-      if (this.silentHold) return
-      // Our own pause(), or the natural end of the track (pause fires before ended)
-      if (this.expectedPause || audio.ended) {
-        this.expectedPause = false
-        this.onpause()
-        return
-      }
-      // Anything else comes from the system
-      this.onsystempause()
-    }
-    audio.onplay     = () => {
-      // The restart done by enterSilentHold() must not look like a user-visible play
-      if (this.silentHold) return
-      this.onplay()
-    }
+    audio.onpause    = () => this.onpause()
+    audio.onplay     = () => this.onplay()
     audio.onplaying     = () => this.onplaying()
     audio.onwaiting     = () => this.onwaiting()
     audio.ontimeupdate = () => this.ontimeupdate(audio.currentTime)
@@ -508,9 +402,6 @@ export class AudioController {
   private replacePipeline(next: AudioPipeline) {
     this.disposePipeline(this.activePipeline)
     this.pipeline = next
-    // A new element starts clean: no hold, no pending pause flag
-    this.silentHold = false
-    this.expectedPause = false
   }
 
   /**
