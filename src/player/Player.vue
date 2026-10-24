@@ -696,7 +696,6 @@
     background: var(--theme-elevation-1);
     border-radius: 12px;
     border: 0.5px solid var(--theme-elevation-2);
-    box-shadow: 0 0 2px 3px rgba(255, 255, 255, 0.10);
     overflow: hidden;
   }
 
