@@ -19,6 +19,7 @@
   import cloud from 'd3-cloud'
   import * as d3 from 'd3'
   import seedrandom from 'seedrandom'
+  import { useRadioStore } from '@/player/radio'
 
   type GenreItem = {
     id: string | number
@@ -54,9 +55,26 @@
 
     setup(props) {
       const router = useRouter()
+      const radio = useRadioStore()
       const container = ref<HTMLDivElement | null>(null)
       const svgRef = ref<SVGSVGElement | null>(null)
       let resizeObserver: ResizeObserver | null = null
+
+      // Long press handling
+      const LONG_PRESS_MS = 500
+      const MOVE_TOLERANCE = 10 // px: beyond this, it's a scroll/drag, not a press
+
+      let pressTimer: ReturnType<typeof setTimeout> | null = null
+      let longPressTriggered = false
+      let startX = 0
+      let startY = 0
+
+      const cancelPress = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer)
+          pressTimer = null
+        }
+      }
 
       const renderCloud = () => {
         if (!container.value || !svgRef.value) return
@@ -154,6 +172,8 @@
             .style('fill', (d) => colorScale(d.normalized || 0))
             .style('cursor', 'pointer')
             .style('user-select', 'none')
+            .style('-webkit-user-select', 'none')
+            .style('-webkit-touch-callout', 'none')
             .style('transition', 'fill 0.15s ease')
             .attr('text-anchor', 'middle')
             .attr('transform', (d) =>
@@ -166,7 +186,40 @@
             .on('mouseleave', function (this: SVGTextElement, _, d) {
               d3.select(this).style('fill', colorScale(d.normalized || 0))
             })
+            .on('pointerdown', (event: PointerEvent, d) => {
+              longPressTriggered = false
+              startX = event.clientX
+              startY = event.clientY
+              cancelPress()
+              pressTimer = setTimeout(() => {
+                pressTimer = null
+                longPressTriggered = true
+                navigator.vibrate?.(30)
+                radio.shuffleGenre(String(d.id))
+              }, LONG_PRESS_MS)
+            })
+            .on('pointermove', (event: PointerEvent) => {
+              if (!pressTimer) return
+              if (
+                Math.abs(event.clientX - startX) > MOVE_TOLERANCE ||
+                Math.abs(event.clientY - startY) > MOVE_TOLERANCE
+              ) {
+                cancelPress()
+              }
+            })
+            .on('pointerup', cancelPress)
+            .on('pointerleave', cancelPress)
+            .on('pointercancel', cancelPress)
+            .on('contextmenu', (event: Event) => {
+              // Prevent the native context menu after a long press (mobile / right-click)
+              event.preventDefault()
+            })
             .on('click', (_, d) => {
+              // The release after a long press fires a click: ignore it
+              if (longPressTriggered) {
+                longPressTriggered = false
+                return
+              }
               router.push({ name: 'genre', params: { id: d.id } })
             })
         }
@@ -179,6 +232,7 @@
       })
 
       onBeforeUnmount(() => {
+        cancelPress()
         resizeObserver?.disconnect()
       })
 
