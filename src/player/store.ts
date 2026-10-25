@@ -695,6 +695,38 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    async updateMediaSession(
+      trackTitle?: string,
+      trackArtist?: string,
+      trackAlbum?: string
+    ) {
+      // Update lock-screen / notification metadata
+      const title = trackTitle ?? this.track.title ?? 'Loading ...'
+      const artist = trackArtist ?? formatArtists(this.track.artists) ?? ''
+      const album = trackAlbum ?? this.track.album ?? ''
+      const trackImage = this.track.image || null
+      if (mediaSession) {
+        const artwork: MediaImage[] = [];
+        if (trackImage) {
+          // Provide artwork at multiple resolutions for different OS contexts
+          artwork.push(
+            { src: trackImage, sizes: '96x96', type: 'image/png' },
+            { src: trackImage, sizes: '128x128', type: 'image/png' },
+            { src: trackImage, sizes: '192x192', type: 'image/png' },
+            { src: trackImage, sizes: '256x256', type: 'image/png' },
+            { src: trackImage, sizes: '384x384', type: 'image/png' },
+            { src: trackImage, sizes: '512x512', type: 'image/png' }
+          );
+        }
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist,
+          album,
+          artwork
+        });
+      }
+    },
+
     /**
      * Update queueIndex and refresh track-level metadata (duration, MediaSession).
      *
@@ -730,31 +762,7 @@ export const usePlayerStore = defineStore('player', {
       this.duration = this.track.duration
       this.currentTime = 0
 
-      // Update lock-screen / notification metadata
-      const trackTitle = this.track.title || ''
-      const trackArtist = formatArtists(this.track.artists) || ''
-      const trackAlbum = this.track.album || ''
-      const trackImage = this.track.image || null
-      if (mediaSession) {
-        const artwork: MediaImage[] = [];
-        if (trackImage) {
-          // Provide artwork at multiple resolutions for different OS contexts
-          artwork.push(
-            { src: trackImage, sizes: '96x96', type: 'image/png' },
-            { src: trackImage, sizes: '128x128', type: 'image/png' },
-            { src: trackImage, sizes: '192x192', type: 'image/png' },
-            { src: trackImage, sizes: '256x256', type: 'image/png' },
-            { src: trackImage, sizes: '384x384', type: 'image/png' },
-            { src: trackImage, sizes: '512x512', type: 'image/png' }
-          );
-        }
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: trackTitle,
-          artist: trackArtist,
-          album: trackAlbum,
-          artwork
-        });
-      }
+      this.updateMediaSession()
     },
   },
 })
@@ -770,26 +778,23 @@ export async function setupAudio(
   mainStore: ReturnType<typeof useMainStore>
 ) {
 
-  function getCodec() {
+  function setCodec() {
     const audio = document.createElement('audio')
+    const bitrate = Number(localStorage.getItem('streamQuality')) || 128
 
-    // Check browser format support matching your preference order
+    const supported = {
+      opus: ['audio/ogg; codecs=opus', 'audio/webm; codecs=opus'].some(t => audio.canPlayType(t)),
+      aac: Boolean(audio.canPlayType('audio/aac')),
+    }
 
-    if (audio.canPlayType('audio/aac') !== '') {
-      return 'aac'
-    }
-    if (audio.canPlayType('audio/ogg; codecs=opus') !== '' || audio.canPlayType('audio/webm; codecs=opus') !== '') {
-      return 'opus'
-    }
-    if (audio.canPlayType('audio/ogg') !== '') {
-      return 'ogg'
-    }
-    return 'mp3' // Ultimate fallback
+    const preference = bitrate < 160 ? ['opus', 'aac'] : ['aac', 'opus']
+    const codec = preference.find(c => supported[c]) ?? 'mp3'
+
+    console.info('Codec:', codec)
+    localStorage.setItem('audioCodec', codec)
   }
 
-  const codec = getCodec()
-  localStorage.setItem('audioCodec', codec)
-  console.info('Codec:', codec)
+  setCodec()
 
   // ---------------------------------------------------------------------------
   // Radio extension & gapless preload (reactive)
@@ -839,6 +844,23 @@ export async function setupAudio(
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+  }
+
+  audio.onwaiting = () => {
+    playerStore.isPlaying = false
+    pauseTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('paused')
+    playerStore.updateMediaSession("Loading ...", "", "")
+  }
+
+  audio.onplaying = () => {
+    playerStore.isPlaying = true
+    playerStore.userPaused = false
+    playTime = Date.now()
+    playerStore.setMediaSessionPosition()
+    playerStore.setMediaSessionState('playing')
+    playerStore.updateMediaSession()
   }
 
   audio.onended = async () => {

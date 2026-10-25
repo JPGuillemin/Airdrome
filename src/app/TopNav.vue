@@ -56,7 +56,7 @@
                   v-for="option in [
                     { icon: 'low', value: 92 },
                     { icon: 'medium', value: 128 },
-                    { icon: 'high', value: 192 }
+                    { icon: 'high', value: 256 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
