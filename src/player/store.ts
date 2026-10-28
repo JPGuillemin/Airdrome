@@ -780,14 +780,13 @@ export async function setupAudio(
 
   function setCodec() {
     const audio = document.createElement('audio')
-    const bitrate = Number(localStorage.getItem('streamQuality')) || 128
 
     const supported = {
       opus: ['audio/ogg; codecs=opus', 'audio/webm; codecs=opus'].some(t => audio.canPlayType(t)),
       aac: Boolean(audio.canPlayType('audio/aac')),
     }
 
-    const preference = bitrate < 160 ? ['opus', 'aac'] : ['aac', 'opus']
+    const preference = ['opus', 'aac']
     const codec = preference.find(c => supported[c]) ?? 'mp3'
 
     console.info('Codec:', codec)
