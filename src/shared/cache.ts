@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import { Album } from '@/shared/api'
 import { sleep } from '@/shared/utils'
 
-const CACHE_DIR = 'audio-cache'
 const CACHE_NAME = 'audio-cache-v1'
 
 const META_DB = 'meta-cache-v1'
@@ -12,7 +11,10 @@ const META_DB_VERSION = 4 // bumped: dropped the redundant running-total store
 
 const MAX_CACHE_SIZE_BYTES = 3 * 1024 * 1024 * 1024 // 3 GB
 
-const IMAGE_CACHE_NAME = 'images-cache-v1'
+// Separate from the service worker's runtime image cache (`images-cache-v1`):
+// the SW owns opportunistic cover-art caching, this cache is the explicit
+// offline store. Keeping them apart means clearing one cannot nuke the other.
+const IMAGE_CACHE_NAME = 'images-offline-v1'
 const IMAGE_CONCURRENCY = 6
 
 type MetaEntry = {
@@ -138,27 +140,15 @@ async function touch(url: string): Promise<void> {
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function hashName(url: string) {
-  // Not cryptographic — fine for a cache filename, but collisions are
-  // theoretically possible on a very large library. Swap for SubtleCrypto
-  // SHA-1 if that ever becomes a real concern; kept sync/cheap here on
-  // purpose since it runs on every cache write.
-  let hash = 0
-  for (let i = 0; i < url.length; i++) {
-    hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0
+/** Object URLs handed to the audio element for cached tracks, keyed by source URL. */
+const blobUrls = new Map<string, string>()
+
+function revokeBlobUrl(url: string) {
+  const objectUrl = blobUrls.get(url)
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl)
+    blobUrls.delete(url)
   }
-
-  const ext = url.split('.').pop()?.split('?')[0] || 'mp3'
-  return `${Math.abs(hash)}.${ext}`
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve((reader.result as string).split(',')[1])
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(blob)
-  })
 }
 
 /* -------------------------------------------------------------------------- */
@@ -201,13 +191,37 @@ async function webWrite(url: string): Promise<number | null> {
   }
 }
 
+/**
+ * Return a URL the audio element can play. When the track is cached we hand
+ * back a Blob URL backed by the cached response (so it works offline and can
+ * be seeked without Range requests); otherwise the original network URL.
+ */
 async function webPlayable(url: string): Promise<string> {
   const cache = await caches.open(CACHE_NAME)
   const hit = await cache.match(url)
 
-  if (hit) await touch(url)
+  if (!hit) return url
 
-  return url
+  await touch(url)
+
+  const existing = blobUrls.get(url)
+  if (existing) return existing
+
+  const objectUrl = URL.createObjectURL(await hit.blob())
+  blobUrls.set(url, objectUrl)
+  return objectUrl
+}
+
+/**
+ * Remove a track from both the metadata store and the actual Cache API
+ * storage (plus any live Blob URL). Deleting only the metadata used to leave
+ * the audio bytes on disk forever, so the LRU limit could never be enforced.
+ */
+async function removeCachedAudio(url: string, cache?: Cache): Promise<void> {
+  await deleteEntry(url)
+  revokeBlobUrl(url)
+  const target = cache ?? await caches.open(CACHE_NAME)
+  await target.delete(url)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -245,10 +259,11 @@ async function enforceLimit() {
   const entries = await allEntries()
   entries.sort((a, b) => a.lastAccess - b.lastAccess)
 
+  const cache = await caches.open(CACHE_NAME)
   for (const e of entries) {
     if (total <= MAX_CACHE_SIZE_BYTES) break
 
-    await deleteEntry(e.url)
+    await removeCachedAudio(e.url, cache)
     total -= e.size
     dispatch('audioCacheDeleted', e.url)
   }
@@ -313,12 +328,10 @@ export const useCacheStore = defineStore('albumCache', {
     async getCachedUrl(url: string) {
       await this.init()
 
-      if (!(await this.hasTrack(url))) {
-        this.cacheTrack(url)
-        return url
-      }
-
-      return await webPlayable(url)
+      const playable = await webPlayable(url)
+      // Not cached: play from the network and persist in the background.
+      if (playable === url) this.cacheTrack(url)
+      return playable
     },
 
     async hasTrack(url: string) {
@@ -327,21 +340,36 @@ export const useCacheStore = defineStore('albumCache', {
 
     async deleteTrack(url: string) {
       const entry = await getEntry(url)
-      if (!entry) return
-
+      const cache = await caches.open(CACHE_NAME)
+      const hadBlob = await cache.delete(url)
       await deleteEntry(url)
-      dispatch('audioCacheDeleted', url)
+      revokeBlobUrl(url)
+
+      if (entry || hadBlob) dispatch('audioCacheDeleted', url)
     },
 
     async clearAllAudioCache() {
       await caches.delete(CACHE_NAME)
+      for (const url of [...blobUrls.keys()]) revokeBlobUrl(url)
 
       await this.clearImageCache()
 
       // Reset the meta DB itself rather than deleting per-entry, then force
-      // the next openDB() to reconnect.
-      indexedDB.deleteDatabase(META_DB)
+      // the next openDB() to reconnect. Close the open connection first so
+      // the deletion is not blocked indefinitely.
+      try {
+        const db = await openDB()
+        db.close()
+      } catch {
+        // no open database — nothing to close
+      }
       dbPromise = null
+      await new Promise<void>((resolve) => {
+        const req = indexedDB.deleteDatabase(META_DB)
+        req.onsuccess = () => resolve()
+        req.onerror = () => resolve()
+        req.onblocked = () => resolve()
+      })
 
       dispatch('audioCacheClearedAll')
       return true
@@ -354,10 +382,14 @@ export const useCacheStore = defineStore('albumCache', {
       this.activeCaching.set(key, { cancelled: false })
       const session = this.activeCaching.get(key)!
 
-      for (const t of album.tracks) {
-        if (session.cancelled) return
-        if (t.url) this.cacheTrack(t.url)
-        await sleep(150)
+      try {
+        for (const t of album.tracks) {
+          if (session.cancelled) return
+          if (t.url) this.cacheTrack(t.url)
+          await sleep(150)
+        }
+      } finally {
+        this.activeCaching.delete(key)
       }
     },
 

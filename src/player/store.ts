@@ -261,7 +261,7 @@ export const usePlayerStore = defineStore('player', {
     async stop() {
       this.userPaused = true
       await audio.stop()
-      this.setMediaSessionPosition(0, 0)
+      this.setMediaSessionPosition(this.duration, 0)
       this.setMediaSessionState('none')
     },
 
@@ -387,14 +387,25 @@ export const usePlayerStore = defineStore('player', {
      * All parameters are optional; current store values are used as fallbacks.
      */
     async setMediaSessionPosition(_duration?: number, _position?: number) {
-      _duration ??= this.duration
-      _position ??= this.currentTime
-      if (navigator.mediaSession) {
+      if (!navigator.mediaSession) return
+
+      const duration = _duration ?? this.duration
+      let position = _position ?? this.currentTime
+
+      // The spec requires a finite, strictly positive duration and a position
+      // within [0, duration]; otherwise setPositionState() throws.
+      if (!Number.isFinite(duration) || duration <= 0) return
+      if (!Number.isFinite(position) || position < 0) position = 0
+      position = Math.min(position, duration)
+
+      try {
         navigator.mediaSession.setPositionState({
-          duration: _duration,
+          duration,
           playbackRate: mediaSessionProgressRate,
-          position: _position
+          position
         })
+      } catch (err) {
+        console.warn('[MediaSession] setPositionState failed', err)
       }
     },
 
@@ -542,11 +553,14 @@ export const usePlayerStore = defineStore('player', {
       trackArtist?: string,
       trackAlbum?: string
     ) {
+      const track = this.track
+      if (!track) return
+
       // Update lock-screen / notification metadata
-      const title = trackTitle ?? this.track.title ?? 'Loading ...'
-      const artist = trackArtist ?? formatArtists(this.track.artists) ?? ''
-      const album = trackAlbum ?? this.track.album ?? ''
-      const trackImage = this.track.image || null
+      const title = trackTitle ?? track.title ?? 'Loading ...'
+      const artist = trackArtist ?? formatArtists(track.artists ?? []) ?? ''
+      const album = trackAlbum ?? track.album ?? ''
+      const trackImage = track.image || null
       if (mediaSession) {
         const artwork: MediaImage[] = [];
         if (trackImage) {
@@ -713,9 +727,11 @@ export async function setupAudio(
     }
   }
 
-  audio.onerror = (error: any) => {
+  audio.onerror = (error: unknown) => {
     console.warn('[Audio] Fatal error', error)
-    mainStore.setError(error)
+    mainStore.setError(
+      error instanceof Error ? error : new Error('Audio playback error')
+    )
     // Skip the broken track rather than looping forever on it.
     if (playerStore.hasNext) {
       void playerStore.next(true)

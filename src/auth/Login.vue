@@ -93,7 +93,7 @@
         } catch (err: any) {
           // If HTTPS failed and we auto-added it, try HTTP
           if (serverValue.startsWith('https://') &&
-              !server.value.trim().startsWith('https://')) {
+            !server.value.trim().startsWith('https://')) {
             const httpUrl = serverValue.replace('https://', 'http://')
             try {
               await auth.loginWithPassword(httpUrl, username.value, password.value)

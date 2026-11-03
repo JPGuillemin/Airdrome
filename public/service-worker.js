@@ -1,6 +1,8 @@
 // service-worker.js
 
-const APP_BASE = '/'
+// Derive the base from the registration scope so deployments under a
+// sub-path (Vite BASE_PATH) still resolve index.html correctly.
+const APP_BASE = new URL(self.registration.scope).pathname
 
 // ─── Cache names ──────────────────────────────────────────────────────────────
 // Bump SHELL_CACHE on every build so stale shells are
@@ -8,6 +10,9 @@ const APP_BASE = '/'
 const SHELL_CACHE = `shell-cache-${__BUILD_VERSION__}`
 const RUNTIME_CACHE = 'runtime-cache-v1'
 const IMAGE_CACHE   = 'images-cache-v1'
+// Owned by src/shared/cache.ts (explicit offline audio / image stores).
+const AUDIO_CACHE   = 'audio-cache-v1'
+const OFFLINE_IMAGE_CACHE = 'images-offline-v1'
 
 // Audio is deliberately NOT cached here. The app (src/shared/cache.ts) owns
 // audio persistence explicitly — Filesystem on native, Cache API on web —
@@ -75,6 +80,9 @@ self.addEventListener('activate', event => {
       SHELL_CACHE,
       RUNTIME_CACHE,
       IMAGE_CACHE,
+      // Never delete the app's explicit offline stores on update.
+      AUDIO_CACHE,
+      OFFLINE_IMAGE_CACHE,
     ]
 
     await Promise.all(

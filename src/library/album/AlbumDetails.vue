@@ -153,13 +153,14 @@
         try {
           const result = await api.getAlbumDetails(props.id)
           album.value = result
-          if (album.value) {
-            cached.value = await cacheStore.isCached(album.value)
-          }
-          if (album.value.musicBrainzUrl) {
-            listenBrainzUrl.value = album.value.musicBrainzUrl
+          cached.value = await cacheStore.isCached(result)
+          if (result.musicBrainzUrl) {
+            listenBrainzUrl.value = result.musicBrainzUrl
           } else {
-            listenBrainzUrl.value = await getAlbumListenBrainzUrl(album.value.artists[0].name, album.value.name)
+            listenBrainzUrl.value = await getAlbumListenBrainzUrl(
+              result.artists[0]?.name ?? '',
+              result.name
+            )
           }
         } finally {
           loader.hideLoading()

@@ -65,7 +65,6 @@
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/shared/cache'
   import type { Track } from '@/shared/api'
-  import { sleep } from '@/shared/utils'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
 
   const LONG_PRESS_MS = 500
@@ -108,7 +107,8 @@
           return
         }
         const track = validItems.value[index]
-        if (track?.url) cacheStore.cacheTrack(track.url)
+        if (!track) return
+        if (track.url) cacheStore.cacheTrack(track.url)
         playerStore.setShuffle(false)
         const insertIndex = playerStore.queue.length
         playerStore.addToQueue([track])
@@ -120,7 +120,6 @@
         if (!track) return
 
         await favouriteStore.toggle('track', id)
-        await sleep(300)
 
         if (isFavourite(id)) {
           if (track.url) await cacheStore.cacheTrack(track.url)

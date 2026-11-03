@@ -40,9 +40,10 @@
         check()
       })
 
-      watch([props], () => {
-        check()
-      })
+      watch(
+        () => [props.loading, props.hasMore],
+        () => check()
+      )
 
       onMounted(() => {
         emit('load-more')

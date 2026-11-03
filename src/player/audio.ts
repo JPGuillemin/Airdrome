@@ -80,6 +80,9 @@ export class AudioController {
   /** Original (non-cached) URL currently held in this.buffer as the next track. */
   private preloadedFor: string | undefined = undefined
 
+  /** Original URL the current buffer was created for (its src may be a Blob URL). */
+  private bufferedFor: string | undefined = undefined
+
   private replayGainMode = ReplayGainMode.None
   private replayGain: ReplayGain | null = null
   private _context: AudioContext | null = null
@@ -113,7 +116,7 @@ export class AudioController {
   onpause = () => {}
   onplay = () => {}
   onended = () => {}
-  onerror = () => {}
+  onerror = (_?: unknown) => {}
   onplaying = () => {}
   onwaiting = () => {}
 
@@ -143,11 +146,12 @@ export class AudioController {
    * Create and pre-load an HTMLAudioElement for the given URL so it is
    * ready to be promoted into the next pipeline without a network round-trip.
    */
-  async setBuffer(url: string) {
+  async setBuffer(url: string, forUrl = url) {
     this.buffer = new Audio()
     this.buffer.crossOrigin = 'anonymous'
     this.buffer.preload = 'auto'
     this.buffer.src = url
+    this.bufferedFor = forUrl
     try { this.buffer.load() } catch {}
   }
 
@@ -177,14 +181,18 @@ export class AudioController {
     if (!url || this.preloadedFor === url) return
 
     const token = this.changeToken
+    // Mark as in-flight immediately so concurrent calls for the same URL no-op.
     this.preloadedFor = url
     const cachedUrl = await useCacheStore().getCachedUrl(url)
 
     // Track changed or next URL was updated again while awaiting the cache
-    if (token !== this.changeToken || this.nextUrl !== url) return
+    if (token !== this.changeToken || this.nextUrl !== url) {
+      if (this.preloadedFor === url) this.preloadedFor = undefined
+      return
+    }
 
     this.discardPreload(false)
-    await this.setBuffer(cachedUrl)
+    await this.setBuffer(cachedUrl, url)
     this.preloadedFor = url
     console.info('audio.setBuffer(2):', cachedUrl)
   }
@@ -200,6 +208,7 @@ export class AudioController {
       try { buffer.load() } catch {}
     }
     this.buffer = null
+    this.bufferedFor = undefined
     if (resetUrl) this.preloadedFor = undefined
   }
 
@@ -235,15 +244,23 @@ export class AudioController {
 
   // ── Playback control ──────────────────────────────────────────────────────
 
-  /** Stop playback entirely and tear down the pipeline. */
+  /**
+   * Stop playback and tear down the pipeline. The AudioContext is kept alive
+   * and reused: closing it here used to leak a new context on every
+   * stop/play cycle (and browsers cap the number of live contexts).
+   */
   async stop() {
-    this.pause()
+    await this.pause()
     this.changeToken++
     this.preloadReady = false
     this.nextUrl = undefined
     this.preloadedFor = undefined
-    this.disposePipeline(this.activePipeline)
-    this._context = null
+    this.discardPreload()
+    const pipeline = this.pipeline
+    if (pipeline) {
+      this.disposePipeline(pipeline)
+      this.pipeline = null
+    }
     console.info('audio.stop()')
   }
 
@@ -338,16 +355,18 @@ export class AudioController {
     this.preloadedFor = undefined
 
     // Re-use existing buffer if possible to avoid redundant network requests
-    if (!this.buffer || this.buffer.src !== currentUrl || this.buffer.error) {
+    if (!this.buffer || this.bufferedFor !== currentUrl || this.buffer.error) {
       const cachedUrl = await cacheStore.getCachedUrl(currentUrl)
-      await this.setBuffer(cachedUrl)
+      await this.setBuffer(cachedUrl, currentUrl)
       console.info('audio.setBuffer(1):', cachedUrl)
     }
 
-    // Build the new pipeline using the buffered audio element
+    // Build the new pipeline using the buffered audio element. Read the
+    // current volume without touching activePipeline (which would create a
+    // throwaway pipeline just to read its gain).
     const nextPipeline = createPipeline(this.context, {
       audio: this.buffer!,
-      volume: this.activePipeline.volumeNode.gain.value,
+      volume: this.pipeline?.volumeNode.gain.value ?? 1,
       replayGain: this.replayGainFactor()
     })
 
@@ -368,7 +387,7 @@ export class AudioController {
     const audio = this.activePipeline.audio
 
     // ── Event handlers ────────────────────────────────────────────────────
-    audio.onerror = () => this.onerror()
+    audio.onerror = (event) => this.onerror(event)
     audio.onended    = () => this.onended()
     audio.onpause    = () => this.onpause()
     audio.onplay     = () => this.onplay()

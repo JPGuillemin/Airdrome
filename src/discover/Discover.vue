@@ -225,7 +225,7 @@
 
       const empty = computed(() =>
         Object.values(result.value).findIndex(x => x.length > 0) === -1
-          && randomTracks.value.length === 0
+        && randomTracks.value.length === 0
       )
 
       // Fetch "recently played" albums. On the initial load (initial = true) it also

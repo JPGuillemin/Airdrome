@@ -1,10 +1,10 @@
 // radio.ts
 import { defineStore } from 'pinia'
 import { nextTick } from 'vue'
-import router from '@/main'
+import { appRouter } from '@/shared/router'
 import { useLoader } from '@/shared/loader'
 import { usePlayerStore } from '@/player/store'
-import type { API, Track } from '@/shared/api'
+import type { AlbumSort, API, Track } from '@/shared/api'
 
 /** Number of tracks a radio queues (initial queue and extensions). */
 const RADIO_SIZE = 50
@@ -62,7 +62,7 @@ export const useRadioStore = defineStore('radio', {
       } finally {
         loader.hideLoading()
         if (shouldRoute) {
-          nextTick(() => router.push({ name: 'queue' }))
+          nextTick(() => appRouter().push({ name: 'queue' }))
         }
       }
     },
@@ -118,73 +118,44 @@ export const useRadioStore = defineStore('radio', {
       await this.playRandomOrTracks({ params: { size: RADIO_SIZE } })
     },
 
-    async shuffleRecentlyPlayed() {
+    /** Fetch full albums and collect up to RADIO_SIZE tracks from them. */
+    async tracksFromAlbums(albums: { id: string }[]): Promise<Track[]> {
+      let tracks: Track[] = []
+
+      for (const album of albums) {
+        const fullAlbum = await this.api.getAlbumDetails(album.id)
+        if (fullAlbum.tracks?.length) {
+          tracks = this.takeUpToX(tracks, fullAlbum.tracks)
+          if (tracks.length >= RADIO_SIZE) break
+        }
+      }
+
+      return tracks
+    },
+
+    /** Shuffle a radio built from a list of albums of the given sort. */
+    async shuffleAlbumSort(sort: AlbumSort) {
       const loader = useLoader()
       loader.showLoading()
       try {
-        const albums = this.pickRandom(await this.api.getAlbums('recently-played', 50), 10)
-        let tracks: Track[] = []
-
-        for (const album of albums) {
-          const fullAlbum = await this.api.getAlbumDetails(album.id)
-          if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= RADIO_SIZE) break
-          }
-        }
-
-        if (tracks.length) {
-          await this.playRandomOrTracks({ tracks })
-        }
+        const albums = this.pickRandom(await this.api.getAlbums(sort, 50), 10)
+        const tracks = await this.tracksFromAlbums(albums)
+        if (tracks.length) await this.playRandomOrTracks({ tracks })
       } finally {
         loader.hideLoading()
       }
+    },
+
+    async shuffleRecentlyPlayed() {
+      await this.shuffleAlbumSort('recently-played')
     },
 
     async shuffleRecentlyAdded() {
-      const loader = useLoader()
-      loader.showLoading()
-      try {
-        const albums = this.pickRandom(await this.api.getAlbums('recently-added', 50), 10)
-        let tracks: Track[] = []
-
-        for (const album of albums) {
-          const fullAlbum = await this.api.getAlbumDetails(album.id)
-          if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= RADIO_SIZE) break
-          }
-        }
-
-        if (tracks.length) {
-          await this.playRandomOrTracks({ tracks })
-        }
-      } finally {
-        loader.hideLoading()
-      }
+      await this.shuffleAlbumSort('recently-added')
     },
 
     async shuffleMostPlayed() {
-      const loader = useLoader()
-      loader.showLoading()
-      try {
-        const albums = this.pickRandom(await this.api.getAlbums('most-played', 50), 10)
-        let tracks: Track[] = []
-
-        for (const album of albums) {
-          const fullAlbum = await this.api.getAlbumDetails(album.id)
-          if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= RADIO_SIZE) break
-          }
-        }
-
-        if (tracks.length) {
-          await this.playRandomOrTracks({ tracks })
-        }
-      } finally {
-        loader.hideLoading()
-      }
+      await this.shuffleAlbumSort('most-played')
     },
 
     async shuffleFavouriteAlbums() {
@@ -192,21 +163,11 @@ export const useRadioStore = defineStore('radio', {
       loader.showLoading()
       try {
         const favourites = await this.api.getFavourites()
-        const favouriteAlbums = this.pickRandom(favourites.albums, 10)
+        const favouriteAlbums = this.pickRandom(favourites.albums as { id: string }[], 10)
         if (!favouriteAlbums.length) return
 
-        let tracks: Track[] = []
-        for (const album of favouriteAlbums as { id: string }[]) {
-          const fullAlbum = await this.api.getAlbumDetails(album.id)
-          if (fullAlbum.tracks?.length) {
-            tracks = this.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= RADIO_SIZE) break
-          }
-        }
-
-        if (tracks.length) {
-          await this.playRandomOrTracks({ tracks })
-        }
+        const tracks = await this.tracksFromAlbums(favouriteAlbums)
+        if (tracks.length) await this.playRandomOrTracks({ tracks })
       } finally {
         loader.hideLoading()
       }
@@ -289,9 +250,6 @@ export const useRadioStore = defineStore('radio', {
 
     async radioAlbum(tracks: Track[], artists: { id: string }[]) {
       if (!tracks?.length || !artists?.length) return
-
-      const playerStore = usePlayerStore()
-      playerStore.setShuffle(false)
 
       const similarTracks = await this.api.getSimilarTracksByArtist(artists[0].id, RADIO_SIZE)
       if (similarTracks?.length) {

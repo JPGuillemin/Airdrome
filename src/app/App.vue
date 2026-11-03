@@ -21,18 +21,15 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, inject, onMounted, onUnmounted } from 'vue'
-  import { useRoute, useRouter, type RouteLocationNormalizedLoaded } from 'vue-router'
+  import { computed } from 'vue'
+  import { useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
 
   import GlobalLoader from '@/shared/components/GlobalLoader.vue'
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
-  import { reloadToken } from '@/shared/reload'   // ← add this
+  import { reloadToken } from '@/shared/reload'
 
   const route = useRoute()
-  const router = useRouter()
-
-  let backListener: any = null
 
   function routeOnAttributes(r: RouteLocationNormalizedLoaded) {
     const dynamicRoutes = new Set(['album', 'genre', 'artist', 'search', 'queue'])
@@ -46,9 +43,5 @@
     return route.meta.layout === 'fullscreen'
       ? Fullscreen
       : Default
-  })
-
-  onUnmounted(() => {
-    backListener?.remove?.()
   })
 </script>

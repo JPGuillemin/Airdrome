@@ -22,16 +22,29 @@ export const useFavouriteStore = defineStore('favourite', {
       const field = getTypeKey(type)
       return !!this[field][id]
     },
-    toggle(type: MediaType, id: string) {
+    async toggle(type: MediaType, id: string) {
       const field = getTypeKey(type)
-      if (this[field][id]) {
-        const updated = { ...this[field] }
+      const previous = this[field]
+      const wasFavourite = !!previous[id]
+
+      // Optimistic update, rolled back if the server call fails.
+      if (wasFavourite) {
+        const updated = { ...previous }
         delete updated[id]
         this[field] = updated
-        return this.api.removeFavourite(id, type)
       } else {
-        this[field] = { ...this[field], [id]: true }
-        return this.api.addFavourite(id, type)
+        this[field] = { ...previous, [id]: true }
+      }
+
+      try {
+        if (wasFavourite) {
+          await this.api.removeFavourite(id, type)
+        } else {
+          await this.api.addFavourite(id, type)
+        }
+      } catch (err) {
+        this[field] = previous
+        console.warn(`[favourite] failed to update ${type} ${id}`, err)
       }
     },
   },

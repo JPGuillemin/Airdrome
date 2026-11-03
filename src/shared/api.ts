@@ -430,10 +430,26 @@ export class API {
   async * getTracksByArtist(id: string): AsyncGenerator<Track[]> {
     const artist = await this.fetch('rest/getArtist', { id }).then(r => r.artist)
     const albumIds = orderBy(artist.album || [], x => x.year || 0, 'desc').map(x => x.id)
-    const pending = albumIds.map(albumId => this.getAlbumDetails(albumId))
-    for (const promise of pending) {
-      const { tracks } = await promise
-      if (tracks?.length) yield tracks
+
+    // Keep a small sliding window of in-flight album requests instead of
+    // firing every album at once (each getAlbumDetails is 2 HTTP calls).
+    const CONCURRENCY = 3
+    const pending = new Map<number, Promise<Album>>()
+    let nextToStart = 0
+
+    const startNext = () => {
+      if (nextToStart >= albumIds.length) return
+      const index = nextToStart++
+      pending.set(index, this.getAlbumDetails(albumIds[index]))
+    }
+
+    for (let i = 0; i < CONCURRENCY; i++) startNext()
+
+    for (let i = 0; i < albumIds.length; i++) {
+      const album = await pending.get(i)!
+      pending.delete(i)
+      startNext()
+      if (album.tracks?.length) yield album.tracks
     }
   }
 
@@ -788,9 +804,10 @@ export class API {
 
   private getStreamUrl(id: any) {
     const { server, urlParams } = this.auth
-    let bitRate = localStorage.getItem('streamQuality')
-    let audioCodec = localStorage.getItem('audioCodec')
-    if (bitRate === '1000') {
+    const storedQuality = Number(localStorage.getItem('streamQuality'))
+    let bitRate = Number.isFinite(storedQuality) && storedQuality > 0 ? storedQuality : 128
+    let audioCodec = localStorage.getItem('audioCodec') || 'mp3'
+    if (bitRate === 1000) {
       audioCodec = 'raw'
       bitRate = 0
     }

@@ -110,7 +110,6 @@
   import { useCacheStore } from '@/shared/cache'
   import { useLoader } from '@/shared/loader'
   import type { Album, Playlist } from '@/shared/api'
-  import { sleep } from '@/shared/utils'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
 
@@ -182,7 +181,6 @@
 
       const toggleFavourite = async (id: string) => {
         await favouriteStore.toggle('album', id)
-        await sleep(300)
         const album = await api.getAlbumDetails(id)
         if (!album) return
         if (isFavourite(id)) {

@@ -1,5 +1,5 @@
 // tooltips.ts
-import { Directive, inject } from 'vue'
+import { Directive } from 'vue'
 
 type LongPressEl = HTMLElement & {
   _lpCleanup?: () => void

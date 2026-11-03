@@ -116,8 +116,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, inject, getCurrentInstance, onMounted, onBeforeUnmount, computed } from 'vue'
-  import logo from '@/shared/assets/logo.svg'
+  import { defineComponent, ref, inject, onMounted, onBeforeUnmount, computed } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import About from './About.vue'
   import SearchForm from '@/library/search/SearchForm.vue'
@@ -250,13 +249,11 @@
         )
         if (!userConfirmed) return
 
+        const loader = useLoader()
+        loader.showLoading()
         try {
-          const loader = useLoader()
-          loader.showLoading()
-
           const success = await cacheStore.clearAllAudioCache()
           if (success) {
-            window.dispatchEvent(new CustomEvent('audioCacheClearedAll'))
             router.replace({
               name: route.name as string,
               params: { ...(route.params || {}) },
@@ -265,11 +262,11 @@
           } else {
             alert('No cache found to clear.')
           }
-
           await updateCacheSize()
-          loader.hideLoading()
         } catch (err) {
           console.error('Error clearing cache:', err)
+        } finally {
+          loader.hideLoading()
         }
       }
 
@@ -347,7 +344,6 @@
 
       return {
         store,
-        logo,
         auth,
         colors,
         handleLogoClick,

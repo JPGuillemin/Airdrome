@@ -2,11 +2,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import autoprefixer from 'autoprefixer'
-import checker from 'vite-plugin-checker'
-import bundleAnalyzer from 'rollup-plugin-bundle-analyzer'
 import { execSync } from 'node:child_process'
 import { VitePWA } from 'vite-plugin-pwa'
-import { visualizer } from "rollup-plugin-visualizer"
 
 export default defineConfig(() => {
   const buildDate = new Date().toISOString()

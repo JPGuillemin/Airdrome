@@ -242,8 +242,6 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
-  import IconReplayGainTrack from '@/shared/components/IconReplayGainTrack.vue'
-  import IconReplayGainAlbum from '@/shared/components/IconReplayGainAlbum.vue'
   import Slider from '@vueform/slider'
   import '@vueform/slider/themes/default.css'
   import { formatDuration } from '@/shared/utils'
@@ -253,8 +251,6 @@
     name: 'Player',
     components: {
       IconReplayGain,
-      IconReplayGainTrack,
-      IconReplayGainAlbum,
       Slider,
     },
     setup() {
@@ -280,7 +276,6 @@
 
       const track = computed(() => playerStore.track)
       const isPlaying = computed(() => playerStore.isPlaying)
-      const isMuted = computed(() => playerStore.volume <= 0)
       const repeatActive = computed(() => playerStore.repeat)
       const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
       const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
@@ -526,7 +521,6 @@
         dragging,
         track,
         isPlaying,
-        isMuted,
         repeatActive,
         replayGainMode,
         isFavourite,

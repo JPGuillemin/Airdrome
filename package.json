@@ -3,12 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 192.168.10.101",
+    "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite",
     "serve": "vite",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",

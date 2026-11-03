@@ -1,22 +1,32 @@
 // router.ts
-import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/auth/Login.vue'
-import Queue from '@/player/Queue.vue'
-import Discover from '@/discover/Discover.vue'
-import ArtistDetails from '@/library/artist/ArtistDetails.vue'
-import ArtistLibrary from '@/library/artist/ArtistLibrary.vue'
-import AlbumDetails from '@/library/album/AlbumDetails.vue'
-import AlbumLibrary from '@/library/album/AlbumLibrary.vue'
-import GenreDetails from '@/library/genre/GenreDetails.vue'
-import GenreLibrary from '@/library/genre/GenreLibrary.vue'
-import Favourites from '@/library/favourite/Favourites.vue'
-import Playlist from '@/library/playlist/Playlist.vue'
-import PlaylistLibrary from '@/library/playlist/PlaylistLibrary.vue'
-import SearchResult from '@/library/search/SearchResult.vue'
+import { createRouter, createWebHistory, type Router } from 'vue-router'
 import { AuthService } from '@/auth/service'
 import { nextTick } from 'vue'
 
+// Lazily load route components so the initial bundle stays small.
+const Login = () => import('@/auth/Login.vue')
+const Queue = () => import('@/player/Queue.vue')
+const Discover = () => import('@/discover/Discover.vue')
+const ArtistDetails = () => import('@/library/artist/ArtistDetails.vue')
+const ArtistLibrary = () => import('@/library/artist/ArtistLibrary.vue')
+const AlbumDetails = () => import('@/library/album/AlbumDetails.vue')
+const AlbumLibrary = () => import('@/library/album/AlbumLibrary.vue')
+const GenreDetails = () => import('@/library/genre/GenreDetails.vue')
+const GenreLibrary = () => import('@/library/genre/GenreLibrary.vue')
+const Favourites = () => import('@/library/favourite/Favourites.vue')
+const Playlist = () => import('@/library/playlist/Playlist.vue')
+const PlaylistLibrary = () => import('@/library/playlist/PlaylistLibrary.vue')
+const SearchResult = () => import('@/library/search/SearchResult.vue')
+
 const APP_BASE = import.meta.env.BASE_URL
+
+let routerInstance: Router | null = null
+
+/** Router singleton for modules that cannot use useRouter() (e.g. stores). */
+export function appRouter(): Router {
+  if (!routerInstance) throw new Error('Router has not been initialized')
+  return routerInstance
+}
 
 export function setupRouter(auth: AuthService) {
   const router = createRouter({
@@ -190,5 +200,6 @@ export function setupRouter(auth: AuthService) {
     }
   })
 
+  routerInstance = router
   return router
 }

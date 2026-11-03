@@ -25,7 +25,6 @@ export const router = setupRouter(auth)
 export default router
 
 const APP_BASE = import.meta.env.BASE_URL
-const APP_VERSION = import.meta.env.VERSION
 
 async function bootstrapApp() {
   // --- Theme ---
@@ -50,21 +49,22 @@ async function bootstrapApp() {
   const playerStore = usePlayerStore(pinia)
 
   // --- Watch logged-in state ---
+  let audioInitialized = false
   watch(
     () => mainStore.isLoggedIn,
     async(value) => {
-      if (value) {
-        try {
-          // setup player once authenticated
-          setupAudio(playerStore, mainStore)
-          await Promise.all([
-            useFavouriteStore(pinia).load(),
-            usePlaylistStore(pinia).load(),
-            playerStore.loadQueue(),
-          ])
-        } catch (err) {
-          console.error('Error loading user data', err)
-        }
+      if (!value || audioInitialized) return
+      audioInitialized = true
+      try {
+        // setup player once authenticated
+        await setupAudio(playerStore, mainStore)
+        await Promise.all([
+          useFavouriteStore(pinia).load(),
+          usePlaylistStore(pinia).load(),
+          playerStore.loadQueue(),
+        ])
+      } catch (err) {
+        console.error('Error loading user data', err)
       }
     },
     { immediate: false }
@@ -80,7 +80,6 @@ async function bootstrapApp() {
 
   // --- Global properties ---
   app.config.globalProperties.$auth = auth
-  app.config.globalProperties.$api = api
 
   const themeColors = [
     { name: 'Blue',   value: '#178994' },
@@ -103,7 +102,6 @@ async function bootstrapApp() {
   // --- Mount app ---
   try {
     app.mount('#app')
-    console.log('App mounted successfully')
   } catch (err) {
     console.error('App mount failed', err)
   }
@@ -114,7 +112,7 @@ async function bootstrapApp() {
 
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'UPDATE_READY') {
-        console.log('New version !')
+        console.info('New version available')
       }
     })
   }

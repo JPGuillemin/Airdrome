@@ -6,10 +6,10 @@ import vueParser from 'vue-eslint-parser'
 
 export default [
   {
-    ignores: ['dist/**', 'android/**', 'node_modules/**'],
+    ignores: ['dist/**', 'android/**', 'node_modules/**', 'public/**'],
   },
   {
-    files: ['*.ts', '*.tsx'],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -34,7 +34,7 @@ export default [
     },
   },
   {
-    files: ['*.vue'],
+    files: ['**/*.vue'],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
@@ -58,7 +58,7 @@ export default [
     },
   },
   {
-    files: ['*.js', '*.jsx'],
+    files: ['**/*.js', '**/*.jsx'],
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'module',
