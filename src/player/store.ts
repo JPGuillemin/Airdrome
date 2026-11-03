@@ -248,9 +248,6 @@ export const usePlayerStore = defineStore('player', {
 
     /** Resume playback and update the MediaSession position state. */
     async play() {
-      // Mark the intent even if play() is rejected (e.g. autoplay policy), so
-      // a later gesture can retry instead of treating this as a user pause.
-      this.userPaused = false
       await audio.resume()
       await audio.play()
     },
@@ -259,29 +256,6 @@ export const usePlayerStore = defineStore('player', {
     async pause() {
       this.userPaused = true
       await audio.pause()
-    },
-
-    /**
-     * Try to restore playback after an interruption. Returns false when the
-     * browser refused to resume (usually because it now requires a user
-     * gesture), so the caller can retry on the next interaction.
-     */
-    async ensurePlaying(): Promise<boolean> {
-      if (this.userPaused || !this.track) return false
-
-      try {
-        await audio.resume()
-        if (this.userPaused) return false
-
-        const element = audio.audioElement
-        if (!element) return false
-        if (element.paused) await audio.play()
-
-        return true
-      } catch (err) {
-        console.warn('[Audio] resume after interruption failed', err)
-        return false
-      }
     },
 
     async stop() {
@@ -721,9 +695,6 @@ export async function setupAudio(
 
   audio.onpause = () => {
     playerStore.isPlaying = false
-    // Not requested by us => likely an OS interruption (phone call, focus
-    // loss). Keep trying to resume for a short while.
-    if (!playerStore.userPaused) scheduleInterruptResume()
     void onPlaybackStopped()
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -771,96 +742,20 @@ export async function setupAudio(
     }
   }
 
-  // ── Resume after OS interruptions (phone calls, audio focus loss) ────────
-  //
-  // Chromium on Android pauses media when a call takes audio focus, but it
-  // does not always resume on its own. We retry a few times (focus can take a
-  // moment to come back) and, if the browser now requires a gesture, resume on
-  // the next interaction.
+  document.addEventListener('visibilitychange', () => {
+    if (playerStore.isPlaying) return
 
-  let resumeInFlight = false
-  let resumeOnGestureArmed = false
-
-  const armResumeOnGesture = () => {
-    if (resumeOnGestureArmed) return
-    resumeOnGestureArmed = true
-
-    const handler = () => {
-      window.removeEventListener('pointerdown', handler, true)
-      window.removeEventListener('keydown', handler, true)
-      window.removeEventListener('touchstart', handler, true)
-      resumeOnGestureArmed = false
-      void resumeIfNeeded()
-    }
-
-    window.addEventListener('pointerdown', handler, true)
-    window.addEventListener('keydown', handler, true)
-    window.addEventListener('touchstart', handler, true)
-  }
-
-  const resumeIfNeeded = async () => {
-    if (resumeInFlight) return
-    if (playerStore.userPaused || !playerStore.track) return
-
-    resumeInFlight = true
-    try {
-      // Audio focus is not always returned immediately after a call, and
-      // some Android builds pause again right after a successful play().
-      for (const delay of [0, 400, 1200]) {
-        if (delay) await sleep(delay)
-        if (playerStore.userPaused || !playerStore.track) return
-
-        if (await playerStore.ensurePlaying()) {
-          await sleep(250)
-          if (playerStore.isPlaying) return
+    switch (document.visibilityState) {
+      case 'visible':
+        if (!playerStore.userPaused) {
+          playerStore.play()
         }
-      }
-      armResumeOnGesture()
-    } finally {
-      resumeInFlight = false
+        break
+      case 'hidden':
+        // Handle hidden state if needed in the future
+        break
     }
-  }
-
-  // Some Android builds pause for a call without firing any lifecycle event
-  // when the call UI closes. Poll for a short while after an OS-initiated
-  // pause so playback still comes back once the app is visible again.
-  let interruptResumeTimer: ReturnType<typeof setTimeout> | undefined
-  let interruptResumeDeadline = 0
-  let interruptResumeDelay = 2000
-
-  function scheduleInterruptResume() {
-    // Long calls are fine: events normally bring us back sooner, this poll is
-    // only a fallback and backs off up to 30 s.
-    interruptResumeDeadline = Date.now() + 5 * 60_000
-    interruptResumeDelay = 2000
-    if (interruptResumeTimer) return
-
-    const tick = () => {
-      interruptResumeTimer = undefined
-      if (playerStore.userPaused || playerStore.isPlaying || !playerStore.track) return
-
-      if (document.visibilityState === 'visible') void resumeIfNeeded()
-
-      if (Date.now() < interruptResumeDeadline) {
-        interruptResumeDelay = Math.min(interruptResumeDelay * 2, 30_000)
-        interruptResumeTimer = setTimeout(tick, interruptResumeDelay)
-      }
-    }
-
-    interruptResumeTimer = setTimeout(tick, interruptResumeDelay)
-  }
-
-  const onVisibilityChange = () => {
-    if (document.visibilityState === 'visible') void resumeIfNeeded()
-  }
-
-  const onFocus = () => {
-    if (document.visibilityState === 'visible') void resumeIfNeeded()
-  }
-
-  document.addEventListener('visibilitychange', onVisibilityChange)
-  window.addEventListener('focus', onFocus)
-  window.addEventListener('pageshow', onFocus)
+  })
 
   // ── Output devices (Bluetooth, headphones…) ─────────────────────────────
 
@@ -888,9 +783,7 @@ export async function setupAudio(
 
     if (removed && Date.now() - playTime > 1000) {
       console.info('[devices] output removed -> pause')
-      // Treat this as a deliberate pause so the interruption recovery does
-      // not start blasting audio through the phone speaker.
-      await playerStore.pause()
+      await audio.pause()
     } else if (added && Date.now() - pauseTime > 1000) {
       console.info('[devices] output added -> play')
       await playerStore.play()
@@ -1037,13 +930,11 @@ export async function setupAudio(
   // to control playback.
 
   if (mediaSession) {
-    mediaSession.setActionHandler('play', () => {
-      void playerStore.play().catch(() => armResumeOnGesture())
-    })
-    mediaSession.setActionHandler('pause', () => { void playerStore.pause() })
+    mediaSession.setActionHandler('play', () => { playerStore.play() })
+    mediaSession.setActionHandler('pause', () => { playerStore.pause() })
     mediaSession.setActionHandler('nexttrack', () => { playerStore.next(true) })
     mediaSession.setActionHandler('previoustrack', () => { playerStore.back() })
-    mediaSession.setActionHandler('stop', () => { void playerStore.pause() })
+    mediaSession.setActionHandler('stop', () => { playerStore.pause() })
     mediaSession.setActionHandler('seekto', async (details) => {
       // fastSeek is a hint that the browser is still scrubbing; skip those
       if (details.fastSeek || details.seekTime === undefined) return
