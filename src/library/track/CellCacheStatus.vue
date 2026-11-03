@@ -9,7 +9,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue'
+  import { defineComponent, computed, watch } from 'vue'
   import Icon from '@/shared/components/Icon.vue'
   import { Track } from '@/shared/api'
   import { useCacheStore } from '@/shared/cache'
@@ -25,55 +25,25 @@
     },
 
     setup(props) {
-      const isCached = ref(false)
       const cacheStore = useCacheStore()
 
-      const refreshCacheStatus = async () => {
-        const url = props.track?.url
+      const url = computed(() => props.track?.url)
 
-        if (!url) {
-          isCached.value = false
-          return
-        }
-
-        isCached.value = await cacheStore.hasTrack(url)
-      }
+      // Reads the shared reactive map; the list primes it in bulk.
+      const isCached = computed(() => {
+        const trackUrl = url.value
+        return trackUrl ? cacheStore.cacheStatus.get(trackUrl) === true : false
+      })
 
       watch(
-        () => props.track?.url,
-        () => {
-          void refreshCacheStatus()
+        url,
+        (trackUrl) => {
+          if (trackUrl && !cacheStore.cacheStatus.has(trackUrl)) {
+            void cacheStore.refreshStatus(trackUrl)
+          }
         },
         { immediate: true }
       )
-
-      const cachedHandler = (e: Event) => {
-        const cachedUrl = (e as CustomEvent<string>).detail
-
-        if (cachedUrl === props.track?.url) {
-          isCached.value = true
-        }
-      }
-
-      const deletedHandler = (e: Event) => {
-        const deletedUrl = (e as CustomEvent<string>).detail
-
-        if (deletedUrl === props.track?.url) {
-          isCached.value = false
-        }
-      }
-
-      onMounted(() => {
-        window.addEventListener('audioCached', cachedHandler)
-        window.addEventListener('audioCacheDeleted', deletedHandler)
-        window.addEventListener('audioCacheClearedAll', refreshCacheStatus)
-      })
-
-      onUnmounted(() => {
-        window.removeEventListener('audioCached', cachedHandler)
-        window.removeEventListener('audioCacheDeleted', deletedHandler)
-        window.removeEventListener('audioCacheClearedAll', refreshCacheStatus)
-      })
 
       return {
         isCached

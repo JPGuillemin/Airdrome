@@ -6,7 +6,6 @@ import { Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
 import { throttle } from 'lodash-es'
-import { useRadioStore } from './radio'
 import { claimSession, saveSession, onPlaybackStopped, onUnload } from './session'
 
 let isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
@@ -163,8 +162,10 @@ export const usePlayerStore = defineStore('player', {
       if (!track) return
 
       if (!extending) {
-        extending = useRadioStore()
-          .extendQueue(track)
+        // Dynamic import keeps the player store free of a static dependency
+        // on the radio store (they are mutually dependent).
+        extending = import('./radio')
+          .then(({ useRadioStore }) => useRadioStore().extendQueue(track))
           .catch(err => {
             console.warn('[Radio] queue extension failed', err)
             return false

@@ -151,6 +151,9 @@ function revokeBlobUrl(url: string) {
   }
 }
 
+/** In-flight bulk status scan, shared so row components don't duplicate it. */
+let statusPriming: Promise<void> | null = null
+
 /* -------------------------------------------------------------------------- */
 /* Web (Cache API)                                                            */
 /*                                                                            */
@@ -239,11 +242,9 @@ async function hasTrack(url: string): Promise<boolean> {
   const cache = await caches.open(CACHE_NAME)
   const hit = await cache.match(url)
 
-  if (hit) {
-    await touch(url)
-  } else {
-    await deleteEntry(url)
-  }
+  // Read-only status check: `touch` is only needed when a track is actually
+  // accessed for playback, not when the UI asks whether it is cached.
+  if (!hit) await deleteEntry(url)
 
   return !!hit
 }
@@ -252,23 +253,26 @@ async function hasTrack(url: string): Promise<boolean> {
 /* LRU eviction                                                              */
 /* -------------------------------------------------------------------------- */
 
-async function enforceLimit() {
+async function enforceLimit(): Promise<string[]> {
   let total = await totalCachedBytes()
-  if (total <= MAX_CACHE_SIZE_BYTES) return
+  if (total <= MAX_CACHE_SIZE_BYTES) return []
 
   const entries = await allEntries()
   entries.sort((a, b) => a.lastAccess - b.lastAccess)
 
+  const evicted: string[] = []
   const cache = await caches.open(CACHE_NAME)
   for (const e of entries) {
     if (total <= MAX_CACHE_SIZE_BYTES) break
 
     await removeCachedAudio(e.url, cache)
     total -= e.size
+    evicted.push(e.url)
     dispatch('audioCacheDeleted', e.url)
   }
 
-  dispatch('audioCacheEvicted')
+  if (evicted.length) dispatch('audioCacheEvicted')
+  return evicted
 }
 
 /* -------------------------------------------------------------------------- */
@@ -282,6 +286,8 @@ export const useCacheStore = defineStore('albumCache', {
     processing: false,
     initialized: false,
     activeCaching: new Map<string, { cancelled: boolean }>(),
+    /** Reactive per-track cache status, shared by all row components. */
+    cacheStatus: new Map<string, boolean>(),
     isCachingImages: false,
     imageCachedCount: null as number | null,
     imageCacheTotal: null as number | null,
@@ -307,9 +313,15 @@ export const useCacheStore = defineStore('albumCache', {
 
           const bytes = await webWrite(url)
 
-          if (bytes !== null && bytes > 0) {
-            await enforceLimit()
-            dispatch('audioCached', url)
+          if (bytes !== null) {
+            this.cacheStatus.set(url, true)
+            if (bytes > 0) {
+              const evicted = await enforceLimit()
+              for (const evictedUrl of evicted) {
+                this.cacheStatus.set(evictedUrl, false)
+              }
+              dispatch('audioCached', url)
+            }
           }
         }
       } finally {
@@ -335,7 +347,65 @@ export const useCacheStore = defineStore('albumCache', {
     },
 
     async hasTrack(url: string) {
-      return hasTrack(url)
+      const cached = await hasTrack(url)
+      this.cacheStatus.set(url, cached)
+      return cached
+    },
+
+    /** Status for a single URL, using the shared map when already known. */
+    async refreshStatus(url: string): Promise<boolean> {
+      if (this.cacheStatus.has(url)) return this.cacheStatus.get(url)!
+
+      // Wait for a bulk scan that may already be resolving this URL.
+      if (statusPriming) await statusPriming
+      if (this.cacheStatus.has(url)) return this.cacheStatus.get(url)!
+
+      return this.hasTrack(url)
+    },
+
+    /**
+     * Resolve cache status for many URLs with a single metadata read and a
+     * single Cache API key scan, instead of two async lookups per row.
+     */
+    async primeStatus(urls: (string | undefined)[]): Promise<void> {
+      const wanted = [...new Set(urls.filter((url): url is string => !!url))]
+      if (!wanted.length) return
+      if (wanted.every(url => this.cacheStatus.has(url))) return
+
+      // Another list is already scanning; wait for it, then check again.
+      if (statusPriming) {
+        await statusPriming
+        if (wanted.every(url => this.cacheStatus.has(url))) return
+      }
+
+      const task = (async () => {
+        try {
+          const [entries, cache] = await Promise.all([
+            allEntries(),
+            caches.open(CACHE_NAME),
+          ])
+          const entryUrls = new Set(entries.map(e => e.url))
+          const cacheKeys = await cache.keys()
+          const cachedUrls = new Set(cacheKeys.map(key => key.url))
+
+          for (const url of wanted) {
+            const inMetadata = entryUrls.has(url)
+            const inCache = cachedUrls.has(url)
+            this.cacheStatus.set(url, inMetadata && inCache)
+            // Phantom metadata entry: the bytes are gone, clean it up.
+            if (inMetadata && !inCache) await deleteEntry(url)
+          }
+        } catch (err) {
+          console.warn('[cache] primeStatus failed', err)
+        }
+      })()
+
+      statusPriming = task
+      try {
+        await task
+      } finally {
+        if (statusPriming === task) statusPriming = null
+      }
     },
 
     async deleteTrack(url: string) {
@@ -344,6 +414,7 @@ export const useCacheStore = defineStore('albumCache', {
       const hadBlob = await cache.delete(url)
       await deleteEntry(url)
       revokeBlobUrl(url)
+      this.cacheStatus.set(url, false)
 
       if (entry || hadBlob) dispatch('audioCacheDeleted', url)
     },
@@ -351,6 +422,7 @@ export const useCacheStore = defineStore('albumCache', {
     async clearAllAudioCache() {
       await caches.delete(CACHE_NAME)
       for (const url of [...blobUrls.keys()]) revokeBlobUrl(url)
+      this.cacheStatus.clear()
 
       await this.clearImageCache()
 
@@ -404,12 +476,11 @@ export const useCacheStore = defineStore('albumCache', {
     async isCached(album: Album) {
       if (!album?.tracks?.length) return false
 
-      for (const t of album.tracks) {
-        if (!t.url) continue
-        if (!(await this.hasTrack(t.url))) return false
-      }
+      const urls = album.tracks.map(t => t.url).filter((url): url is string => !!url)
+      if (!urls.length) return false
 
-      return true
+      await this.primeStatus(urls)
+      return urls.every(url => this.cacheStatus.get(url) === true)
     },
 
     async getCacheSizeMB() {

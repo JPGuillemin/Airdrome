@@ -86,9 +86,10 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, PropType } from 'vue'
+  import { defineComponent, PropType, watch } from 'vue'
   import { Track } from '@/shared/api'
   import { usePlayerStore } from '@/player/store'
+  import { useCacheStore } from '@/shared/cache'
 
   import BaseTable from '@/library/track/BaseTable.vue'
   import BaseTableHead from '@/library/track/BaseTableHead.vue'
@@ -150,6 +151,15 @@
 
     setup(props, { emit }) {
       const playerStore = usePlayerStore()
+      const cacheStore = useCacheStore()
+
+      // Resolve cache status for the whole list in one pass instead of two
+      // async lookups per row.
+      watch(
+        () => props.tracks.map(track => track.url),
+        (urls) => { void cacheStore.primeStatus(urls) },
+        { immediate: true }
+      )
 
       const isActive = (item: Track, index: number) => {
         return props.activeBy === 'index'
