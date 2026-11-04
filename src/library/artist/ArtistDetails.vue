@@ -21,10 +21,10 @@
 
           <div class="header-info-two">
             <template v-if="artist.genres.length > 0">
-              <span v-for="({ name: genre }, index) in artist.genres" :key="genre">
+              <span v-for="(genreItem, index) in artist.genres" :key="genreItem.name">
                 <span v-if="index > 0">, </span>
-                <router-link :to="{name: 'genre', params: { id: genre }}">
-                  {{ genre }}
+                <router-link :to="{name: 'genre', params: { id: genreItem.name }}">
+                  {{ genreItem.name }}
                 </router-link>
               </span>
             </template>
@@ -42,7 +42,7 @@
             <Icon icon="radio" />
           </b-button>
           <b-button v-if="artist.trackCount > 0" v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Artist" @click="toggleFavourite">
-            <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+            <Icon :icon="favouriteIcon" />
           </b-button>
           <ExternalLink :href="listenBrainzUrl" class="btn btn-link header-buttons" title="MusicBrainz">
             <IconMusicBrainz />
@@ -112,13 +112,12 @@
     </Teleport>
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, ref, onMounted, inject, computed } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
-  import type { Playlist } from '@/shared/api'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { useMainStore } from '@/shared/store'
@@ -131,11 +130,11 @@
 
   export default defineComponent({
     components: {
-      IconMusicBrainz,
-      AlbumList,
-      ArtistList,
-      TrackList,
-      EditPlaylistModal,
+      IconMusicBrainz: IconMusicBrainz,
+      AlbumList: AlbumList,
+      ArtistList: ArtistList,
+      TrackList: TrackList,
+      EditPlaylistModal: EditPlaylistModal,
     },
 
     directives: {
@@ -143,54 +142,112 @@
     },
 
     props: {
+      /** Artist identifier from the route. */
       id: { type: String, required: true },
     },
 
-    setup(props) {
-      const mainStore = useMainStore()
-      const favouriteStore = useFavouriteStore()
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const loader = useLoader()
-      const radioStore = useRadioStore()
+    setup: function (props) {
+      var mainStore = useMainStore()
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var loader = useLoader()
+      var radioStore = useRadioStore()
 
-      const playNow = () => playerStore.playNow(artist.value.topTracks)
-      const shuffleNow = () => radioStore.shuffleArtist(props.id)
-      const RadioNow = () => radioStore.radioArtist(props.id)
+      /** Artist details, null while they are being fetched. */
+      var artist = ref(null)
+      var api = inject('$api')
 
-      const artist = ref<any>(null)
-      const api = inject('$api') as any
+      /** MusicBrainz / ListenBrainz URL displayed in the header. */
+      var listenBrainzUrl = ref(null)
 
-      const listenBrainzUrl = ref<string | null>(null)
+      var isFavourite = computed(function () {
+        return favouriteStore.get('artist', props.id)
+      })
 
-      const isFavourite = computed(() => favouriteStore.get('artist', props.id))
+      var favouriteIcon = computed(function () {
+        if (isFavourite.value) {
+          return 'heart-fill'
+        }
 
-      const toggleFavourite = () => favouriteStore.toggle('artist', props.id)
-      const toggleAlbumSortOrder = () => mainStore.toggleArtistAlbumSortOrder()
+        return 'heart'
+      })
+
+      async function playNow() {
+        return await playerStore.playNow(artist.value.topTracks)
+      }
+
+      async function shuffleNow() {
+        return await radioStore.shuffleArtist(props.id)
+      }
+
+      async function RadioNow() {
+        return await radioStore.radioArtist(props.id)
+      }
+
+      async function toggleFavourite() {
+        return await favouriteStore.toggle('artist', props.id)
+      }
+
+      function toggleAlbumSortOrder() {
+        return mainStore.toggleArtistAlbumSortOrder()
+      }
 
       // "Playlist +": open a form to pick an existing playlist or create a new
       // one (name pre-filled with the artist name), then add all tracks of the
       // artist (from all their albums). Tracks are only fetched once the
       // target playlist is known.
-      const showPlaylistModal = ref(false)
-      const playlistDraft = computed(() => ({
-        name: artist.value?.name || '',
-        comment: '',
-        isPublic: false,
-      }) as Playlist)
+      var showPlaylistModal = ref(false)
 
-      const fetchAllTrackIds = async(): Promise<string[]> => {
-        const ids: string[] = []
-        for await (const tracks of api.getTracksByArtist(props.id)) {
-          ids.push(...tracks.map((t: any) => t.id))
+      /** Draft playlist used to prefill the playlist creation form. */
+      var playlistDraft = computed(function () {
+        var name = ''
+
+        if (artist.value && artist.value.name) {
+          name = artist.value.name
         }
+
+        return {
+          name: name,
+          comment: '',
+          isPublic: false,
+        }
+      })
+
+      /**
+       * Collect the IDs of every track of the artist.
+       *
+       * @returns {Promise<string[]>}
+       */
+      async function fetchAllTrackIds() {
+        var ids = []
+        var iterator = api.getTracksByArtist(props.id)
+
+        while (true) {
+          var item = await iterator.next()
+
+          if (item.done) {
+            break
+          }
+
+          var tracks = item.value
+
+          for (var i = 0; i < tracks.length; i++) {
+            ids.push(tracks[i].id)
+          }
+        }
+
         return ids
       }
 
-      const addToPlaylist = async() => {
-        if (!artist.value) return
+      async function addToPlaylist() {
+        if (!artist.value) {
+          return
+        }
+
         if (playlistStore.playlists === null) {
           loader.showLoading()
+
           try {
             await playlistStore.load()
           } catch (err) {
@@ -200,14 +257,17 @@
             loader.hideLoading()
           }
         }
+
         showPlaylistModal.value = true
       }
 
-      const addToExistingPlaylist = async(playlistId: string) => {
+      async function addToExistingPlaylist(playlistId) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addUniqueTracks(playlistId, await fetchAllTrackIds())
+          var ids = await fetchAllTrackIds()
+          await playlistStore.addUniqueTracks(playlistId, ids)
         } catch (err) {
           console.error(err)
         } finally {
@@ -215,11 +275,13 @@
         }
       }
 
-      const createPlaylist = async(name: string) => {
+      async function createPlaylist(name) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addToPlaylistByName(name, await fetchAllTrackIds())
+          var ids = await fetchAllTrackIds()
+          await playlistStore.addToPlaylistByName(name, ids)
         } catch (err) {
           console.error(err)
         } finally {
@@ -228,10 +290,12 @@
       }
 
       // Fetch artist details
-      const fetchArtist = async() => {
+      async function fetchArtist() {
         loader.showLoading()
+
         try {
           artist.value = await api.getArtistDetails(props.id)
+
           if (artist.value.musicBrainzUrl) {
             listenBrainzUrl.value = artist.value.musicBrainzUrl
           } else {
@@ -245,23 +309,24 @@
       fetchArtist()
 
       return {
-        mainStore,
-        favouriteStore,
-        playlistStore,
-        playerStore,
-        artist,
-        isFavourite,
-        playNow,
-        shuffleNow,
-        RadioNow,
-        toggleFavourite,
-        toggleAlbumSortOrder,
-        addToPlaylist,
-        addToExistingPlaylist,
-        createPlaylist,
-        showPlaylistModal,
-        playlistDraft,
-        listenBrainzUrl,
+        mainStore: mainStore,
+        favouriteStore: favouriteStore,
+        playlistStore: playlistStore,
+        playerStore: playerStore,
+        artist: artist,
+        isFavourite: isFavourite,
+        favouriteIcon: favouriteIcon,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+        RadioNow: RadioNow,
+        toggleFavourite: toggleFavourite,
+        toggleAlbumSortOrder: toggleAlbumSortOrder,
+        addToPlaylist: addToPlaylist,
+        addToExistingPlaylist: addToExistingPlaylist,
+        createPlaylist: createPlaylist,
+        showPlaylistModal: showPlaylistModal,
+        playlistDraft: playlistDraft,
+        listenBrainzUrl: listenBrainzUrl,
       }
     },
   })

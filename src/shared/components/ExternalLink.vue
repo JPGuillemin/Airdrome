@@ -3,22 +3,25 @@
     <slot />
   </a>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
+
   export default defineComponent({
     name: 'ExternalLink',
     props: {
+      /** Target URL, opened in a new tab. */
       href: {
         type: String,
         required: true
       }
     },
-    setup(props) {
-      const openLink = async () => {
+    setup: function (props) {
+      async function openLink() {
         window.open(props.href, '_blank', 'noopener,noreferrer')
       }
+
       return {
-        openLink
+        openLink: openLink
       }
     }
   })

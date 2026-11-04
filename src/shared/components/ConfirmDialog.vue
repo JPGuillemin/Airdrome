@@ -22,46 +22,72 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref } from 'vue'
 
-  export interface ConfirmDialogExpose {
-    open: (title: string, message: string) => Promise<boolean>
-  }
+  /**
+   * @typedef {Object} ConfirmDialogExpose
+   * @property {function(string, string): Promise<boolean>} open
+   */
 
   export default defineComponent({
-    setup(_, { expose }) {
-      const visible = ref(false)
-      const title = ref('')
-      const message = ref('')
-      let resolver: ((value: boolean) => void) | null = null
+    setup: function (_, context) {
+      var visible = ref(false)
+      var title = ref('')
+      var message = ref('')
 
-      function open(t: string, m: string) {
+      /** Pending promise resolver, or null when the dialog is closed. */
+      var resolver = null
+
+      /**
+       * Open the dialog and resolve when the user answers.
+       *
+       * @param {string} t
+       * @param {string} m
+       * @returns {Promise<boolean>}
+       */
+      function open(t, m) {
         title.value = t
         message.value = m
         visible.value = true
-        return new Promise<boolean>((resolve) => {
+
+        return new Promise(function (resolve) {
           resolver = resolve
         })
       }
 
-      function close(result: boolean) {
+      /**
+       * Hide the dialog and resolve the pending promise.
+       *
+       * @param {boolean} result
+       * @returns {void}
+       */
+      function close(result) {
         visible.value = false
-        resolver?.(result)
+
+        if (resolver) {
+          resolver(result)
+        }
+
         resolver = null
       }
 
-      function confirm() { close(true) }
-      function cancel() { close(false) }
+      function confirm() {
+        close(true)
+      }
 
-      expose({ open })
+      function cancel() {
+        close(false)
+      }
+
+      context.expose({ open: open })
 
       return {
-        visible,
-        title,
-        message,
-        confirm,
-        cancel,
+        visible: visible,
+        title: title,
+        message: message,
+        confirm: confirm,
+        cancel: cancel,
       }
     },
   })

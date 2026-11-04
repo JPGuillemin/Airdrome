@@ -10,17 +10,17 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: { sort: 'size' }}">
+          <router-link :to="sizeRoute">
             <Icon icon="most" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ... $route, params: { sort: 'a-z' }}">
+          <router-link :to="azRoute">
             A-z
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'cloud' } }">
+          <router-link :to="cloudRoute">
             <Icon icon="cloud" />
           </router-link>
         </li>
@@ -72,88 +72,129 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import GenreCloud from './GenreCloud.vue'
-  import type { Artist } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
   import { useRoute } from 'vue-router'
 
-  interface GenreWithArtists {
-    id: string
-    name: string
-    albumCount: number
-    artists: Artist[]
-  }
-
   export default defineComponent({
-    components: { ArtistList, GenreCloud },
-    setup() {
-      const api = inject('$api') as any
-      const radio = useRadioStore()
-      const route = useRoute()
-      const items = ref<GenreWithArtists[]>([])
-      const loading = ref(true)
-      const sort = ref<string | null>(route.params.sort as string || null)
+    components: {
+      ArtistList: ArtistList,
+      GenreCloud: GenreCloud,
+    },
 
-      const sortedItems = computed(() => {
-        if (!items.value.length) return []
-        return sort.value === 'a-z'
-          ? orderBy(items.value, 'name')
-          : orderBy(items.value, 'albumCount', 'desc')
+    setup: function () {
+      var api = inject('$api')
+      var radio = useRadioStore()
+      var route = useRoute()
+
+      /** Genres with their first artists (empty in cloud mode). */
+      var items = ref([])
+      var loading = ref(true)
+      var sort = ref(route.params.sort || null)
+
+      var sortedItems = computed(function () {
+        if (!items.value.length) {
+          return []
+        }
+
+        if (sort.value === 'a-z') {
+          return orderBy(items.value, 'name')
+        }
+
+        return orderBy(items.value, 'albumCount', 'desc')
       })
 
-      const loadGenres = async() => {
+      // Route objects used by the sort links in the header.
+      var sizeRoute = computed(function () {
+        return Object.assign({}, route, { params: { sort: 'size' } })
+      })
+
+      var azRoute = computed(function () {
+        return Object.assign({}, route, { params: { sort: 'a-z' } })
+      })
+
+      var cloudRoute = computed(function () {
+        return Object.assign({}, route, { params: { sort: 'cloud' } })
+      })
+
+      /**
+       * Build a genre entry together with its first artists.
+       *
+       * @param {Object} genre
+       * @returns {Promise<Object>}
+       */
+      async function createGenreWithArtists(genre) {
+        var artists = await api.getArtistsByGenre(genre.id, 16, 0)
+
+        return {
+          id: genre.id,
+          name: genre.name,
+          albumCount: genre.albumCount,
+          artists: artists,
+        }
+      }
+
+      /**
+       * Load the remaining genres after the first batch has been rendered.
+       * The caller does not wait for it, so the loader is not kept open.
+       *
+       * @param {Array} rest
+       * @returns {Promise<void>}
+       */
+      async function appendRestGenres(rest) {
+        var restPromises = []
+
+        for (var i = 0; i < rest.length; i++) {
+          restPromises.push(createGenreWithArtists(rest[i]))
+        }
+
+        var restItems = await Promise.all(restPromises)
+
+        for (var j = 0; j < restItems.length; j++) {
+          items.value.push(restItems[j])
+        }
+      }
+
+      async function loadGenres() {
         loading.value = true
         items.value = []
 
         try {
-          const genres = await api.getGenres()
+          var genres = await api.getGenres()
 
           // CLOUD MODE = metadata only
           if (sort.value === 'cloud') {
-            items.value = genres.map((genre: any) => ({
-              id: genre.id,
-              name: genre.name,
-              albumCount: genre.albumCount,
-              artists: [],
-            }))
+            var cloudItems = []
 
+            for (var i = 0; i < genres.length; i++) {
+              cloudItems.push({
+                id: genres[i].id,
+                name: genres[i].name,
+                albumCount: genres[i].albumCount,
+                artists: [],
+              })
+            }
+
+            items.value = cloudItems
             return
           }
 
-          const createGenreWithArtists = async(genre: any) => {
-            const artists = await api.getArtistsByGenre(
-              genre.id,
-              16,
-              0
-            )
+          var firstBatch = genres.slice(0, 4)
+          var firstPromises = []
 
-            return {
-              id: genre.id,
-              name: genre.name,
-              albumCount: genre.albumCount,
-              artists,
-            }
+          for (var j = 0; j < firstBatch.length; j++) {
+            firstPromises.push(createGenreWithArtists(firstBatch[j]))
           }
 
-          const firstBatch = genres.slice(0, 4)
-
-          const firstItems = await Promise.all(
-            firstBatch.map(createGenreWithArtists)
-          )
-
+          var firstItems = await Promise.all(firstPromises)
           items.value = firstItems
 
-          const rest = genres.slice(4)
-
-          Promise.all(rest.map(createGenreWithArtists))
-            .then(restItems => {
-              items.value.push(...restItems)
-            })
-
+          var rest = genres.slice(4)
+          appendRestGenres(rest)
         } catch (error) {
           console.error('Failed to load genres or artists:', error)
         } finally {
@@ -162,15 +203,28 @@
       }
 
       watch(
-        () => route.params.sort,
-        (newSort) => {
-          sort.value = newSort as string || null
-          loadGenres()
+        function () {
+          return route.params.sort
+        },
+        async function (newSort) {
+          sort.value = newSort || null
+          await loadGenres()
         },
         { immediate: true }
       )
 
-      return { items, sortedItems, loading, sort, loadGenres, radio, api }
-    }
+      return {
+        items: items,
+        sortedItems: sortedItems,
+        loading: loading,
+        sort: sort,
+        sizeRoute: sizeRoute,
+        azRoute: azRoute,
+        cloudRoute: cloudRoute,
+        loadGenres: loadGenres,
+        radio: radio,
+        api: api,
+      }
+    },
   })
 </script>

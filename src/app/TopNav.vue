@@ -37,10 +37,7 @@
                   v-for="color in colors"
                   :key="color.value"
                   class="theme-swatch"
-                  :style="{
-                    backgroundColor: color.value,
-                    border: currentColor === color.value ? '2px solid #333' : '1px solid #ccc'
-                  }"
+                  :style="swatchStyle(color)"
                   :title="color.name"
                   @click="setTheme(color.value)"
                 />
@@ -60,7 +57,10 @@
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
-                  :class="streamQuality === option.value ? 'btn-outline-active' : 'btn-outline-inactive'"
+                  :class="{
+                    'btn-outline-active': streamQuality === option.value,
+                    'btn-outline-inactive': streamQuality !== option.value
+                  }"
                   @click="setStreamQuality(option.value)"
                 >
                   <Icon
@@ -82,7 +82,8 @@
                   {{ imageCacheProgress }}<Icon icon="loading" class="ms-1" />
                 </template>
                 <template v-else-if="imageCacheEnabled">
-                  {{ imageCachedCount !== null && imageCachedCount > 0 ? `${imageCachedCount} images` : 'Images cache' }}
+                  <template v-if="imageCachedCount !== null && imageCachedCount > 0">{{ imageCachedCount }} images</template>
+                  <template v-else>Images cache</template>
                 </template>
                 <template v-else>
                   Images cache
@@ -115,7 +116,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, inject, onMounted, onBeforeUnmount, computed } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import About from './About.vue'
@@ -126,30 +127,28 @@
   import { sleep } from '@/shared/utils'
   import { useLoader } from '@/shared/loader'
   import { useCacheStore } from '@/shared/cache'
-  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { pushReload } from '@/shared/reload'
   export default defineComponent({
     components: {
-      About,
-      SearchForm,
-      ConfirmDialog,
+      About: About,
+      SearchForm: SearchForm,
+      ConfirmDialog: ConfirmDialog,
     },
-    setup() {
-      const store = useMainStore()
-      const auth = useAuth()
-      const cacheStore = useCacheStore()
-      const playerStore = usePlayerStore()
-      const router = useRouter()
-      const route = useRoute()
-      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
-      const isPlaying = computed(() => playerStore.isPlaying && playerStore.track !== null)
+    setup: function () {
+      var store = useMainStore()
+      var auth = useAuth()
+      var cacheStore = useCacheStore()
+      var playerStore = usePlayerStore()
+      var router = useRouter()
+      var route = useRoute()
+      var confirmDialog = ref(null)
+      var isPlaying = computed(function () {
+        return playerStore.isPlaying && playerStore.track !== null
+      })
 
-      const api = inject('$api') as {
-        scan(): Promise<void>
-        getScanStatus(): Promise<boolean>
-        getArtists(): Promise<{ image?: string }[]>
-        getAlbums(sort: string, size: number, offset?: number): Promise<{ image?: string }[]>
-      }
+      /** Backend API injected by the app. */
+      var api = inject('$api')
 
       function handleLogoClick() {
         if (window.innerWidth >= 768) {
@@ -159,43 +158,81 @@
         }
       }
 
-      const colors = inject('themeColors') as { name: string; value: string }[]
+      /** Theme color choices injected by the app. */
+      var colors = inject('themeColors')
 
-      const currentColor = ref(
+      var currentColor = ref(
         getComputedStyle(document.documentElement).getPropertyValue('--bs-primary')
       )
 
-      function setTheme(color: string) {
-        currentColor.value = color
+      /**
+       * Style object for a theme color swatch.
+       *
+       * @param {Object} color
+       * @returns {Object}
+       */
+      function swatchStyle(color) {
+        var border = '1px solid #ccc'
 
-        const hexToRgb = (hex: string) => {
-          const bigint = parseInt(hex.replace('#', ''), 16)
-          const r = (bigint >> 16) & 255
-          const g = (bigint >> 8) & 255
-          const b = bigint & 255
-          return `${r}, ${g}, ${b}`
+        if (currentColor.value === color.value) {
+          border = '2px solid #333'
         }
 
-        const rgb = hexToRgb(color)
+        return {
+          backgroundColor: color.value,
+          border: border,
+        }
+      }
+
+      /**
+       * Apply a theme color and persist it.
+       *
+       * @param {string} color
+       * @returns {void}
+       */
+      function setTheme(color) {
+        currentColor.value = color
+
+        function hexToRgb(hex) {
+          var bigint = parseInt(hex.replace('#', ''), 16)
+          var r = (bigint >> 16) & 255
+          var g = (bigint >> 8) & 255
+          var b = bigint & 255
+          return r + ', ' + g + ', ' + b
+        }
+
+        var rgb = hexToRgb(color)
         document.documentElement.style.setProperty('--bs-primary', color)
         document.documentElement.style.setProperty('--bs-primary-rgb', rgb)
         localStorage.setItem('themeColor', color)
       }
 
-      const streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
+      var streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
 
-      function setStreamQuality(value: number) {
+      /**
+       * Set the preferred stream bitrate and persist it.
+       *
+       * @param {number} value
+       * @returns {void}
+       */
+      function setStreamQuality(value) {
         streamQuality.value = value
         localStorage.setItem('streamQuality', String(value))
       }
 
-      const cacheSize = ref(0)
+      /** Audio cache size in megabytes. */
+      var cacheSize = ref(0)
 
+      /**
+       * Refresh the displayed audio cache size.
+       *
+       * @returns {Promise<void>}
+       */
       async function updateCacheSize() {
         cacheSize.value = await cacheStore.getCacheSizeMB()
       }
 
-      onMounted(() => {
+      onMounted(function () {
         updateCacheSize()
         window.addEventListener('audioCached', updateCacheSize)
         window.addEventListener('audioCacheDeleted', updateCacheSize)
@@ -207,27 +244,38 @@
         }
       })
 
-      onBeforeUnmount(() => {
+      onBeforeUnmount(function () {
         window.removeEventListener('audioCached', updateCacheSize)
         window.removeEventListener('audioCacheDeleted', updateCacheSize)
         window.removeEventListener('audioCacheClearedAll', updateCacheSize)
       })
 
-      const isScanning = ref(false)
-      const showAboutModal = ref(false)
+      var isScanning = ref(false)
+      var showAboutModal = ref(false)
 
+      /**
+       * Start a server scan and poll until it finishes.
+       *
+       * @returns {Promise<void>}
+       */
       async function rescan() {
-        if (isScanning.value) return
-        const loader = useLoader()
+        if (isScanning.value) {
+          return
+        }
+
+        var loader = useLoader()
         loader.showLoading()
         isScanning.value = true
 
         try {
           await api.scan()
-          let scanning = false
+
+          var scanning = false
+
           do {
             await sleep(1000)
             scanning = await api.getScanStatus()
+
             if (imageCacheEnabled.value) {
               runImageCache()
             }
@@ -240,28 +288,44 @@
         }
       }
 
+      /**
+       * Delete every cached audio file after user confirmation.
+       *
+       * @returns {Promise<void>}
+       */
       async function clearAllCache() {
-        if (!confirmDialog.value) return
+        if (!confirmDialog.value) {
+          return
+        }
 
-        const userConfirmed = await confirmDialog.value.open(
+        var userConfirmed = await confirmDialog.value.open(
           'Delete cache',
           'About to delete all cached audio files : continue?'
         )
-        if (!userConfirmed) return
 
-        const loader = useLoader()
+        if (!userConfirmed) {
+          return
+        }
+
+        var loader = useLoader()
         loader.showLoading()
+
         try {
-          const success = await cacheStore.clearAllAudioCache()
+          var success = await cacheStore.clearAllAudioCache()
+
           if (success) {
+            var query = Object.assign({}, route.query || {})
+            query.t = Date.now().toString()
+
             router.replace({
-              name: route.name as string,
-              params: { ...(route.params || {}) },
-              query: { ...(route.query || {}), t: Date.now().toString() },
+              name: route.name,
+              params: Object.assign({}, route.params || {}),
+              query: query,
             })
           } else {
             alert('No cache found to clear.')
           }
+
           await updateCacheSize()
         } catch (err) {
           console.error('Error clearing cache:', err)
@@ -270,55 +334,108 @@
         }
       }
 
+      /**
+       * Collect every artist and album image URL, then cache them.
+       *
+       * @returns {Promise<void>}
+       */
       async function cacheAllImages() {
-        if (cacheStore.isCachingImages) return
+        if (cacheStore.isCachingImages) {
+          return
+        }
 
-        const PAGE_SIZE = 500
+        var PAGE_SIZE = 500
+        var requests
+        var index
 
         cacheStore.beginImageCacheCollection()
 
-        const [artists, ...albumPages] = await Promise.all([
-          api.getArtists(),
-          ...Array.from({ length: 20 }, (_, i) =>
-            api.getAlbums('a-z', PAGE_SIZE, i * PAGE_SIZE)
-          ),
-        ])
+        requests = [api.getArtists()]
 
-        const urls: string[] = []
-
-        for (const a of artists) {
-          if (a.image) urls.push(a.image)
+        for (index = 0; index < 20; index++) {
+          requests.push(api.getAlbums('a-z', PAGE_SIZE, index * PAGE_SIZE))
         }
-        for (const page of albumPages) {
-          for (const alb of page) {
-            if (alb.image) urls.push(alb.image)
+
+        var responses = await Promise.all(requests)
+        var artists = responses[0]
+        var urls = []
+        var page
+        var i
+
+        for (i = 0; i < artists.length; i++) {
+          if (artists[i].image) {
+            urls.push(artists[i].image)
           }
-          if (page.length === 0) break
+        }
+
+        for (i = 1; i < responses.length; i++) {
+          page = responses[i]
+
+          for (var j = 0; j < page.length; j++) {
+            if (page[j].image) {
+              urls.push(page[j].image)
+            }
+          }
+
+          if (page.length === 0) {
+            break
+          }
         }
 
         await cacheStore.cacheImages(urls)
       }
 
-      const isCachingImages = computed(() => cacheStore.isCachingImages)
-      const imageCachedCount = computed(() => cacheStore.imageCachedCount)
-      const imageCacheTotal = computed(() => cacheStore.imageCacheTotal)
+      var isCachingImages = computed(function () {
+        return cacheStore.isCachingImages
+      })
+      var imageCachedCount = computed(function () {
+        return cacheStore.imageCachedCount
+      })
+      var imageCacheTotal = computed(function () {
+        return cacheStore.imageCacheTotal
+      })
 
-      const imageCacheProgress = computed(() => {
-        if (imageCacheTotal.value === null) return 'collecting…'
-        return `${imageCachedCount.value ?? 0}/${imageCacheTotal.value}`
+      var imageCacheProgress = computed(function () {
+        var count = imageCachedCount.value
+
+        if (imageCacheTotal.value === null) {
+          return 'collecting…'
+        }
+
+        if (count === null || count === undefined) {
+          count = 0
+        }
+
+        return count + '/' + imageCacheTotal.value
       })
 
       // ── Image cache toggle ──────────────────────────────────────────────
-      const imageCacheEnabled = ref(localStorage.getItem('imageCacheEnabled') === 'true')
+      var imageCacheEnabled = ref(localStorage.getItem('imageCacheEnabled') === 'true')
 
+      /**
+       * Run the image cache pass.
+       *
+       * @returns {Promise<void>}
+       */
       async function runImageCache() {
         await cacheAllImages()
       }
+
+      /**
+       * Delay the initial image cache pass so startup stays responsive.
+       *
+       * @returns {Promise<void>}
+       */
       async function runImageCacheAtStartup() {
         await sleep(5000)
         await cacheAllImages()
       }
 
+      /**
+       * Enable or disable image caching.
+       *
+       * @returns {Promise<void>}
+       */
       async function toggleImageCache() {
         imageCacheEnabled.value = !imageCacheEnabled.value
         localStorage.setItem('imageCacheEnabled', String(imageCacheEnabled.value))
@@ -330,42 +447,54 @@
         }
       }
 
+      /**
+       * Log out after user confirmation.
+       *
+       * @returns {Promise<void>}
+       */
       async function logout() {
-        if (!confirmDialog.value) return
+        if (!confirmDialog.value) {
+          return
+        }
 
-        const userConfirmed = await confirmDialog.value.open(
+        var userConfirmed = await confirmDialog.value.open(
           'Logout',
           'About to end Airdrome session : continue?'
         )
-        if (!userConfirmed) return
+
+        if (!userConfirmed) {
+          return
+        }
+
         auth.logout()
         router.go(0)
       }
 
       return {
-        store,
-        auth,
-        colors,
-        handleLogoClick,
-        currentColor,
-        setTheme,
-        streamQuality,
-        setStreamQuality,
-        cacheSize,
-        updateCacheSize,
-        isScanning,
-        isPlaying,
-        showAboutModal,
-        rescan,
-        clearAllCache,
-        logout,
-        confirmDialog,
-        isCachingImages,
-        imageCacheProgress,
-        imageCachedCount,
-        imageCacheTotal,
-        imageCacheEnabled,
-        toggleImageCache,
+        store: store,
+        auth: auth,
+        colors: colors,
+        handleLogoClick: handleLogoClick,
+        currentColor: currentColor,
+        setTheme: setTheme,
+        swatchStyle: swatchStyle,
+        streamQuality: streamQuality,
+        setStreamQuality: setStreamQuality,
+        cacheSize: cacheSize,
+        updateCacheSize: updateCacheSize,
+        isScanning: isScanning,
+        isPlaying: isPlaying,
+        showAboutModal: showAboutModal,
+        rescan: rescan,
+        clearAllCache: clearAllCache,
+        logout: logout,
+        confirmDialog: confirmDialog,
+        isCachingImages: isCachingImages,
+        imageCacheProgress: imageCacheProgress,
+        imageCachedCount: imageCachedCount,
+        imageCacheTotal: imageCacheTotal,
+        imageCacheEnabled: imageCacheEnabled,
+        toggleImageCache: toggleImageCache,
       }
     },
   })

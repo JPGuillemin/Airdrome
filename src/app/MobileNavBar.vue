@@ -16,7 +16,7 @@
   </nav>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { longPressTooltip } from '@/shared/tooltips'
@@ -28,11 +28,12 @@
       'longpress-tooltip': longPressTooltip,
     },
 
-    setup() {
-      const router = useRouter()
-      const route = useRoute()
+    setup: function () {
+      var router = useRouter()
+      var route = useRoute()
 
-      const items = [
+      /** Bottom navigation entries. */
+      var items = [
         {
           name: 'discover',
           title: 'Cockpit',
@@ -44,50 +45,67 @@
           title: 'Playing',
           icon: 'soundwave',
           to: { name: 'queue' },
-          match: (route: any) =>
-            route.path.startsWith('/queue'),
+          match: function (current) {
+            return current.path.indexOf('/queue') === 0
+          },
         },
         {
           name: 'genres',
           title: 'Genres',
           icon: 'genres',
           to: { name: 'genres', params: { sort: 'cloud' }},
-          match: (route: any) =>
-            route.path.startsWith('/genres'),
+          match: function (current) {
+            return current.path.indexOf('/genres') === 0
+          },
         },
         {
           name: 'playlists',
           title: 'Playlists',
           icon: 'playlist',
           to: { name: 'playlists', params: { sort: 'default' }},
-          match: (route: any) =>
-            route.path.startsWith('/playlist'),
+          match: function (current) {
+            return current.path.indexOf('/playlist') === 0
+          },
         },
         {
           name: 'favourites',
           title: 'Favourites',
           icon: 'heart',
           to: { name: 'favourites', params: { section: 'albums' }},
-          match: (route: any) =>
-            route.path.startsWith('/favourites'),
+          match: function (current) {
+            return current.path.indexOf('/favourites') === 0
+          },
         },
       ]
 
-      const go = (item: any) => {
+      /**
+       * Navigate to a bottom navigation entry.
+       *
+       * @param {Object} item
+       * @returns {void}
+       */
+      function go(item) {
         router.push(item.to)
       }
 
-      const isActive = (item: any) => {
+      /**
+       * Tell whether the entry matches the current route.
+       *
+       * @param {Object} item
+       * @returns {boolean}
+       */
+      function isActive(item) {
         if (item.match) {
           return item.match(route)
         }
+
         return route.name === item.to.name
       }
 
       return {
-        items,
-        go,
-        isActive,
+        items: items,
+        go: go,
+        isActive: isActive,
       }
     },
   })

@@ -55,30 +55,37 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
 
   export default defineComponent({
     props: {
+      /** Enable horizontal scrolling and the arrow buttons. */
       allowHScroll: { type: Boolean, default: false },
+      /** Tile size in pixels. */
       tileSize: { type: Number, default: 140 },
+      /** Lay tiles out in three scrolling rows. */
       threeRows: { type: Boolean, default: false },
     },
-    setup(props) {
-      const tilesContainer = ref<HTMLElement | null>(null)
-      const isMobile = ref(false)
-      const isHovering = ref(false)
-      const showLeftArrow = ref(false)
-      const showRightArrow = ref(false)
+    setup: function (props) {
+      var tilesContainer = ref(null)
+      var isMobile = ref(false)
+      var isHovering = ref(false)
+      var showLeftArrow = ref(false)
+      var showRightArrow = ref(false)
 
-      const checkIfMobile = () => {
+      function checkIfMobile() {
         isMobile.value = window.innerWidth <= 768
       }
 
-      const updateScrollState = () => {
-        if (!tilesContainer.value) return
+      function updateScrollState() {
+        if (!tilesContainer.value) {
+          return
+        }
 
-        const { scrollLeft, scrollWidth, clientWidth } = tilesContainer.value
+        var scrollLeft = tilesContainer.value.scrollLeft
+        var scrollWidth = tilesContainer.value.scrollWidth
+        var clientWidth = tilesContainer.value.clientWidth
 
         // Show left arrow if we can scroll left
         showLeftArrow.value = scrollLeft > 0
@@ -87,36 +94,42 @@
         showRightArrow.value = scrollLeft < scrollWidth - clientWidth - 1
       }
 
-      const scrollLeft = () => {
-        if (!tilesContainer.value) return
-        const scrollAmount = tilesContainer.value.clientWidth * 0.8
+      function scrollLeft() {
+        if (!tilesContainer.value) {
+          return
+        }
+
+        var scrollAmount = tilesContainer.value.clientWidth * 0.8
         tilesContainer.value.scrollBy({
           left: -scrollAmount,
           behavior: 'smooth'
         })
       }
 
-      const scrollRight = () => {
-        if (!tilesContainer.value) return
-        const scrollAmount = tilesContainer.value.clientWidth * 0.8
+      function scrollRight() {
+        if (!tilesContainer.value) {
+          return
+        }
+
+        var scrollAmount = tilesContainer.value.clientWidth * 0.8
         tilesContainer.value.scrollBy({
           left: scrollAmount,
           behavior: 'smooth'
         })
       }
 
-      const onMouseEnter = () => {
+      function onMouseEnter() {
         if (!isMobile.value) {
           isHovering.value = true
           updateScrollState()
         }
       }
 
-      const onMouseLeave = () => {
+      function onMouseLeave() {
         isHovering.value = false
       }
 
-      onMounted(() => {
+      onMounted(function () {
         checkIfMobile()
         window.addEventListener('resize', checkIfMobile)
 
@@ -126,21 +139,21 @@
         }
       })
 
-      onUnmounted(() => {
+      onUnmounted(function () {
         window.removeEventListener('resize', checkIfMobile)
       })
 
       return {
-        tilesContainer,
-        isMobile,
-        isHovering,
-        showLeftArrow,
-        showRightArrow,
-        scrollLeft,
-        scrollRight,
-        onMouseEnter,
-        onMouseLeave,
-        updateScrollState,
+        tilesContainer: tilesContainer,
+        isMobile: isMobile,
+        isHovering: isHovering,
+        showLeftArrow: showLeftArrow,
+        showRightArrow: showRightArrow,
+        scrollLeft: scrollLeft,
+        scrollRight: scrollRight,
+        onMouseEnter: onMouseEnter,
+        onMouseLeave: onMouseLeave,
+        updateScrollState: updateScrollState,
         tileSizeMobile: Math.round(props.tileSize * 0.85)
       }
     }

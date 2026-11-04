@@ -5,6 +5,8 @@
     "strict": true,
     "jsx": "preserve",
     "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -30,6 +32,7 @@
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.vue",
+    "src/**/*.js",
   ],
   "exclude": [
     "node_modules"

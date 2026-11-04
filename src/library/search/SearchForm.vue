@@ -10,47 +10,54 @@
   </form>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
 
   export default defineComponent({
-    setup() {
-      const router = useRouter()
-      const route = useRoute()
+    setup: function () {
+      var router = useRouter()
+      var route = useRoute()
 
-      const query = ref('')
-      let clearTimeoutId: number | null = null
+      /** Current search input. */
+      var query = ref('')
+      var clearTimeoutId = null
 
-      const search = () => {
-        const trimmed = query.value.trim()
+      async function search() {
+        var trimmed = query.value.trim()
 
         if (!trimmed) {
-          clearSearch()
+          await clearSearch()
           return
         }
 
-        router.push({
+        await router.push({
           name: 'search',
           query: { query: trimmed },
         })
       }
 
-      const clearSearch = () => {
+      async function clearSearch() {
         // Only act if we are currently on the search route
         if (route.name === 'search') {
-          router.replace({ name: 'discover' }) // or whatever your base route is
+          await router.replace({ name: 'discover' }) // or whatever your base route is
         }
       }
 
-      watch(query, (newVal, oldVal) => {
+      watch(query, function (newVal, oldVal) {
         if (oldVal && !newVal.trim()) {
-          if (clearTimeoutId) clearTimeout(clearTimeoutId)
+          if (clearTimeoutId) {
+            clearTimeout(clearTimeoutId)
+          }
+
           clearTimeoutId = window.setTimeout(clearSearch, 300)
         }
       })
 
-      return { query, search }
+      return {
+        query: query,
+        search: search,
+      }
     },
   })
 </script>

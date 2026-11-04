@@ -49,7 +49,7 @@
             v-longpress-tooltip
             class="btn btn-transparent header-buttons"
             :disabled="playlist.isReadOnly"
-            :title="`Remove ${selectedIndexes.length} selected`"
+            :title="'Remove ' + selectedIndexes.length + ' selected'"
             @click.stop="removeSelected()"
           >
             <Icon icon="trash" />
@@ -98,13 +98,18 @@
         @toggle-select-all="toggleSelectAll"
         @remove-track="removeTrack"
       >
-        <template #actions="{ index }">
+        <template #actions="slotProps">
           <TrackMenuItem
             icon="check"
             :disabled="playlist.isReadOnly"
-            @click="toggleSelect(index)"
+            @click="toggleSelect(slotProps.index)"
           >
-            {{ selectedIndexes.includes(index) ? 'Deselect' : 'Select' }}
+            <template v-if="selectedIndexes.indexOf(slotProps.index) !== -1">
+              Deselect
+            </template>
+            <template v-else>
+              Select
+            </template>
           </TrackMenuItem>
         </template>
       </TrackList>
@@ -122,7 +127,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, watch, inject, nextTick } from 'vue'
   import TrackList from '@/library/track/TrackList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
@@ -136,135 +141,217 @@
   import { usePlayerStore } from '@/player/store'
   import { useLoader } from '@/shared/loader'
   import { formatDuration } from '@/shared/utils'
-  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { useRouter, useRoute } from 'vue-router'
   import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {
-      TrackList,
-      EditPlaylistModal,
-      OverflowFade,
-      InfiniteLoader,
-      EmptyIndicator,
-      OverflowMenu,
-      TrackMenuItem,
-      Icon,
-      ConfirmDialog,
+      TrackList: TrackList,
+      EditPlaylistModal: EditPlaylistModal,
+      OverflowFade: OverflowFade,
+      InfiniteLoader: InfiniteLoader,
+      EmptyIndicator: EmptyIndicator,
+      OverflowMenu: OverflowMenu,
+      TrackMenuItem: TrackMenuItem,
+      Icon: Icon,
+      ConfirmDialog: ConfirmDialog,
     },
 
     directives: {
       'longpress-tooltip': longPressTooltip
     },
 
-    props: { id: { type: String, required: true } },
+    props: {
+      /** Playlist identifier from the route. */
+      id: { type: String, required: true },
+    },
 
-    setup(props) {
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const playlist = ref<any>(null)
-      const visibleTracks = ref<any[]>([])
-      const nextIndex = ref(0)
-      const chunkSize = ref(50)
-      const hasMore = ref(true)
-      const loadingTracks = ref(false)
-      const showEditModal = ref(false)
+    setup: function (props) {
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+
+      /** Playlist details, null while loading. */
+      var playlist = ref(null)
+
+      /** Tracks currently rendered by the infinite loader. */
+      var visibleTracks = ref([])
+
+      var nextIndex = ref(0)
+      var chunkSize = ref(50)
+      var hasMore = ref(true)
+      var loadingTracks = ref(false)
+      var showEditModal = ref(false)
+
       // Selection is index-based: the same track can appear several times in a playlist
-      const selectedIndexes = ref<number[]>([])
-      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
-      const api = inject('$api') as any
-      const loader = useLoader()
-      const router = useRouter()
-      const route = useRoute()
+      var selectedIndexes = ref([])
+      var confirmDialog = ref(null)
+      var api = inject('$api')
+      var loader = useLoader()
+      var router = useRouter()
+      var route = useRoute()
 
-      const appendNextChunk = () => {
-        if (!playlist.value?.tracks) return
-        const nextChunk = playlist.value.tracks.slice(nextIndex.value, nextIndex.value + chunkSize.value)
-        visibleTracks.value.push(...nextChunk)
+      function appendNextChunk() {
+        if (!playlist.value || !playlist.value.tracks) {
+          return
+        }
+
+        var nextChunk = playlist.value.tracks.slice(nextIndex.value, nextIndex.value + chunkSize.value)
+
+        for (var i = 0; i < nextChunk.length; i++) {
+          visibleTracks.value.push(nextChunk[i])
+        }
+
         nextIndex.value += nextChunk.length
         hasMore.value = nextIndex.value < playlist.value.tracks.length
       }
 
-      const loadMore = () => {
-        if (loadingTracks.value || !hasMore.value) return
+      function loadMore() {
+        if (loadingTracks.value || !hasMore.value) {
+          return
+        }
+
         loadingTracks.value = true
-        setTimeout(() => {
+        setTimeout(function () {
           appendNextChunk()
           loadingTracks.value = false
         }, 300)
       }
 
-      const playPause = () => {
-        if (!playlist.value?.tracks?.length) return
-        const currentTrack = playerStore.track
-        if (currentTrack && playlist.value.tracks.some((t: any) => t.id === currentTrack.id)) {
-          return playerStore.playPause()
+      async function playPause() {
+        if (!playlist.value || !playlist.value.tracks || !playlist.value.tracks.length) {
+          return
         }
-        return playerStore.playNow(playlist.value.tracks)
+
+        var currentTrack = playerStore.track
+
+        if (currentTrack) {
+          for (var i = 0; i < playlist.value.tracks.length; i++) {
+            if (playlist.value.tracks[i].id === currentTrack.id) {
+              return await playerStore.playPause()
+            }
+          }
+        }
+
+        return await playerStore.playNow(playlist.value.tracks)
       }
 
-      const playNow = () => {
-        if (!playlist.value?.tracks?.length) return
-        const currentTrack = playerStore.track
-        const firstTrack = playlist.value.tracks[0]
-        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) return
-        return playerStore.playNow(playlist.value.tracks)
+      async function playNow() {
+        if (!playlist.value || !playlist.value.tracks || !playlist.value.tracks.length) {
+          return
+        }
+
+        var currentTrack = playerStore.track
+        var firstTrack = playlist.value.tracks[0]
+
+        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) {
+          return
+        }
+
+        return await playerStore.playNow(playlist.value.tracks)
       }
 
-      const shuffleNow = () => {
-        playerStore.shuffleNow(playlist.value.tracks)
-        nextTick(() => router.push({ name: 'queue' }))
+      async function shuffleNow() {
+        var shuffle = playerStore.shuffleNow(playlist.value.tracks)
+
+        nextTick(function () {
+          router.push({ name: 'queue' })
+        })
+
+        await shuffle
       }
 
-      const toggleSelect = (index: number) => {
-        selectedIndexes.value = selectedIndexes.value.includes(index)
-          ? selectedIndexes.value.filter(i => i !== index)
-          : [...selectedIndexes.value, index]
+      function toggleSelect(index) {
+        if (selectedIndexes.value.indexOf(index) !== -1) {
+          selectedIndexes.value = selectedIndexes.value.filter(function (item) {
+            return item !== index
+          })
+        } else {
+          selectedIndexes.value = selectedIndexes.value.concat([index])
+        }
       }
 
       // Selects every track of the playlist, including ones not loaded yet by the infinite loader
-      const toggleSelectAll = () => {
-        const total = playlist.value.tracks.length
-        selectedIndexes.value = selectedIndexes.value.length >= total
-          ? []
-          : Array.from({ length: total }, (_, i) => i)
+      function toggleSelectAll() {
+        var total = playlist.value.tracks.length
+
+        if (selectedIndexes.value.length >= total) {
+          selectedIndexes.value = []
+          return
+        }
+
+        var selection = []
+
+        for (var i = 0; i < total; i++) {
+          selection.push(i)
+        }
+
+        selectedIndexes.value = selection
       }
 
-      const removeTrack = (index: number) => {
+      async function removeTrack(index) {
         playlist.value.tracks.splice(index, 1)
         visibleTracks.value.splice(index, 1)
         playlist.value.trackCount = playlist.value.tracks.length
+
         // keep the selection aligned with the shifted indexes
         selectedIndexes.value = selectedIndexes.value
-          .filter(i => i !== index)
-          .map(i => (i > index ? i - 1 : i))
-        return playlistStore.removeTrack(props.id, index)
+          .filter(function (item) {
+            return item !== index
+          })
+          .map(function (item) {
+            if (item > index) {
+              return item - 1
+            }
+
+            return item
+          })
+
+        return await playlistStore.removeTrack(props.id, index)
       }
 
-      const removeSelected = async() => {
-        if (!confirmDialog.value || !selectedIndexes.value.length) return
-        const count = selectedIndexes.value.length
-        const userConfirmed = await confirmDialog.value.open(
+      async function removeSelected() {
+        if (!confirmDialog.value || !selectedIndexes.value.length) {
+          return
+        }
+
+        var count = selectedIndexes.value.length
+        var plural = ''
+
+        if (count > 1) {
+          plural = 's'
+        }
+
+        var userConfirmed = await confirmDialog.value.open(
           'Remove',
-          `About to remove ${count} track${count > 1 ? 's' : ''} : continue?`
+          'About to remove ' + count + ' track' + plural + ' : continue?'
         )
-        if (!userConfirmed) return
+
+        if (!userConfirmed) {
+          return
+        }
 
         // highest index first, so earlier removals don't shift the later ones
-        const indexes = [...selectedIndexes.value].sort((a, b) => b - a)
-        indexes.forEach(i => {
-          playlist.value.tracks.splice(i, 1)
-          visibleTracks.value.splice(i, 1)
+        var indexes = selectedIndexes.value.slice().sort(function (a, b) {
+          return b - a
         })
+
+        for (var i = 0; i < indexes.length; i++) {
+          playlist.value.tracks.splice(indexes[i], 1)
+          visibleTracks.value.splice(indexes[i], 1)
+        }
+
         playlist.value.trackCount = playlist.value.tracks.length
         selectedIndexes.value = []
+
         await playlistStore.removeTracks(props.id, indexes)
       }
 
-      const fetchPlaylist = async(id: string) => {
+      async function fetchPlaylist(id) {
         loader.showLoading()
+
         try {
-          const data = await api.getPlaylist(id)
+          var data = await api.getPlaylist(id)
           playlist.value = data
           visibleTracks.value = []
           selectedIndexes.value = []
@@ -278,69 +365,80 @@
         }
       }
 
-      const reloadPlaylist = async() => {
+      async function reloadPlaylist() {
         await fetchPlaylist(props.id)
+
         router.replace({
-          name: route.name as string,
-          params: { ...route.params },
-          query: { ...route.query, t: Date.now().toString() },
+          name: route.name,
+          params: Object.assign({}, route.params),
+          query: Object.assign({}, route.query, { t: Date.now().toString() }),
         })
       }
 
-      const deletePlaylist = async() => {
-        if (!confirmDialog.value) return
+      async function deletePlaylist() {
+        if (!confirmDialog.value) {
+          return
+        }
 
-        const userConfirmed = await confirmDialog.value.open(
+        var userConfirmed = await confirmDialog.value.open(
           'Remove',
           'About to remove playlist : continue?'
         )
-        if (!userConfirmed) return
+
+        if (!userConfirmed) {
+          return
+        }
+
         await playlistStore.delete(props.id)
         router.replace({ name: 'playlists' })
       }
 
-      const openEditModal = () => {
+      function openEditModal() {
         showEditModal.value = true
       }
 
-      const applyPlaylistUpdate = (updated: any) => {
-        playlist.value = { ...playlist.value, ...updated }
-        playlistStore.update(playlist.value)
+      async function applyPlaylistUpdate(updated) {
+        playlist.value = Object.assign({}, playlist.value, updated)
+        await playlistStore.update(playlist.value)
       }
 
       watch(
-        () => props.id,
-        (value) => fetchPlaylist(value),
+        function () {
+          return props.id
+        },
+        async function (value) {
+          await fetchPlaylist(value)
+        },
         { immediate: true }
       )
 
       return {
-        playlistStore,
-        playerStore,
-        formatDuration,
-        playlist,
-        visibleTracks,
-        nextIndex,
-        chunkSize,
-        hasMore,
-        loadingTracks,
-        showEditModal,
-        selectedIndexes,
-        confirmDialog,
-        appendNextChunk,
-        loadMore,
-        playPause,
-        playNow,
-        shuffleNow,
-        toggleSelect,
-        toggleSelectAll,
-        removeTrack,
-        removeSelected,
-        fetchPlaylist,
-        reloadPlaylist,
-        deletePlaylist,
-        openEditModal,
-        applyPlaylistUpdate,
+        playlistStore: playlistStore,
+        playerStore: playerStore,
+        formatDuration: formatDuration,
+        playlist: playlist,
+        visibleTracks: visibleTracks,
+        nextIndex: nextIndex,
+        chunkSize: chunkSize,
+        hasMore: hasMore,
+        loadingTracks: loadingTracks,
+        showEditModal: showEditModal,
+        selectedIndexes: selectedIndexes,
+        confirmDialog: confirmDialog,
+        appendNextChunk: appendNextChunk,
+        loadMore: loadMore,
+        playPause: playPause,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+        toggleSelect: toggleSelect,
+        toggleSelectAll: toggleSelectAll,
+        removeTrack: removeTrack,
+        removeSelected: removeSelected,
+        fetchPlaylist: fetchPlaylist,
+        reloadPlaylist: reloadPlaylist,
+        deletePlaylist: deletePlaylist,
+        openEditModal: openEditModal,
+        applyPlaylistUpdate: applyPlaylistUpdate,
       }
     },
   })

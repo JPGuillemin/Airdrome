@@ -21,18 +21,17 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, inject } from 'vue'
   import InfiniteList from '@/shared/components/InfiniteList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
-  import type { Artist } from '@/shared/api'
   import { useRadioStore } from '@/player/radio'
   import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
     components: {
-      InfiniteList,
-      ArtistList,
+      InfiniteList: InfiniteList,
+      ArtistList: ArtistList,
     },
 
     directives: {
@@ -40,23 +39,33 @@
     },
 
     props: {
+      /** Genre identifier from the route. */
       id: { type: String, required: true },
+      /** Section displayed for this genre. */
       section: { type: String, default: 'artists' },
     },
 
-    setup(props) {
-      const api = inject('$api') as any
-      const radio = useRadioStore()
+    setup: function (props) {
+      var api = inject('$api')
+      var radio = useRadioStore()
 
-      const loadArtists = async (offset: number): Promise<Artist[]> => {
+      /**
+       * Load a page of artists belonging to the genre.
+       *
+       * @param {number} offset
+       * @returns {Promise<Array>}
+       */
+      async function loadArtists(offset) {
         return await api.getArtistsByGenre(props.id, 30, offset)
       }
 
-      const shuffleNow = () => radio.shuffleGenre(props.id)
+      async function shuffleNow() {
+        return await radio.shuffleGenre(props.id)
+      }
 
       return {
-        loadArtists,
-        shuffleNow,
+        loadArtists: loadArtists,
+        shuffleNow: shuffleNow,
       }
     },
   })

@@ -3,7 +3,7 @@
   <div ref="el" class="dropdown">
     <button
       type="button"
-      :class="`btn btn-${variant} dropdown-toggle ${toggleClass}`"
+      :class="'btn btn-' + variant + ' dropdown-toggle ' + toggleClass"
       @click="toggle">
       <slot name="button-content" />
     </button>
@@ -25,34 +25,44 @@
     </Teleport>
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, ref, nextTick, onBeforeUnmount } from 'vue'
 
   export default defineComponent({
     props: {
+      /** Bootstrap button variant used by the trigger. */
       variant:     { type: String,  default: 'link'  },
+      /** Horizontal menu alignment: 'start', 'center' or 'end'. */
       align:       { type: String,  default: 'start' },
+      /** Preferred vertical direction: 'up' or 'down'. */
       direction:   { type: String,  default: 'down'  },
+      /** Extra class applied to the trigger. */
       toggleClass: { type: String,  default: ''      },
+      /** Optional CSS text forwarded to the menu. */
       menuStyle:   { type: String,  default: ''      },
+      /** Disable the trigger. */
       disabled:    { type: Boolean, default: false   },
     },
-    setup(props) {
-      const el      = ref<HTMLElement | null>(null)
-      const menuRef = ref<HTMLElement | null>(null)
-      const visible = ref(false)
-      const computedMenuStyle = ref<Record<string, string>>({})
+    setup: function (props) {
+      var el      = ref(null)
+      var menuRef = ref(null)
+      var visible = ref(false)
+      var computedMenuStyle = ref({})
 
-      const positionMenu = () => {
-        if (!el.value || !menuRef.value) return
-        const trigger = el.value.getBoundingClientRect()
-        const menuH   = menuRef.value.offsetHeight || 160
-        const menuW   = menuRef.value.offsetWidth  || 160
-        const vw      = window.innerWidth
-        const vh      = window.innerHeight
+      function positionMenu() {
+        if (!el.value || !menuRef.value) {
+          return
+        }
+
+        var trigger = el.value.getBoundingClientRect()
+        var menuH   = menuRef.value.offsetHeight || 160
+        var menuW   = menuRef.value.offsetWidth  || 160
+        var vw      = window.innerWidth
+        var vh      = window.innerHeight
 
         // Vertical: respect direction prop, flip if no room
-        let top: number
+        var top
+
         if (props.direction === 'up' && trigger.top - menuH - 4 >= 0) {
           top = trigger.top - menuH - 4
         } else if (trigger.bottom + menuH + 4 <= vh) {
@@ -62,7 +72,8 @@
         }
 
         // Horizontal: respect align prop, clamp to viewport
-        let left: number
+        var left
+
         if (props.align === 'end') {
           left = trigger.right - menuW
         } else if (props.align === 'center') {
@@ -70,48 +81,73 @@
         } else {
           left = trigger.left
         }
-        if (left < 4) left = 4
-        if (left + menuW > vw - 4) left = vw - menuW - 4
 
-        computedMenuStyle.value = {
-          position: 'fixed',
-          top:      `${top}px`,
-          left:     `${left}px`,
-          zIndex:   '2000',
-          minWidth: `${trigger.width}px`,
-          ...(props.menuStyle ? { cssText: props.menuStyle } : {}),
+        if (left < 4) {
+          left = 4
         }
+
+        if (left + menuW > vw - 4) {
+          left = vw - menuW - 4
+        }
+
+        var style = {
+          position: 'fixed',
+          top:      top + 'px',
+          left:     left + 'px',
+          zIndex:   '2000',
+          minWidth: trigger.width + 'px',
+        }
+
+        if (props.menuStyle) {
+          style.cssText = props.menuStyle
+        }
+
+        computedMenuStyle.value = style
       }
 
       function toggle() {
-        if (props.disabled) return
+        if (props.disabled) {
+          return
+        }
+
         visible.value = !visible.value
-        if (visible.value) nextTick(positionMenu)
+
+        if (visible.value) {
+          nextTick(positionMenu)
+        }
       }
 
       function close() {
         visible.value = false
       }
 
-      function onClickInside(event: Event) {
-        const target = event.target as (Element | null)
-        if (target && ['A', 'BUTTON'].includes(target.tagName)) {
+      function onClickInside(event) {
+        var target = event.target
+
+        if (target && (target.tagName === 'A' || target.tagName === 'BUTTON')) {
           close()
         }
       }
 
-      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          close()
+        }
+      }
+
       document.addEventListener('keydown', onKey)
-      onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+      onBeforeUnmount(function () {
+        document.removeEventListener('keydown', onKey)
+      })
 
       return {
-        el,
-        menuRef,
-        visible,
-        computedMenuStyle,
-        toggle,
-        close,
-        onClickInside,
+        el: el,
+        menuRef: menuRef,
+        visible: visible,
+        computedMenuStyle: computedMenuStyle,
+        toggle: toggle,
+        close: close,
+        onClickInside: onClickInside,
       }
     },
   })

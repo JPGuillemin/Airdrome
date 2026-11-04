@@ -23,7 +23,7 @@
           v-longpress-tooltip
           variant="transparent"
           class="me-2"
-          :title="`Remove ${selectedIndexes.length} selected`"
+          :title="'Remove ' + selectedIndexes.length + ' selected'"
           @click="removeSelected"
         >
           <Icon icon="trash" />
@@ -47,18 +47,23 @@
       @toggle-select="toggleSelect"
       @toggle-select-all="toggleSelectAll"
     >
-      <template #actions="{ index }">
+      <template #actions="slotProps">
         <TrackMenuItem
           icon="check"
-          @click="toggleSelect(index)"
+          @click="toggleSelect(slotProps.index)"
         >
-          {{ selectedIndexes.includes(index) ? 'Deselect' : 'Select' }}
+          <template v-if="selectedIndexes.indexOf(slotProps.index) !== -1">
+            Deselect
+          </template>
+          <template v-else>
+            Select
+          </template>
         </TrackMenuItem>
         <hr class="dropdown-divider">
         <TrackMenuItem
           icon="x"
           variant="danger"
-          @click="remove(index)"
+          @click="remove(slotProps.index)"
         >
           Remove
         </TrackMenuItem>
@@ -74,158 +79,218 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, computed, watch, onActivated } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import TrackList from '@/library/track/TrackList.vue'
   import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
   import EmptyIndicator from '@/shared/components/EmptyIndicator.vue'
-  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { longPressTooltip } from '@/shared/tooltips'
 
-  // Number of already-played tracks kept visible above the current one
-  const HISTORY_SIZE = 2
+  // Number of already-played tracks kept visible above the current one.
+  var HISTORY_SIZE = 2
 
   export default defineComponent({
     components: {
-      TrackList,
-      TrackMenuItem,
-      EmptyIndicator,
-      ConfirmDialog,
+      TrackList: TrackList,
+      TrackMenuItem: TrackMenuItem,
+      EmptyIndicator: EmptyIndicator,
+      ConfirmDialog: ConfirmDialog,
     },
 
     directives: {
-      'longpress-tooltip': longPressTooltip
+      'longpress-tooltip': longPressTooltip,
     },
 
-    setup() {
-      const playerStore = usePlayerStore()
+    setup: function () {
+      var playerStore = usePlayerStore()
 
-      const loading = ref(false)
-      const visibleTracks = ref<any[]>([])
-      const chunkSize = ref(20)
-      const nextIndex = ref(0)
-      const hasMore = ref(true)
-      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
-      // Indexes within the displayed list (real queue index = startIndex + index)
-      const selectedIndexes = ref<number[]>([])
-      const allTracks = computed(() => playerStore.queue)
-      const queueIndex = computed(() => playerStore.queueIndex)
+      var loading = ref(false)
+      var visibleTracks = ref([])
+      var chunkSize = ref(20)
+      var nextIndex = ref(0)
+      var hasMore = ref(true)
+      var confirmDialog = ref(null)
+      var selectedIndexes = ref([])
 
-      // First queue index displayed: at most HISTORY_SIZE tracks before the current one.
-      // Computed once when the page is rendered and then kept fixed, so clicking a
-      // track (or auto-advancing) never hides or shifts the rows.
-      const computeStartIndex = () => Math.max(0, queueIndex.value - HISTORY_SIZE)
-      const startIndex = ref(computeStartIndex())
+      var allTracks = computed(function () {
+        return playerStore.queue
+      })
 
-      // Re-anchor every time the page is displayed (also when it comes back from
-      // the <KeepAlive> cache after navigating elsewhere).
-      onActivated(() => {
+      var queueIndex = computed(function () {
+        return playerStore.queueIndex
+      })
+
+      // First queue index displayed: at most HISTORY_SIZE tracks before the
+      // current one. Kept fixed so clicking a track never shifts the rows.
+      function computeStartIndex() {
+        return Math.max(0, queueIndex.value - HISTORY_SIZE)
+      }
+
+      var startIndex = ref(computeStartIndex())
+
+      onActivated(function () {
         startIndex.value = computeStartIndex()
       })
 
-      // Only re-anchor if the current track ends up above the window
-      // (queue cleared, shuffled or replaced).
-      watch(queueIndex, (index) => {
-        if (index < startIndex.value) startIndex.value = computeStartIndex()
+      watch(queueIndex, function (index) {
+        if (index < startIndex.value) {
+          startIndex.value = computeStartIndex()
+        }
       })
 
-      const reset = () => {
+      function reset() {
         visibleTracks.value = []
         nextIndex.value = 0
         hasMore.value = true
       }
 
-      const appendNextChunk = () => {
-        const from = startIndex.value + nextIndex.value
-        const nextChunk = allTracks.value.slice(from, from + chunkSize.value)
-        visibleTracks.value.push(...nextChunk)
+      function appendNextChunk() {
+        var from = startIndex.value + nextIndex.value
+        var nextChunk = allTracks.value.slice(from, from + chunkSize.value)
+
+        for (var i = 0; i < nextChunk.length; i++) {
+          visibleTracks.value.push(nextChunk[i])
+        }
+
         nextIndex.value += nextChunk.length
         hasMore.value = startIndex.value + nextIndex.value < allTracks.value.length
       }
 
-      const loadMore = () => {
+      function loadMore() {
         appendNextChunk()
       }
 
-      const play = (index: number) => {
+      function play(index) {
         playerStore.setShuffle(false)
+
         if (index === queueIndex.value) {
           return playerStore.play()
         }
+
         return playerStore.playTrackListIndex(index)
       }
 
-      // Play a row of the displayed (sliced) list: convert to the real queue index
-      const playFromList = (index: number) => {
+      function playFromList(index) {
         return playerStore.playTrackListIndex(startIndex.value + index)
       }
 
-      const toggleSelect = (index: number) => {
-        selectedIndexes.value = selectedIndexes.value.includes(index)
-          ? selectedIndexes.value.filter(i => i !== index)
-          : [...selectedIndexes.value, index]
-      }
+      function toggleSelect(index) {
+        var position = selectedIndexes.value.indexOf(index)
 
-      // Selects the whole queue from the first displayed row, including rows not loaded yet
-      const toggleSelectAll = () => {
-        const total = Math.max(0, allTracks.value.length - startIndex.value)
-        selectedIndexes.value = selectedIndexes.value.length >= total
-          ? []
-          : Array.from({ length: total }, (_, i) => i)
-      }
-
-      const remove = (index: number) => {
-        // keep the selection aligned with the shifted rows
-        selectedIndexes.value = selectedIndexes.value
-          .filter(i => i !== index)
-          .map(i => (i > index ? i - 1 : i))
-        playerStore.removeFromQueue(startIndex.value + index)
-      }
-
-      const removeSelected = async() => {
-        if (!confirmDialog.value || !selectedIndexes.value.length) return
-        const count = selectedIndexes.value.length
-        const userConfirmed = await confirmDialog.value.open(
-          'Remove',
-          `About to remove ${count} track${count > 1 ? 's' : ''} from the play queue : continue?`
-        )
-        if (!userConfirmed) return
-
-        // highest index first, so earlier removals don't shift the later ones
-        const queueIndexes = selectedIndexes.value
-          .map(i => startIndex.value + i)
-          .sort((a, b) => b - a)
-        selectedIndexes.value = []
-        for (const index of queueIndexes) {
-          await playerStore.removeFromQueue(index)
+        if (position !== -1) {
+          selectedIndexes.value = selectedIndexes.value.filter(function (item) {
+            return item !== index
+          })
+        } else {
+          selectedIndexes.value = selectedIndexes.value.concat([index])
         }
       }
 
-      // Row indexes are no longer reliable when the window moves or tracks get added
-      watch(startIndex, () => { selectedIndexes.value = [] })
-      watch(() => allTracks.value.length, (length, previous) => {
-        if (length > previous) selectedIndexes.value = []
+      function toggleSelectAll() {
+        var total = Math.max(0, allTracks.value.length - startIndex.value)
+
+        if (selectedIndexes.value.length >= total) {
+          selectedIndexes.value = []
+          return
+        }
+
+        var selection = []
+
+        for (var i = 0; i < total; i++) {
+          selection.push(i)
+        }
+
+        selectedIndexes.value = selection
+      }
+
+      function remove(index) {
+        selectedIndexes.value = selectedIndexes.value
+          .filter(function (item) {
+            return item !== index
+          })
+          .map(function (item) {
+            if (item > index) {
+              return item - 1
+            }
+
+            return item
+          })
+
+        playerStore.removeFromQueue(startIndex.value + index)
+      }
+
+      async function removeSelected() {
+        if (!confirmDialog.value || !selectedIndexes.value.length) {
+          return
+        }
+
+        var count = selectedIndexes.value.length
+        var plural = ''
+
+        if (count > 1) {
+          plural = 's'
+        }
+
+        var message = 'About to remove ' + count + ' track' + plural +
+          ' from the play queue : continue?'
+
+        var userConfirmed = await confirmDialog.value.open('Remove', message)
+
+        if (!userConfirmed) {
+          return
+        }
+
+        var queueIndexes = selectedIndexes.value.map(function (item) {
+          return startIndex.value + item
+        }).sort(function (a, b) {
+          return b - a
+        })
+
+        selectedIndexes.value = []
+
+        for (var i = 0; i < queueIndexes.length; i++) {
+          await playerStore.removeFromQueue(queueIndexes[i])
+        }
+      }
+
+      watch(startIndex, function () {
+        selectedIndexes.value = []
       })
 
-      const clear = async() => {
-        if (!confirmDialog.value) return
+      watch(function () {
+        return allTracks.value.length
+      }, function (length, previous) {
+        if (length > previous) {
+          selectedIndexes.value = []
+        }
+      })
 
-        const userConfirmed = await confirmDialog.value.open(
+      async function clear() {
+        if (!confirmDialog.value) {
+          return
+        }
+
+        var userConfirmed = await confirmDialog.value.open(
           'Clear the play queue',
           'About to clear the play queue : continue?'
         )
-        if (!userConfirmed) return
-        playerStore.clearQueue()
+
+        if (userConfirmed) {
+          playerStore.clearQueue()
+        }
       }
 
-      const shuffle = () => {
+      function shuffleQueue() {
         playerStore.shuffleQueue()
       }
 
       watch(
-        () => [allTracks.value, allTracks.value.length, startIndex.value] as const,
-        () => {
+        function () {
+          return [allTracks.value, allTracks.value.length, startIndex.value]
+        },
+        function () {
           reset()
           appendNextChunk()
         },
@@ -233,28 +298,28 @@
       )
 
       return {
-        playerStore,
-        loading,
-        visibleTracks,
-        chunkSize,
-        nextIndex,
-        hasMore,
-        allTracks,
-        queueIndex,
-        startIndex,
-        confirmDialog,
-        selectedIndexes,
-        reset,
-        loadMore,
-        appendNextChunk,
-        play,
-        playFromList,
-        toggleSelect,
-        toggleSelectAll,
-        remove,
-        removeSelected,
-        clear,
-        shuffle,
+        playerStore: playerStore,
+        loading: loading,
+        visibleTracks: visibleTracks,
+        chunkSize: chunkSize,
+        nextIndex: nextIndex,
+        hasMore: hasMore,
+        allTracks: allTracks,
+        queueIndex: queueIndex,
+        startIndex: startIndex,
+        confirmDialog: confirmDialog,
+        selectedIndexes: selectedIndexes,
+        reset: reset,
+        loadMore: loadMore,
+        appendNextChunk: appendNextChunk,
+        play: play,
+        playFromList: playFromList,
+        toggleSelect: toggleSelect,
+        toggleSelectAll: toggleSelectAll,
+        remove: remove,
+        removeSelected: removeSelected,
+        clear: clear,
+        shuffle: shuffleQueue,
       }
     },
   })

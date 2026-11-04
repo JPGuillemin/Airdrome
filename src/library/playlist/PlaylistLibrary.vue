@@ -11,12 +11,12 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'default' }}">
+          <router-link :to="defaultRoute">
             <Icon icon="recent" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' }}">
+          <router-link :to="azRoute">
             A-z
           </router-link>
         </li>
@@ -41,7 +41,7 @@
       <EditPlaylistModal
         v-if="showAddModal"
         :playlist="editingPlaylist"
-        :mode="editingPlaylist ? 'edit' : 'create'"
+        :mode="modalMode"
         @create-playlist="createPlaylist"
         @update-playlist="updatePlaylist"
         @close="closeModal"
@@ -50,91 +50,135 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { computed, defineComponent, ref } from 'vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import { orderBy } from 'lodash-es'
   import { usePlaylistStore } from '@/library/playlist/store'
   import Icon from '@/shared/components/Icon.vue'
-  import type { Playlist } from '@/shared/api'
-  import ConfirmDialog, { ConfirmDialogExpose } from '@/shared/components/ConfirmDialog.vue'
+  import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+  import { useRoute } from 'vue-router'
 
   export default defineComponent({
     components: {
-      PlaylistList,
-      Icon,
-      EditPlaylistModal,
-      ConfirmDialog,
+      PlaylistList: PlaylistList,
+      Icon: Icon,
+      EditPlaylistModal: EditPlaylistModal,
+      ConfirmDialog: ConfirmDialog,
     },
 
     props: {
+      /** Current sort mode ('default' or 'a-z'). */
       sort: { type: String, default: null },
     },
 
-    setup(props) {
-      const store = usePlaylistStore()
+    setup: function (props) {
+      var store = usePlaylistStore()
+      var route = useRoute()
 
-      const showAddModal = ref(false)
-      const editingPlaylist = ref<Playlist | null>(null)
-      const confirmDialog = ref<ConfirmDialogExpose | null>(null)
-      const items = computed(() =>
-        props.sort === 'a-z'
-          ? orderBy(store.playlists, 'name')
-          : orderBy(store.playlists, 'createdAt', 'desc')
-      )
+      var showAddModal = ref(false)
+
+      /** Playlist currently being edited, null when creating a new one. */
+      var editingPlaylist = ref(null)
+
+      var confirmDialog = ref(null)
+
+      var items = computed(function () {
+        if (props.sort === 'a-z') {
+          return orderBy(store.playlists, 'name')
+        }
+
+        return orderBy(store.playlists, 'createdAt', 'desc')
+      })
+
+      var loading = computed(function () {
+        return store.playlists === null
+      })
+
+      var modalMode = computed(function () {
+        if (editingPlaylist.value) {
+          return 'edit'
+        }
+
+        return 'create'
+      })
+
+      // Route objects used by the sort links in the header.
+      var defaultRoute = computed(function () {
+        return Object.assign({}, route, {
+          params: Object.assign({}, route.params, { sort: 'default' }),
+        })
+      })
+
+      var azRoute = computed(function () {
+        return Object.assign({}, route, {
+          params: Object.assign({}, route.params, { sort: 'a-z' }),
+        })
+      })
 
       // ---- OPEN MODALS ----
-      const startCreate = () => {
+      function startCreate() {
         editingPlaylist.value = null
         showAddModal.value = true
       }
 
-      const openEditPlaylist = (playlist: Playlist) => {
+      function openEditPlaylist(playlist) {
         editingPlaylist.value = playlist
         showAddModal.value = true
       }
 
       // ---- ACTION HANDLERS ----
-      const createPlaylist = (name: string) => {
-        store.create(name)
+      async function createPlaylist(name) {
+        var creation = store.create(name)
         closeModal()
+        await creation
       }
 
-      const updatePlaylist = (playlist: Playlist) => {
-        store.update(playlist)
+      async function updatePlaylist(playlist) {
+        var update = store.update(playlist)
         closeModal()
+        await update
       }
 
-      const deletePlaylist = async(id: string) => {
-        if (!confirmDialog.value) return
+      async function deletePlaylist(id) {
+        if (!confirmDialog.value) {
+          return
+        }
 
-        const userConfirmed = await confirmDialog.value.open(
+        var userConfirmed = await confirmDialog.value.open(
           'Remove',
           'About to remove playlist : continue?'
         )
-        if (!userConfirmed) return
-        store.delete(id)
+
+        if (!userConfirmed) {
+          return
+        }
+
+        await store.delete(id)
       }
 
       // ---- CLOSE ----
-      const closeModal = () => {
+      function closeModal() {
         editingPlaylist.value = null
         showAddModal.value = false
       }
 
       return {
-        items,
-        startCreate,
-        openEditPlaylist,
-        deletePlaylist,
-        createPlaylist,
-        updatePlaylist,
-        showAddModal,
-        editingPlaylist,
-        closeModal,
-        confirmDialog,
-        loading: computed(() => store.playlists === null),
+        items: items,
+        startCreate: startCreate,
+        openEditPlaylist: openEditPlaylist,
+        deletePlaylist: deletePlaylist,
+        createPlaylist: createPlaylist,
+        updatePlaylist: updatePlaylist,
+        showAddModal: showAddModal,
+        editingPlaylist: editingPlaylist,
+        closeModal: closeModal,
+        confirmDialog: confirmDialog,
+        defaultRoute: defaultRoute,
+        azRoute: azRoute,
+        loading: loading,
+        modalMode: modalMode,
       }
     },
   })

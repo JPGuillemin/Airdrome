@@ -10,17 +10,17 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{... $route, params: { section: 'albums' }}">
+          <router-link :to="albumsRoute">
             <Icon icon="albums" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{... $route, params: { section: 'artists' }}">
+          <router-link :to="artistsRoute">
             <Icon icon="artists" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{... $route, params: { section: 'tracks' }}">
+          <router-link :to="tracksRoute">
             <Icon icon="tracks" />
           </router-link>
         </li>
@@ -40,8 +40,9 @@
     </template>
   </div>
 </template>
-<script lang="ts">
-  import { defineComponent, ref, watch, inject } from 'vue'
+<script>
+  import { defineComponent, ref, watch, inject, computed } from 'vue'
+  import { useRoute } from 'vue-router'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackList from '@/library/track/TrackList.vue'
@@ -49,31 +50,64 @@
 
   export default defineComponent({
     components: {
-      AlbumList,
-      ArtistList,
-      TrackList,
+      AlbumList: AlbumList,
+      ArtistList: ArtistList,
+      TrackList: TrackList,
     },
+
     props: {
+      /** Favourites section to display (albums, artists or tracks). */
       section: { type: String, default: '' },
     },
-    setup() {
-      const api = inject('$api') as any
-      const favouriteStore = useFavouriteStore()
-      const details = ref<any>(null)
+
+    setup: function () {
+      var api = inject('$api')
+      var route = useRoute()
+      var favouriteStore = useFavouriteStore()
+
+      /** Favourites grouped by media type, null while loading. */
+      var details = ref(null)
+
+      // Route objects used by the section links in the header.
+      var albumsRoute = computed(function () {
+        return Object.assign({}, route, { params: { section: 'albums' } })
+      })
+
+      var artistsRoute = computed(function () {
+        return Object.assign({}, route, { params: { section: 'artists' } })
+      })
+
+      var tracksRoute = computed(function () {
+        return Object.assign({}, route, { params: { section: 'tracks' } })
+      })
+
       watch(
-        () => [favouriteStore],
-        async() => {
-          const result = await api.getFavourites()
+        function () {
+          return [favouriteStore]
+        },
+        async function () {
+          var result = await api.getFavourites()
+
           details.value = {
-            albums: result.albums.filter((item: any) => favouriteStore.albums[item.id]),
-            artists: result.artists.filter((item: any) => favouriteStore.artists[item.id]),
-            tracks: result.tracks.filter((item: any) => favouriteStore.tracks[item.id]),
+            albums: result.albums.filter(function (item) {
+              return favouriteStore.albums[item.id]
+            }),
+            artists: result.artists.filter(function (item) {
+              return favouriteStore.artists[item.id]
+            }),
+            tracks: result.tracks.filter(function (item) {
+              return favouriteStore.tracks[item.id]
+            }),
           }
         },
         { deep: true, immediate: true }
       )
+
       return {
-        details
+        details: details,
+        albumsRoute: albumsRoute,
+        artistsRoute: artistsRoute,
+        tracksRoute: tracksRoute,
       }
     },
   })

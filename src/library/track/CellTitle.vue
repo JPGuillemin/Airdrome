@@ -18,12 +18,14 @@
   </td>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
 
   export default defineComponent({
     props: {
+      /** Track whose title is displayed. */
       track: { type: Object, required: true },
+      /** Whether the album cover thumbnail is shown. */
       showImage: { type: Boolean, default: false }
     },
   })

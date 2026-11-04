@@ -5,14 +5,13 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import {
     defineComponent,
     onMounted,
     onBeforeUnmount,
     ref,
     watch,
-    type PropType,
   } from 'vue'
 
   import { useRouter } from 'vue-router'
@@ -21,74 +20,68 @@
   import seedrandom from 'seedrandom'
   import { useRadioStore } from '@/player/radio'
 
-  type GenreItem = {
-    id: string | number
-    name: string
-    albumCount?: number
-  }
-
-  type CloudWord = {
-    text: string
-    size: number
-    id: string | number
-    normalized?: number  // for color calculation
-    x?: number
-    y?: number
-    rotate?: number
-    width?: number   // set by d3-cloud after layout
-    height?: number  // set by d3-cloud after layout
-  }
-
   export default defineComponent({
     name: 'GenreCloud',
 
     props: {
+      /**
+       * Genre items to render. Each item has an id, a name and an
+       * optional album count used to compute the font size.
+       */
       items: {
-        type: Array as PropType<GenreItem[]>,
+        type: Array,
         required: true,
       },
+      /** Font family used for the words. */
       fontFamily: {
         type: String,
         default: 'Inter',
       },
     },
 
-    setup(props) {
-      const router = useRouter()
-      const radio = useRadioStore()
-      const container = ref<HTMLDivElement | null>(null)
-      const svgRef = ref<SVGSVGElement | null>(null)
-      let resizeObserver: ResizeObserver | null = null
+    setup: function (props) {
+      var router = useRouter()
+      var radio = useRadioStore()
+      var container = ref(null)
+      var svgRef = ref(null)
+      var resizeObserver = null
 
       // Long press handling
-      const LONG_PRESS_MS = 500
-      const MOVE_TOLERANCE = 10 // px: beyond this, it's a scroll/drag, not a press
+      var LONG_PRESS_MS = 500
+      var MOVE_TOLERANCE = 10 // px: beyond this, it's a scroll/drag, not a press
 
-      let pressTimer: ReturnType<typeof setTimeout> | null = null
-      let longPressTriggered = false
-      let startX = 0
-      let startY = 0
+      var pressTimer = null
+      var longPressTriggered = false
+      var startX = 0
+      var startY = 0
 
-      const cancelPress = () => {
+      function cancelPress() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
         }
       }
 
-      const renderCloud = () => {
-        if (!container.value || !svgRef.value) return
+      function renderCloud() {
+        if (!container.value || !svgRef.value) {
+          return
+        }
 
-        const width = container.value.clientWidth
-        const height = container.value.clientHeight
-        if (width === 0 || height === 0) return
+        var width = container.value.clientWidth
+        var height = container.value.clientHeight
 
-        const rng = seedrandom('genre-cloud')
+        if (width === 0 || height === 0) {
+          return
+        }
 
-        const MAX_WORDS = 100
+        var rng = seedrandom('genre-cloud')
 
-        const sorted = [...props.items]
-          .sort((a, b) => (b.albumCount || 0) - (a.albumCount || 0))
+        var MAX_WORDS = 100
+
+        var sorted = props.items.slice()
+          .sort(function (a, b) {
+            return (b.albumCount || 0) - (a.albumCount || 0)
+          })
           .slice(0, MAX_WORDS)
 
         if (!sorted.length) {
@@ -96,18 +89,23 @@
           return
         }
 
-        const counts = sorted.map((i) => Math.max(i.albumCount || 1, 1))
-        const max = Math.max(...counts)
-        const min = Math.min(...counts)
+        var counts = []
 
-        // Calculate font sizes based on actual container dimensions
-        // Use the smaller dimension to ensure words fit
-        const smallerDim = Math.min(width, height)
-        const MIN_SIZE = Math.max(14, smallerDim * 0.025)  // ~2.5% of smaller dimension
-        const MAX_SIZE = Math.max(40, smallerDim * 0.15)   // ~15% of smaller dimension
+        for (var i = 0; i < sorted.length; i++) {
+          counts.push(Math.max(sorted[i].albumCount || 1, 1))
+        }
+
+        var max = Math.max.apply(null, counts)
+        var min = Math.min.apply(null, counts)
+
+        // Calculate font sizes based on actual container dimensions.
+        // Use the smaller dimension to ensure words fit.
+        var smallerDim = Math.min(width, height)
+        var MIN_SIZE = Math.max(14, smallerDim * 0.025) // ~2.5% of smaller dimension
+        var MAX_SIZE = Math.max(40, smallerDim * 0.15) // ~15% of smaller dimension
 
         // Create color scale - vibrant gradient from cyan to purple
-        const colorScale = d3.scaleSequential()
+        var colorScale = d3.scaleSequential()
           .domain([0, 1])
           .interpolator(d3.interpolateRgbBasis([
             '#c0c0c0',
@@ -117,50 +115,66 @@
             '#808080',
           ]))
 
-        const words: CloudWord[] = sorted.map((item) => {
-          const count = Math.max(item.albumCount || 1, 1)
-          const normalized = max === min ? 1 : (count - min) / (max - min)
-          return {
+        var words = []
+
+        for (var j = 0; j < sorted.length; j++) {
+          var item = sorted[j]
+          var count = Math.max(item.albumCount || 1, 1)
+          var normalized = 0
+
+          if (max === min) {
+            normalized = 1
+          } else {
+            normalized = (count - min) / (max - min)
+          }
+
+          words.push({
             text: item.name,
             id: item.id,
             size: MIN_SIZE + Math.pow(normalized, 1.2) * (MAX_SIZE - MIN_SIZE),
-            normalized,
-          }
-        })
+            normalized: normalized,
+          })
+        }
 
-        const svg = d3.select(svgRef.value)
+        var svg = d3.select(svgRef.value)
         svg.selectAll('*').interrupt()
         svg.selectAll('*').remove()
 
-        cloud<CloudWord>()
+        cloud()
           .size([width, height])
           .words(words)
           .padding(8)
-          .rotate(() => 0)
+          .rotate(function () {
+            return 0
+          })
           .random(rng)
           .font(props.fontFamily)
-          .fontSize((d) => d.size)
+          .fontSize(function (d) {
+            return d.size
+          })
           .on('end', draw)
           .start()
 
-        function draw(layoutWords: CloudWord[]) {
-          if (!layoutWords.length) return
+        function draw(layoutWords) {
+          if (!layoutWords.length) {
+            return
+          }
 
           if (layoutWords.length < words.length) {
             console.warn(
-              `GenreCloud: ${words.length - layoutWords.length} words dropped by layout`
+              'GenreCloud: ' + (words.length - layoutWords.length) + ' words dropped by layout'
             )
           }
 
           // Simple centered rendering - no scaling needed
-          const svgEl = d3
+          var svgEl = d3
             .select(svgRef.value)
             .attr('width', width)
             .attr('height', height)
 
-          const group = svgEl
+          var group = svgEl
             .append('g')
-            .attr('transform', `translate(${width / 2}, ${height / 2})`)
+            .attr('transform', 'translate(' + width / 2 + ', ' + height / 2 + ')')
 
           group
             .selectAll('text')
@@ -168,38 +182,51 @@
             .enter()
             .append('text')
             .style('font-family', props.fontFamily)
-            .style('font-size', (d) => `${d.size}px`)
-            .style('fill', (d) => colorScale(d.normalized || 0))
+            .style('font-size', function (d) {
+              return d.size + 'px'
+            })
+            .style('fill', function (d) {
+              return colorScale(d.normalized || 0)
+            })
             .style('cursor', 'pointer')
             .style('user-select', 'none')
             .style('-webkit-user-select', 'none')
             .style('-webkit-touch-callout', 'none')
             .style('transition', 'fill 0.15s ease')
             .attr('text-anchor', 'middle')
-            .attr('transform', (d) =>
-              `translate(${d.x}, ${d.y}) rotate(${d.rotate})`
-            )
-            .text((d) => d.text)
-            .on('mouseenter', function (this: SVGTextElement, _, d) {
+            .attr('transform', function (d) {
+              return 'translate(' + d.x + ', ' + d.y + ') rotate(' + d.rotate + ')'
+            })
+            .text(function (d) {
+              return d.text
+            })
+            .on('mouseenter', function (_, d) {
               d3.select(this).style('fill', 'var(--bs-primary)')
             })
-            .on('mouseleave', function (this: SVGTextElement, _, d) {
+            .on('mouseleave', function (_, d) {
               d3.select(this).style('fill', colorScale(d.normalized || 0))
             })
-            .on('pointerdown', (event: PointerEvent, d) => {
+            .on('pointerdown', function (event, d) {
               longPressTriggered = false
               startX = event.clientX
               startY = event.clientY
               cancelPress()
-              pressTimer = setTimeout(() => {
+              pressTimer = setTimeout(async function () {
                 pressTimer = null
                 longPressTriggered = true
-                navigator.vibrate?.(30)
-                radio.shuffleGenre(String(d.id))
+
+                if (navigator.vibrate) {
+                  navigator.vibrate(30)
+                }
+
+                await radio.shuffleGenre(String(d.id))
               }, LONG_PRESS_MS)
             })
-            .on('pointermove', (event: PointerEvent) => {
-              if (!pressTimer) return
+            .on('pointermove', function (event) {
+              if (!pressTimer) {
+                return
+              }
+
               if (
                 Math.abs(event.clientX - startX) > MOVE_TOLERANCE ||
                 Math.abs(event.clientY - startY) > MOVE_TOLERANCE
@@ -210,39 +237,55 @@
             .on('pointerup', cancelPress)
             .on('pointerleave', cancelPress)
             .on('pointercancel', cancelPress)
-            .on('contextmenu', (event: Event) => {
+            .on('contextmenu', function (event) {
               // Prevent the native context menu after a long press (mobile / right-click)
               event.preventDefault()
             })
-            .on('click', (_, d) => {
+            .on('click', function (event, d) {
               // The release after a long press fires a click: ignore it
               if (longPressTriggered) {
                 longPressTriggered = false
                 return
               }
+
               router.push({ name: 'genre', params: { id: d.id } })
             })
         }
       }
 
-      onMounted(() => {
+      onMounted(function () {
         renderCloud()
-        resizeObserver = new ResizeObserver(() => renderCloud())
-        if (container.value) resizeObserver.observe(container.value)
+        resizeObserver = new ResizeObserver(function () {
+          renderCloud()
+        })
+
+        if (container.value) {
+          resizeObserver.observe(container.value)
+        }
       })
 
-      onBeforeUnmount(() => {
+      onBeforeUnmount(function () {
         cancelPress()
-        resizeObserver?.disconnect()
+
+        if (resizeObserver) {
+          resizeObserver.disconnect()
+        }
       })
 
       watch(
-        () => props.items,
-        () => renderCloud(),
+        function () {
+          return props.items
+        },
+        function () {
+          renderCloud()
+        },
         { deep: true }
       )
 
-      return { container, svgRef }
+      return {
+        container: container,
+        svgRef: svgRef,
+      }
     },
   })
 </script>

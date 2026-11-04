@@ -25,7 +25,7 @@
         <template v-if="tileSize > 79" #actions>
           <TileActionButton icon="random" label="Artist Shuffle" @click.stop="shuffleNow(item.id)" />
           <TileActionButton
-            :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+            :icon="favouriteIcon(item.id)"
             label="Like"
             @click.stop="toggleFavourite(item.id)"
           />
@@ -34,7 +34,7 @@
 
       <!-- Same items as the ArtistDetails header buttons. -->
       <RowActionsMenu
-        :ref="(el) => setMenuRef(el, item.id)"
+        :ref="function (el) { return setMenuRef(el, item.id) }"
         :track="item"
         :title="item.name"
         :default-actions="false"
@@ -48,7 +48,7 @@
         <TrackMenuItem icon="radio" class="on-top" @click="radioNow(item.id)">
           Radio
         </TrackMenuItem>
-        <TrackMenuItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
+        <TrackMenuItem :icon="favouriteIcon(item.id)" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </TrackMenuItem>
         <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist(item)">
@@ -70,79 +70,138 @@
     </Teleport>
   </Tiles>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, inject, ref, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
   import { useRadioStore } from '@/player/radio'
   import { useLoader } from '@/shared/loader'
-  import type { Playlist } from '@/shared/api'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
 
-  const LONG_PRESS_MS = 500
+  var LONG_PRESS_MS = 500
   // Pixels the mouse may drift during a long press before it is cancelled
-  const MOUSE_MOVE_TOLERANCE = 5
+  var MOUSE_MOVE_TOLERANCE = 5
 
   // Same breakpoint as Tiles.vue. On mobile, a long press already reveals the
   // overlay action buttons, so the RowActionsMenu is disabled there.
-  const isMobile = () => window.matchMedia('(max-width: 768px)').matches
+  function isMobile() {
+    return window.matchMedia('(max-width: 768px)').matches
+  }
 
   export default defineComponent({
-    components: { RowActionsMenu, EditPlaylistModal },
+    components: {
+      RowActionsMenu: RowActionsMenu,
+      EditPlaylistModal: EditPlaylistModal,
+    },
+
     props: {
+      /** Artist items displayed by the list. */
       items: { type: Array, required: true },
+      /** Whether the tiles can scroll horizontally. */
       allowHScroll: { type: Boolean, default: false },
+      /** Tile size in pixels. */
       tileSize: { type: Number, default: 140 },
     },
-    setup() {
-      const favouriteStore = useFavouriteStore()
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const radioStore = useRadioStore()
-      const loader = useLoader()
-      const api = inject('$api') as any
 
-      const toggleFavourite = async(id: string) => {
+    setup: function () {
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var radioStore = useRadioStore()
+      var loader = useLoader()
+      var api = inject('$api')
+
+      async function toggleFavourite(id) {
         await favouriteStore.toggle('artist', id)
       }
 
-      const isFavourite = (id: string) => favouriteStore.get('artist', id)
+      function isFavourite(id) {
+        return favouriteStore.get('artist', id)
+      }
 
-      const shuffleNow = (id: string) => radioStore.shuffleArtist(id)
+      function favouriteIcon(id) {
+        if (isFavourite(id)) {
+          return 'heart-fill'
+        }
 
-      const radioNow = (id: string) => radioStore.radioArtist(id)
+        return 'heart'
+      }
+
+      async function shuffleNow(id) {
+        return await radioStore.shuffleArtist(id)
+      }
+
+      async function radioNow(id) {
+        return await radioStore.radioArtist(id)
+      }
 
       // Same as the ArtistDetails header "Play": artist top tracks
-      const playNow = async (id: string) => {
-        const artist = await api.getArtistDetails(id)
-        if (artist?.topTracks?.length) return playerStore.playNow(artist.topTracks)
+      async function playNow(id) {
+        var artist = await api.getArtistDetails(id)
+
+        if (artist && artist.topTracks && artist.topTracks.length) {
+          return await playerStore.playNow(artist.topTracks)
+        }
       }
 
       // "Playlist +": all tracks of the artist (from all their albums),
       // fetched only once the target playlist is known.
-      const showPlaylistModal = ref(false)
-      const playlistTarget = ref<any>(null)
-      const playlistDraft = computed(() => ({
-        name: playlistTarget.value?.name || '',
-        comment: '',
-        isPublic: false,
-      }) as Playlist)
+      var showPlaylistModal = ref(false)
+      var playlistTarget = ref(null)
 
-      const fetchAllTrackIds = async (): Promise<string[]> => {
-        if (!playlistTarget.value) return []
-        const ids: string[] = []
-        for await (const tracks of api.getTracksByArtist(playlistTarget.value.id)) {
-          ids.push(...tracks.map((t: any) => t.id))
+      /** Draft playlist used to prefill the playlist creation form. */
+      var playlistDraft = computed(function () {
+        var name = ''
+
+        if (playlistTarget.value && playlistTarget.value.name) {
+          name = playlistTarget.value.name
         }
+
+        return {
+          name: name,
+          comment: '',
+          isPublic: false,
+        }
+      })
+
+      /**
+       * Collect the IDs of every track of the target artist.
+       *
+       * @returns {Promise<string[]>}
+       */
+      async function fetchAllTrackIds() {
+        if (!playlistTarget.value) {
+          return []
+        }
+
+        var ids = []
+        var iterator = api.getTracksByArtist(playlistTarget.value.id)
+
+        while (true) {
+          var item = await iterator.next()
+
+          if (item.done) {
+            break
+          }
+
+          var tracks = item.value
+
+          for (var i = 0; i < tracks.length; i++) {
+            ids.push(tracks[i].id)
+          }
+        }
+
         return ids
       }
 
-      const addToPlaylist = async (artist: any) => {
+      async function addToPlaylist(artist) {
         playlistTarget.value = artist
+
         if (playlistStore.playlists === null) {
           loader.showLoading()
+
           try {
             await playlistStore.load()
           } catch (err) {
@@ -152,14 +211,17 @@
             loader.hideLoading()
           }
         }
+
         showPlaylistModal.value = true
       }
 
-      const addToExistingPlaylist = async (playlistId: string) => {
+      async function addToExistingPlaylist(playlistId) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addUniqueTracks(playlistId, await fetchAllTrackIds())
+          var ids = await fetchAllTrackIds()
+          await playlistStore.addUniqueTracks(playlistId, ids)
         } catch (err) {
           console.error(err)
         } finally {
@@ -167,11 +229,13 @@
         }
       }
 
-      const createPlaylist = async (name: string) => {
+      async function createPlaylist(name) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addToPlaylistByName(name, await fetchAllTrackIds())
+          var ids = await fetchAllTrackIds()
+          await playlistStore.addToPlaylistByName(name, ids)
         } catch (err) {
           console.error(err)
         } finally {
@@ -180,18 +244,26 @@
       }
 
       // --- Row menu (right click / long press), same behaviour as TrackTiles ---
-      let pressTimer: ReturnType<typeof setTimeout> | null = null
-      let isLongPressTriggered = false
+      var pressTimer = null
+      var isLongPressTriggered = false
 
-      const menuRefs = new Map<string | number, any>()
-      const setMenuRef = (el: any, key: string | number) => {
-        if (el) menuRefs.set(key, el)
-        else menuRefs.delete(key)
+      var menuRefs = new Map()
+
+      function setMenuRef(el, key) {
+        if (el) {
+          menuRefs.set(key, el)
+        } else {
+          menuRefs.delete(key)
+        }
       }
 
-      const openMenu = (key: string | number) => {
-        if (isMobile()) return
-        const menu = menuRefs.get(key)
+      function openMenu(key) {
+        if (isMobile()) {
+          return
+        }
+
+        var menu = menuRefs.get(key)
+
         if (menu && typeof menu.open === 'function') {
           menu.open()
         }
@@ -199,12 +271,12 @@
 
       // Long press: the click that may follow must not navigate to the artist.
       // Capture phase so it runs before the router-link handler.
-      const triggerMenu = (key: string | number) => {
+      function triggerMenu(key) {
         isLongPressTriggered = true
         openMenu(key)
       }
 
-      const onTileClick = (event: Event) => {
+      function onTileClick(event) {
         if (isLongPressTriggered) {
           isLongPressTriggered = false
           event.preventDefault()
@@ -212,23 +284,33 @@
         }
       }
 
-      let mouseStart = { x: 0, y: 0 }
+      var mouseStart = { x: 0, y: 0 }
 
-      const onMouseDown = (key: string | number, event: MouseEvent) => {
+      function onMouseDown(key, event) {
         // The menu overlay can swallow the click that ends a long press,
         // so a stale flag must never leak into the next press.
         isLongPressTriggered = false
-        if (isMobile()) return
-        if (event.button !== 0) return
+
+        if (isMobile()) {
+          return
+        }
+
+        if (event.button !== 0) {
+          return
+        }
+
         mouseStart = { x: event.clientX, y: event.clientY }
-        pressTimer = setTimeout(() => {
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onMouseMove = (event: MouseEvent) => {
-        if (!pressTimer) return
+      function onMouseMove(event) {
+        if (!pressTimer) {
+          return
+        }
+
         if (
           Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
           Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
@@ -237,23 +319,27 @@
         }
       }
 
-      const onMouseUp = () => {
+      function onMouseUp() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
         }
       }
 
-      const onTouchStart = (key: string | number) => {
+      function onTouchStart(key) {
         isLongPressTriggered = false
-        if (isMobile()) return
-        pressTimer = setTimeout(() => {
+
+        if (isMobile()) {
+          return
+        }
+
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onTouchEnd = () => {
+      function onTouchEnd() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
@@ -261,26 +347,27 @@
       }
 
       return {
-        favouriteStore,
-        radioStore,
-        toggleFavourite,
-        isFavourite,
-        shuffleNow,
-        radioNow,
-        playNow,
-        showPlaylistModal,
-        playlistDraft,
-        addToPlaylist,
-        addToExistingPlaylist,
-        createPlaylist,
-        setMenuRef,
-        openMenu,
-        onTileClick,
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onTouchStart,
-        onTouchEnd,
+        favouriteStore: favouriteStore,
+        radioStore: radioStore,
+        toggleFavourite: toggleFavourite,
+        isFavourite: isFavourite,
+        favouriteIcon: favouriteIcon,
+        shuffleNow: shuffleNow,
+        radioNow: radioNow,
+        playNow: playNow,
+        showPlaylistModal: showPlaylistModal,
+        playlistDraft: playlistDraft,
+        addToPlaylist: addToPlaylist,
+        addToExistingPlaylist: addToExistingPlaylist,
+        createPlaylist: createPlaylist,
+        setMenuRef: setMenuRef,
+        openMenu: openMenu,
+        onTileClick: onTileClick,
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove,
+        onMouseUp: onMouseUp,
+        onTouchStart: onTouchStart,
+        onTouchEnd: onTouchEnd,
       }
     },
   })

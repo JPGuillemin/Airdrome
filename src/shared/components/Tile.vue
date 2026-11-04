@@ -39,21 +39,27 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import fallback from '@/shared/assets/fallback.svg'
 
   export default defineComponent({
     props: {
+      /** Optional router-link target. */
       to: { type: Object, default: null },
+      /** Tile title. */
       title: { type: String, default: '' },
+      /** Tile subtitle. */
       text: { type: String, default: '' },
+      /** Cover image URL. */
       image: { type: String, default: '' },
+      /** Render the cover as a circle. */
       circle: { type: Boolean, default: false },
+      /** Hide the subtitle row. */
       titleOnly: { type: Boolean, default: false },
     },
-    setup() {
-      return { fallback }
+    setup: function () {
+      return { fallback: fallback }
     },
   })
 </script>

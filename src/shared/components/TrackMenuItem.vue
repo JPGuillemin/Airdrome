@@ -2,9 +2,9 @@
 <template>
   <li>
     <component
-      :is="isLink ? 'a' : 'button'"
-      :type="isLink ? undefined : 'button'"
-      :href="isLink ? href : undefined"
+      :is="tagName"
+      :type="buttonType"
+      :href="linkHref"
       :disabled="disabled"
       :class="classes"
       v-bind="$attrs"
@@ -15,24 +15,64 @@
   </li>
 </template>
 
-<script lang="ts" setup>
+<script setup>
   import { computed } from 'vue'
 
   defineOptions({ inheritAttrs: false })
 
-  const props = defineProps({
+  var props = defineProps({
+    /** Icon name shown on the right side. */
     icon: { type: String, default: null },
+    /** Optional Bootstrap variant suffix. */
     variant: { type: String, default: '' },
+    /** Disable the item. */
     disabled: { type: Boolean, default: false },
+    /** When set, render the item as a link. */
     href: { type: String, default: '' },
   })
 
-  const classes = computed(() => [
-    'dropdown-item d-flex justify-content-between align-items-center text-nowrap',
-    props.variant && `dropdown-item-${props.variant}`,
-  ])
+  var isLink = computed(function () {
+    return !!props.href
+  })
 
-  const isLink = computed(() => !!props.href)
+  var classes = computed(function () {
+    var result = [
+      'dropdown-item d-flex justify-content-between align-items-center text-nowrap',
+    ]
+
+    if (props.variant) {
+      result.push('dropdown-item-' + props.variant)
+    }
+
+    return result
+  })
+
+  /** Tag rendered by the dynamic component. */
+  var tagName = computed(function () {
+    if (isLink.value) {
+      return 'a'
+    }
+
+    return 'button'
+  })
+
+  /** `type` attribute, only meaningful for buttons. */
+  var buttonType = computed(function () {
+    if (isLink.value) {
+      return undefined
+    }
+
+    return 'button'
+  })
+
+  /** `href` attribute, only meaningful for links. */
+  var linkHref = computed(function () {
+    if (isLink.value) {
+      return props.href
+    }
+
+    return undefined
+  })
 </script>
 
 <style scoped>

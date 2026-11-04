@@ -172,14 +172,13 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, computed, onMounted, onActivated, onBeforeUnmount, watch } from 'vue'
   import { inject } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import PlaylistList from '@/library/playlist/PlaylistList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
   import TrackTiles from '@/library/track/TrackTiles.vue'
-  import { Album, AlbumGenre, Genre, Artist, Playlist, Track } from '@/shared/api'
   import { orderBy } from 'lodash-es'
   import { reloadToken } from '@/shared/reload'
   import { useRadioStore } from '@/player/radio'
@@ -189,134 +188,216 @@
 
   // Short delay after a scrobble so the server has time to register it
   // before we refetch the "recently played" albums.
-  const PLAYED_REFRESH_DELAY_MS = 1500
+  var PLAYED_REFRESH_DELAY_MS = 1500
 
   export default defineComponent({
     components: {
-      AlbumList,
-      ArtistList,
-      PlaylistList,
-      TrackTiles,
+      AlbumList: AlbumList,
+      ArtistList: ArtistList,
+      PlaylistList: PlaylistList,
+      TrackTiles: TrackTiles,
     },
 
     directives: {
       'longpress-tooltip': longPressTooltip
     },
 
-    setup() {
-      const api = inject('$api') as any
-      const favouriteStore = useFavouriteStore()
-      const player = usePlayerStore()
+    setup: function () {
+      var api = inject('$api')
+      var favouriteStore = useFavouriteStore()
+      var player = usePlayerStore()
 
-      const loading = ref(false)
-      const result = ref({
-        recent: [] as Album[],
-        played: [] as Album[],
-        mood: [] as Track[],
-        most: [] as Album[],
-        genres: [] as Genre[],
-        playlists: [] as Playlist[],
+      var loading = ref(false)
+
+      /** Sections shown on the dashboard. */
+      var result = ref({
+        recent: [],
+        played: [],
+        mood: [],
+        most: [],
+        genres: [],
+        playlists: [],
       })
 
-      const favalbums = ref<Album[]>([])
-      const favartists = ref<Artist[]>([])
-      const randomTracks = ref<Track[]>([])
-      const lastGenre = ref<AlbumGenre | null>(null)
+      var favalbums = ref([])
+      var favartists = ref([])
+      var randomTracks = ref([])
+      var lastGenre = ref(null)
 
-      const empty = computed(() =>
-        Object.values(result.value).findIndex(x => x.length > 0) === -1
-        && randomTracks.value.length === 0
-      )
+      var empty = computed(function () {
+        return Object.values(result.value).findIndex(function (x) {
+          return x.length > 0
+        }) === -1 && randomTracks.value.length === 0
+      })
 
       // Fetch "recently played" albums. On the initial load (initial = true) it also
       // builds the "Current mood" section; on later refreshes the mood is left untouched
       // so the tiles don't reshuffle under the user's cursor.
-      const fetchPlayed = async (initial = false) => {
-        const played: Album[] = await api.getAlbums('recently-played', 32)
-        console.info('[Discover] recently-played fetched, first =', played[0]?.name ?? played[0]?.id)
+      async function fetchPlayed(initial) {
+        if (initial === undefined) {
+          initial = false
+        }
+
+        var played = await api.getAlbums('recently-played', 32)
+        var firstLabel = undefined
+
+        if (played[0]) {
+          if (played[0].name != null) {
+            firstLabel = played[0].name
+          } else {
+            firstLabel = played[0].id
+          }
+        }
+
+        console.info('[Discover] recently-played fetched, first =', firstLabel)
 
         // Skip the update if nothing changed (avoids needless re-renders / scroll jumps)
-        const sameOrder =
-          played.length === result.value.played.length
-          && played.every((a, i) => a.id === result.value.played[i].id)
+        var sameOrder = played.length === result.value.played.length
+
+        if (sameOrder) {
+          for (var i = 0; i < played.length; i++) {
+            if (played[i].id !== result.value.played[i].id) {
+              sameOrder = false
+              break
+            }
+          }
+        }
+
         if (!sameOrder) {
           result.value.played = played
         }
 
-        if (!initial || played.length === 0) return
+        if (!initial || played.length === 0) {
+          return
+        }
 
-        const lastPlayed = played[0]
-        lastGenre.value = (lastPlayed as Album).genres[0]!
-        if (!lastGenre.value) return
+        var lastPlayed = played[0]
+        lastGenre.value = lastPlayed.genres[0]
 
-        const tracksByGenre = await api.getTracksByGenre(
+        if (!lastGenre.value) {
+          return
+        }
+
+        var tracksByGenre = await api.getTracksByGenre(
           lastGenre.value.name,
           200,
           0
         )
 
         result.value.mood = tracksByGenre
-          .sort(() => Math.random() - 0.5)
+          .sort(function () {
+            return Math.random() - 0.5
+          })
           .slice(0, 72)
       }
 
-      const fetchData = async () => {
-        if (loading.value) return
+      async function loadGenres() {
+        var genres = await api.getGenres()
+        var genreNames = genres.map(function (genre) {
+          return Object.assign({}, genre, { id: genre.name })
+        })
+
+        result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
+      }
+
+      async function loadFavourites() {
+        var favourites = await api.getFavourites()
+        favartists.value = favourites.artists.slice(0, 16)
+        favalbums.value = favourites.albums.slice(0, 16)
+      }
+
+      async function loadRecentAlbums() {
+        result.value.recent = await api.getAlbums('recently-added', 32)
+      }
+
+      async function loadRandomTracks() {
+        randomTracks.value = await api.getRandomTracks({ size: 50 })
+      }
+
+      async function loadMostPlayed() {
+        result.value.most = await api.getAlbums('most-played', 32)
+      }
+
+      async function fetchData() {
+        if (loading.value) {
+          return
+        }
+
         loading.value = true
 
         try {
-          api.getGenres().then((genres: Genre[]) => {
-            const genreNames = genres.map((genre: Genre) => ({ ...genre, id: genre.name }))
-            result.value.genres = orderBy(genreNames, 'albumCount', 'desc')
-          })
-
-          api.getFavourites().then(favourites => {
-            favartists.value = favourites.artists.slice(0, 16)
-            favalbums.value = favourites.albums.slice(0, 16)
-          })
-
+          loadGenres()
+          loadFavourites()
           fetchPlayed(true)
+          loadRecentAlbums()
 
-          api.getAlbums('recently-added', 32).then(recent => {
-            result.value.recent = recent
-          })
-
-          const playlists = await api.getPlaylists()
+          var playlists = await api.getPlaylists()
           result.value.playlists = playlists.slice(0, 10)
 
-          api.getRandomTracks({ size: 50 }).then((tracks: Track[]) => {
-            randomTracks.value = tracks
-          })
-
-          api.getAlbums('most-played', 32).then(most => {
-            result.value.most = most
-          })
+          loadRandomTracks()
+          loadMostPlayed()
         } finally {
           loading.value = false
         }
       }
 
       // --- Dynamic "Recently played" -------------------------------------------------
-      let refreshTimer: ReturnType<typeof setTimeout> | undefined
+      var refreshTimer = undefined
 
-      const schedulePlayedRefresh = () => {
-        if (refreshTimer) clearTimeout(refreshTimer)
-        refreshTimer = setTimeout(() => {
+      function schedulePlayedRefresh() {
+        if (refreshTimer) {
+          clearTimeout(refreshTimer)
+        }
+
+        refreshTimer = setTimeout(async function () {
           refreshTimer = undefined
-          fetchPlayed(false).catch(() => { /* ignore transient network errors */ })
+
+          try {
+            await fetchPlayed(false)
+          } catch (err) {
+            /* ignore transient network errors */
+          }
         }, PLAYED_REFRESH_DELAY_MS)
       }
 
       // Immediate, optimistic update: when a track starts, move its album to the
       // front of the list if it is already there (no server round-trip needed).
       watch(
-        () => player.track?.albumId,
-        (albumId) => {
-          if (!albumId) return
-          const list = result.value.played
-          const i = list.findIndex(a => a.id === albumId)
-          if (i > 0) {
-            result.value.played = [list[i], ...list.slice(0, i), ...list.slice(i + 1)]
+        function () {
+          if (player.track) {
+            return player.track.albumId
+          }
+
+          return undefined
+        },
+        function (albumId) {
+          if (!albumId) {
+            return
+          }
+
+          var list = result.value.played
+          var position = -1
+          var i
+
+          for (i = 0; i < list.length; i++) {
+            if (list[i].id === albumId) {
+              position = i
+              break
+            }
+          }
+
+          if (position > 0) {
+            var reordered = [list[position]]
+
+            for (i = 0; i < position; i++) {
+              reordered.push(list[i])
+            }
+
+            for (i = position + 1; i < list.length; i++) {
+              reordered.push(list[i])
+            }
+
+            result.value.played = reordered
           }
         }
       )
@@ -325,67 +406,120 @@
       // (player.scrobbled flips to true, and back to false on the next track).
       // That is the moment the server's "recently played" list actually changes.
       watch(
-        () => player.scrobbled,
-        (scrobbled) => {
+        function () {
+          return player.scrobbled
+        },
+        function (scrobbled) {
           console.info('[Discover] scrobbled =', scrobbled)
-          if (scrobbled) schedulePlayedRefresh()
+
+          if (scrobbled) {
+            schedulePlayedRefresh()
+          }
         }
       )
 
       // If the view is kept alive (<keep-alive>), refresh when it becomes active again
-      let firstActivation = true
-      onActivated(() => {
+      var firstActivation = true
+
+      onActivated(async function () {
         if (firstActivation) {
           firstActivation = false
           return
         }
-        fetchPlayed(false).catch(() => {})
+
+        try {
+          await fetchPlayed(false)
+        } catch (err) {
+          /* ignore transient network errors */
+        }
       })
 
-      onBeforeUnmount(() => {
-        if (refreshTimer) clearTimeout(refreshTimer)
+      onBeforeUnmount(function () {
+        if (refreshTimer) {
+          clearTimeout(refreshTimer)
+        }
       })
       // -------------------------------------------------------------------------------
 
       // When an album is toggled ON from any AlbumList in this view, add it to favalbums
-      const onFavouriteAdded = (album: Album) => {
-        if (!favalbums.value.find(a => a.id === album.id)) {
-          favalbums.value = [album, ...favalbums.value]
+      function onFavouriteAdded(album) {
+        var exists = false
+
+        for (var i = 0; i < favalbums.value.length; i++) {
+          if (favalbums.value[i].id === album.id) {
+            exists = true
+            break
+          }
+        }
+
+        if (!exists) {
+          favalbums.value = [album].concat(favalbums.value)
         }
       }
 
       // When an album/artist is toggled OFF, remove it from the fav lists
       watch(
-        () => favouriteStore.albums,
-        (newAlbums) => {
-          favalbums.value = favalbums.value.filter(a => !!newAlbums[a.id])
+        function () {
+          return favouriteStore.albums
+        },
+        function (newAlbums) {
+          favalbums.value = favalbums.value.filter(function (a) {
+            return !!newAlbums[a.id]
+          })
         }
       )
       watch(
-        () => favouriteStore.artists,
-        (newArtists) => {
-          favartists.value = favartists.value.filter(a => !!newArtists[a.id])
+        function () {
+          return favouriteStore.artists
+        },
+        function (newArtists) {
+          favartists.value = favartists.value.filter(function (a) {
+            return !!newArtists[a.id]
+          })
         }
       )
 
-      const radio = useRadioStore()
-      const radioRecentlyPlayed = () => radio.shuffleRecentlyPlayed()
-      const radioMostPlayed = () => radio.shuffleMostPlayed()
-      const radioFavouriteAlbums = () => radio.shuffleFavouriteAlbums()
-      const radioFavouriteArtists = () => radio.shuffleFavouriteArtists()
-      const radioRecentlyAdded = () => radio.shuffleRecentlyAdded()
-      const luckyRadio = () => radio.luckyRadio()
-      const radioMood = () =>
-        lastGenre.value
-          ? radio.shuffleMood(lastGenre.value.name)
-          : undefined
+      var radio = useRadioStore()
+
+      function radioRecentlyPlayed() {
+        return radio.shuffleRecentlyPlayed()
+      }
+
+      function radioMostPlayed() {
+        return radio.shuffleMostPlayed()
+      }
+
+      function radioFavouriteAlbums() {
+        return radio.shuffleFavouriteAlbums()
+      }
+
+      function radioFavouriteArtists() {
+        return radio.shuffleFavouriteArtists()
+      }
+
+      function radioRecentlyAdded() {
+        return radio.shuffleRecentlyAdded()
+      }
+
+      function luckyRadio() {
+        return radio.luckyRadio()
+      }
+
+      function radioMood() {
+        if (lastGenre.value) {
+          return radio.shuffleMood(lastGenre.value.name)
+        }
+
+        return undefined
+      }
 
       onMounted(fetchData)
 
-      watch(reloadToken, () => {
+      watch(reloadToken, function () {
         favalbums.value = []
         favartists.value = []
         randomTracks.value = []
+
         Object.assign(result.value, {
           recent: [],
           played: [],
@@ -394,26 +528,27 @@
           genres: [],
           playlists: [],
         })
+
         fetchData()
       })
 
       return {
-        result,
-        favartists,
-        favalbums,
-        randomTracks,
-        lastGenre,
-        loading,
-        empty,
-        fetchData,
-        onFavouriteAdded,
-        radioRecentlyPlayed,
-        radioMostPlayed,
-        radioFavouriteAlbums,
-        radioFavouriteArtists,
-        radioRecentlyAdded,
-        radioMood,
-        luckyRadio,
+        result: result,
+        favartists: favartists,
+        favalbums: favalbums,
+        randomTracks: randomTracks,
+        lastGenre: lastGenre,
+        loading: loading,
+        empty: empty,
+        fetchData: fetchData,
+        onFavouriteAdded: onFavouriteAdded,
+        radioRecentlyPlayed: radioRecentlyPlayed,
+        radioMostPlayed: radioMostPlayed,
+        radioFavouriteAlbums: radioFavouriteAlbums,
+        radioFavouriteArtists: radioFavouriteArtists,
+        radioRecentlyAdded: radioRecentlyAdded,
+        radioMood: radioMood,
+        luckyRadio: luckyRadio,
       }
     },
   })

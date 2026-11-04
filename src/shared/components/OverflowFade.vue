@@ -4,39 +4,53 @@
     <slot />
   </div>
 </template>
-<script lang="ts">
-  import { computed, defineComponent, onMounted, onUnmounted, Ref, ref } from 'vue'
+<script>
+  import { computed, defineComponent, onMounted, onUnmounted, ref } from 'vue'
 
   export default defineComponent({
-    setup() {
-      const el = ref(null) as unknown as Ref<HTMLElement>
-      const isScrolledToTop = ref(true)
-      const isScrolledToBottom = ref(true)
+    setup: function () {
+      var el = ref(null)
+      var isScrolledToTop = ref(true)
+      var isScrolledToBottom = ref(true)
 
       function updateScrollPosition() {
         isScrolledToBottom.value = el.value.scrollHeight - el.value.scrollTop - el.value.clientHeight < 1
         isScrolledToTop.value = el.value.scrollTop < 1
       }
 
-      const maskTop = computed(() => isScrolledToTop.value ? '0' : '2em')
-      const maskBottom = computed(() => isScrolledToBottom.value ? '0' : '2em')
+      var maskTop = computed(function () {
+        if (isScrolledToTop.value) {
+          return '0'
+        }
 
-      const resizeObserver = new ResizeObserver(() => {
+        return '2em'
+      })
+
+      var maskBottom = computed(function () {
+        if (isScrolledToBottom.value) {
+          return '0'
+        }
+
+        return '2em'
+      })
+
+      var resizeObserver = new ResizeObserver(function () {
         updateScrollPosition()
       })
 
-      onMounted(() => {
+      onMounted(function () {
         resizeObserver.observe(el.value)
       })
-      onUnmounted(() => {
+
+      onUnmounted(function () {
         resizeObserver.disconnect()
       })
 
       return {
-        el,
-        updateScrollPosition,
-        maskTop,
-        maskBottom,
+        el: el,
+        updateScrollPosition: updateScrollPosition,
+        maskTop: maskTop,
+        maskBottom: maskBottom,
       }
     },
   })

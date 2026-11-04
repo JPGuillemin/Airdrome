@@ -65,19 +65,19 @@
   </nav>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import { useMainStore } from '@/shared/store'
   import { useRoute } from 'vue-router'
 
   export default defineComponent({
-    setup() {
-      const store = useMainStore()
-      const route = useRoute()
+    setup: function () {
+      var store = useMainStore()
+      var route = useRoute()
 
       return {
-        store,
-        route,
+        store: store,
+        route: route,
       }
     },
   })

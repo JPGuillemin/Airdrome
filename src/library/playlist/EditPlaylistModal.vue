@@ -49,90 +49,127 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { computed, defineComponent, ref, watch } from 'vue'
   import { orderBy } from 'lodash-es'
   import SwitchInput from '@/shared/components/SwitchInput.vue'
   import { usePlaylistStore } from '@/library/playlist/store'
-  import type { Playlist } from '@/shared/api'
-  import type { PropType } from 'vue'
 
-  const NEW_PLAYLIST = '__new__'
+  var NEW_PLAYLIST = '__new__'
 
   export default defineComponent({
-    components: { SwitchInput },
+    components: { SwitchInput: SwitchInput },
 
     props: {
       // In 'add' mode, `playlist` is only used to prefill the name
       // used when creating a new playlist.
-      playlist: { type: Object as PropType<Playlist | null>, default: null },
-      mode: { type: String as PropType<'create' | 'edit' | 'add'>, default: 'edit' }
+      /** Playlist being edited, or the template used to prefill a new one. */
+      playlist: { type: Object, default: null },
+      /** Modal mode: 'create', 'edit' or 'add'. */
+      mode: { type: String, default: 'edit' },
     },
 
     emits: ['close', 'update-playlist', 'create-playlist', 'add-to-playlist'],
 
-    setup(props, { emit }) {
-      const playlistStore = usePlaylistStore()
+    setup: function (props, context) {
+      var emit = context.emit
+      var playlistStore = usePlaylistStore()
 
-      const local = ref(
-        props.playlist
-          ? { ...props.playlist }
-          : { name: '', comment: '', isPublic: false }
-      )
+      var initialPlaylist = { name: '', comment: '', isPublic: false }
+
+      if (props.playlist) {
+        initialPlaylist = Object.assign({}, props.playlist)
+      }
+
+      /** Local editable copy of the playlist. */
+      var local = ref(initialPlaylist)
 
       watch(
-        () => props.playlist,
-        (newVal) => {
-          local.value = newVal
-            ? { ...newVal }
-            : { name: '', comment: '', isPublic: false }
+        function () {
+          return props.playlist
+        },
+        function (newVal) {
+          if (newVal) {
+            local.value = Object.assign({}, newVal)
+          } else {
+            local.value = { name: '', comment: '', isPublic: false }
+          }
         },
         { immediate: true }
       )
 
-      const playlists = computed(() => orderBy(playlistStore.playlists || [], 'name'))
+      var playlists = computed(function () {
+        return orderBy(playlistStore.playlists || [], 'name')
+      })
 
       // Default selection: the playlist matching the prefilled name if there
       // is one, otherwise "New playlist".
-      const selectedId = ref<string>(
-        props.mode === 'add'
-          ? playlistStore.findByName(local.value.name || '')?.id ?? NEW_PLAYLIST
-          : NEW_PLAYLIST
-      )
+      var initialSelectedId = NEW_PLAYLIST
 
-      const isNew = computed(() => props.mode === 'add' && selectedId.value === NEW_PLAYLIST)
-      const showName = computed(() => props.mode !== 'add' || isNew.value)
+      if (props.mode === 'add') {
+        var matchingPlaylist = playlistStore.findByName(local.value.name || '')
 
-      const title = computed(() => {
-        if (props.mode === 'edit') return 'Edit Playlist'
-        if (props.mode === 'add') return 'Add to Playlist'
+        if (matchingPlaylist && matchingPlaylist.id != null) {
+          initialSelectedId = matchingPlaylist.id
+        }
+      }
+
+      var selectedId = ref(initialSelectedId)
+
+      var isNew = computed(function () {
+        return props.mode === 'add' && selectedId.value === NEW_PLAYLIST
+      })
+
+      var showName = computed(function () {
+        return props.mode !== 'add' || isNew.value
+      })
+
+      var title = computed(function () {
+        if (props.mode === 'edit') {
+          return 'Edit Playlist'
+        }
+
+        if (props.mode === 'add') {
+          return 'Add to Playlist'
+        }
+
         return 'New Playlist'
       })
 
-      const buttonLabel = computed(() => {
-        if (props.mode === 'edit') return 'Save'
-        if (props.mode === 'add') return isNew.value ? 'Create' : 'Add'
+      var buttonLabel = computed(function () {
+        if (props.mode === 'edit') {
+          return 'Save'
+        }
+
+        if (props.mode === 'add') {
+          if (isNew.value) {
+            return 'Create'
+          }
+
+          return 'Add'
+        }
+
         return 'Create'
       })
 
-      const close = () => {
+      function close() {
         emit('close')
       }
 
-      const save = () => {
+      function save() {
         if (props.mode === 'add' && !isNew.value) {
           emit('add-to-playlist', selectedId.value)
           close()
           return
         }
 
-        if (!local.value.name?.trim()) {
+        if (!local.value.name || !local.value.name.trim()) {
           alert('Name cannot be empty')
           return
         }
 
         if (props.mode === 'edit') {
-          emit('update-playlist', { ...local.value })
+          emit('update-playlist', Object.assign({}, local.value))
         } else {
           emit('create-playlist', local.value.name)
         }
@@ -141,15 +178,15 @@
       }
 
       return {
-        local,
-        playlists,
-        selectedId,
-        NEW_PLAYLIST,
-        showName,
-        title,
-        buttonLabel,
-        save,
-        close,
+        local: local,
+        playlists: playlists,
+        selectedId: selectedId,
+        NEW_PLAYLIST: NEW_PLAYLIST,
+        showName: showName,
+        title: title,
+        buttonLabel: buttonLabel,
+        save: save,
+        close: close,
       }
     },
   })

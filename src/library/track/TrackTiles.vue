@@ -9,12 +9,12 @@
         :title-only="titleOnly"
         @dragstart="dragstart(item, $event)"
         @click="playNow(index)"
-        @contextmenu.prevent="openMenu(item.id ?? index)"
-        @mousedown="onMouseDown(item.id ?? index, $event)"
+        @contextmenu.prevent="openMenu(rowKey(item, index))"
+        @mousedown="onMouseDown(rowKey(item, index), $event)"
         @mousemove="onMouseMove"
         @mouseup="onMouseUp"
         @mouseleave="onMouseUp"
-        @touchstart="onTouchStart(item.id ?? index, $event)"
+        @touchstart="onTouchStart(rowKey(item, index))"
         @touchend="onTouchEnd"
         @touchmove="onTouchEnd"
       >
@@ -34,7 +34,7 @@
           </template>
           <!-- Album -->
           <span v-if="withAlbum && item.album" class="text-muted">
-            <span v-if="withArtist && item.artists?.length"> • </span>
+            <span v-if="withArtist && item.artists && item.artists.length"> • </span>
             {{ item.album }}
           </span>
         </template>
@@ -43,7 +43,7 @@
           <TileActionButton icon="queue-next" label="Play next" @click.stop="playNext(item)" />
           <TileActionButton icon="queue" label="Add to queue" @click.stop="addToQueue(item)" />
           <TileActionButton
-            :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+            :icon="favouriteIcon(item.id)"
             label="Like"
             @click.stop="toggleFavourite(item.id)"
           />
@@ -52,30 +52,30 @@
 
       <!-- Tile has no default slot, so the (teleported) menu is mounted as a sibling. -->
       <RowActionsMenu
-        :ref="(el) => setMenuRef(el, item.id ?? index)"
+        :ref="menuRefFor(item, index)"
         :track="item"
       />
     </template>
   </Tiles>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/shared/cache'
-  import type { Track } from '@/shared/api'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
 
-  const LONG_PRESS_MS = 500
+  var LONG_PRESS_MS = 500
   // Pixels the mouse may drift during a long press before it is cancelled
-  const MOUSE_MOVE_TOLERANCE = 5
+  var MOUSE_MOVE_TOLERANCE = 5
 
   export default defineComponent({
-    components: { RowActionsMenu },
+    components: { RowActionsMenu: RowActionsMenu },
     props: {
+      /** Tracks displayed as tiles. */
       items: {
-        type: Array as () => Track[],
+        type: Array,
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
@@ -86,102 +86,171 @@
       withAlbum: { type: Boolean, default: false },
     },
     emits: ['favourite-added'],
-    setup(props, { emit }) {
-      const favouriteStore = useFavouriteStore()
-      const playerStore = usePlayerStore()
-      const cacheStore = useCacheStore()
+    setup: function (props, context) {
+      var emit = context.emit
+      var favouriteStore = useFavouriteStore()
+      var playerStore = usePlayerStore()
+      var cacheStore = useCacheStore()
 
-      const validItems = computed(() =>
-        (props.items || []).filter((item): item is Track => !!item?.id)
-      )
+      var validItems = computed(function () {
+        return (props.items || []).filter(function (item) {
+          return !!item && !!item.id
+        })
+      })
 
-      let pressTimer: ReturnType<typeof setTimeout> | null = null
-      let isLongPressTriggered = false
+      var pressTimer = null
+      var isLongPressTriggered = false
+
+      /** Row key: the track id, falling back to the list index. */
+      function rowKey(item, index) {
+        if (item.id === null || item.id === undefined) {
+          return index
+        }
+
+        return item.id
+      }
 
       // Append only the clicked track to the end of the existing queue,
       // then jump to it. Keeps the queue state intact and the playing track
       // correctly highlighted in the queue view.
-      const playNow = (index: number) => {
+      function playNow(index) {
         if (isLongPressTriggered) {
           isLongPressTriggered = false
           return
         }
-        const track = validItems.value[index]
-        if (!track) return
-        if (track.url) cacheStore.cacheTrack(track.url)
+
+        var track = validItems.value[index]
+
+        if (!track) {
+          return
+        }
+
+        if (track.url) {
+          cacheStore.cacheTrack(track.url)
+        }
+
         playerStore.setShuffle(false)
-        const insertIndex = playerStore.queue.length
+
+        var insertIndex = playerStore.queue.length
         playerStore.addToQueue([track])
+
         return playerStore.playTrackListIndex(insertIndex)
       }
 
-      const toggleFavourite = async (id: string) => {
-        const track = validItems.value.find(t => t.id === id)
-        if (!track) return
+      async function toggleFavourite(id) {
+        var track = null
+
+        for (var i = 0; i < validItems.value.length; i++) {
+          if (validItems.value[i].id === id) {
+            track = validItems.value[i]
+            break
+          }
+        }
+
+        if (!track) {
+          return
+        }
 
         await favouriteStore.toggle('track', id)
 
         if (isFavourite(id)) {
-          if (track.url) await cacheStore.cacheTrack(track.url)
+          if (track.url) {
+            await cacheStore.cacheTrack(track.url)
+          }
+
           emit('favourite-added', track)
         } else {
-          if (track.url) await cacheStore.deleteTrack(track.url)
+          if (track.url) {
+            await cacheStore.deleteTrack(track.url)
+          }
         }
       }
 
-      const playNext = (track: Track) => {
+      function playNext(track) {
         playerStore.setNextInQueue([track])
       }
 
-      const addToQueue = (track: Track) => {
+      function addToQueue(track) {
         playerStore.addToQueue([track])
       }
 
-      const dragstart = (item: Track, event: DragEvent) => {
+      function dragstart(item, event) {
         onMouseUp()
-        if (!item.isStream) {
-          event.dataTransfer?.setData('application/x-track-id', item.id)
+
+        if (!item.isStream && event.dataTransfer) {
+          event.dataTransfer.setData('application/x-track-id', item.id)
         }
       }
 
-      const isFavourite = (id: string) =>
-        favouriteStore.get('track', id)
-
-      const menuRefs = new Map<string | number, any>()
-      const setMenuRef = (el: any, key: string | number) => {
-        if (el) menuRefs.set(key, el)
-        else menuRefs.delete(key)
+      function isFavourite(id) {
+        return favouriteStore.get('track', id)
       }
 
-      const openMenu = (key: string | number) => {
-        const menu = menuRefs.get(key)
+      function favouriteIcon(id) {
+        if (isFavourite(id)) {
+          return 'heart-fill'
+        }
+
+        return 'heart'
+      }
+
+      var menuRefs = new Map()
+
+      function setMenuRef(el, key) {
+        if (el) {
+          menuRefs.set(key, el)
+        } else {
+          menuRefs.delete(key)
+        }
+      }
+
+      /** Build the ref callback that registers the menu of a given tile. */
+      function menuRefFor(item, index) {
+        var key = rowKey(item, index)
+
+        return function (el) {
+          setMenuRef(el, key)
+        }
+      }
+
+      function openMenu(key) {
+        var menu = menuRefs.get(key)
+
         if (menu && typeof menu.open === 'function') {
           menu.open()
         }
       }
 
       // Long press: the click that may follow must not start playback
-      const triggerMenu = (key: string | number) => {
+      function triggerMenu(key) {
         isLongPressTriggered = true
         openMenu(key)
       }
 
-      let mouseStart = { x: 0, y: 0 }
+      var mouseStart = { x: 0, y: 0 }
 
-      const onMouseDown = (key: string | number, event: MouseEvent) => {
+      function onMouseDown(key, event) {
         // The menu overlay can swallow the click that ends a long press,
         // so a stale flag must never leak into the next press.
         isLongPressTriggered = false
-        if (event.button !== 0) return
+
+        if (event.button !== 0) {
+          return
+        }
+
         mouseStart = { x: event.clientX, y: event.clientY }
-        pressTimer = setTimeout(() => {
+
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onMouseMove = (event: MouseEvent) => {
-        if (!pressTimer) return
+      function onMouseMove(event) {
+        if (!pressTimer) {
+          return
+        }
+
         if (
           Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
           Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
@@ -190,22 +259,23 @@
         }
       }
 
-      const onMouseUp = () => {
+      function onMouseUp() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
         }
       }
 
-      const onTouchStart = (key: string | number, _event: TouchEvent) => {
+      function onTouchStart(key) {
         isLongPressTriggered = false
-        pressTimer = setTimeout(() => {
+
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onTouchEnd = () => {
+      function onTouchEnd() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
@@ -213,20 +283,23 @@
       }
 
       return {
-        validItems,
-        playNow,
-        playNext,
-        addToQueue,
-        toggleFavourite,
-        dragstart,
-        isFavourite,
-        setMenuRef,
-        openMenu,
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onTouchStart,
-        onTouchEnd,
+        validItems: validItems,
+        rowKey: rowKey,
+        playNow: playNow,
+        playNext: playNext,
+        addToQueue: addToQueue,
+        toggleFavourite: toggleFavourite,
+        dragstart: dragstart,
+        isFavourite: isFavourite,
+        favouriteIcon: favouriteIcon,
+        setMenuRef: setMenuRef,
+        menuRefFor: menuRefFor,
+        openMenu: openMenu,
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove,
+        onMouseUp: onMouseUp,
+        onTouchStart: onTouchStart,
+        onTouchEnd: onTouchEnd,
       }
     },
   })

@@ -5,21 +5,38 @@
   </td>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, computed } from 'vue'
-  import { Track } from '@/shared/api'
 
   export default defineComponent({
-    props: { track: { type: Object as () => Track, required: true } },
-    setup(props) {
-      const formattedDuration = computed(() => {
-        const d = props.track?.duration ?? 0
-        const min = Math.floor(d / 60)
-        const sec = d % 60
-        return d ? `${min}:${sec.toString().padStart(2, '0')}` : '-'
+    props: {
+      /** Track whose duration is formatted. */
+      track: { type: Object, required: true }
+    },
+    setup: function (props) {
+      var formattedDuration = computed(function () {
+        var d = 0
+
+        if (props.track && props.track.duration !== null && props.track.duration !== undefined) {
+          d = props.track.duration
+        }
+
+        if (!d) {
+          return '-'
+        }
+
+        var min = Math.floor(d / 60)
+        var sec = d % 60
+        var secText = String(sec)
+
+        if (secText.length < 2) {
+          secText = '0' + secText
+        }
+
+        return min + ':' + secText
       })
 
-      return { formattedDuration }
+      return { formattedDuration: formattedDuration }
     }
   })
 </script>

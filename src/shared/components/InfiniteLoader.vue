@@ -4,15 +4,17 @@
     <span />
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import { useIntersectionObserver } from '@vueuse/core'
 
-  function isInViewport(el: HTMLElement | null) {
+  function isInViewport(el) {
     if (!el) {
       return false
     }
-    const rect = el.getBoundingClientRect()
+
+    var rect = el.getBoundingClientRect()
+
     return (
       rect.bottom >= 0 &&
       rect.right >= 0 &&
@@ -23,36 +25,47 @@
 
   export default defineComponent({
     props: {
+      /** Whether a page load is currently in progress. */
       loading: { type: Boolean, required: true },
+      /** Whether more items can still be loaded. */
       hasMore: { type: Boolean, required: true },
     },
     emits: ['load-more'],
-    setup(props, { emit }) {
-      const el = ref<HTMLElement | null>(null)
+    setup: function (props, context) {
+      var el = ref(null)
 
       function check() {
         if (isInViewport(el.value) && !props.loading && props.hasMore) {
-          emit('load-more')
+          context.emit('load-more')
         }
       }
 
-      const { stop } = useIntersectionObserver(el, () => {
+      var observer = useIntersectionObserver(el, function () {
         check()
       })
 
+      var stop = observer.stop
+
       watch(
-        () => [props.loading, props.hasMore],
-        () => check()
+        function () {
+          return [props.loading, props.hasMore]
+        },
+        function () {
+          check()
+        }
       )
 
-      onMounted(() => {
-        emit('load-more')
+      onMounted(function () {
+        context.emit('load-more')
       })
 
-      onBeforeUnmount(() => {
+      onBeforeUnmount(function () {
         stop()
       })
-      return { el }
+
+      return {
+        el: el
+      }
     },
   })
 </script>

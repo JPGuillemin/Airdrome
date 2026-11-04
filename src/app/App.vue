@@ -20,28 +20,41 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
   import { computed } from 'vue'
-  import { useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
+  import { useRoute } from 'vue-router'
 
   import GlobalLoader from '@/shared/components/GlobalLoader.vue'
   import Default from '@/app/layout/Default.vue'
   import Fullscreen from '@/app/layout/Fullscreen.vue'
   import { reloadToken } from '@/shared/reload'
 
-  const route = useRoute()
+  var route = useRoute()
 
-  function routeOnAttributes(r: RouteLocationNormalizedLoaded) {
-    const dynamicRoutes = new Set(['album', 'genre', 'artist', 'search', 'queue'])
+  /**
+   * Build the key attributes used to force a view refresh.
+   *
+   * @param {Object} r - Current route.
+   * @returns {Object} Key attributes for the routed component.
+   */
+  function routeOnAttributes(r) {
+    var dynamicRoutes = new Set(['album', 'genre', 'artist', 'search', 'queue'])
+    var key
 
-    return dynamicRoutes.has(r.name as string)
-      ? { key: `${JSON.stringify(r.params)}-${reloadToken.value}` }
-      : { key: `${String(r.name)}-${reloadToken.value}` }
+    if (dynamicRoutes.has(r.name)) {
+      key = JSON.stringify(r.params) + '-' + reloadToken.value
+    } else {
+      key = String(r.name) + '-' + reloadToken.value
+    }
+
+    return { key: key }
   }
 
-  const layout = computed(() => {
-    return route.meta.layout === 'fullscreen'
-      ? Fullscreen
-      : Default
+  var layout = computed(function () {
+    if (route.meta.layout === 'fullscreen') {
+      return Fullscreen
+    }
+
+    return Default
   })
 </script>

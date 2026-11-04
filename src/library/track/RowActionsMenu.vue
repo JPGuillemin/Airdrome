@@ -42,7 +42,7 @@
                 Remove
               </TrackMenuItem>
 
-              <TrackMenuItem v-if="!track.isStream" :icon="isFavourite ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite()">
+              <TrackMenuItem v-if="!track.isStream" :icon="favouriteIcon" class="on-top" @click.stop="toggleFavourite()">
                 Like
               </TrackMenuItem>
               <TrackMenuItem v-if="!track.isStream" icon="download" class="on-top" @click="download()">
@@ -81,102 +81,124 @@
   </Teleport>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, computed, inject } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
-  import { Track } from '@/shared/api'
 
   export default defineComponent({
     props: {
-      // Track (or album / artist when `defaultActions` is false)
+      /** Track (or album / artist when `defaultActions` is false). */
       track: { type: Object, required: true },
-      // Overrides the modal title (defaults to the track title)
+      /** Overrides the modal title (defaults to the track title). */
       title: { type: String, default: '' },
-      // Built-in track actions (Next, Queue, Playlist, Like, Download).
-      // Set to false to only render the items provided through the slot.
+      /**
+       * Built-in track actions (Next, Queue, Playlist, Like, Download).
+       * Set to false to only render the items provided through the slot.
+       */
       defaultActions: { type: Boolean, default: true },
       isPlaylistView: { type: Boolean, default: false },
     },
 
     emits: ['remove'],
 
-    setup(props, { emit }) {
-      const favouriteStore = useFavouriteStore()
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const $api = inject('$api') as any
+    setup: function (props) {
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var $api = inject('$api')
 
-      const visible = ref(false)
-      const showPlaylistSelect = ref(false)
+      var visible = ref(false)
+      var showPlaylistSelect = ref(false)
 
-      const isFavourite = computed(() => !!favouriteStore.tracks[props.track.id])
+      var isFavourite = computed(function () {
+        return !!favouriteStore.tracks[props.track.id]
+      })
 
-      const toggleFavourite = () => favouriteStore.toggle('track', props.track.id)
+      var favouriteIcon = computed(function () {
+        if (isFavourite.value) {
+          return 'heart-fill'
+        }
 
-      const download = () => {
+        return 'heart'
+      })
+
+      function toggleFavourite() {
+        return favouriteStore.toggle('track', props.track.id)
+      }
+
+      function download() {
         if (!$api) {
           console.error('$api is not available')
           return
         }
+
         window.location.href = $api.getDownloadUrl(props.track.id)
         close()
       }
 
-      const setNextInQueue = () => {
-        playerStore.setNextInQueue([props.track as Track])
+      function setNextInQueue() {
+        playerStore.setNextInQueue([props.track])
         close()
       }
-      const addToQueue = () => {
-        playerStore.addToQueue([props.track as Track])
+
+      function addToQueue() {
+        playerStore.addToQueue([props.track])
         close()
       }
-      const addToPlaylist = (playlistId: string) => {
+
+      function addToPlaylist(playlistId) {
         showPlaylistSelect.value = false
         playlistStore.addTracks(playlistId, [props.track.id])
         close()
       }
 
-      const open = () => {
+      function open() {
         visible.value = true
       }
 
-      const close = () => {
+      function close() {
         visible.value = false
         showPlaylistSelect.value = false
       }
 
-      const onClickInside = (event: Event) => {
-        const target = event.target as (Element | null)
+      function onClickInside(event) {
+        var target = event.target
+        var item = null
+
+        if (target && target.closest) {
+          item = target.closest('.modal-body > *')
+        }
+
         // Items injected through the default slot (Select, Remove...) don't call close() themselves.
         // When an item opens the playlist sub-modal, the menu must stay open.
-        const item = target?.closest('.modal-body > *')
         if (item && item.tagName !== 'HR' && !showPlaylistSelect.value) {
           close()
         }
       }
 
-      const openAt = (_point?: any) => {
+      function openAt(point) {
         open()
       }
 
       return {
-        visible,
-        favouriteStore,
-        playlistStore,
-        playerStore,
-        showPlaylistSelect,
-        isFavourite,
-        toggleFavourite,
-        download,
-        setNextInQueue,
-        addToQueue,
-        addToPlaylist,
-        open,
-        close,
-        openAt,
-        onClickInside,
+        visible: visible,
+        favouriteStore: favouriteStore,
+        playlistStore: playlistStore,
+        playerStore: playerStore,
+        showPlaylistSelect: showPlaylistSelect,
+        isFavourite: isFavourite,
+        favouriteIcon: favouriteIcon,
+        toggleFavourite: toggleFavourite,
+        download: download,
+        setNextInQueue: setNextInQueue,
+        addToQueue: addToQueue,
+        addToPlaylist: addToPlaylist,
+        open: open,
+        close: close,
+        openAt: openAt,
+        onClickInside: onClickInside,
       }
     },
   })

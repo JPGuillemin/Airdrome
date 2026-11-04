@@ -14,14 +14,14 @@
   </td>
 </template>
 
-<script lang="ts">
-  import { defineComponent, PropType } from 'vue'
-  import type { Track } from '@/shared/api'
+<script>
+  import { defineComponent } from 'vue'
 
   export default defineComponent({
     name: 'CellAlbum',
     props: {
-      track: { type: Object as PropType<Track>, required: true }
+      /** Track whose album name is displayed. */
+      track: { type: Object, required: true }
     }
   })
 </script>

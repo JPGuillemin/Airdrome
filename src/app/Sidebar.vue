@@ -19,7 +19,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, watch } from 'vue'
   import SidebarNav from './SidebarNav.vue'
   import { useMainStore } from '@/shared/store'
@@ -27,20 +27,23 @@
 
   export default defineComponent({
     components: {
-      SidebarNav,
+      SidebarNav: SidebarNav,
     },
-    setup() {
-      const store = useMainStore()
-      const route = useRoute()
+    setup: function () {
+      var store = useMainStore()
+      var route = useRoute()
 
       watch(
-        () => route.fullPath,
-        () => {
+        function () {
+          return route.fullPath
+        },
+        function () {
           store.hideMenu()
         }
       )
+
       return {
-        store,
+        store: store,
       }
     },
   })

@@ -10,7 +10,7 @@
 
         <div class="header-info-wrapper">
           <div class="header-info-one">
-            <template v-if="album.artists?.length">
+            <template v-if="album.artists && album.artists.length">
               <span v-for="(artist, index) in album.artists" :key="artist.id" class="d-inline-flex flex-nowrap">
                 <span v-if="index > 0">, </span>
                 <router-link :to="{ name: 'artist', params: { id: artist.id }}">
@@ -26,11 +26,11 @@
             </template>
           </div>
 
-          <div v-if="album.genres?.length" class="header-info-two">
-            <span v-for="({ name: genre }, index) in album.genres" :key="genre">
+          <div v-if="album.genres && album.genres.length" class="header-info-two">
+            <span v-for="(genre, index) in album.genres" :key="genre.name">
               <span v-if="index > 0">, </span>
-              <router-link :to="{ name: 'genre', params: { id: genre }}">
-                {{ genre }}
+              <router-link :to="{ name: 'genre', params: { id: genre.name }}">
+                {{ genre.name }}
               </router-link>
             </span>
           </div>
@@ -47,7 +47,7 @@
             <Icon icon="radio" />
           </b-button>
           <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Album" @click="toggleFavourite">
-            <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+            <Icon :icon="favouriteIcon" />
           </b-button>
           <ExternalLink :href="listenBrainzUrl" class="btn btn-link header-buttons" title="MusicBrainz">
             <IconMusicBrainz />
@@ -104,14 +104,13 @@
     </Teleport>
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, ref, inject, computed } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/shared/cache'
   import { useLoader } from '@/shared/loader'
-  import { Album, Playlist } from '@/shared/api'
   import TrackList from '@/library/track/TrackList.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
@@ -120,197 +119,317 @@
   import { longPressTooltip } from '@/shared/tooltips'
   import { getAlbumListenBrainzUrl } from '@/shared/musicbrainz'
 
+  /** Shallow-copy the own enumerable keys of an object (ES5 object spread). */
+  function copyObject(source) {
+    var target = {}
+
+    if (!source) {
+      return target
+    }
+
+    var keys = Object.keys(source)
+
+    for (var i = 0; i < keys.length; i++) {
+      target[keys[i]] = source[keys[i]]
+    }
+
+    return target
+  }
+
+  /** Whether a track list contains the given track id. */
+  function trackListContains(tracks, id) {
+    for (var i = 0; i < tracks.length; i++) {
+      if (tracks[i].id === id) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   export default defineComponent({
-    components: { TrackList, IconMusicBrainz, EditPlaylistModal },
+    components: {
+      TrackList: TrackList,
+      IconMusicBrainz: IconMusicBrainz,
+      EditPlaylistModal: EditPlaylistModal
+    },
 
     directives: {
       'longpress-tooltip': longPressTooltip
     },
 
-    props: { id: { type: String, required: true } },
+    props: {
+      /** Album id taken from the route. */
+      id: { type: String, required: true }
+    },
 
-    setup(props) {
-      const favouriteStore = useFavouriteStore()
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const cacheStore = useCacheStore()
-      const api = inject('$api') as any
-      const loader = useLoader()
-      const router = useRouter()
-      const route = useRoute()
-      const radioStore = useRadioStore()
+    setup: function (props) {
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var cacheStore = useCacheStore()
+      var api = inject('$api')
+      var loader = useLoader()
+      var router = useRouter()
+      var route = useRoute()
+      var radioStore = useRadioStore()
 
-      const album = ref<Album | null>(null)
-      const cached = ref(false)
+      var album = ref(null)
+      var cached = ref(false)
 
-      const isFavourite = computed(() => favouriteStore.get('album', props.id))
-      const isPlaying = computed(() => playerStore.isPlaying)
-      const listenBrainzUrl = ref<string | null>(null)
+      var isFavourite = computed(function () {
+        return favouriteStore.get('album', props.id)
+      })
 
-      // Fetch album details
-      const fetchAlbum = async() => {
+      var isPlaying = computed(function () {
+        return playerStore.isPlaying
+      })
+
+      var favouriteIcon = computed(function () {
+        if (isFavourite.value) {
+          return 'heart-fill'
+        }
+
+        return 'heart'
+      })
+
+      var listenBrainzUrl = ref(null)
+
+      /** Fetch album details, cache state and the ListenBrainz URL. */
+      async function fetchAlbum() {
         loader.showLoading()
+
         try {
-          const result = await api.getAlbumDetails(props.id)
+          var result = await api.getAlbumDetails(props.id)
           album.value = result
           cached.value = await cacheStore.isCached(result)
+
           if (result.musicBrainzUrl) {
             listenBrainzUrl.value = result.musicBrainzUrl
           } else {
-            listenBrainzUrl.value = await getAlbumListenBrainzUrl(
-              result.artists[0]?.name ?? '',
-              result.name
-            )
+            var artistName = ''
+
+            if (result.artists && result.artists.length &&
+              result.artists[0].name !== null && result.artists[0].name !== undefined) {
+              artistName = result.artists[0].name
+            }
+
+            listenBrainzUrl.value = await getAlbumListenBrainzUrl(artistName, result.name)
           }
         } finally {
           loader.hideLoading()
         }
       }
 
-      const playPause = () => {
-        if (!album.value?.tracks?.length) return
-        const currentTrack = playerStore.track
-        if (currentTrack && album.value.tracks.some((t: any) => t.id === currentTrack.id)) {
+      function playPause() {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length) {
+          return
+        }
+
+        var currentTrack = playerStore.track
+
+        if (currentTrack && trackListContains(album.value.tracks, currentTrack.id)) {
           return playerStore.playPause()
         }
+
         return playerStore.playNow(album.value.tracks)
       }
 
-      const playNow = () => {
-        const currentTrack = playerStore.track
-        const firstTrack = album.value?.tracks?.[0]
-        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) return
-        if (!album.value) return
-        if (album.value.tracks?.length) return playerStore.playNow(album.value.tracks)
-      }
+      function playNow() {
+        var currentTrack = playerStore.track
+        var firstTrack = null
 
-      const setNextInQueue = () => {
-        if (album.value) {
-          return playerStore.setNextInQueue(album.value.tracks!)
+        if (album.value && album.value.tracks && album.value.tracks.length) {
+          firstTrack = album.value.tracks[0]
+        }
+
+        if (currentTrack && firstTrack && currentTrack.id === firstTrack.id) {
+          return
+        }
+
+        if (!album.value) {
+          return
+        }
+
+        if (album.value.tracks && album.value.tracks.length) {
+          return playerStore.playNow(album.value.tracks)
         }
       }
 
-      const addToQueue = () => {
+      function setNextInQueue() {
         if (album.value) {
-          return playerStore.addToQueue(album.value.tracks!)
+          return playerStore.setNextInQueue(album.value.tracks)
+        }
+      }
+
+      function addToQueue() {
+        if (album.value) {
+          return playerStore.addToQueue(album.value.tracks)
         }
       }
 
       // "Playlist +": open a form to pick an existing playlist or create a new
       // one (name pre-filled with the album name), then add all album tracks.
-      const showPlaylistModal = ref(false)
-      const playlistDraft = computed(() => ({
-        name: album.value?.name || '',
-        comment: '',
-        isPublic: false,
-      }) as Playlist)
+      var showPlaylistModal = ref(false)
 
-      const addToPlaylist = async() => {
-        if (!album.value?.tracks?.length) return
-        if (playlistStore.playlists === null) {
-          loader.showLoading()
-          try {
-            await playlistStore.load()
-          } catch (err) {
-            console.error(err)
-            return
-          } finally {
-            loader.hideLoading()
+      var playlistDraft = computed(function () {
+        var name = ''
+
+        if (album.value && album.value.name) {
+          name = album.value.name
+        }
+
+        return {
+          name: name,
+          comment: '',
+          isPublic: false,
+        }
+      })
+
+      /** Collect the ids of every track of the current album. */
+      function albumTrackIds() {
+        var ids = []
+
+        if (album.value && album.value.tracks) {
+          for (var i = 0; i < album.value.tracks.length; i++) {
+            ids.push(album.value.tracks[i].id)
           }
         }
+
+        return ids
+      }
+
+      async function addToPlaylist() {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length) {
+          return
+        }
+
+        if (playlistStore.playlists !== null) {
+          showPlaylistModal.value = true
+          return
+        }
+
+        loader.showLoading()
+
+        try {
+          await playlistStore.load()
+        } catch (error) {
+          console.error(error)
+          return
+        } finally {
+          loader.hideLoading()
+        }
+
         showPlaylistModal.value = true
       }
 
-      const addToExistingPlaylist = async(playlistId: string) => {
-        if (!album.value?.tracks?.length) return
+      async function addToExistingPlaylist(playlistId) {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length) {
+          return
+        }
+
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addUniqueTracks(
-            playlistId,
-            album.value.tracks.map(t => t.id)
-          )
-        } catch (err) {
-          console.error(err)
+          await playlistStore.addUniqueTracks(playlistId, albumTrackIds())
+        } catch (error) {
+          console.error(error)
         } finally {
           loader.hideLoading()
         }
       }
 
-      const createPlaylist = async(name: string) => {
-        if (!album.value?.tracks?.length) return
+      async function createPlaylist(name) {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length) {
+          return
+        }
+
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          await playlistStore.addToPlaylistByName(
-            name,
-            album.value.tracks.map(t => t.id)
-          )
-        } catch (err) {
-          console.error(err)
+          await playlistStore.addToPlaylistByName(name, albumTrackIds())
+        } catch (error) {
+          console.error(error)
         } finally {
           loader.hideLoading()
         }
       }
 
-      const toggleFavourite = async() => {
-        favouriteStore.toggle('album', props.id)
+      async function toggleFavourite() {
+        await favouriteStore.toggle('album', props.id)
       }
 
-      const cacheAlbum = async() => {
+      async function cacheAlbum() {
         if (album.value) {
           await cacheStore.cacheAlbum(album.value)
           cached.value = true
         }
       }
 
-      const clearAlbumCache = async() => {
-        if (!album.value) return
+      async function clearAlbumCache() {
+        if (!album.value) {
+          return
+        }
+
         await cacheStore.clearAlbumCache(album.value)
         cached.value = false
-        router.replace({
-          name: route.name as string,
-          params: { ...(route.params || {}) },
-          query: { ...(route.query || {}), t: Date.now().toString() },
+
+        var query = copyObject(route.query)
+        query.t = Date.now().toString()
+
+        return router.replace({
+          name: route.name,
+          params: copyObject(route.params),
+          query: query,
         })
       }
 
-      const shuffleNow = async() => {
-        if (!album.value?.tracks?.length) return
+      async function shuffleNow() {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length) {
+          return
+        }
+
         await radioStore.shuffleAlbum(album.value.tracks)
       }
 
-      const RadioNow = async() => {
-        if (!album.value?.tracks?.length || !album.value?.artists?.length) return
+      async function RadioNow() {
+        if (!album.value || !album.value.tracks || !album.value.tracks.length ||
+          !album.value.artists || !album.value.artists.length) {
+          return
+        }
+
         await radioStore.radioAlbum(album.value.tracks, album.value.artists)
       }
 
       fetchAlbum()
 
       return {
-        album,
-        cached,
-        favouriteStore,
-        playlistStore,
-        playerStore,
-        cacheStore,
-        isFavourite,
-        isPlaying,
-        playPause,
-        playNow,
-        shuffleNow,
-        RadioNow,
-        setNextInQueue,
-        addToQueue,
-        addToPlaylist,
-        addToExistingPlaylist,
-        createPlaylist,
-        showPlaylistModal,
-        playlistDraft,
-        toggleFavourite,
-        cacheAlbum,
-        clearAlbumCache,
-        listenBrainzUrl,
+        album: album,
+        cached: cached,
+        favouriteStore: favouriteStore,
+        playlistStore: playlistStore,
+        playerStore: playerStore,
+        cacheStore: cacheStore,
+        isFavourite: isFavourite,
+        isPlaying: isPlaying,
+        favouriteIcon: favouriteIcon,
+        playPause: playPause,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+        RadioNow: RadioNow,
+        setNextInQueue: setNextInQueue,
+        addToQueue: addToQueue,
+        addToPlaylist: addToPlaylist,
+        addToExistingPlaylist: addToExistingPlaylist,
+        createPlaylist: createPlaylist,
+        showPlaylistModal: showPlaylistModal,
+        playlistDraft: playlistDraft,
+        toggleFavourite: toggleFavourite,
+        cacheAlbum: cacheAlbum,
+        clearAlbumCache: clearAlbumCache,
+        listenBrainzUrl: listenBrainzUrl,
       }
     },
   })

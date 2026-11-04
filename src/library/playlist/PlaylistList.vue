@@ -53,46 +53,65 @@
   </Tiles>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, computed, inject } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import { useRadioStore } from '@/player/radio'
-  import type { Playlist } from '@/shared/api'
-  import type { PropType } from 'vue'
 
   export default defineComponent({
     props: {
+      /** Playlist items displayed by the list. */
       items: {
-        type: Array as PropType<Playlist[]>,
+        type: Array,
         required: true,
       },
+      /** Whether the tiles can scroll horizontally. */
       allowHScroll: { type: Boolean, default: false },
+      /** True when the list is shown on the playlists page. */
       isPlaylistView: { type: Boolean, default: false },
+      /** Tile size in pixels. */
       tileSize: { type: Number, default: 140 },
     },
 
-    setup(props) {
-      const playerStore = usePlayerStore()
-      const radioStore = useRadioStore()
-      const api = inject('$api') as any
-      const validItems = computed(() =>
-        (props.items || []).filter((item): item is Playlist => !!item?.id)
-      )
+    setup: function (props) {
+      var playerStore = usePlayerStore()
+      var radioStore = useRadioStore()
+      var api = inject('$api')
 
-      const playNow = async(id: string) => {
+      /** Items that have a valid id (empty or partial entries are skipped). */
+      var validItems = computed(function () {
+        var list = props.items || []
+
+        return list.filter(function (item) {
+          return !!(item && item.id)
+        })
+      })
+
+      async function playNow(id) {
         playerStore.setShuffle(false)
-        const playlist = await api.getPlaylist(id)
-        return playerStore.playTrackList(playlist.tracks!)
+
+        var playlist = await api.getPlaylist(id)
+
+        return await playerStore.playTrackList(playlist.tracks)
       }
 
+      async function shuffleNow(id) {
+        var playlist = await api.getPlaylist(id)
 
-      const shuffleNow = async(id: string) => {
-        const playlist = await api.getPlaylist(id)
-        if (!playlist?.tracks?.length) return
+        if (!playlist || !playlist.tracks || !playlist.tracks.length) {
+          return
+        }
+
         await radioStore.playRandomOrTracks({ tracks: playlist.tracks })
       }
 
-      return { playerStore, radioStore, validItems, playNow, shuffleNow }
+      return {
+        playerStore: playerStore,
+        radioStore: radioStore,
+        validItems: validItems,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+      }
     },
   })
 </script>

@@ -112,7 +112,7 @@
                 class="btn-play"
                 @click.stop="playPause"
               >
-                <Icon :icon="isPlaying ? 'pause' : 'play'" />
+                <Icon :icon="playIcon" />
               </b-button>
 
               <b-button
@@ -135,7 +135,7 @@
                     class="m-0"
                     @click.stop="toggleFavourite"
                   >
-                    <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+                    <Icon :icon="favouriteIcon" />
                   </b-button>
 
                   <b-button
@@ -186,7 +186,7 @@
                       class="m-0 px-2 py-0"
                       @click.stop="toggleFavourite"
                     >
-                      <Icon :icon="isFavourite ? 'heart-fill' : 'heart'" />
+                      <Icon :icon="favouriteIcon" />
                     </b-button>
                   </div>
 
@@ -225,7 +225,7 @@
     <Teleport to="body">
       <Transition name="cover-preview">
         <img
-          v-if="previewVisible && track?.image"
+          v-if="previewVisible && track && track.image"
           :src="track.image"
           :style="previewStyle"
           class="cover-preview"
@@ -236,7 +236,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, watch, ref, computed, onBeforeUnmount } from 'vue'
   import { ReplayGainMode } from './audio'
   import { useFavouriteStore } from '@/library/favourite/store'
@@ -250,23 +250,25 @@
   export default defineComponent({
     name: 'Player',
     components: {
-      IconReplayGain,
-      Slider,
+      IconReplayGain: IconReplayGain,
+      Slider: Slider,
     },
-    setup() {
-      const router = useRouter()
-      const route = useRoute()
-      const playerStore = usePlayerStore()
-      const favouriteStore = useFavouriteStore()
+    setup: function () {
+      var router = useRouter()
+      var route = useRoute()
+      var playerStore = usePlayerStore()
+      var favouriteStore = useFavouriteStore()
 
-      const progressSlider = ref<any>(null)
-      const sliderValue = ref(0)
-      const dragging = ref(false)
-      const tooltipTimer = ref<number | null>(null)
+      var progressSlider = ref(null)
+      var sliderValue = ref(0)
+      var dragging = ref(false)
+      var tooltipTimer = ref(null)
 
       watch(
-        () => playerStore.currentTime,
-        (current) => {
+        function () {
+          return playerStore.currentTime
+        },
+        function (current) {
           if (!dragging.value) {
             sliderValue.value = current
           }
@@ -274,282 +276,399 @@
         { immediate: true }
       )
 
-      const track = computed(() => playerStore.track)
-      const isPlaying = computed(() => playerStore.isPlaying)
-      const repeatActive = computed(() => playerStore.repeat)
-      const replayGainMode = computed<ReplayGainMode>(() => playerStore.replayGainMode)
-      const isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
+      var track = computed(function () {
+        return playerStore.track
+      })
+
+      var isPlaying = computed(function () {
+        return playerStore.isPlaying
+      })
+
+      var repeatActive = computed(function () {
+        return playerStore.repeat
+      })
+
+      var replayGainMode = computed(function () {
+        return playerStore.replayGainMode
+      })
+
+      var isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
 
       // Album cover hover preview
-      const coverEl = ref<HTMLElement | null>(null)
-      const previewVisible = ref(false)
-      const previewStyle = ref<Record<string, string>>({})
+      var coverEl = ref(null)
+      var previewVisible = ref(false)
+      var previewStyle = ref({})
 
-      const PREVIEW_SIZE = 250
-      const PREVIEW_MARGIN = 8
+      var PREVIEW_SIZE = 250
+      var PREVIEW_MARGIN = 8
+      var PREVIEW_DELAY = 1500
+      var previewTimer = null
 
-      const PREVIEW_DELAY = 1500 // ms
-      let previewTimer: number | null = null
-
-      const clearPreviewTimer = () => {
+      function clearPreviewTimer() {
         if (previewTimer) {
           clearTimeout(previewTimer)
           previewTimer = null
         }
       }
 
-      const showPreview = () => {
-        if (isMobile) return
+      function showPreview() {
+        if (isMobile) {
+          return
+        }
+
         clearPreviewTimer()
         previewTimer = window.setTimeout(openPreview, PREVIEW_DELAY)
       }
 
-      const openPreview = () => {
+      function openPreview() {
         previewTimer = null
-        if (!track.value?.image || !coverEl.value) return
 
-        const rect = coverEl.value.getBoundingClientRect()
+        if (!track.value || !track.value.image || !coverEl.value) {
+          return
+        }
 
-        // 500x500, shrunk only if the viewport is too small
-        const size = Math.min(
+        var rect = coverEl.value.getBoundingClientRect()
+        var size = Math.min(
           PREVIEW_SIZE,
           window.innerWidth - PREVIEW_MARGIN * 2,
-          rect.top - PREVIEW_MARGIN * 2,
+          rect.top - PREVIEW_MARGIN * 2
         )
-
-        // above the cover, left-aligned, kept inside the viewport
-        const left = Math.min(
+        var left = Math.min(
           Math.max(rect.left, PREVIEW_MARGIN),
-          window.innerWidth - size - PREVIEW_MARGIN,
+          window.innerWidth - size - PREVIEW_MARGIN
         )
-        const top = rect.top - size - PREVIEW_MARGIN
+        var top = rect.top - size - PREVIEW_MARGIN
 
         previewStyle.value = {
-          width: `${size}px`,
-          height: `${size}px`,
-          left: `${left}px`,
-          top: `${top}px`,
+          width: size + 'px',
+          height: size + 'px',
+          left: left + 'px',
+          top: top + 'px',
         }
+
         previewVisible.value = true
       }
 
-      const hidePreview = () => {
+      function hidePreview() {
         clearPreviewTimer()
         previewVisible.value = false
       }
 
-      // Long press (touch devices: Capacitor / PWA)
-      const LONG_PRESS_DELAY = 500 // ms
-      const MOVE_TOLERANCE = 10 // px before the press is considered a scroll/drag
-      let longPressTimer: number | null = null
-      let longPressFired = false
-      let touchActive = false
-      let touchOrigin = { x: 0, y: 0 }
+      // Long press (touch devices)
+      var LONG_PRESS_DELAY = 500
+      var MOVE_TOLERANCE = 10
+      var longPressTimer = null
+      var longPressFired = false
+      var touchActive = false
+      var touchOrigin = { x: 0, y: 0 }
 
-      const clearLongPressTimer = () => {
+      function clearLongPressTimer() {
         if (longPressTimer) {
           clearTimeout(longPressTimer)
           longPressTimer = null
         }
       }
 
-      const onTouchStart = (e: TouchEvent) => {
-        const t = e.touches[0]
-        if (!t) return
+      function onTouchStart(event) {
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
         touchActive = true
         longPressFired = false
-        touchOrigin = { x: t.clientX, y: t.clientY }
+        touchOrigin = { x: touch.clientX, y: touch.clientY }
         clearLongPressTimer()
-        longPressTimer = window.setTimeout(() => {
+
+        longPressTimer = window.setTimeout(function () {
           longPressTimer = null
           longPressFired = true
           openPreview()
         }, LONG_PRESS_DELAY)
       }
 
-      const onTouchMove = (e: TouchEvent) => {
-        if (!longPressTimer) return
-        const t = e.touches[0]
-        if (!t) return
-        if (Math.hypot(t.clientX - touchOrigin.x, t.clientY - touchOrigin.y) > MOVE_TOLERANCE) {
+      function onTouchMove(event) {
+        if (!longPressTimer) {
+          return
+        }
+
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
+        var dx = touch.clientX - touchOrigin.x
+        var dy = touch.clientY - touchOrigin.y
+
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_TOLERANCE) {
           clearLongPressTimer()
         }
       }
 
-      const onTouchEnd = (e: TouchEvent) => {
+      function onTouchEnd(event) {
         touchActive = false
         clearLongPressTimer()
+
         if (longPressFired) {
-          e.preventDefault() // no synthesized click -> no album navigation
+          event.preventDefault()
           hidePreview()
         }
       }
 
-      const onTouchCancel = () => {
+      function onTouchCancel() {
         touchActive = false
         clearLongPressTimer()
         hidePreview()
       }
 
-      // Block the native image/context menu while a touch press is in progress
-      const onContextMenu = (e: Event) => {
-        if (touchActive || longPressFired) e.preventDefault()
+      function onContextMenu(event) {
+        if (touchActive || longPressFired) {
+          event.preventDefault()
+        }
       }
 
-      const onCoverClick = () => {
+      function onCoverClick() {
         if (longPressFired) {
           longPressFired = false
           return
         }
+
         onAlbumClick()
       }
 
-      const isFavourite = computed<boolean>(() => {
+      var isFavourite = computed(function () {
         return !!track.value && favouriteStore.get('track', track.value.id)
       })
 
-      const documentTitle = computed<string>(() => {
-        return [
-          track.value?.title,
-          track.value?.artists?.map(a => a.name).join(', ') || track.value?.album,
-          'Airdrome',
-        ]
-          .filter(Boolean)
-          .join(' • ')
+      var playIcon = computed(function () {
+        if (isPlaying.value) {
+          return 'pause'
+        }
+
+        return 'play'
       })
 
-      const showProgressTooltip = () => {
-        const root = progressSlider.value?.$el
-        if (!root) return
+      var favouriteIcon = computed(function () {
+        if (isFavourite.value) {
+          return 'heart-fill'
+        }
 
-        const handle =
-          root.querySelector('.slider-handle') ||
-          root.querySelector('[tabindex]')
+        return 'heart'
+      })
 
-        if (!handle) return
+      var documentTitle = computed(function () {
+        var title = null
+        var artist = null
+        var album = null
 
-        ;(handle as HTMLElement).focus()
+        if (track.value) {
+          title = track.value.title
+          album = track.value.album
+
+          if (track.value.artists) {
+            artist = track.value.artists.map(function (item) {
+              return item.name
+            }).join(', ')
+          }
+        }
+
+        return [title, artist || album, 'Airdrome'].filter(function (value) {
+          return !!value
+        }).join(' • ')
+      })
+
+      function showProgressTooltip() {
+        var root = null
+
+        if (progressSlider.value) {
+          root = progressSlider.value.$el
+        }
+
+        if (!root) {
+          return
+        }
+
+        var handle = root.querySelector('.slider-handle') || root.querySelector('[tabindex]')
+
+        if (!handle) {
+          return
+        }
+
+        handle.focus()
 
         if (tooltipTimer.value) {
           clearTimeout(tooltipTimer.value)
         }
 
-        tooltipTimer.value = window.setTimeout(() => {
-          ;(handle as HTMLElement).blur()
+        tooltipTimer.value = window.setTimeout(function () {
+          handle.blur()
         }, 5000)
       }
 
       watch(
         documentTitle,
-        (value) => {
+        function (value) {
           document.title = value
         },
         { immediate: true }
       )
 
-      const onAlbumClick = () => {
-        const t = playerStore.track
-        if (!t?.albumId) return
+      function onAlbumClick() {
+        var currentTrack = playerStore.track
 
-        if (route.name === 'album' && String(route.params.id) === String(t.albumId)) {
+        if (!currentTrack || !currentTrack.albumId) {
+          return
+        }
+
+        if (route.name === 'album' && String(route.params.id) === String(currentTrack.albumId)) {
           router.back()
         } else {
-          router.push({ name: 'album', params: { id: t.albumId } })
+          router.push({ name: 'album', params: { id: currentTrack.albumId } })
         }
       }
 
-      const focusSlider = () => {
-        const el = progressSlider.value?.$el?.querySelector('[tabindex]')
-        el?.focus()
+      function focusSlider() {
+        var root = null
+        var element = null
+
+        if (progressSlider.value) {
+          root = progressSlider.value.$el
+        }
+
+        if (root) {
+          element = root.querySelector('[tabindex]')
+        }
+
+        if (element) {
+          element.focus()
+        }
       }
 
-      const blurSlider = () => {
-        const el = progressSlider.value?.$el?.querySelector('[tabindex]')
-        el?.blur()
+      function blurSlider() {
+        var root = null
+        var element = null
+
+        if (progressSlider.value) {
+          root = progressSlider.value.$el
+        }
+
+        if (root) {
+          element = root.querySelector('[tabindex]')
+        }
+
+        if (element) {
+          element.blur()
+        }
       }
 
-      const onSliderDragStart = () => {
+      function onSliderDragStart() {
         dragging.value = true
         showProgressTooltip()
       }
 
-      const onSliderDragEnd = () => {
+      function onSliderDragEnd() {
         dragging.value = false
       }
 
-      const onSliderUpdate = (value: number) => {
+      function onSliderUpdate(value) {
         playerStore.seek(value)
         dragging.value = false
       }
 
-      const formatter = (value: number) => {
-        return `${formatDuration(value)} / ${formatDuration(playerStore.duration)}`
+      function formatter(value) {
+        return formatDuration(value) + ' / ' + formatDuration(playerStore.duration)
       }
 
-      const onSliderClick = (e: MouseEvent) => {
-        // Measure the slider bar itself (not the padded wrapper) so the
-        // click position maps exactly onto the visible bar.
-        const sliderEl = progressSlider.value?.$el as HTMLElement | undefined
-        const rect = (sliderEl ?? (e.currentTarget as HTMLElement)).getBoundingClientRect()
-        const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+      function onSliderClick(event) {
+        var sliderElement = null
+
+        if (progressSlider.value) {
+          sliderElement = progressSlider.value.$el
+        }
+
+        var target = sliderElement || event.currentTarget
+        var rect = target.getBoundingClientRect()
+        var ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+
         playerStore.seek(ratio * playerStore.duration)
         showProgressTooltip()
       }
 
-      function playPause() { playerStore.playPause() }
-      function next() { playerStore.next(true) }
-      function back() { playerStore.back() }
-      function toggleReplayGain() { playerStore.toggleReplayGain() }
-      function toggleRepeat() { playerStore.toggleRepeat() }
+      function playPause() {
+        playerStore.playPause()
+      }
+
+      function next() {
+        playerStore.next(true)
+      }
+
+      function back() {
+        playerStore.back()
+      }
+
+      function toggleReplayGain() {
+        playerStore.toggleReplayGain()
+      }
+
+      function toggleRepeat() {
+        playerStore.toggleRepeat()
+      }
+
       function toggleFavourite() {
         if (track.value) {
           favouriteStore.toggle('track', track.value.id)
         }
       }
 
-      onBeforeUnmount(() => {
-        if (tooltipTimer.value) clearTimeout(tooltipTimer.value)
+      onBeforeUnmount(function () {
+        if (tooltipTimer.value) {
+          clearTimeout(tooltipTimer.value)
+        }
+
         clearPreviewTimer()
         clearLongPressTimer()
       })
 
       return {
-        ReplayGainMode,
-        favouriteStore,
-        playerStore,
-        sliderValue,
-        dragging,
-        track,
-        isPlaying,
-        repeatActive,
-        replayGainMode,
-        isFavourite,
-        progressSlider,
-        coverEl,
-        previewVisible,
-        previewStyle,
-        showPreview,
-        hidePreview,
-        onTouchStart,
-        onTouchMove,
-        onTouchEnd,
-        onTouchCancel,
-        onContextMenu,
-        onCoverClick,
-        focusSlider,
-        blurSlider,
-        onAlbumClick,
-        onSliderDragStart,
-        onSliderDragEnd,
-        onSliderUpdate,
-        onSliderClick,
-        formatter,
-        playPause,
-        next,
-        back,
-        toggleReplayGain,
-        toggleRepeat,
-        toggleFavourite,
+        ReplayGainMode: ReplayGainMode,
+        playerStore: playerStore,
+        sliderValue: sliderValue,
+        dragging: dragging,
+        track: track,
+        isPlaying: isPlaying,
+        repeatActive: repeatActive,
+        replayGainMode: replayGainMode,
+        isFavourite: isFavourite,
+        playIcon: playIcon,
+        favouriteIcon: favouriteIcon,
+        progressSlider: progressSlider,
+        coverEl: coverEl,
+        previewVisible: previewVisible,
+        previewStyle: previewStyle,
+        showPreview: showPreview,
+        hidePreview: hidePreview,
+        onTouchStart: onTouchStart,
+        onTouchMove: onTouchMove,
+        onTouchEnd: onTouchEnd,
+        onTouchCancel: onTouchCancel,
+        onContextMenu: onContextMenu,
+        onCoverClick: onCoverClick,
+        focusSlider: focusSlider,
+        blurSlider: blurSlider,
+        onAlbumClick: onAlbumClick,
+        onSliderDragStart: onSliderDragStart,
+        onSliderDragEnd: onSliderDragEnd,
+        onSliderUpdate: onSliderUpdate,
+        onSliderClick: onSliderClick,
+        formatter: formatter,
+        playPause: playPause,
+        next: next,
+        back: back,
+        toggleReplayGain: toggleReplayGain,
+        toggleRepeat: toggleRepeat,
+        toggleFavourite: toggleFavourite,
       }
     },
   })

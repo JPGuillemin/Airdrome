@@ -5,26 +5,32 @@
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>
 </template>
-<script lang="ts">
-  import { defineComponent, ref, PropType } from 'vue'
+<script>
+  import { defineComponent, ref } from 'vue'
 
   export default defineComponent({
     props: {
-      load: { type: Function as PropType<(offset: number) => Promise<any[]>>, required: true },
+      /** Loader returning the next page of items. */
+      load: { type: Function, required: true },
     },
-    setup(props) {
-      const items = ref<any[]>([])
-      const loading = ref(false)
-      const offset = ref(0)
-      const hasMore = ref(true)
+    setup: function (props) {
+      var items = ref([])
+      var loading = ref(false)
+      var offset = ref(0)
+      var hasMore = ref(true)
 
-      const loadMore = async() => {
+      async function loadMore() {
         // Guard against the loader firing twice (mount + intersection).
-        if (loading.value || !hasMore.value) return
+        if (loading.value || !hasMore.value) {
+          return
+        }
+
         loading.value = true
+
         try {
-          const newItems = await props.load(offset.value)
-          items.value.push(...newItems)
+          var newItems = await props.load(offset.value)
+
+          items.value.push.apply(items.value, newItems)
           offset.value += newItems.length
           hasMore.value = newItems.length > 0
         } catch (err) {
@@ -36,7 +42,13 @@
         }
       }
 
-      return { items, loading, offset, hasMore, loadMore }
+      return {
+        items: items,
+        loading: loading,
+        offset: offset,
+        hasMore: hasMore,
+        loadMore: loadMore
+      }
     }
   })
 </script>

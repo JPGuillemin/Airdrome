@@ -14,10 +14,12 @@
   </transition>
 </template>
 
-<script setup lang="ts">
+<script setup>
   import spinner from '@/shared/assets/spinner.svg?inline'
   import { useLoader } from '@/shared/loader'
-  const loader = useLoader()
+
+  /** Global loading state shared across the app. */
+  var loader = useLoader()
 </script>
 
 <style>

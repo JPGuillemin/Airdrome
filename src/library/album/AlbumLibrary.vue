@@ -10,27 +10,27 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'recently-added' } }">
+          <router-link :to="sortRoute('recently-added')">
             <Icon icon="new" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'most-played' } }">
+          <router-link :to="sortRoute('most-played')">
             <Icon icon="most" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'recently-played' } }">
+          <router-link :to="sortRoute('recently-played')">
             <Icon icon="recent" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'a-z' } }">
+          <router-link :to="sortRoute('a-z')">
             A-z
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ...$route, params: { sort: 'random' } }">
+          <router-link :to="sortRoute('random')">
             <Icon icon="random" />
           </router-link>
         </li>
@@ -42,45 +42,71 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, watch, inject } from 'vue'
+  import { useRoute } from 'vue-router'
   import AlbumList from './AlbumList.vue'
-  import { Album, AlbumSort } from '@/shared/api'
 
   export default defineComponent({
-    components: { AlbumList },
-    props: { sort: { type: String, default: 'recently-added' } },
-    setup(props) {
-      const albums = ref<Album[]>([])
-      const loading = ref(true)
-      const offset = ref(0)
-      const hasMore = ref(true)
-      const api = inject('$api') as any
+    components: { AlbumList: AlbumList },
+    props: {
+      /** Album sort order requested by the route. */
+      sort: { type: String, default: 'recently-added' }
+    },
+    setup: function (props) {
+      var albums = ref([])
+      var loading = ref(true)
+      var offset = ref(0)
+      var hasMore = ref(true)
+      var api = inject('$api')
+      var route = useRoute()
 
       watch(
-        () => props.sort,
-        () => {
+        function () {
+          return props.sort
+        },
+        function () {
           albums.value = []
           offset.value = 0
           hasMore.value = true
         }
       )
 
-      const loadMore = async() => {
+      /** Build the current route with a different album sort. */
+      function sortRoute(sort) {
+        var target = {}
+        var keys = Object.keys(route)
+
+        for (var i = 0; i < keys.length; i++) {
+          target[keys[i]] = route[keys[i]]
+        }
+
+        target.params = { sort: sort }
+
+        return target
+      }
+
+      async function loadMore() {
         loading.value = true
-        const newAlbums = await api.getAlbums(props.sort as AlbumSort, 30, offset.value)
-        albums.value.push(...newAlbums)
+
+        var newAlbums = await api.getAlbums(props.sort, 30, offset.value)
+
+        for (var i = 0; i < newAlbums.length; i++) {
+          albums.value.push(newAlbums[i])
+        }
+
         offset.value += newAlbums.length
         hasMore.value = newAlbums.length >= 30
         loading.value = false
       }
 
       return {
-        albums,
-        loading,
-        offset,
-        hasMore,
-        loadMore,
+        albums: albums,
+        loading: loading,
+        offset: offset,
+        hasMore: hasMore,
+        sortRoute: sortRoute,
+        loadMore: loadMore,
       }
     },
   })

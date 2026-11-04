@@ -17,15 +17,19 @@
           <div>Build date: {{ buildDate }}</div>
 
           <div class="mt-4">
-            <div>Server name: {{ auth.serverInfo?.name }}</div>
-            <div>Server version: {{ auth.serverInfo?.version }}</div>
+            <div>Server name: {{ auth.serverInfo && auth.serverInfo.name }}</div>
+            <div>Server version: {{ auth.serverInfo && auth.serverInfo.version }}</div>
             <div>
               Server URL:
               <ExternalLink :href="auth.server">
                 {{ auth.server }}
               </ExternalLink>
             </div>
-            <div>OpenSubsonic: {{ auth.serverInfo?.openSubsonic ?? false }}</div>
+            <div>
+              OpenSubsonic:
+              <template v-if="auth.serverInfo && auth.serverInfo.openSubsonic">true</template>
+              <template v-else>false</template>
+            </div>
           </div>
         </div>
       </div>
@@ -33,27 +37,30 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import { useAuth } from '@/auth/service'
 
   export default defineComponent({
     props: {
+      /**
+       * Whether the About dialog is currently shown.
+       */
       visible: { type: Boolean, required: true },
     },
-    setup() {
-      const auth = useAuth()
-      const url = 'https://github.com/JPGuillemin/Airdrome'
-      const build = __BUILD_VERSION__
-      const buildDate = __BUILD_DATE__
-      const appVersion = __APP_VERSION__
+    setup: function () {
+      var auth = useAuth()
+      var url = 'https://github.com/JPGuillemin/Airdrome'
+      var build = __BUILD_VERSION__
+      var buildDate = __BUILD_DATE__
+      var appVersion = __APP_VERSION__
 
       return {
-        auth,
-        build,
-        buildDate,
-        appVersion,
-        url,
+        auth: auth,
+        build: build,
+        buildDate: buildDate,
+        appVersion: appVersion,
+        url: url,
       }
     },
   })

@@ -4,7 +4,7 @@
     <div
       class="header-backdrop"
       :style="{
-        '--backgroundImage': `url('${image || fallbackImage}')`,
+        '--backgroundImage': backgroundImage,
         '--blurAmount': blur
       }"
     />
@@ -22,19 +22,35 @@
   </div>
 </template>
 
-<script lang="ts">
-  import { defineComponent } from 'vue'
+<script>
+  import { defineComponent, computed } from 'vue'
   import fallbackImage from '@/shared/assets/fallback.svg'
 
   export default defineComponent({
     props: {
+      /** Cover image URL; falls back to the default artwork when empty. */
       image: { type: String, default: null },
+      /** CSS blur amount applied to the backdrop. */
       blur: { type: String, default: '5px' },
+      /** Tooltip shown on the cover image. */
       hover: { type: String, default: null },
     },
     emits: ['click'],
-    setup() {
-      return { fallbackImage }
+    setup: function (props) {
+      var backgroundImage = computed(function () {
+        var image = props.image
+
+        if (!image) {
+          image = fallbackImage
+        }
+
+        return "url('" + image + "')"
+      })
+
+      return {
+        fallbackImage: fallbackImage,
+        backgroundImage: backgroundImage
+      }
     }
   })
 </script>

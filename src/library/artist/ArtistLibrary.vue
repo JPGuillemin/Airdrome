@@ -10,12 +10,12 @@
       </div>
       <ul class="nav adapt-text">
         <li>
-          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'default' } }">
+          <router-link :to="defaultRoute">
             <Icon icon="most" />
           </router-link>
         </li>
         <li>
-          <router-link :to="{ ... $route, params: { ... $route.params, sort: 'a-z' } }">
+          <router-link :to="azRoute">
             A-z
           </router-link>
         </li>
@@ -27,33 +27,58 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { orderBy } from 'lodash-es'
+  import { useRoute } from 'vue-router'
   import ArtistList from './ArtistList.vue'
-  import { Artist } from '@/shared/api'
 
   export default defineComponent({
-    components: { ArtistList },
-    props: { sort: { type: String, default: null } },
+    components: { ArtistList: ArtistList },
 
-    setup(props) {
-      const api = inject('$api') as any
+    props: {
+      /** Current sort mode ('default' or 'a-z'). */
+      sort: { type: String, default: null },
+    },
 
-      const loading = ref(true)
-      const allArtists = ref<Artist[]>([])
-      const visibleArtists = ref<Artist[]>([])
-      const chunkSize = ref(15)
-      const nextIndex = ref(0)
-      const hasMore = ref(true)
+    setup: function (props) {
+      var api = inject('$api')
+      var route = useRoute()
 
-      const sortedAll = computed(() => {
-        return props.sort === 'a-z'
-          ? orderBy(allArtists.value, 'name')
-          : orderBy(allArtists.value, 'albumCount', 'desc')
+      var loading = ref(true)
+
+      /** Every artist returned by the API. */
+      var allArtists = ref([])
+
+      /** Artists currently rendered (grows as the user scrolls). */
+      var visibleArtists = ref([])
+
+      var chunkSize = ref(15)
+      var nextIndex = ref(0)
+      var hasMore = ref(true)
+
+      var sortedAll = computed(function () {
+        if (props.sort === 'a-z') {
+          return orderBy(allArtists.value, 'name')
+        }
+
+        return orderBy(allArtists.value, 'albumCount', 'desc')
       })
 
-      const reset = () => {
+      // Route objects used by the sort links in the header.
+      var defaultRoute = computed(function () {
+        return Object.assign({}, route, {
+          params: Object.assign({}, route.params, { sort: 'default' }),
+        })
+      })
+
+      var azRoute = computed(function () {
+        return Object.assign({}, route, {
+          params: Object.assign({}, route.params, { sort: 'a-z' }),
+        })
+      })
+
+      function reset() {
         loading.value = true
         allArtists.value = []
         visibleArtists.value = []
@@ -61,17 +86,21 @@
         hasMore.value = true
       }
 
-      const appendNextChunk = () => {
-        const sorted = sortedAll.value
-        const nextChunk = sorted.slice(nextIndex.value, nextIndex.value + chunkSize.value)
-        visibleArtists.value.push(...nextChunk)
+      function appendNextChunk() {
+        var sorted = sortedAll.value
+        var nextChunk = sorted.slice(nextIndex.value, nextIndex.value + chunkSize.value)
+
+        for (var i = 0; i < nextChunk.length; i++) {
+          visibleArtists.value.push(nextChunk[i])
+        }
+
         nextIndex.value += nextChunk.length
         hasMore.value = nextIndex.value < sorted.length
       }
 
-      const fetchArtists = async() => {
+      async function fetchArtists() {
         try {
-          const result = await api.getArtists()
+          var result = await api.getArtists()
           allArtists.value = result
           appendNextChunk()
         } finally {
@@ -79,31 +108,35 @@
         }
       }
 
-      const loadMore = () => {
+      function loadMore() {
         appendNextChunk()
       }
 
       watch(
-        () => props.sort,
-        () => {
+        function () {
+          return props.sort
+        },
+        async function () {
           reset()
-          fetchArtists()
+          await fetchArtists()
         },
         { immediate: true }
       )
 
       return {
-        loading,
-        allArtists,
-        visibleArtists,
-        chunkSize,
-        nextIndex,
-        hasMore,
-        sortedAll,
-        reset,
-        appendNextChunk,
-        fetchArtists,
-        loadMore,
+        loading: loading,
+        allArtists: allArtists,
+        visibleArtists: visibleArtists,
+        chunkSize: chunkSize,
+        nextIndex: nextIndex,
+        hasMore: hasMore,
+        sortedAll: sortedAll,
+        defaultRoute: defaultRoute,
+        azRoute: azRoute,
+        reset: reset,
+        appendNextChunk: appendNextChunk,
+        fetchArtists: fetchArtists,
+        loadMore: loadMore,
       }
     },
   })

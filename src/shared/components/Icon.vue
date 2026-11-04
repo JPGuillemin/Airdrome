@@ -16,7 +16,7 @@
     v-html="path"
   />
 </template>
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import iconAlbum from '@iconify-icons/bi/disc'
   import iconArrowUpDown from '@iconify-icons/bi/arrow-up-down'
@@ -74,7 +74,7 @@
   import iconX from '@iconify-icons/bi/x'
   import iconSpin from '@iconify-icons/svg-spinners/bars-scale-middle'
 
-  const icons = {
+  var icons = {
     albums: iconAlbum.body,
     'arrow-up-down': iconArrowUpDown.body,
     artists: iconArtist.body,
@@ -129,19 +129,21 @@
     trash: iconTrash.body,
     volume: iconVolume.body,
     x: iconX.body,
-    spin: `<g transform="scale(0.6)">${iconSpin.body}</g>`
-  } as {[key: string]: string}
+    spin: '<g transform="scale(0.6)">' + iconSpin.body + '</g>'
+  }
 
   export default defineComponent({
     props: {
+      /** Name of the icon to render. */
       icon: { type: String, required: true }
     },
     computed: {
-      path(): string {
+      path: function () {
         if (this.icon in icons) {
           return icons[this.icon]
         }
-        console.warn(`Unknown icon '${this.icon}'`)
+
+        console.warn('Unknown icon \'' + this.icon + '\'')
         return ''
       }
     }

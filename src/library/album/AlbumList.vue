@@ -35,7 +35,7 @@
           </template>
           <!-- Date -->
           <span v-if="withDate" class="text-muted">
-            <span v-if="withArtist && item.artists?.length"> • </span>
+            <span v-if="withArtist && item.artists && item.artists.length"> • </span>
             {{ item.year }}
           </span>
         </template>
@@ -43,7 +43,7 @@
         <template v-if="tileSize > 79" #actions>
           <TileActionButton icon="play" label="Play" @click.stop="playNow(item.id)" />
           <TileActionButton
-            :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'"
+            :icon="favouriteIcon(item.id)"
             label="Like"
             @click.stop="toggleFavourite(item.id)"
           />
@@ -52,7 +52,7 @@
 
       <!-- Same items as the AlbumDetails header buttons. -->
       <RowActionsMenu
-        :ref="(el) => setMenuRef(el, item.id)"
+        :ref="menuRefFor(item.id)"
         :track="item"
         :title="item.name"
         :default-actions="false"
@@ -66,7 +66,7 @@
         <TrackMenuItem icon="radio" class="on-top" @click="radioNow(item.id)">
           Radio
         </TrackMenuItem>
-        <TrackMenuItem :icon="isFavourite(item.id) ? 'heart-fill' : 'heart'" class="on-top" @click.stop="toggleFavourite(item.id)">
+        <TrackMenuItem :icon="favouriteIcon(item.id)" class="on-top" @click.stop="toggleFavourite(item.id)">
           Like
         </TrackMenuItem>
         <TrackMenuItem icon="plus" class="on-top" @click="playNext(item.id)">
@@ -101,7 +101,7 @@
   </Tiles>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, inject, computed, ref } from 'vue'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
@@ -109,23 +109,25 @@
   import { useRadioStore } from '@/player/radio'
   import { useCacheStore } from '@/shared/cache'
   import { useLoader } from '@/shared/loader'
-  import type { Album, Playlist } from '@/shared/api'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
 
-  const LONG_PRESS_MS = 500
+  var LONG_PRESS_MS = 500
   // Pixels the mouse may drift during a long press before it is cancelled
-  const MOUSE_MOVE_TOLERANCE = 5
+  var MOUSE_MOVE_TOLERANCE = 5
 
   // Same breakpoint as Tiles.vue. On mobile, a long press already reveals the
   // overlay action buttons, so the RowActionsMenu is disabled there.
-  const isMobile = () => window.matchMedia('(max-width: 768px)').matches
+  function isMobile() {
+    return window.matchMedia('(max-width: 768px)').matches
+  }
 
   export default defineComponent({
-    components: { RowActionsMenu, EditPlaylistModal },
+    components: { RowActionsMenu: RowActionsMenu, EditPlaylistModal: EditPlaylistModal },
     props: {
+      /** Albums displayed as tiles. */
       items: {
-        type: Array as () => Album[],
+        type: Array,
         required: true,
       },
       allowHScroll: { type: Boolean, default: false },
@@ -136,53 +138,79 @@
       withDate: { type: Boolean, default: false },
     },
     emits: ['favourite-added'],
-    setup(props, { emit }) {
-      const favouriteStore = useFavouriteStore()
-      const playlistStore = usePlaylistStore()
-      const playerStore = usePlayerStore()
-      const radioStore = useRadioStore()
-      const cacheStore = useCacheStore()
-      const loader = useLoader()
-      const api = inject('$api') as any
+    setup: function (props, context) {
+      var emit = context.emit
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var radioStore = useRadioStore()
+      var cacheStore = useCacheStore()
+      var loader = useLoader()
+      var api = inject('$api')
 
-      const validItems = computed(() => {
-        return (props.items || []).filter((item): item is Album => !!item?.id)
+      var validItems = computed(function () {
+        return (props.items || []).filter(function (item) {
+          return !!item && !!item.id
+        })
       })
 
-      const getAlbum = (id: string) => api.getAlbumDetails(id)
-
-      const playNow = async (id: string) => {
-        playerStore.setShuffle(false)
-        const album = await api.getAlbumDetails(id)
-        return playerStore.playTrackList(album.tracks!)
+      function getAlbum(id) {
+        return api.getAlbumDetails(id)
       }
 
-      const shuffleNow = async (id: string) => {
-        const album = await getAlbum(id)
-        if (!album?.tracks?.length) return
+      async function playNow(id) {
+        playerStore.setShuffle(false)
+
+        var album = await api.getAlbumDetails(id)
+        return playerStore.playTrackList(album.tracks)
+      }
+
+      async function shuffleNow(id) {
+        var album = await getAlbum(id)
+
+        if (!album || !album.tracks || !album.tracks.length) {
+          return
+        }
+
         await radioStore.shuffleAlbum(album.tracks)
       }
 
-      const radioNow = async (id: string) => {
-        const album = await getAlbum(id)
-        if (!album?.tracks?.length || !album?.artists?.length) return
+      async function radioNow(id) {
+        var album = await getAlbum(id)
+
+        if (!album || !album.tracks || !album.tracks.length ||
+          !album.artists || !album.artists.length) {
+          return
+        }
+
         await radioStore.radioAlbum(album.tracks, album.artists)
       }
 
-      const playNext = async (id: string) => {
-        const album = await getAlbum(id)
-        if (album?.tracks?.length) playerStore.setNextInQueue(album.tracks)
+      async function playNext(id) {
+        var album = await getAlbum(id)
+
+        if (album && album.tracks && album.tracks.length) {
+          playerStore.setNextInQueue(album.tracks)
+        }
       }
 
-      const addToQueue = async (id: string) => {
-        const album = await getAlbum(id)
-        if (album?.tracks?.length) playerStore.addToQueue(album.tracks)
+      async function addToQueue(id) {
+        var album = await getAlbum(id)
+
+        if (album && album.tracks && album.tracks.length) {
+          playerStore.addToQueue(album.tracks)
+        }
       }
 
-      const toggleFavourite = async (id: string) => {
+      async function toggleFavourite(id) {
         await favouriteStore.toggle('album', id)
-        const album = await api.getAlbumDetails(id)
-        if (!album) return
+
+        var album = await api.getAlbumDetails(id)
+
+        if (!album) {
+          return
+        }
+
         if (isFavourite(id)) {
           await cacheStore.cacheAlbum(album)
           emit('favourite-added', album)
@@ -191,112 +219,179 @@
         }
       }
 
-      const isFavourite = (id: string) => {
+      function isFavourite(id) {
         return favouriteStore.get('album', id)
+      }
+
+      function favouriteIcon(id) {
+        if (isFavourite(id)) {
+          return 'heart-fill'
+        }
+
+        return 'heart'
       }
 
       // Cache state is only known once the album details are fetched,
       // so it is refreshed each time the menu opens.
-      const cachedMap = ref<Record<string, boolean>>({})
+      var cachedMap = ref({})
 
-      const refreshCached = async (id: string) => {
+      async function refreshCached(id) {
         try {
-          const album = await getAlbum(id)
-          if (album) cachedMap.value[id] = await cacheStore.isCached(album)
-        } catch (err) {
-          console.error(err)
+          var album = await getAlbum(id)
+
+          if (album) {
+            cachedMap.value[id] = await cacheStore.isCached(album)
+          }
+        } catch (error) {
+          console.error(error)
         }
       }
 
-      const cacheAlbum = async (id: string) => {
-        const album = await getAlbum(id)
-        if (!album) return
+      async function cacheAlbum(id) {
+        var album = await getAlbum(id)
+
+        if (!album) {
+          return
+        }
+
         await cacheStore.cacheAlbum(album)
         cachedMap.value[id] = true
       }
 
-      const clearAlbumCache = async (id: string) => {
-        const album = await getAlbum(id)
-        if (!album) return
+      async function clearAlbumCache(id) {
+        var album = await getAlbum(id)
+
+        if (!album) {
+          return
+        }
+
         await cacheStore.clearAlbumCache(album)
         cachedMap.value[id] = false
       }
 
       // "Playlist +"
-      const showPlaylistModal = ref(false)
-      const playlistTarget = ref<Album | null>(null)
-      const playlistDraft = computed(() => ({
-        name: playlistTarget.value?.name || '',
-        comment: '',
-        isPublic: false,
-      }) as Playlist)
+      var showPlaylistModal = ref(false)
+      var playlistTarget = ref(null)
 
-      const addToPlaylist = async (album: Album) => {
+      var playlistDraft = computed(function () {
+        var name = ''
+
+        if (playlistTarget.value && playlistTarget.value.name) {
+          name = playlistTarget.value.name
+        }
+
+        return {
+          name: name,
+          comment: '',
+          isPublic: false,
+        }
+      })
+
+      async function addToPlaylist(album) {
         playlistTarget.value = album
+
         if (playlistStore.playlists === null) {
           loader.showLoading()
+
           try {
             await playlistStore.load()
-          } catch (err) {
-            console.error(err)
+          } catch (error) {
+            console.error(error)
             return
           } finally {
             loader.hideLoading()
           }
         }
+
         showPlaylistModal.value = true
       }
 
-      const fetchTrackIds = async (): Promise<string[]> => {
-        if (!playlistTarget.value) return []
-        const album = await getAlbum(playlistTarget.value.id)
-        return (album?.tracks || []).map((t: any) => t.id)
+      async function fetchTrackIds() {
+        if (!playlistTarget.value) {
+          return []
+        }
+
+        var album = await getAlbum(playlistTarget.value.id)
+        var tracks = (album && album.tracks) || []
+        var ids = []
+
+        for (var i = 0; i < tracks.length; i++) {
+          ids.push(tracks[i].id)
+        }
+
+        return ids
       }
 
-      const addToExistingPlaylist = async (playlistId: string) => {
+      async function addToExistingPlaylist(playlistId) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          const ids = await fetchTrackIds()
-          if (ids.length) await playlistStore.addUniqueTracks(playlistId, ids)
-        } catch (err) {
-          console.error(err)
+          var ids = await fetchTrackIds()
+
+          if (ids.length) {
+            await playlistStore.addUniqueTracks(playlistId, ids)
+          }
+        } catch (error) {
+          console.error(error)
         } finally {
           loader.hideLoading()
         }
       }
 
-      const createPlaylist = async (name: string) => {
+      async function createPlaylist(name) {
         showPlaylistModal.value = false
         loader.showLoading()
+
         try {
-          const ids = await fetchTrackIds()
-          if (ids.length) await playlistStore.addToPlaylistByName(name, ids)
-        } catch (err) {
-          console.error(err)
+          var ids = await fetchTrackIds()
+
+          if (ids.length) {
+            await playlistStore.addToPlaylistByName(name, ids)
+          }
+        } catch (error) {
+          console.error(error)
         } finally {
           loader.hideLoading()
         }
       }
 
       // --- Row menu (right click / long press), same behaviour as TrackTiles ---
-      let pressTimer: ReturnType<typeof setTimeout> | null = null
-      let isLongPressTriggered = false
+      var pressTimer = null
+      var isLongPressTriggered = false
 
-      const dragstart = (id: string, event: DragEvent) => {
+      function dragstart(id, event) {
         onMouseUp()
-        event.dataTransfer?.setData('application/x-album-id', id)
+
+        if (event.dataTransfer) {
+          event.dataTransfer.setData('application/x-album-id', id)
+        }
       }
 
-      const menuRefs = new Map<string | number, any>()
-      const setMenuRef = (el: any, key: string | number) => {
-        if (el) menuRefs.set(key, el)
-        else menuRefs.delete(key)
+      var menuRefs = new Map()
+
+      function setMenuRef(el, key) {
+        if (el) {
+          menuRefs.set(key, el)
+        } else {
+          menuRefs.delete(key)
+        }
       }
 
-      const openMenu = (key: string | number) => {
-        if (isMobile()) return
-        const menu = menuRefs.get(key)
+      /** Build the ref callback that registers the menu of a given tile. */
+      function menuRefFor(key) {
+        return function (el) {
+          setMenuRef(el, key)
+        }
+      }
+
+      function openMenu(key) {
+        if (isMobile()) {
+          return
+        }
+
+        var menu = menuRefs.get(key)
+
         if (menu && typeof menu.open === 'function') {
           menu.open()
           refreshCached(String(key))
@@ -305,12 +400,12 @@
 
       // Long press: the click that may follow must not navigate to the album.
       // Capture phase so it runs before the router-link handler.
-      const triggerMenu = (key: string | number) => {
+      function triggerMenu(key) {
         isLongPressTriggered = true
         openMenu(key)
       }
 
-      const onTileClick = (event: Event) => {
+      function onTileClick(event) {
         if (isLongPressTriggered) {
           isLongPressTriggered = false
           event.preventDefault()
@@ -318,23 +413,34 @@
         }
       }
 
-      let mouseStart = { x: 0, y: 0 }
+      var mouseStart = { x: 0, y: 0 }
 
-      const onMouseDown = (key: string | number, event: MouseEvent) => {
+      function onMouseDown(key, event) {
         // The menu overlay can swallow the click that ends a long press,
         // so a stale flag must never leak into the next press.
         isLongPressTriggered = false
-        if (isMobile()) return
-        if (event.button !== 0) return
+
+        if (isMobile()) {
+          return
+        }
+
+        if (event.button !== 0) {
+          return
+        }
+
         mouseStart = { x: event.clientX, y: event.clientY }
-        pressTimer = setTimeout(() => {
+
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onMouseMove = (event: MouseEvent) => {
-        if (!pressTimer) return
+      function onMouseMove(event) {
+        if (!pressTimer) {
+          return
+        }
+
         if (
           Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
           Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
@@ -343,23 +449,27 @@
         }
       }
 
-      const onMouseUp = () => {
+      function onMouseUp() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
         }
       }
 
-      const onTouchStart = (key: string | number) => {
+      function onTouchStart(key) {
         isLongPressTriggered = false
-        if (isMobile()) return
-        pressTimer = setTimeout(() => {
+
+        if (isMobile()) {
+          return
+        }
+
+        pressTimer = setTimeout(function () {
           pressTimer = null
           triggerMenu(key)
         }, LONG_PRESS_MS)
       }
 
-      const onTouchEnd = () => {
+      function onTouchEnd() {
         if (pressTimer) {
           clearTimeout(pressTimer)
           pressTimer = null
@@ -367,35 +477,37 @@
       }
 
       return {
-        favouriteStore,
-        playerStore,
-        cacheStore,
-        api,
-        validItems,
-        playNow,
-        shuffleNow,
-        radioNow,
-        playNext,
-        addToQueue,
-        toggleFavourite,
-        dragstart,
-        isFavourite,
-        cachedMap,
-        cacheAlbum,
-        clearAlbumCache,
-        showPlaylistModal,
-        playlistDraft,
-        addToPlaylist,
-        addToExistingPlaylist,
-        createPlaylist,
-        setMenuRef,
-        openMenu,
-        onTileClick,
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onTouchStart,
-        onTouchEnd,
+        favouriteStore: favouriteStore,
+        playerStore: playerStore,
+        cacheStore: cacheStore,
+        api: api,
+        validItems: validItems,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+        radioNow: radioNow,
+        playNext: playNext,
+        addToQueue: addToQueue,
+        toggleFavourite: toggleFavourite,
+        dragstart: dragstart,
+        isFavourite: isFavourite,
+        favouriteIcon: favouriteIcon,
+        cachedMap: cachedMap,
+        cacheAlbum: cacheAlbum,
+        clearAlbumCache: clearAlbumCache,
+        showPlaylistModal: showPlaylistModal,
+        playlistDraft: playlistDraft,
+        addToPlaylist: addToPlaylist,
+        addToExistingPlaylist: addToExistingPlaylist,
+        createPlaylist: createPlaylist,
+        setMenuRef: setMenuRef,
+        menuRefFor: menuRefFor,
+        openMenu: openMenu,
+        onTileClick: onTileClick,
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove,
+        onMouseUp: onMouseUp,
+        onTouchStart: onTouchStart,
+        onTouchEnd: onTouchEnd,
       }
     },
   })

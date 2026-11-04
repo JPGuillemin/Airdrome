@@ -13,7 +13,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import TopNav from '@/app/TopNav.vue'
   import Sidebar from '@/app/Sidebar.vue'
@@ -22,10 +22,10 @@
 
   export default defineComponent({
     components: {
-      TopNav,
-      Sidebar,
-      Player,
-      MobileNavBar,
+      TopNav: TopNav,
+      Sidebar: Sidebar,
+      Player: Player,
+      MobileNavBar: MobileNavBar,
     },
   })
 </script>

@@ -11,17 +11,18 @@
     <label :for="id" class="form-check-label" />
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
   import { uniqueId } from 'lodash-es'
 
   export default defineComponent({
     props: {
+      /** Current switch value. */
       modelValue: { type: Boolean, default: false },
     },
     emits: ['input', 'update:model-value'],
     computed: {
-      id(): string {
+      id: function () {
         return uniqueId('switch-')
       }
     },

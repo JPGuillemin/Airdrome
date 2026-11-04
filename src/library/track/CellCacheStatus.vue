@@ -1,52 +1,61 @@
 // CellCacheStatus.vue
 <template>
   <td class="text-right">
-    <Icon
-      :icon="isCached ? 'check-circle' : 'cloud'"
-      :title="isCached ? 'Cached' : 'Not cached'"
-    />
+    <Icon v-if="isCached" icon="check-circle" title="Cached" />
+    <Icon v-else icon="cloud" title="Not cached" />
   </td>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent, computed, watch } from 'vue'
   import Icon from '@/shared/components/Icon.vue'
-  import { Track } from '@/shared/api'
   import { useCacheStore } from '@/shared/cache'
 
   export default defineComponent({
-    components: { Icon },
+    components: { Icon: Icon },
 
     props: {
+      /** Track whose cache status is displayed. */
       track: {
-        type: Object as () => Track,
+        type: Object,
         required: true
       }
     },
 
-    setup(props) {
-      const cacheStore = useCacheStore()
+    setup: function (props) {
+      var cacheStore = useCacheStore()
 
-      const url = computed(() => props.track?.url)
+      var url = computed(function () {
+        if (props.track) {
+          return props.track.url
+        }
+
+        return undefined
+      })
 
       // Reads the shared reactive map; the list primes it in bulk.
-      const isCached = computed(() => {
-        const trackUrl = url.value
-        return trackUrl ? cacheStore.cacheStatus.get(trackUrl) === true : false
+      var isCached = computed(function () {
+        var trackUrl = url.value
+
+        if (trackUrl) {
+          return cacheStore.cacheStatus.get(trackUrl) === true
+        }
+
+        return false
       })
 
       watch(
         url,
-        (trackUrl) => {
+        function (trackUrl) {
           if (trackUrl && !cacheStore.cacheStatus.has(trackUrl)) {
-            void cacheStore.refreshStatus(trackUrl)
+            cacheStore.refreshStatus(trackUrl)
           }
         },
         { immediate: true }
       )
 
       return {
-        isCached
+        isCached: isCached
       }
     }
   })

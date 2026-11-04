@@ -11,12 +11,14 @@
   </button>
 </template>
 
-<script lang="ts">
+<script>
   import { defineComponent } from 'vue'
 
   export default defineComponent({
     props: {
+      /** Icon name rendered inside the button. */
       icon: { type: String, required: true },
+      /** Accessible label and tooltip. */
       label: { type: String, default: '' },
     },
     emits: ['click'],

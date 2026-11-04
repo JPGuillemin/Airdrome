@@ -1,4 +1,4 @@
-// index.ts
+// index.js
 import Avatar from './Avatar.vue'
 import TrackMenu from '@/shared/components/TrackMenu.vue'
 import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
@@ -13,22 +13,23 @@ import Tile from './Tile.vue'
 import TileActionButton from './TileActionButton.vue'
 import {
   BButton,
-  BModal,
+  BModal
 } from 'bootstrap-vue-next'
 
-export const components = {
-  Avatar,
-  BButton,
-  BModal,
-  TrackMenu,
-  TrackMenuItem,
-  EmptyIndicator,
-  ExternalLink,
-  Header,
-  Icon,
-  InfiniteLoader,
-  OverflowMenu,
-  Tile,
-  Tiles,
-  TileActionButton,
+/** Globally registered components, keyed by their tag name. */
+export var components = {
+  Avatar: Avatar,
+  BButton: BButton,
+  BModal: BModal,
+  TrackMenu: TrackMenu,
+  TrackMenuItem: TrackMenuItem,
+  EmptyIndicator: EmptyIndicator,
+  ExternalLink: ExternalLink,
+  Header: Header,
+  Icon: Icon,
+  InfiniteLoader: InfiniteLoader,
+  OverflowMenu: OverflowMenu,
+  Tile: Tile,
+  Tiles: Tiles,
+  TileActionButton: TileActionButton
 }

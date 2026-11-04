@@ -70,7 +70,7 @@
     <InfiniteLoader :loading="loading" :has-more="hasMore" @load-more="loadMore" />
   </div>
 </template>
-<script lang="ts">
+<script>
   import { defineComponent, inject, ref, computed, watch } from 'vue'
   import AlbumList from '@/library/album/AlbumList.vue'
   import ArtistList from '@/library/artist/ArtistList.vue'
@@ -79,37 +79,49 @@
   import { longPressTooltip } from '@/shared/tooltips'
 
   export default defineComponent({
-    components: { AlbumList, ArtistList, TrackList },
+    components: {
+      AlbumList: AlbumList,
+      ArtistList: ArtistList,
+      TrackList: TrackList,
+    },
 
     directives: {
       'longpress-tooltip': longPressTooltip
     },
 
     props: {
+      /** Search terms. */
       query: { type: String, required: true },
+      /** Optional result type filter (album, artist or track). */
       type: { type: String, default: null },
     },
 
-    setup(props) {
-      const api = inject('$api') as any
-      const radio = useRadioStore()
+    setup: function (props) {
+      var api = inject('$api')
+      var radio = useRadioStore()
 
-      const result = ref({
-        albums: [] as any[],
-        artists: [] as any[],
-        tracks: [] as any[],
+      /** Search results grouped by media type. */
+      var result = ref({
+        albums: [],
+        artists: [],
+        tracks: [],
       })
-      const loading = ref(false)
-      const offset = ref(0)
-      const hasMore = ref(true)
-      const key = computed(() => '' + props.type + props.query)
-      const hasResult = computed(() =>
-        result.value.albums.length > 0 ||
-        result.value.artists.length > 0 ||
-        result.value.tracks.length > 0
-      )
 
-      watch(key, () => {
+      var loading = ref(false)
+      var offset = ref(0)
+      var hasMore = ref(true)
+
+      var key = computed(function () {
+        return '' + props.type + props.query
+      })
+
+      var hasResult = computed(function () {
+        return result.value.albums.length > 0 ||
+          result.value.artists.length > 0 ||
+          result.value.tracks.length > 0
+      })
+
+      watch(key, function () {
         result.value.albums = []
         result.value.artists = []
         result.value.tracks = []
@@ -120,63 +132,105 @@
 
       async function loadMore() {
         loading.value = true
-        const res = await api.search(props.query, props.type, 20, offset.value)
-        const size = res.albums.length + res.artists.length + res.tracks.length
-        result.value.albums.push(...res.albums)
-        result.value.artists.push(...res.artists)
-        result.value.tracks.push(...res.tracks)
+
+        var res = await api.search(props.query, props.type, 20, offset.value)
+        var size = res.albums.length + res.artists.length + res.tracks.length
+
+        for (var i = 0; i < res.albums.length; i++) {
+          result.value.albums.push(res.albums[i])
+        }
+
+        for (var j = 0; j < res.artists.length; j++) {
+          result.value.artists.push(res.artists[j])
+        }
+
+        for (var k = 0; k < res.tracks.length; k++) {
+          result.value.tracks.push(res.tracks[k])
+        }
+
         offset.value += size
         hasMore.value = size >= 20
         loading.value = false
       }
 
       // Radio functions
-      const radioAlbums = async () => {
-        if (!result.value.albums.length) return
+      async function radioAlbums() {
+        if (!result.value.albums.length) {
+          return
+        }
 
-        let tracks: any[] = []
-        for (const album of result.value.albums.slice(0, 10)) {
-          const fullAlbum = await api.getAlbumDetails(album.id)
-          if (fullAlbum.tracks?.length) {
+        var tracks = []
+        var albums = result.value.albums.slice(0, 10)
+
+        for (var i = 0; i < albums.length; i++) {
+          var fullAlbum = await api.getAlbumDetails(albums[i].id)
+
+          if (fullAlbum && fullAlbum.tracks && fullAlbum.tracks.length) {
             tracks = radio.takeUpToX(tracks, fullAlbum.tracks)
-            if (tracks.length >= 100) break
+
+            if (tracks.length >= 100) {
+              break
+            }
           }
         }
 
         if (tracks.length) {
-          await radio.playRandomOrTracks({ tracks })
+          await radio.playRandomOrTracks({ tracks: tracks })
         }
       }
 
-      const radioArtists = async () => {
-        if (!result.value.artists.length) return
+      async function radioArtists() {
+        if (!result.value.artists.length) {
+          return
+        }
 
-        let tracks: any[] = []
-        for (const artist of result.value.artists.slice(0, 10)) {
-          let artistTracks: any[] = []
-          for await (const batch of api.getTracksByArtist(artist.id)) {
-            artistTracks = artistTracks.concat(batch)
-            if (artistTracks.length >= 20) break
+        var tracks = []
+        var artists = result.value.artists.slice(0, 10)
+
+        for (var i = 0; i < artists.length; i++) {
+          var artistTracks = []
+          var iterator = api.getTracksByArtist(artists[i].id)
+
+          while (true) {
+            var item = await iterator.next()
+
+            if (item.done) {
+              break
+            }
+
+            artistTracks = artistTracks.concat(item.value)
+
+            if (artistTracks.length >= 20) {
+              if (typeof iterator.return === 'function') {
+                await iterator.return()
+              }
+
+              break
+            }
           }
+
           tracks = tracks.concat(artistTracks.slice(0, 20))
-          if (tracks.length >= 100) break
+
+          if (tracks.length >= 100) {
+            break
+          }
         }
 
         if (tracks.length) {
-          await radio.playRandomOrTracks({ tracks })
+          await radio.playRandomOrTracks({ tracks: tracks })
         }
       }
 
       return {
-        result,
-        loading,
-        offset,
-        hasMore,
-        key,
-        hasResult,
-        loadMore,
-        radioAlbums,
-        radioArtists
+        result: result,
+        loading: loading,
+        offset: offset,
+        hasMore: hasMore,
+        key: key,
+        hasResult: hasResult,
+        loadMore: loadMore,
+        radioAlbums: radioAlbums,
+        radioArtists: radioArtists,
       }
     },
   })
