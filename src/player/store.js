@@ -351,6 +351,15 @@ export var usePlayerStore = defineStore('player', {
       await audio.pause()
     },
 
+    /**
+     * Pause because the OS or an output device interrupted playback.
+     * Unlike pause(), this does not mark the pause as user-initiated, so
+     * playback can resume when the device comes back.
+     */
+    interrupt: async function() {
+      await audio.pause()
+    },
+
     /** Stop playback and clear the pipeline. */
     stop: async function() {
       this.userPaused = true
