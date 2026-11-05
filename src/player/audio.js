@@ -722,3 +722,16 @@ function createPipeline(context, options) {
     dispose: dispose
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared instance and persisted settings
+// ---------------------------------------------------------------------------
+
+/** Singleton Web Audio controller. */
+export var audio = new AudioController()
+
+/** ReplayGain mode restored from localStorage, default None (0). */
+export var storedReplayGainMode = parseInt(
+  localStorage.getItem('player.replayGainMode') || '0',
+  10
+)

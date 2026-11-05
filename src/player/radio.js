@@ -48,6 +48,24 @@ async function collectArtistTracks(iterator, max) {
   return step()
 }
 
+/**
+ * Run asynchronous radio work with the global loader visible.
+ *
+ * @param {Object} context - `this` for the work function.
+ * @param {Function} work
+ * @returns {Promise<*>}
+ */
+async function withLoader(context, work) {
+  var loader = useLoader()
+  loader.showLoading()
+
+  try {
+    return await work.call(context)
+  } finally {
+    loader.hideLoading()
+  }
+}
+
 export var useRadioStore = defineStore('radio', {
   actions: {
     // -----------------------------------------------------------------------
@@ -303,10 +321,7 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     shuffleAlbumSort: async function(sort) {
-      var loader = useLoader()
-      loader.showLoading()
-
-      try {
+      await withLoader(this, async function() {
         var albums = await this.api.getAlbums(sort, 50)
         var picked = this.pickRandom(albums, 10)
         var tracks = await this.tracksFromAlbums(picked)
@@ -314,12 +329,7 @@ export var useRadioStore = defineStore('radio', {
         if (tracks.length) {
           await this.playRandomOrTracks({ tracks: tracks })
         }
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
     },
 
     /**
@@ -347,10 +357,7 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     shuffleFavouriteAlbums: async function() {
-      var loader = useLoader()
-      loader.showLoading()
-
-      try {
+      await withLoader(this, async function() {
         var favourites = await this.api.getFavourites()
         var picked = this.pickRandom(favourites.albums, 10)
         var tracks = []
@@ -362,23 +369,15 @@ export var useRadioStore = defineStore('radio', {
         if (tracks.length) {
           await this.playRandomOrTracks({ tracks: tracks })
         }
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
     },
 
     /**
      * @returns {Promise<void>}
      */
     shuffleFavouriteArtists: async function() {
-      var self = this
-      var loader = useLoader()
-      loader.showLoading()
-
-      try {
+      await withLoader(this, async function() {
+        var self = this
         var favourites = await this.api.getFavourites()
         var artists = this.pickRandom(favourites.artists, 10)
         var tracks = []
@@ -403,23 +402,15 @@ export var useRadioStore = defineStore('radio', {
         if (capped.length) {
           await self.playRandomOrTracks({ tracks: capped })
         }
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
     },
 
     /**
      * @returns {Promise<void>}
      */
     shufflePlaylists: async function() {
-      var self = this
-      var loader = useLoader()
-      loader.showLoading()
-
-      try {
+      await withLoader(this, async function() {
+        var self = this
         var playlists = await this.api.getPlaylists()
         var selected = playlists.slice(0, 5)
         var tracks = []
@@ -443,12 +434,7 @@ export var useRadioStore = defineStore('radio', {
         if (tracks.length) {
           await self.playRandomOrTracks({ tracks: tracks })
         }
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
     },
 
     /**
@@ -456,20 +442,11 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     shuffleArtist: async function(artistId) {
-      var loader = useLoader()
-      loader.showLoading()
-
-      var iterator = this.api.getTracksByArtist(artistId)
-
-      try {
+      await withLoader(this, async function() {
+        var iterator = this.api.getTracksByArtist(artistId)
         var tracks = await collectArtistTracks(iterator, RADIO_SIZE)
         await this.playRandomOrTracks({ tracks: tracks })
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
     },
 
     /**

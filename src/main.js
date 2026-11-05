@@ -12,7 +12,8 @@ import { setupRouter } from '@/shared/router'
 import { useMainStore } from '@/shared/store'
 import { createApi } from '@/shared/api'
 import { createAuth } from '@/auth/service'
-import { setupAudio, usePlayerStore } from './player/store'
+import { usePlayerStore } from './player/store'
+import { setupAudio } from './player/setupAudio'
 import { createPinia } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
@@ -33,17 +34,21 @@ export default router
 
 var APP_BASE = import.meta.env.BASE_URL
 
-/**
- * Create the Vue application and all of its plugins.
- *
- * @returns {Promise<void>}
- */
-async function bootstrapApp() {
-  // -------------------------------------------------------------------------
-  // Theme
-  // -------------------------------------------------------------------------
+var THEME_COLORS = [
+  { name: 'Blue', value: '#178994' },
+  { name: 'Green', value: '#63c98a' },
+  { name: 'Orange', value: '#f2ad5c' },
+  { name: 'Purple', value: '#9a7cc7' },
+  { name: 'Red', value: '#c46a6a' }
+]
 
-  function setTheme(color) {
+/**
+ * Restore the saved theme color.
+ *
+ * @returns {void}
+ */
+function setupTheme() {
+  function applyTheme(color) {
     document.documentElement.style.setProperty('--bs-primary', color)
     localStorage.setItem('themeColor', color)
   }
@@ -51,13 +56,16 @@ async function bootstrapApp() {
   var savedColor = localStorage.getItem('themeColor')
 
   if (savedColor) {
-    setTheme(savedColor)
+    applyTheme(savedColor)
   }
+}
 
-  // -------------------------------------------------------------------------
-  // API
-  // -------------------------------------------------------------------------
-
+/**
+ * Create the Vue app, its API client and Pinia instance.
+ *
+ * @returns {{ api: Object, pinia: Object, app: Object }}
+ */
+function createApplication() {
   var api = createApi(auth)
 
   var pinia = createPinia().use(function(context) {
@@ -67,13 +75,18 @@ async function bootstrapApp() {
   var app = createApp(AppComponent)
   app.use(pinia)
 
-  var mainStore = useMainStore(pinia)
-  var playerStore = usePlayerStore(pinia)
+  return { api: api, pinia: pinia, app: app }
+}
 
-  // -------------------------------------------------------------------------
-  // Watch logged-in state
-  // -------------------------------------------------------------------------
-
+/**
+ * Load user data once the login state becomes true.
+ *
+ * @param {Object} mainStore
+ * @param {Object} playerStore
+ * @param {Object} pinia
+ * @returns {void}
+ */
+function watchLogin(mainStore, playerStore, pinia) {
   var audioInitialized = false
 
   watch(
@@ -88,7 +101,6 @@ async function bootstrapApp() {
       audioInitialized = true
 
       try {
-        // Set up the player once authenticated.
         await setupAudio(playerStore, mainStore)
         await Promise.all([
           useFavouriteStore(pinia).load(),
@@ -101,48 +113,86 @@ async function bootstrapApp() {
     },
     { immediate: false }
   )
+}
 
-  window.history.scrollRestoration = 'manual'
+/**
+ * Register theme colors as globals.
+ *
+ * @param {Object} app
+ * @returns {void}
+ */
+function registerTheme(app) {
+  app.config.globalProperties.$themeColors = THEME_COLORS
+  app.provide('themeColors', THEME_COLORS)
+}
 
-  app.use(router)
-  app.use(auth)
-  app.use(api)
-  app.provide('$api', api)
-  app.use(createBootstrap())
-
-  // -------------------------------------------------------------------------
-  // Global properties
-  // -------------------------------------------------------------------------
-
-  app.config.globalProperties.$auth = auth
-
-  var themeColors = [
-    { name: 'Blue', value: '#178994' },
-    { name: 'Green', value: '#63c98a' },
-    { name: 'Orange', value: '#f2ad5c' },
-    { name: 'Purple', value: '#9a7cc7' },
-    { name: 'Red', value: '#c46a6a' }
-  ]
-
-  app.config.globalProperties.$themeColors = themeColors
-  app.provide('themeColors', themeColors)
-
-  app.directive('wheel-scroll', wheelScroll)
-
-  // -------------------------------------------------------------------------
-  // Register components
-  // -------------------------------------------------------------------------
-
+/**
+ * Register the shared components globally.
+ *
+ * @param {Object} app
+ * @returns {void}
+ */
+function registerComponents(app) {
   var componentNames = Object.keys(components)
 
   for (var i = 0; i < componentNames.length; i++) {
     var componentName = componentNames[i]
     app.component(componentName, components[componentName])
   }
+}
 
-  // -------------------------------------------------------------------------
-  // Mount app
-  // -------------------------------------------------------------------------
+/**
+ * Register the service worker and listen for update notifications.
+ *
+ * @returns {void}
+ */
+function setupServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    return
+  }
+
+  navigator.serviceWorker.register(APP_BASE + 'service-worker.js', {
+    scope: APP_BASE
+  })
+
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    var data = event.data
+
+    if (data && data.type === 'UPDATE_READY') {
+      console.info('New version available')
+    }
+  })
+}
+
+/**
+ * Create the Vue application and all of its plugins.
+ *
+ * @returns {Promise<void>}
+ */
+async function bootstrapApp() {
+  setupTheme()
+
+  var context = createApplication()
+  var app = context.app
+  var pinia = context.pinia
+  var mainStore = useMainStore(pinia)
+  var playerStore = usePlayerStore(pinia)
+
+  watchLogin(mainStore, playerStore, pinia)
+
+  window.history.scrollRestoration = 'manual'
+
+  app.use(router)
+  app.use(auth)
+  app.use(context.api)
+  app.provide('$api', context.api)
+  app.use(createBootstrap())
+
+  app.config.globalProperties.$auth = auth
+
+  registerTheme(app)
+  app.directive('wheel-scroll', wheelScroll)
+  registerComponents(app)
 
   try {
     app.mount('#app')
@@ -150,23 +200,7 @@ async function bootstrapApp() {
     console.error('App mount failed', error)
   }
 
-  // -------------------------------------------------------------------------
-  // Service Worker
-  // -------------------------------------------------------------------------
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(APP_BASE + 'service-worker.js', {
-      scope: APP_BASE
-    })
-
-    navigator.serviceWorker.addEventListener('message', function(event) {
-      var data = event.data
-
-      if (data && data.type === 'UPDATE_READY') {
-        console.info('New version available')
-      }
-    })
-  }
+  setupServiceWorker()
 }
 
 document.addEventListener('contextmenu', function(event) {

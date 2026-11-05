@@ -42,15 +42,15 @@
         :class="{ active: isActive(item, index) }"
         draggable="true"
         @dragstart="dragstart(item, $event)"
-        @mousedown="onMouseDown(rowKey(item, index), $event)"
-        @mousemove="onMouseMove"
-        @mouseup="cancelMousePress"
-        @mouseleave="cancelMousePress"
+        @mousedown="rowMenu.onMouseDown(rowKey(item, index), $event)"
+        @mousemove="rowMenu.onMouseMove"
+        @mouseup="rowMenu.onMouseUp"
+        @mouseleave="rowMenu.onMouseUp"
         @click="onRowClick(index)"
-        @contextmenu.prevent="openRowMenu(rowKey(item, index), $event)"
-        @touchstart="onTouchStart(rowKey(item, index), $event)"
-        @touchend="onTouchEnd"
-        @touchmove="onTouchEnd"
+        @contextmenu.prevent="rowMenu.onContextMenu(rowKey(item, index), $event)"
+        @touchstart="rowMenu.onTouchStart(rowKey(item, index), $event)"
+        @touchend="rowMenu.onTouchEnd"
+        @touchmove="rowMenu.onTouchMove"
       >
         <td v-if="selectable" class="col-select" @click.stop>
           <input
@@ -73,7 +73,7 @@
         <CellCacheStatus :track="item" />
 
         <RowActionsMenu
-          :ref="menuRefFor(item, index)"
+          :ref="rowMenu.menuRefFor(rowKey(item, index))"
           :track="item"
           :is-playlist-view="isPlaylistView"
           @remove="$emit('remove-track', index)"
@@ -89,6 +89,7 @@
   import { defineComponent, watch, computed } from 'vue'
   import { usePlayerStore } from '@/player/store'
   import { useCacheStore } from '@/shared/cache'
+  import { useRowMenu } from '@/shared/useRowMenu'
 
   import BaseTable from '@/library/track/BaseTable.vue'
   import BaseTableHead from '@/library/track/BaseTableHead.vue'
@@ -99,10 +100,6 @@
   import CellCacheStatus from '@/library/track/CellCacheStatus.vue'
   import CellTitle from '@/library/track/CellTitle.vue'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
-
-  var LONG_PRESS_MS = 500
-  // Pixels the mouse may drift during a long press before it is cancelled
-  var MOUSE_MOVE_TOLERANCE = 5
 
   export default defineComponent({
     components: {
@@ -155,6 +152,7 @@
       var emit = context.emit
       var playerStore = usePlayerStore()
       var cacheStore = useCacheStore()
+      var rowMenu = useRowMenu()
 
       // Resolve cache status for the whole list in one pass instead of two
       // async lookups per row.
@@ -203,9 +201,8 @@
 
       // In selection mode a row click toggles the selection instead of playing
       function onRowClick(index) {
-        // The click that ends a mouse long-press must not play / toggle the row
-        if (suppressNextClick) {
-          suppressNextClick = false
+        // The click that ends a long-press must not play / toggle the row
+        if (rowMenu.consumeSuppressedClick()) {
           return
         }
 
@@ -217,149 +214,16 @@
       }
 
       function dragstart(item, event) {
-        cancelMousePress()
+        rowMenu.onMouseUp()
 
         if (!item.isStream && event.dataTransfer) {
           event.dataTransfer.setData('application/x-track-id', item.id)
         }
       }
 
-      // --- Row context menu (right click) / long-press (touch) ---
-      // Keep a reference to each RowActionsMenu instance, keyed by the track
-      // id (not its index, which changes when the list moves), so the right
-      // menu can be opened at the click / touch point without a per-row
-      // trigger button.
-      var menuRefs = new Map()
-
-      function setMenuRef(el, key) {
-        if (el) {
-          menuRefs.set(key, el)
-        } else {
-          menuRefs.delete(key)
-        }
-      }
-
-      /** Build the ref callback that registers the menu of a given row. */
-      function menuRefFor(item, index) {
-        var key = rowKey(item, index)
-
-        return function (el) {
-          setMenuRef(el, key)
-        }
-      }
-
-      function openRowMenu(key, event) {
-        var menu = menuRefs.get(key)
-
-        if (!menu) {
-          return
-        }
-
-        var point = {
-          top: event.clientY,
-          bottom: event.clientY,
-          left: event.clientX,
-          right: event.clientX
-        }
-
-        menu.openAt(point)
-      }
-
-      var longPressTimer = null
-
-      function onTouchStart(key, event) {
-        var row = event.currentTarget
-
-        longPressTimer = setTimeout(function () {
-          longPressTimer = null
-
-          var menu = menuRefs.get(key)
-
-          if (!menu) {
-            return
-          }
-
-          var rect = row.getBoundingClientRect()
-
-          menu.openAt({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right })
-
-          // Prevent the click that follows (and would start playback) from
-          // propagating after the long-press opened the menu.
-          row.addEventListener('click', function (e) {
-            e.stopPropagation()
-          }, { once: true, capture: true })
-        }, LONG_PRESS_MS)
-      }
-
-      // --- Long-press with the mouse (desktop): same menu as right-click ---
-      var mouseTimer = null
-      var mouseStart = { x: 0, y: 0 }
-      var suppressNextClick = false
-
-      function cancelMousePress() {
-        if (mouseTimer) {
-          clearTimeout(mouseTimer)
-          mouseTimer = null
-        }
-      }
-
-      function onMouseDown(key, event) {
-        suppressNextClick = false
-        cancelMousePress()
-
-        if (event.button !== 0) {
-          return
-        }
-
-        // Checkboxes and other controls keep their normal behaviour
-        var target = event.target
-
-        if (target && target.closest && target.closest('input, button, a')) {
-          return
-        }
-
-        mouseStart = { x: event.clientX, y: event.clientY }
-
-        mouseTimer = setTimeout(function () {
-          mouseTimer = null
-
-          var menu = menuRefs.get(key)
-
-          if (!menu) {
-            return
-          }
-
-          suppressNextClick = true
-
-          menu.openAt({
-            top: mouseStart.y,
-            bottom: mouseStart.y,
-            left: mouseStart.x,
-            right: mouseStart.x
-          })
-        }, LONG_PRESS_MS)
-      }
-
-      function onMouseMove(event) {
-        if (!mouseTimer) {
-          return
-        }
-
-        if (
-          Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
-          Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
-        ) {
-          cancelMousePress()
-        }
-      }
-
-      function onTouchEnd() {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer)
-          longPressTimer = null
-        }
-      }
-
+      // --- Row context menu (right click) / long press are handled by
+      // useRowMenu, keyed by the track id (not its index, which changes when
+      // the list moves).
       var allSelected = computed(function () {
         var total = props.tracks.length
 
@@ -388,19 +252,12 @@
 
       return {
         playerStore: playerStore,
+        rowMenu: rowMenu,
         rowKey: rowKey,
         isActive: isActive,
         handlePlay: handlePlay,
         onRowClick: onRowClick,
         dragstart: dragstart,
-        setMenuRef: setMenuRef,
-        menuRefFor: menuRefFor,
-        openRowMenu: openRowMenu,
-        onTouchStart: onTouchStart,
-        onTouchEnd: onTouchEnd,
-        onMouseDown: onMouseDown,
-        onMouseMove: onMouseMove,
-        cancelMousePress: cancelMousePress,
         allSelected: allSelected,
         someSelected: someSelected,
         isPlaying: isPlaying,

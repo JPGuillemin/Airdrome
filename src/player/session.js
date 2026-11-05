@@ -4,9 +4,13 @@
 // The server queue remembers the last writer (`changedBy`); the device that
 // wrote last owns the session.
 //
-//   idle      -> not playing. Only write when the queue is still ours.
-//   claiming  -> playback started; write the queue so the server names us.
-//   active    -> write succeeded. Poll the server; yield if another device writes.
+// The model is intentionally small:
+//   - ownsQueue = true  -> we wrote the server queue and may keep writing.
+//   - ownsQueue = false -> we must check `changedBy` before writing.
+//
+// Starting playback claims the session by writing the queue. Pausing saves
+// the position and releases the session. While playing, a poll detects when
+// another device takes over.
 
 import { sleep } from '@/shared/utils'
 import { usePlayerStore } from './store'
@@ -16,16 +20,17 @@ var POLL_MS = 5000
 // The first request after a resume can fail (background WebView, stale connection).
 var CLAIM_BACKOFF_MS = [0, 400, 1200, 2500, 5000]
 
-var state = 'idle'
+var ownsQueue = false
 var pollTimer = undefined
+var claimPromise = null
 
 /**
- * True when this device is (or is becoming) the active device.
+ * True when this device owns the server queue.
  *
  * @returns {boolean}
  */
 export function ownsSession() {
-  return state !== 'idle'
+  return ownsQueue
 }
 
 // ---------------------------------------------------------------------------
@@ -33,56 +38,58 @@ export function ownsSession() {
 // ---------------------------------------------------------------------------
 
 /**
- * Playback started: write the queue first, then start polling.
+ * Playback started: write the queue so the server names this device.
  *
  * @returns {Promise<void>}
  */
 export async function claimSession() {
-  if (state !== 'idle') {
+  if (ownsQueue) {
     return
   }
 
-  state = 'claiming'
+  if (claimPromise) {
+    await claimPromise
+    return
+  }
 
   var player = usePlayerStore()
 
-  // Nothing to write: the first save will claim the session.
-  if (!navigator.onLine || !player.queue || !player.queue.length || !player.track) {
+  if (!canWrite(player)) {
     return
   }
 
-  await tryClaim(0)
+  claimPromise = claimWithRetry()
+
+  try {
+    await claimPromise
+  } finally {
+    claimPromise = null
+  }
 }
 
 /**
- * Try one claim attempt, then move to the next backoff delay.
+ * Try to write the queue a few times with a short backoff.
  *
- * @param {number} index
  * @returns {Promise<void>}
  */
-async function tryClaim(index) {
-  if (index >= CLAIM_BACKOFF_MS.length) {
-    console.info('[session] claim failed after retries; will retry on next save')
-    return
+async function claimWithRetry() {
+  for (var i = 0; i < CLAIM_BACKOFF_MS.length; i++) {
+    if (CLAIM_BACKOFF_MS[i]) {
+      await sleep(CLAIM_BACKOFF_MS[i])
+    }
+
+    if (ownsQueue) {
+      return
+    }
+
+    if (await writeQueue()) {
+      ownsQueue = true
+      schedulePoll()
+      return
+    }
   }
 
-  var delay = CLAIM_BACKOFF_MS[index]
-
-  if (delay) {
-    await sleep(delay)
-  }
-
-  if (state !== 'claiming') {
-    return
-  }
-
-  var written = await writeQueue()
-
-  if (written) {
-    return
-  }
-
-  await tryClaim(index + 1)
+  console.info('[session] claim failed after retries; will retry on next save')
 }
 
 /**
@@ -91,7 +98,7 @@ async function tryClaim(index) {
  * @returns {Promise<void>}
  */
 export async function onPlaybackStopped() {
-  if (state === 'idle') {
+  if (!ownsQueue) {
     return
   }
 
@@ -104,12 +111,12 @@ export async function onPlaybackStopped() {
 }
 
 /**
- * Page closing: only the active device writes.
+ * Page closing: only the owner writes.
  *
  * @returns {void}
  */
 export function onUnload() {
-  if (state !== 'idle') {
+  if (ownsQueue || claimPromise) {
     saveSession({ blind: true })
   }
 }
@@ -120,7 +127,7 @@ export function onUnload() {
  * @returns {void}
  */
 export function releaseSession() {
-  state = 'idle'
+  ownsQueue = false
   clearTimeout(pollTimer)
 }
 
@@ -138,16 +145,14 @@ export function releaseSession() {
 export async function saveSession(options) {
   var settings = options || {}
   var blind = settings.blind === true
+  var player = usePlayerStore()
+
+  if (!canWrite(player)) {
+    return
+  }
 
   try {
-    if (blind) {
-      await writeQueue()
-      return
-    }
-
-    var allowed = await mayWrite()
-
-    if (!allowed) {
+    if (!blind && !(await ensureOwnership(player))) {
       return
     }
 
@@ -158,32 +163,54 @@ export async function saveSession(options) {
 }
 
 /**
- * Return true when this device may write the queue.
+ * Return true when this device may write the server queue.
  *
+ * If another device owns it, release and pause instead.
+ *
+ * @param {Object} player
  * @returns {Promise<boolean>}
  */
-async function mayWrite() {
-  var api = usePlayerStore().api
+async function ensureOwnership(player) {
+  // A claim write may still be in flight; the server can still name the
+  // previous device until it completes, so wait before judging ownership.
+  if (claimPromise) {
+    await claimPromise
 
-  if (state === 'idle') {
-    // Idle device: only write when the server queue is still ours.
-    var queue = await api.getPlayQueue()
-    return api.isOwnQueueWriter(queue.changedBy)
+    if (ownsQueue) {
+      return true
+    }
   }
 
-  if (state === 'claiming') {
-    // Claim not confirmed yet (for example a network error on resume).
-    // The server may still name the old device: this is not a takeover.
-    await writeQueue()
-    return false
+  var queue = await player.api.getPlayQueue()
+
+  if (player.api.isOwnQueueWriter(queue.changedBy)) {
+    ownsQueue = true
+
+    if (player.isPlaying) {
+      schedulePoll()
+    }
+
+    return true
   }
 
-  if (state === 'active') {
-    var lost = await lostSession()
-    return !lost
-  }
-
+  handleTakeover(player, queue.changedBy)
   return false
+}
+
+/**
+ * Another device took the session: stop writing and pause.
+ *
+ * @param {Object} player
+ * @param {string} changedBy
+ * @returns {void}
+ */
+function handleTakeover(player, changedBy) {
+  console.info('[session] taken over by ' + changedBy)
+  // Release first: nothing must write back and start a ping-pong.
+  releaseSession()
+  player.takeoverAt = Date.now()
+  // Sets userPaused so visibility/device handlers do not restart playback.
+  player.pause()
 }
 
 /**
@@ -194,62 +221,38 @@ async function mayWrite() {
 async function writeQueue() {
   var player = usePlayerStore()
 
-  if (!navigator.onLine || !player.queue || !player.queue.length || !player.track) {
+  if (!canWrite(player)) {
     return false
   }
 
   try {
-    var saved = await player.api.savePlayQueue(
+    return await player.api.savePlayQueue(
       player.queue,
       player.track,
       Math.trunc(player.currentTime)
     )
-
-    if (!saved) {
-      return false
-    }
-
-    if (state === 'claiming') {
-      state = 'active'
-      schedulePoll()
-    }
-
-    return true
   } catch (error) {
     console.info('[session] write failed', error)
     return false
   }
 }
 
+/**
+ * A session write needs an online connection, a queue and a current track.
+ *
+ * @param {Object} player
+ * @returns {boolean}
+ */
+function canWrite(player) {
+  return !!navigator.onLine &&
+    !!player.queue &&
+    player.queue.length > 0 &&
+    !!player.track
+}
+
 // ---------------------------------------------------------------------------
 // Takeover detection
 // ---------------------------------------------------------------------------
-
-/**
- * Return true when we must not write because another device took over.
- *
- * @returns {Promise<boolean>}
- */
-async function lostSession() {
-  var player = usePlayerStore()
-  var queue = await player.api.getPlayQueue()
-
-  if (state !== 'active') {
-    return true
-  }
-
-  if (player.api.isOwnQueueWriter(queue.changedBy)) {
-    return false
-  }
-
-  console.info('[session] taken over by ' + queue.changedBy)
-  // Release first: nothing must write back and start a ping-pong.
-  releaseSession()
-  player.takeoverAt = Date.now()
-  // Sets userPaused so visibility/device handlers do not restart playback.
-  player.pause()
-  return true
-}
 
 /**
  * Chain setTimeout calls so ticks can never overlap.
@@ -260,15 +263,17 @@ function schedulePoll() {
   clearTimeout(pollTimer)
 
   pollTimer = setTimeout(async function() {
+    var player = usePlayerStore()
+
     try {
-      if (usePlayerStore().isPlaying && navigator.onLine) {
-        await lostSession()
+      if (ownsQueue && player.isPlaying && navigator.onLine) {
+        await ensureOwnership(player)
       }
     } catch (error) {
       // Offline or transient error: retry on the next tick.
     }
 
-    if (state === 'active') {
+    if (ownsQueue) {
       schedulePoll()
     }
   }, POLL_MS)

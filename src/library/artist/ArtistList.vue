@@ -8,16 +8,16 @@
         :image="item.image"
         :circle="true"
         draggable="true"
-        @dragstart="onMouseUp"
+        @dragstart="rowMenu.onMouseUp"
         @click.capture="onTileClick"
-        @contextmenu.prevent="openMenu(item.id)"
-        @mousedown="onMouseDown(item.id, $event)"
-        @mousemove="onMouseMove"
-        @mouseup="onMouseUp"
-        @mouseleave="onMouseUp"
-        @touchstart="onTouchStart(item.id)"
-        @touchend="onTouchEnd"
-        @touchmove="onTouchEnd"
+        @contextmenu.prevent="rowMenu.onContextMenu(item.id, $event)"
+        @mousedown="rowMenu.onMouseDown(item.id, $event)"
+        @mousemove="rowMenu.onMouseMove"
+        @mouseup="rowMenu.onMouseUp"
+        @mouseleave="rowMenu.onMouseUp"
+        @touchstart="rowMenu.onTouchStart(item.id, $event)"
+        @touchend="rowMenu.onTouchEnd"
+        @touchmove="rowMenu.onTouchMove"
       >
         <template #text>
           <strong>{{ item.albumCount }}</strong> albums
@@ -34,7 +34,7 @@
 
       <!-- Same items as the ArtistDetails header buttons. -->
       <RowActionsMenu
-        :ref="function (el) { return setMenuRef(el, item.id) }"
+        :ref="rowMenu.menuRefFor(item.id)"
         :track="item"
         :title="item.name"
         :default-actions="false"
@@ -77,12 +77,9 @@
   import { usePlayerStore } from '@/player/store'
   import { useRadioStore } from '@/player/radio'
   import { useLoader } from '@/shared/loader'
+  import { useRowMenu } from '@/shared/useRowMenu'
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
-
-  var LONG_PRESS_MS = 500
-  // Pixels the mouse may drift during a long press before it is cancelled
-  var MOUSE_MOVE_TOLERANCE = 5
 
   // Same breakpoint as Tiles.vue. On mobile, a long press already reveals the
   // overlay action buttons, so the RowActionsMenu is disabled there.
@@ -112,6 +109,11 @@
       var radioStore = useRadioStore()
       var loader = useLoader()
       var api = inject('$api')
+      var rowMenu = useRowMenu({
+        enabled: function () {
+          return !isMobile()
+        }
+      })
 
       async function toggleFavourite(id) {
         await favouriteStore.toggle('artist', id)
@@ -243,112 +245,20 @@
         }
       }
 
-      // --- Row menu (right click / long press), same behaviour as TrackTiles ---
-      var pressTimer = null
-      var isLongPressTriggered = false
-
-      var menuRefs = new Map()
-
-      function setMenuRef(el, key) {
-        if (el) {
-          menuRefs.set(key, el)
-        } else {
-          menuRefs.delete(key)
-        }
-      }
-
-      function openMenu(key) {
-        if (isMobile()) {
-          return
-        }
-
-        var menu = menuRefs.get(key)
-
-        if (menu && typeof menu.open === 'function') {
-          menu.open()
-        }
-      }
-
+      // --- Row menu (right click / long press), handled by useRowMenu ---
       // Long press: the click that may follow must not navigate to the artist.
       // Capture phase so it runs before the router-link handler.
-      function triggerMenu(key) {
-        isLongPressTriggered = true
-        openMenu(key)
-      }
-
       function onTileClick(event) {
-        if (isLongPressTriggered) {
-          isLongPressTriggered = false
+        if (rowMenu.consumeSuppressedClick()) {
           event.preventDefault()
           event.stopPropagation()
-        }
-      }
-
-      var mouseStart = { x: 0, y: 0 }
-
-      function onMouseDown(key, event) {
-        // The menu overlay can swallow the click that ends a long press,
-        // so a stale flag must never leak into the next press.
-        isLongPressTriggered = false
-
-        if (isMobile()) {
-          return
-        }
-
-        if (event.button !== 0) {
-          return
-        }
-
-        mouseStart = { x: event.clientX, y: event.clientY }
-        pressTimer = setTimeout(function () {
-          pressTimer = null
-          triggerMenu(key)
-        }, LONG_PRESS_MS)
-      }
-
-      function onMouseMove(event) {
-        if (!pressTimer) {
-          return
-        }
-
-        if (
-          Math.abs(event.clientX - mouseStart.x) > MOUSE_MOVE_TOLERANCE ||
-          Math.abs(event.clientY - mouseStart.y) > MOUSE_MOVE_TOLERANCE
-        ) {
-          onMouseUp()
-        }
-      }
-
-      function onMouseUp() {
-        if (pressTimer) {
-          clearTimeout(pressTimer)
-          pressTimer = null
-        }
-      }
-
-      function onTouchStart(key) {
-        isLongPressTriggered = false
-
-        if (isMobile()) {
-          return
-        }
-
-        pressTimer = setTimeout(function () {
-          pressTimer = null
-          triggerMenu(key)
-        }, LONG_PRESS_MS)
-      }
-
-      function onTouchEnd() {
-        if (pressTimer) {
-          clearTimeout(pressTimer)
-          pressTimer = null
         }
       }
 
       return {
         favouriteStore: favouriteStore,
         radioStore: radioStore,
+        rowMenu: rowMenu,
         toggleFavourite: toggleFavourite,
         isFavourite: isFavourite,
         favouriteIcon: favouriteIcon,
@@ -360,14 +270,7 @@
         addToPlaylist: addToPlaylist,
         addToExistingPlaylist: addToExistingPlaylist,
         createPlaylist: createPlaylist,
-        setMenuRef: setMenuRef,
-        openMenu: openMenu,
         onTileClick: onTileClick,
-        onMouseDown: onMouseDown,
-        onMouseMove: onMouseMove,
-        onMouseUp: onMouseUp,
-        onTouchStart: onTouchStart,
-        onTouchEnd: onTouchEnd,
       }
     },
   })
