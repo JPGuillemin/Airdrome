@@ -181,23 +181,27 @@ export async function setupAudio(playerStore, mainStore) {
         continue
       }
 
-      // Ignore Chrome's synthetic default/communications/dummy sinks.
-      if (!device.deviceId) {
-        continue
-      }
-
-      if (device.deviceId === 'default' || device.deviceId === 'communications') {
-        continue
-      }
-
       var id = device.kind + ':' + device.deviceId + ':' + device.label
 
-      if (id.indexOf(':default:') !== -1 || id.indexOf(':communications:') !== -1) {
-        continue
-      }
+      // On desktop, ignore Chrome's synthetic default/communications/dummy
+      // sinks to avoid false removals. On Android, these virtual sinks are
+      // often the only signal for a Bluetooth route change, so keep them.
+      if (!isMobile) {
+        if (!device.deviceId) {
+          continue
+        }
 
-      if (/^(default|communications|dummy)/i.test(device.label || '')) {
-        continue
+        if (device.deviceId === 'default' || device.deviceId === 'communications') {
+          continue
+        }
+
+        if (id.indexOf(':default:') !== -1 || id.indexOf(':communications:') !== -1) {
+          continue
+        }
+
+        if (/^(default|communications|dummy)/i.test(device.label || '')) {
+          continue
+        }
       }
 
       result.add(id)
