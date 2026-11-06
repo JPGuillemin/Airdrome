@@ -21,7 +21,7 @@
           </router-link>
         </li>
         <li>
-          <button class="btn btn-link mx-2" @click="startCreate">
+          <button class="btn btn-link mx-2" title="Create playlist" v-longpress-tooltip @click="startCreate">
             <Icon icon="plus" />
           </button>
         </li>

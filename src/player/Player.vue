@@ -100,24 +100,30 @@
             <!-- play control -->
             <div class="play-controls">
               <b-button
+                v-longpress-tooltip
                 variant="transparent"
                 class="btn-skip d-none d-md-inline-flex"
+                title="Previous track"
                 @click.stop="back"
               >
                 <Icon icon="skip-start" />
               </b-button>
 
               <b-button
+                v-longpress-tooltip
                 variant="transparent"
                 class="btn-play"
+                :title="playTitle"
                 @click.stop="playPause"
               >
                 <Icon :icon="playIcon" />
               </b-button>
 
               <b-button
+                v-longpress-tooltip
                 variant="transparent"
                 class="btn-skip"
+                title="Next track"
                 @click.stop="next"
               >
                 <Icon icon="skip-end" />
@@ -130,6 +136,7 @@
 
                 <div class="ms-2 d-none d-md-inline-flex align-items-center">
                   <b-button
+                    v-longpress-tooltip
                     title="Like"
                     variant="transparent"
                     class="m-0"
@@ -139,6 +146,7 @@
                   </b-button>
 
                   <b-button
+                    v-longpress-tooltip
                     v-if="track && track.replayGain"
                     title="R.Gain"
                     variant="transparent"
@@ -170,6 +178,7 @@
 
                   <div class="px-3 py-1 on-top">
                     <b-button
+                      v-longpress-tooltip
                       title="Repeat"
                       variant="transparent"
                       class="m-0 px-2 py-0"
@@ -182,8 +191,10 @@
 
                   <div class="d-md-none px-3 py-1 on-top">
                     <b-button
+                      v-longpress-tooltip
                       variant="transparent"
                       class="m-0 px-2 py-0"
+                      title="Like"
                       @click.stop="toggleFavourite"
                     >
                       <Icon :icon="favouriteIcon" />
@@ -192,6 +203,7 @@
 
                   <div v-if="track && track.replayGain" class="d-md-none px-3 py-1 on-top">
                     <b-button
+                      v-longpress-tooltip
                       title="ReplayGain"
                       variant="transparent"
                       class="m-0 px-2 py-0"
@@ -205,7 +217,9 @@
                   </div>
                   <div class="d-md-none px-3 py-1 on-top">
                     <b-button
+                      v-longpress-tooltip
                       variant="transparent"
+                      title="Previous track"
                       @click.stop="back"
                     >
                       <Icon icon="skip-start" />
@@ -458,6 +472,14 @@
         return 'heart'
       })
 
+      var playTitle = computed(function () {
+        if (isPlaying.value) {
+          return 'Pause'
+        }
+
+        return 'Play'
+      })
+
       var documentTitle = computed(function () {
         var title = null
         var artist = null
@@ -643,6 +665,7 @@
         isFavourite: isFavourite,
         playIcon: playIcon,
         favouriteIcon: favouriteIcon,
+        playTitle: playTitle,
         progressSlider: progressSlider,
         coverEl: coverEl,
         previewVisible: previewVisible,
@@ -721,6 +744,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: nowrap;
+    gap: 0.15rem;
   }
 
   /* Right side controls */
@@ -787,12 +812,19 @@
   }
 
   .player .btn-play {
-    --bs-btn-font-size: 2rem;
-    padding: 0.2rem;
+    --bs-btn-font-size: 2.5rem;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    flex: 0 0 auto;
   }
 
   .player .btn-skip {
-    --bs-btn-font-size: 1.2rem;
+    --bs-btn-font-size: 1.6rem;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    flex: 0 0 auto;
   }
 
   .player .btn:hover {
@@ -910,7 +942,15 @@
     }
 
     .player .btn-skip {
-      --bs-btn-font-size: 1rem;
+      --bs-btn-font-size: 1.4rem;
+      width: 36px;
+      height: 36px;
+    }
+
+    .player .btn-play {
+      --bs-btn-font-size: 2.2rem;
+      width: 44px;
+      height: 44px;
     }
 
     .player .btn:hover {

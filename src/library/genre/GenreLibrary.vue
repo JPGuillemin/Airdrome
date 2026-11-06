@@ -53,6 +53,7 @@
             </router-link>
 
             <b-button
+              v-longpress-tooltip
               variant="transparent"
               class="me-2"
               title="Genre Radio"

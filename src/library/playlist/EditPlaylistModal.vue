@@ -40,7 +40,7 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-primary" @click="save">
+          <button class="btn btn-primary" :title="buttonLabel" @click="save">
             {{ buttonLabel }}
           </button>
         </div>

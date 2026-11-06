@@ -5,7 +5,9 @@
     <div class="top-nav-shape elevated d-flex justify-content-between align-items-center pb-2 pt-2">
       <div class="d-flex align-items-center">
         <button
+          v-longpress-tooltip
           class="btn btn-transparent flex-grow-1 flex-md-grow-0 ml-1"
+          title="Home"
           @click="handleLogoClick"
         >
           <div class="logo-wrapper">
@@ -34,6 +36,7 @@
               </div>
               <div class="d-flex gap-2">
                 <button
+                  v-longpress-tooltip
                   v-for="color in colors"
                   :key="color.value"
                   class="theme-swatch"
@@ -50,6 +53,7 @@
               </div>
               <div class="d-flex gap-2 flex-wrap">
                 <button
+                  v-longpress-tooltip
                   v-for="option in [
                     { icon: 'low', value: 92 },
                     { icon: 'medium', value: 128 },
@@ -61,6 +65,7 @@
                     'btn-outline-active': streamQuality === option.value,
                     'btn-outline-inactive': streamQuality !== option.value
                   }"
+                  :title="'Stream quality ' + option.value + ' kbps'"
                   @click="setStreamQuality(option.value)"
                 >
                   <Icon

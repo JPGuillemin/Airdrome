@@ -1,7 +1,7 @@
 // CellTrackNumber.vue
 <template>
   <td>
-    <button>
+    <button :title="buttonTitle">
       <Icon class="icon" icon="spin" :class="{ 'visually-hidden': !active }" />
       <Icon class="icon" icon="play" :class="{ 'visually-hidden': active }" />
       <span class="number adapt-text">{{ displayNumber }}</span>
@@ -31,7 +31,15 @@
         return props.trackNumber
       })
 
-      return { displayNumber: displayNumber }
+      var buttonTitle = computed(function () {
+        if (props.active) {
+          return 'Playing'
+        }
+
+        return 'Play'
+      })
+
+      return { displayNumber: displayNumber, buttonTitle: buttonTitle }
     }
   })
 </script>

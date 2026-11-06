@@ -7,11 +7,12 @@
   >
     <!-- Left Arrow -->
     <button
+      v-longpress-tooltip
       v-if="allowHScroll && !isMobile && isHovering"
       class="scroll-arrow scroll-arrow-left"
       :disabled="!showLeftArrow"
       @click="scrollLeft"
-      aria-label="Scroll left"
+      aria-label="Scroll left" title="Scroll left"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="15 18 9 12 15 6"></polyline>
@@ -20,11 +21,12 @@
 
     <!-- Right Arrow -->
     <button
+      v-longpress-tooltip
       v-if="allowHScroll && !isMobile && isHovering"
       class="scroll-arrow scroll-arrow-right"
       :disabled="!showRightArrow"
       @click="scrollRight"
-      aria-label="Scroll right"
+      aria-label="Scroll right" title="Scroll right"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="9 18 15 12 9 6"></polyline>

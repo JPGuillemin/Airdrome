@@ -24,6 +24,7 @@ import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import '@/css/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import wheelScroll from '@/shared/wheelscroll'
+import { longPressTooltip } from '@/shared/tooltips'
 
 import '@/shared/debugLog'
 
@@ -192,6 +193,7 @@ async function bootstrapApp() {
 
   registerTheme(app)
   app.directive('wheel-scroll', wheelScroll)
+  app.directive('longpress-tooltip', longPressTooltip)
   registerComponents(app)
 
   try {

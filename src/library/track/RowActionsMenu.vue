@@ -9,7 +9,7 @@
             <h5 class="modal-title text-truncate fs-6">
               {{ title || track.title || 'Track Options' }}
             </h5>
-            <button type="button" class="btn-close" aria-label="Close" @click="close" />
+            <button type="button" class="btn-close" aria-label="Close" title="Close" @click="close" />
           </div>
 
           <div class="modal-body py-1">
@@ -63,7 +63,7 @@
         <div class="modal-content">
           <div class="modal-header mb-2">
             <h5 class="modal-title fs-6">Add to Playlist</h5>
-            <button type="button" class="btn-close" aria-label="Close" @click="showPlaylistSelect = false" />
+            <button type="button" class="btn-close" aria-label="Close" title="Close" @click="showPlaylistSelect = false" />
           </div>
           <div class="modal-body py-1">
             <div

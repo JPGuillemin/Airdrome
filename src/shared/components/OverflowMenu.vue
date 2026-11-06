@@ -22,9 +22,11 @@
 
   <div v-else ref="triggerRef" class="overflow-menu-wrap" @click.stop="toggle">
     <button
+      v-longpress-tooltip
       class="btn p-0"
       :class="'btn-' + variant"
       :disabled="disabled"
+      title="More actions"
       type="button"
     >
       <Icon icon="three-dots-vertical" />

@@ -4,6 +4,7 @@
     <button
       type="button"
       :class="'btn btn-' + variant + ' dropdown-toggle ' + toggleClass"
+      title="Menu"
       @click="toggle">
       <slot name="button-content" />
     </button>

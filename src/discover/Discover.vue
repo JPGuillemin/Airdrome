@@ -148,7 +148,7 @@
           <Icon icon="radio" />
         </b-button>
       </div>
-      <AlbumList :items="result.played" tile-size="150" allow-h-scroll @favourite-added="onFavouriteAdded" />
+      <AlbumList :items="result.played" tile-size="140" allow-h-scroll @favourite-added="onFavouriteAdded" />
     </div>
 
     <div v-if="result.most.length > 0" class="section-wrapper">

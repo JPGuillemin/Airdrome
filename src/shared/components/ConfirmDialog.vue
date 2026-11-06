@@ -12,7 +12,7 @@
             {{ message }}
           </p>
           <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-primary px-4" @click="confirm">
+            <button class="btn btn-primary px-4" title="Confirm" @click="confirm">
               Confirm
             </button>
           </div>
