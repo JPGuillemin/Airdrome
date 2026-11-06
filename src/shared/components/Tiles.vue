@@ -202,8 +202,8 @@
   .tiles-three-rows.tiles-scroll {
     grid-auto-flow: column;
     grid-template-rows: repeat(3, auto);
-    /* image + text + gap */
-    grid-auto-columns: calc(var(--tile-size-active) + 100px + 8px);
+    /* image + text + gap + tile horizontal padding/border */
+    grid-auto-columns: calc(var(--tile-size-active) + 100px + 8px + 18px);
   }
 
   /* Ensure square tiles */

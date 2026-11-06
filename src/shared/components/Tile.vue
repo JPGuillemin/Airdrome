@@ -69,6 +69,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    min-width: 0;
+    overflow: hidden;
 
     box-sizing: border-box;
     padding: 8px;
@@ -150,8 +152,15 @@
 
   /* Metadata font for tile captions (title + subtitle) */
   .tile-text {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     margin-top: 8px;
     font-family: var(--font-metadata);
+  }
+
+  .tile-text .text-truncate {
+    max-width: 100%;
   }
 
   .tile:hover .tile-title {
@@ -177,6 +186,7 @@
   .tiles-three-rows .tile-text {
     width: 100px;
     min-width: 100px;
+    max-width: 100px;
     overflow: hidden;
 
     display: flex;

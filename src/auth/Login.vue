@@ -5,8 +5,8 @@
       <span class="spinner-border " />
     </div>
     <div v-else class="mx-auto card" style="width: 22rem">
-      <fieldset :disabled="busy">
-        <div>
+      <div class="card-body">
+        <fieldset :disabled="busy">
           <form @submit.prevent="login">
             <div class="d-flex justify-content-center mb-3">
               <img width="100" height="100" src="@/shared/assets/logo.svg">
@@ -33,8 +33,8 @@
               <span v-show="busy" class="spinner-border spinner-border-sm" /> Log in
             </button>
           </form>
-        </div>
-      </fieldset>
+        </fieldset>
+      </div>
     </div>
   </div>
 </template>
