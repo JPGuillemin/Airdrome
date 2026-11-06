@@ -26,8 +26,7 @@
 /* Mobile: hide scrollbar */
 @media (max-width: 768px) {
   .scroll {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
+    scrollbar-width: none;
   }
   .scroll::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */

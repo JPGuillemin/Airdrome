@@ -17,12 +17,6 @@ a.active,
   text-decoration: none;
   transition: color 0.15s ease;
 }
-.main-content a:not(.genre-link) {
-  text-decoration: none;
-  color: var(--theme-text);
-  transition: color 0.15s ease;
-}
-
 @media(max-width: 768px) {
   a.active,
   .nav .nav-link.router-link-active,
@@ -39,6 +33,7 @@ a.active,
   letter-spacing: 0.06em;
 }
 
+ul.nav,
 ul.nav-underlined {
   white-space: nowrap;
   overflow-x: auto;
@@ -47,54 +42,37 @@ ul.nav-underlined {
   padding-right: 0;
   margin-bottom: 0;
   font-weight: normal;
+
   li {
     display: inline-block;
     float: none;
+
     a {
       display: block;
       padding: 0.5rem 1rem;
-    }
-    a:hover, a:focus {
-      text-decoration: none;
-      border-bottom: 2px solid rgba(#fff, .25);
-    }
-    a.active {
-      border-bottom: 2px solid;
-    }
-    a.active:hover {
-      color: var(--bs-primary);
+
+      &:hover,
+      &:focus {
+        text-decoration: none;
+      }
+
+      &.active:hover {
+        color: var(--bs-primary);
+      }
     }
   }
 }
 
+ul.nav-underlined li a:hover,
+ul.nav-underlined li a:focus {
+  border-bottom: 2px solid rgba(#fff, 0.25);
+}
+
+ul.nav-underlined li a.active {
+  border-bottom: 2px solid;
+}
+
+ul.nav::-webkit-scrollbar,
 ul.nav-underlined::-webkit-scrollbar {
-  display: none;
-}
-
-ul.nav {
-  white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-left: 0;
-  padding-right: 0;
-  margin-bottom: 0;
-  font-weight: normal;
-  li {
-    display: inline-block;
-    float: none;
-    a {
-      display: block;
-      padding: 0.5rem 1rem;
-    }
-    a:hover, a:focus {
-      text-decoration: none;
-    }
-    a.active:hover {
-      color: var(--bs-primary);
-    }
-  }
-}
-
-ul.nav::-webkit-scrollbar {
   display: none;
 }

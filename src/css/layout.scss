@@ -6,18 +6,18 @@
 
 .main-content a {
   text-decoration: none;
-  color: inherit;
   transition: color 0.15s ease;
 }
 
-.main-content a:hover {
-  color: var(--bs-primary);
-  text-decoration: none;
+.main-content a:not(.genre-link) {
+  color: var(--theme-text);
 }
 
-.main-content a.router-link-active,
-.main-content a.router-link-exact-active {
+.main-content a:not(.genre-link):hover,
+.main-content a:not(.genre-link).router-link-active,
+.main-content a:not(.genre-link).router-link-exact-active {
   color: var(--bs-primary);
+  text-decoration: none;
 }
 
 .main-title {
@@ -143,39 +143,11 @@
   transition: color 0.2s ease-in-out;
 }
 
-/* Hover */
-.main-content a:not(.genre-link):hover {
-  color: var(--bs-primary);
-  text-decoration: none;
-}
-
-/* Active route */
-.main-content a.router-link-active:not(.genre-link),
-.main-content a.router-link-exact-active:not(.genre-link) {
-  color: var(--bs-primary);
-  text-decoration: none;
-}
-
-.main-content a.d-inline-flex:not(.genre-link) {
-  align-items: center;
-  text-decoration: none;
-}
-
-/* Section header links outside header, excluding genre-link */
+/* Inline links in section headers and elsewhere */
+.main-content a.d-inline-flex:not(.genre-link),
 .section-wrapper > div > a.d-inline-flex:not(.genre-link) {
-  text-decoration: none;
-  color: inherit;
-  transition: color 0.15s ease;
-  align-items: center;
   display: inline-flex;
-}
-
-/* Hover state: change color for all children */
-.section-wrapper > div > a.d-inline-flex:not(.genre-link):hover,
-.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-active,
-.section-wrapper > div > a.d-inline-flex:not(.genre-link).router-link-exact-active {
-  color: var(--bs-primary);
-  text-decoration: none;
+  align-items: center;
 }
 
 /* Make sure all children inherit hover color */

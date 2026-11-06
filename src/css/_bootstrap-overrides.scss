@@ -1,0 +1,51 @@
+// _bootstrap-overrides.scss
+//
+// Bootstrap variables must be declared before `bootstrap/scss/bootstrap`.
+// Variables declared after that import have no effect on the compiled theme.
+// Theme colors and elevation tokens come from `theme.scss`, which is imported
+// before this file.
+
+// Tooltips
+$tooltip-bg: $theme-elevation-1;
+$tooltip-color: $theme-text;
+
+// Forms
+$input-bg: $theme-elevation-2;
+$input-disabled-bg: $theme-elevation-1;
+$input-border-color: $theme-elevation-2;
+$input-color: $theme-text;
+
+// List group
+$list-group-bg: transparent;
+$list-group-hover-bg: #ffffff1a;
+$list-group-color: $theme-text;
+$list-group-action-hover-color: $theme-text;
+$list-group-border-color: $theme-elevation-2;
+$list-group-action-active-bg: #ffffff1a;
+
+// Offcanvas
+$offcanvas-bg-color: $theme-elevation-1;
+
+// Card
+$card-bg: $theme-elevation-1;
+$card-cap-bg: $theme-elevation-1;
+$card-spacer-y: 1.25rem;
+$card-spacer-x: 1.25rem;
+
+// Modal
+$modal-content-bg: $theme-elevation-1;
+$modal-content-border-color: $theme-elevation-2;
+
+// Popover
+$popover-bg: $theme-elevation-1;
+$popover-border-color: $theme-elevation-2;
+
+// Close button
+$btn-close-color: $theme-text;
+
+// Tables
+$table-color: $theme-text;
+$table-bg: transparent;
+$table-hover-bg: #ffffff1a;
+$table-cell-padding-y: 0.75rem;
+$table-cell-padding-x: 0.75rem;

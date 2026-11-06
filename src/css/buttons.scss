@@ -21,12 +21,11 @@
   --bs-btn-active-border-color: transparent;
   --bs-btn-hover-color: var(--bs-primary);
   --bs-btn-hover-bg: transparent;
-  --bs-btn-focus-shadow-rgb: --theme-elevation-4;
+  --bs-btn-focus-shadow-rgb: 53, 53, 53;
   --bs-btn-disabled-bg: transparent;
   --bs-btn-disabled-border-color: transparent;
 }
 
-$btn-close-color: var(--theme-text);
 .btn-link:focus {
   box-shadow: none !important;
 }

@@ -12,62 +12,19 @@ input, textarea {
   caret-color: var(--theme-text);
 }
 
-// TrackMenu
-$dropdown-bg: $theme-elevation-1;
-$dropdown-link-color: $theme-text;
-$dropdown-link-hover-bg: $theme-elevation-2;
-$dropdown-link-hover-color: var(--bs-primary);
-$dropdown-border-color: $theme-elevation-2;
-$dropdown-divider-bg: $theme-elevation-2;
 .dropdown-toggle.dropdown-toggle-no-caret::before,
 .dropdown-toggle.dropdown-toggle-no-caret::after {
   display: none !important;
 }
 
-// Tooltip
-$tooltip-bg: $theme-elevation-1;
-$tooltip-color: $theme-text;
 .tooltip {
   position: absolute;
   z-index: 3000 !important;
 }
 
-// Forms
-$input-bg: $theme-elevation-2;
-$input-disabled-bg: $theme-elevation-1;
-$input-border-color: $theme-elevation-2;
-$input-color: $theme-text;
-$custom-range-track-height: 0.1rem;
-$custom-range-thumb-bg: $theme-text;
-$custom-range-track-bg: $theme-text;
-
-// List group
-$list-group-bg: rgba(#ffffff, 0);
-$list-group-hover-bg: #ffffff1a;
-$list-group-color: $theme-text;
-$list-group-action-hover-color: $theme-text;
-$list-group-border-color: $theme-elevation-2;
-$list-group-action-active-bg: #ffffff1a;
-
-// Offcanvas
-$offcanvas-bg-color: $theme-elevation-1;
-
-// Card
-$card-bg: $theme-elevation-1;
-$card-cap-bg: $theme-elevation-1;
-$card-spacer-y: 1.25rem;
-$card-spacer-x: 1.25rem;
-
-// Modal
-$modal-content-bg: $theme-elevation-1;
-$modal-content-border-color: $theme-elevation-2;
 .modal-backdrop {
   opacity: 0.5;
 }
-
-// Popover
-$popover-bg: $theme-elevation-1;
-$popover-border-color: $theme-elevation-2;
 
 // Misc
 .selectable,

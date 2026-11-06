@@ -75,9 +75,6 @@ $dropdown-link-active-bg: $theme-elevation-2;
   --primary: #{$primary};
   --secondary: #{$secondary};
   --mobile-nav-height: 60px;
-  user-select: none;
-  -webkit-user-select: none;
-  caret-color: transparent;
 }
 
 .theme-primary {
@@ -98,10 +95,6 @@ $dropdown-link-active-bg: $theme-elevation-2;
 img {
   color-scheme: only light;
 }
-
-$table-color: $theme-text;
-$table-bg: transparent;
-$table-hover-bg: #ffffff1a;
 
 .elevated {
   background-color: $theme-elevation-1;
