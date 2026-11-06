@@ -64,6 +64,7 @@
     overflow-y: auto;
     z-index: 500;
     background: var(--theme-elevation-0);
+    border-right: 1px solid var(--theme-border);
     min-height: calc(100vh - var(--mobile-nav-height));
   }
 

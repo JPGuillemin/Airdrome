@@ -5,23 +5,29 @@
 // Theme colors and elevation tokens come from `theme.scss`, which is imported
 // before this file.
 
+// Radius scale
+$border-radius: $theme-radius-sm;
+$border-radius-sm: 6px;
+$border-radius-lg: $theme-radius-md;
+$border-radius-xl: $theme-radius-lg;
+
 // Tooltips
-$tooltip-bg: $theme-elevation-1;
+$tooltip-bg: $theme-elevation-3;
 $tooltip-color: $theme-text;
 
 // Forms
 $input-bg: $theme-elevation-2;
 $input-disabled-bg: $theme-elevation-1;
-$input-border-color: $theme-elevation-2;
+$input-border-color: $theme-border-subtle;
 $input-color: $theme-text;
 
 // List group
 $list-group-bg: transparent;
-$list-group-hover-bg: #ffffff1a;
+$list-group-hover-bg: rgba(255, 255, 255, 0.06);
 $list-group-color: $theme-text;
 $list-group-action-hover-color: $theme-text;
-$list-group-border-color: $theme-elevation-2;
-$list-group-action-active-bg: #ffffff1a;
+$list-group-border-color: $theme-border-subtle;
+$list-group-action-active-bg: rgba(255, 255, 255, 0.09);
 
 // Offcanvas
 $offcanvas-bg-color: $theme-elevation-1;
@@ -29,16 +35,18 @@ $offcanvas-bg-color: $theme-elevation-1;
 // Card
 $card-bg: $theme-elevation-1;
 $card-cap-bg: $theme-elevation-1;
+$card-border-color: $theme-border-subtle;
+$card-border-radius: $theme-radius-md;
 $card-spacer-y: 1.25rem;
 $card-spacer-x: 1.25rem;
 
 // Modal
 $modal-content-bg: $theme-elevation-1;
-$modal-content-border-color: $theme-elevation-2;
+$modal-content-border-color: $theme-border-subtle;
 
 // Popover
 $popover-bg: $theme-elevation-1;
-$popover-border-color: $theme-elevation-2;
+$popover-border-color: $theme-border-subtle;
 
 // Close button
 $btn-close-color: $theme-text;
@@ -46,6 +54,6 @@ $btn-close-color: $theme-text;
 // Tables
 $table-color: $theme-text;
 $table-bg: transparent;
-$table-hover-bg: #ffffff1a;
+$table-hover-bg: rgba(255, 255, 255, 0.06);
 $table-cell-padding-y: 0.75rem;
 $table-cell-padding-x: 0.75rem;

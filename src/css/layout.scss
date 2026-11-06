@@ -27,8 +27,9 @@
   font-size: 1.5rem;
   line-height: 1.5;
   color: var(--theme-text);
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-gui);
+  letter-spacing: -0.01em;
   // font-variant: small-caps;
   user-select: none;
   -webkit-user-select: none;
@@ -42,10 +43,10 @@
   font-size: 1.2rem;
   line-height: 1.2;
   color: var(--theme-text);
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-gui);
   // font-variant: small-caps;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -71,6 +72,7 @@
   width: 100%;
   z-index: 500;
   background: var(--theme-elevation-1);
+  border-bottom: 1px solid var(--theme-border);
   overflow: visible;
 }
 
@@ -92,15 +94,16 @@
   min-width: 0;
   flex-shrink: 1;
   color: var(--theme-text);
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-metadata);
+  letter-spacing: -0.01em;
 }
 
 .header-title--secondary {
   margin-top: 7px;
   color: var(--theme-text);
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-metadata);
 }
 

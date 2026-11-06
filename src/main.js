@@ -25,6 +25,7 @@ import '@/css/main.scss'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import wheelScroll from '@/shared/wheelscroll'
 import { longPressTooltip } from '@/shared/tooltips'
+import { applyTheme } from '@/shared/theme'
 
 import '@/shared/debugLog'
 
@@ -36,7 +37,7 @@ export default router
 var APP_BASE = import.meta.env.BASE_URL
 
 var THEME_COLORS = [
-  { name: 'Blue', value: '#178994' },
+  { name: 'Blue', value: '#1aa3b0' },
   { name: 'Green', value: '#63c98a' },
   { name: 'Orange', value: '#f2ad5c' },
   { name: 'Purple', value: '#9a7cc7' },
@@ -49,11 +50,6 @@ var THEME_COLORS = [
  * @returns {void}
  */
 function setupTheme() {
-  function applyTheme(color) {
-    document.documentElement.style.setProperty('--bs-primary', color)
-    localStorage.setItem('themeColor', color)
-  }
-
   var savedColor = localStorage.getItem('themeColor')
 
   if (savedColor) {

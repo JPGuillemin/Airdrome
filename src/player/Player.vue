@@ -769,7 +769,7 @@
     width: 56px;
     height: 56px;
     object-fit: cover;
-    border-radius: 5px;
+    border-radius: var(--theme-radius-sm);
     flex-shrink: 0;
     margin: 10px;
     /* keep long press from opening the native image menu / selection */
@@ -784,8 +784,8 @@
     position: fixed;
     z-index: 2000; /* above .player (1000) */
     object-fit: cover;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    border-radius: var(--theme-radius-md);
+    box-shadow: var(--theme-shadow-2);
     pointer-events: none; /* prevents hover flicker */
   }
 
@@ -839,8 +839,9 @@
   .player-shape {
     margin: 5px;
     background: var(--theme-elevation-1);
-    border-radius: 12px;
-    border: 0.5px solid var(--theme-elevation-2);
+    border-radius: var(--theme-radius-md);
+    border: 1px solid var(--theme-border);
+    box-shadow: var(--theme-shadow-2);
     overflow: hidden;
   }
 

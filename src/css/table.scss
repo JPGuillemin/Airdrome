@@ -30,6 +30,7 @@ table.table {
   tbody {
     font-family: var(--font-metadata);
     font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
   }
 
   tbody tr {

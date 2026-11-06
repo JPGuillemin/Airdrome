@@ -9,7 +9,7 @@ $font-family-metadata: 'Inter', sans-serif;
 // Bootstrap uses $font-family-sans-serif as the body/base font → GUI font
 $font-family-sans-serif: $font-family-gui;
 
-$headings-font-weight: 500;
+$headings-font-weight: 600;
 $font-weight-base: 400;
 body {
   font-family: $font-family-sans-serif;
@@ -17,16 +17,28 @@ body {
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'kern' 1;
 }
 
-$theme-elevation-0: #0b0b0b;
-$theme-elevation-1: #1a1a1a;
-$theme-elevation-2: #1b1b1b;
-$theme-elevation-3: #2a2a2a;
-$theme-elevation-4: #353535;
-$theme-text: #f2f2f0;
-$theme-text-muted: #A2A6AA;
-$blue: #178994;
+$theme-elevation-0: #09090b;
+$theme-elevation-1: #121215;
+$theme-elevation-2: #1a1a1f;
+$theme-elevation-3: #24242b;
+$theme-elevation-4: #303039;
+$theme-text: #f4f4f5;
+$theme-text-muted: #a1a1aa;
+
+$theme-border-subtle: rgba(255, 255, 255, 0.08);
+$theme-border-strong: rgba(255, 255, 255, 0.14);
+
+$theme-radius-sm: 8px;
+$theme-radius-md: 12px;
+$theme-radius-lg: 16px;
+
+$theme-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+$theme-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+$blue: #1aa3b0;
 $green: #63c98a;
 $orange: #f2ad5c;
 $purple: #9a7cc7;
@@ -49,12 +61,12 @@ $link-decoration: none;
 $link-hover-decoration: underline;
 
 $text-muted: $theme-text-muted;
-$border-color: $theme-elevation-2;
+$border-color: $theme-border-subtle;
 
 // TrackMenu / overflow menu — otherwise falls back to Bootstrap's default
 // bg, which doesn't follow the elevation scale used elsewhere (e.g. .playlist-box)
 $dropdown-bg: $theme-elevation-1;
-$dropdown-border-color: $theme-elevation-2;
+$dropdown-border-color: $theme-border-subtle;
 $dropdown-link-color: $theme-text;
 $dropdown-link-hover-color: $theme-text;
 $dropdown-link-hover-bg: $theme-elevation-2;
@@ -62,6 +74,8 @@ $dropdown-link-active-color: $theme-text;
 $dropdown-link-active-bg: $theme-elevation-2;
 
 :root {
+  color-scheme: dark;
+
   --font-gui:      #{$font-family-gui};
   --font-metadata: #{$font-family-metadata};
 
@@ -72,9 +86,29 @@ $dropdown-link-active-bg: $theme-elevation-2;
   --theme-elevation-2: #{$theme-elevation-2};
   --theme-elevation-3: #{$theme-elevation-3};
   --theme-elevation-4: #{$theme-elevation-4};
+
+  --theme-border: #{$theme-border-subtle};
+  --theme-border-strong: #{$theme-border-strong};
+  --theme-radius-sm: #{$theme-radius-sm};
+  --theme-radius-md: #{$theme-radius-md};
+  --theme-radius-lg: #{$theme-radius-lg};
+  --theme-shadow-1: #{$theme-shadow-1};
+  --theme-shadow-2: #{$theme-shadow-2};
+
   --primary: #{$primary};
   --secondary: #{$secondary};
   --mobile-nav-height: 60px;
+  accent-color: var(--bs-primary);
+}
+
+::selection {
+  background: rgba(var(--bs-primary-rgb), 0.35);
+  color: var(--theme-text);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
 }
 
 .theme-primary {

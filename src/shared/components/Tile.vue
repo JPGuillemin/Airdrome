@@ -70,24 +70,28 @@
     flex-direction: column;
     width: 100%;
 
+    box-sizing: border-box;
     padding: 8px;
-    border-radius: 12px;
+    border: 1px solid transparent;
+    border-radius: var(--theme-radius-md);
 
     cursor: pointer;
     transition:
       background-color 0.2s ease,
+      border-color 0.2s ease,
       transform 0.2s ease;
   }
 
   .tile:hover {
     background-color: var(--theme-elevation-1);
+    border-color: var(--theme-border);
   }
 
   .tile-img {
     position: relative;
     width: 100%;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: var(--theme-radius-sm);
   }
 
   /* make image circular without clipping children */
@@ -127,7 +131,7 @@
     padding: 6px 4px;
 
     background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 var(--theme-radius-sm) var(--theme-radius-sm);
 
     opacity: 0;
     transform: translateY(4px);

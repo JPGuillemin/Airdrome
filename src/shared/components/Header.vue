@@ -79,7 +79,7 @@
     width: 140px;
     height: 140px;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--theme-radius-sm);
     flex-shrink: 0;
   }
 

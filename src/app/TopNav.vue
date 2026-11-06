@@ -134,6 +134,7 @@
   import { useCacheStore } from '@/shared/cache'
   import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { pushReload } from '@/shared/reload'
+  import { applyTheme } from '@/shared/theme'
   export default defineComponent({
     components: {
       About: About,
@@ -197,19 +198,7 @@
        */
       function setTheme(color) {
         currentColor.value = color
-
-        function hexToRgb(hex) {
-          var bigint = parseInt(hex.replace('#', ''), 16)
-          var r = (bigint >> 16) & 255
-          var g = (bigint >> 8) & 255
-          var b = bigint & 255
-          return r + ', ' + g + ', ' + b
-        }
-
-        var rgb = hexToRgb(color)
-        document.documentElement.style.setProperty('--bs-primary', color)
-        document.documentElement.style.setProperty('--bs-primary-rgb', rgb)
-        localStorage.setItem('themeColor', color)
+        applyTheme(color)
       }
 
       var streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
@@ -524,9 +513,10 @@
     width: auto;
     z-index: 1001;
     height: 46px;
-    border-radius: 12px;
+    border-radius: var(--theme-radius-md);
     background: var(--theme-elevation-1);
-    border: 0.5px solid var(--theme-elevation-2);
+    border: 1px solid var(--theme-border);
+    box-shadow: var(--theme-shadow-1);
   }
 
   .logo-mask {
@@ -557,7 +547,7 @@
     height: 100%;
     margin: 0;
     color: var(--bs-secondary);
-    font-weight: 550;
+    font-weight: 600;
   }
 
   .btn-outline-active,
