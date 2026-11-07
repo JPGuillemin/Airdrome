@@ -1,8 +1,8 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "org.zenwalk.darkstar.twa",
-    "sha256_cert_fingerprints": ["2A:7B:9D:B2:B4:AB:9F:CE:EB:C1:60:A1:90:21:17:4D:07:B1:D9:93:ED:F5:33:B2:94:8D:5D:3B:B0:3E:6D:4C"]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "org.zenwalk.darkstar.twa",
+        "sha256_cert_fingerprints": ["0D:A6:E5:10:F3:61:F2:2A:36:C7:3D:E3:C4:FD:0A:0E:91:1F:4D:0F:44:F9:5B:70:B0:CF:6F:4C:DE:4E:45:82"]
+      }
+    }]

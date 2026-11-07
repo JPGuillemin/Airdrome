@@ -23,16 +23,45 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
+
+      - uses: actions/configure-pages@v5
 
       - run: npm ci
 
+      - name: Read version
+        id: version
+        run: |
+          source VERSION
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
       - run: npm run build
         env:
-          VITE_APP_VERSION: ${{ github.sha }}
           BASE_PATH: /Airdrome/
-          VERSION: ${{ github.sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Rewrite web manifest for the GitHub Pages base path
+        run: |
+          node - <<'NODE'
+          const fs = require('fs')
+          const file = 'dist/manifest.webmanifest'
+          const base = process.env.BASE_PATH || '/'
+          const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+
+          manifest.start_url = base
+          manifest.scope = base
+          manifest.icons = (manifest.icons || []).map(function (icon) {
+            return Object.assign({}, icon, {
+              src: base + icon.src.replace(/^\//, '')
+            })
+          })
+
+          fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n')
+          NODE
+        env:
+          BASE_PATH: /Airdrome/
 
       - run: ls -R dist
 
