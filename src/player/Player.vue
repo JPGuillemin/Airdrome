@@ -237,6 +237,11 @@
                       <Icon icon="skip-start" />
                     </b-button>
                   </div>
+
+                  <hr class="dropdown-divider">
+                  <TrackMenuItem icon="info" class="on-top" @click="openInfo">
+                    Track info
+                  </TrackMenuItem>
                 </OverflowMenu>
 
               </div>
@@ -281,6 +286,7 @@
   import { formatDuration } from '@/shared/utils'
   import { useRouter, useRoute } from 'vue-router'
   import TrackInfoDialog from '@/player/TrackInfoDialog.vue'
+  import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
 
   export default defineComponent({
     name: 'Player',
@@ -288,6 +294,7 @@
       IconReplayGain: IconReplayGain,
       Slider: Slider,
       TrackInfoDialog: TrackInfoDialog,
+      TrackMenuItem: TrackMenuItem,
     },
     setup: function () {
       var router = useRouter()
@@ -820,6 +827,7 @@
         favouriteIcon: favouriteIcon,
         playTitle: playTitle,
         infoVisible: infoVisible,
+        openInfo: openInfo,
         onInfoContextMenu: onInfoContextMenu,
         onInfoMouseDown: onInfoMouseDown,
         onInfoMouseMove: onInfoMouseMove,
