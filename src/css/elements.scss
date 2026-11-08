@@ -2,11 +2,13 @@
 // Inputs
 
 html, body, * {
-  user-select: none;
-  -webkit-user-select: none;
+  user-select: text;
+  -webkit-user-select: text;
+  /* No blinking editing caret outside real inputs. */
+  caret-color: transparent;
 }
 
-input, textarea {
+input, textarea, [contenteditable="true"] {
   user-select: text;
   -webkit-user-select: text;
   caret-color: var(--theme-text);
@@ -24,14 +26,4 @@ input, textarea {
 
 .modal-backdrop {
   opacity: 0.5;
-}
-
-// Misc
-.selectable,
-p,
-span,
-article,
-.markdown {
-  user-select: text;
-  -webkit-user-select: text;
 }
