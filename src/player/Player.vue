@@ -5,7 +5,19 @@
     :class="{ visible: track }"
   >
     <!-- visual layer (background + radius ONLY) -->
-    <div class="player-shape">
+    <div
+      class="player-shape"
+      @contextmenu.prevent="onInfoContextMenu"
+      @mousedown="onInfoMouseDown"
+      @mousemove="onInfoMouseMove"
+      @mouseup="onInfoMouseUp"
+      @mouseleave="onInfoMouseUp"
+      @touchstart.passive="onInfoTouchStart"
+      @touchmove.passive="onInfoTouchMove"
+      @touchend="onInfoTouchEnd"
+      @touchcancel="onInfoTouchEnd"
+      @click.capture="onInfoClickCapture"
+    >
       <!-- layout layer (NO clipping) -->
       <div class="player-content d-flex">
         <div class="flex-fill">
@@ -235,6 +247,14 @@
       </div>
     </div>
 
+    <Teleport to="body">
+      <TrackInfoDialog
+        :visible="infoVisible"
+        :track="track"
+        @close="infoVisible = false"
+      />
+    </Teleport>
+
     <!-- album cover preview (teleported so it is never clipped by the player) -->
     <Teleport to="body">
       <Transition name="cover-preview">
@@ -260,12 +280,14 @@
   import '@vueform/slider/themes/default.css'
   import { formatDuration } from '@/shared/utils'
   import { useRouter, useRoute } from 'vue-router'
+  import TrackInfoDialog from '@/player/TrackInfoDialog.vue'
 
   export default defineComponent({
     name: 'Player',
     components: {
       IconReplayGain: IconReplayGain,
       Slider: Slider,
+      TrackInfoDialog: TrackInfoDialog,
     },
     setup: function () {
       var router = useRouter()
@@ -277,6 +299,13 @@
       var sliderValue = ref(0)
       var dragging = ref(false)
       var tooltipTimer = ref(null)
+
+      var infoVisible = ref(false)
+      var infoPressTimer = null
+      var infoPressStart = { x: 0, y: 0 }
+      var infoLongPressFired = false
+      var INFO_LONG_PRESS_MS = 500
+      var INFO_MOVE_TOLERANCE = 8
 
       watch(
         function () {
@@ -644,6 +673,129 @@
         }
       }
 
+      function isInfoInteractive(target) {
+        if (!target || !target.closest) {
+          return false
+        }
+
+        return !!target.closest(
+          'button, a, input, textarea, select, .player-cover, .playback-slider, .volume-slider, .overflow-menu-wrap, .slider-click-zone, .btn-close'
+        )
+      }
+
+      function clearInfoPress() {
+        if (infoPressTimer) {
+          clearTimeout(infoPressTimer)
+          infoPressTimer = null
+        }
+      }
+
+      function openInfo() {
+        if (!track.value) {
+          return
+        }
+
+        infoVisible.value = true
+      }
+
+      function onInfoContextMenu(event) {
+        if (isInfoInteractive(event.target)) {
+          return
+        }
+
+        openInfo()
+      }
+
+      function onInfoMouseDown(event) {
+        infoLongPressFired = false
+        clearInfoPress()
+
+        if (event.button !== 0 || isInfoInteractive(event.target)) {
+          return
+        }
+
+        infoPressStart = { x: event.clientX, y: event.clientY }
+
+        infoPressTimer = window.setTimeout(function () {
+          infoPressTimer = null
+          infoLongPressFired = true
+          openInfo()
+        }, INFO_LONG_PRESS_MS)
+      }
+
+      function onInfoMouseMove(event) {
+        if (!infoPressTimer) {
+          return
+        }
+
+        if (
+          Math.abs(event.clientX - infoPressStart.x) > INFO_MOVE_TOLERANCE ||
+          Math.abs(event.clientY - infoPressStart.y) > INFO_MOVE_TOLERANCE
+        ) {
+          clearInfoPress()
+        }
+      }
+
+      function onInfoMouseUp() {
+        clearInfoPress()
+      }
+
+      function onInfoTouchStart(event) {
+        infoLongPressFired = false
+        clearInfoPress()
+
+        if (isInfoInteractive(event.target)) {
+          return
+        }
+
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
+        infoPressStart = { x: touch.clientX, y: touch.clientY }
+
+        infoPressTimer = window.setTimeout(function () {
+          infoPressTimer = null
+          infoLongPressFired = true
+          openInfo()
+        }, INFO_LONG_PRESS_MS)
+      }
+
+      function onInfoTouchMove(event) {
+        if (!infoPressTimer) {
+          return
+        }
+
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
+        if (
+          Math.abs(touch.clientX - infoPressStart.x) > INFO_MOVE_TOLERANCE ||
+          Math.abs(touch.clientY - infoPressStart.y) > INFO_MOVE_TOLERANCE
+        ) {
+          clearInfoPress()
+        }
+      }
+
+      function onInfoTouchEnd() {
+        clearInfoPress()
+      }
+
+      function onInfoClickCapture(event) {
+        if (!infoLongPressFired) {
+          return
+        }
+
+        infoLongPressFired = false
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
       onBeforeUnmount(function () {
         if (tooltipTimer.value) {
           clearTimeout(tooltipTimer.value)
@@ -651,6 +803,7 @@
 
         clearPreviewTimer()
         clearLongPressTimer()
+        clearInfoPress()
       })
 
       return {
@@ -666,6 +819,15 @@
         playIcon: playIcon,
         favouriteIcon: favouriteIcon,
         playTitle: playTitle,
+        infoVisible: infoVisible,
+        onInfoContextMenu: onInfoContextMenu,
+        onInfoMouseDown: onInfoMouseDown,
+        onInfoMouseMove: onInfoMouseMove,
+        onInfoMouseUp: onInfoMouseUp,
+        onInfoTouchStart: onInfoTouchStart,
+        onInfoTouchMove: onInfoTouchMove,
+        onInfoTouchEnd: onInfoTouchEnd,
+        onInfoClickCapture: onInfoClickCapture,
         progressSlider: progressSlider,
         coverEl: coverEl,
         previewVisible: previewVisible,

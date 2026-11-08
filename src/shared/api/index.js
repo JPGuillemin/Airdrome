@@ -52,6 +52,15 @@ import { urlMethods } from './urls'
  * @property {boolean} [isPodcast]
  * @property {boolean} [isUnavailable]
  * @property {number} [playCount]
+ * @property {string} [suffix]
+ * @property {string} [contentType]
+ * @property {number} [bitRate]
+ * @property {number} [size]
+ * @property {number} [channelCount]
+ * @property {number} [samplingRate]
+ * @property {number} [bitDepth]
+ * @property {string} [transcodedSuffix]
+ * @property {string} [transcodedContentType]
  * @property {ReplayGain} [replayGain]
  */
 

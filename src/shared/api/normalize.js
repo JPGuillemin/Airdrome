@@ -49,6 +49,15 @@ export var normalizeMethods = {
       artists: artists,
       url: this.getStreamUrl(item.id),
       image: image,
+      suffix: item.suffix,
+      contentType: item.contentType,
+      bitRate: item.bitRate,
+      size: item.size,
+      channelCount: item.channelCount,
+      samplingRate: item.samplingRate,
+      bitDepth: item.bitDepth,
+      transcodedSuffix: item.transcodedSuffix,
+      transcodedContentType: item.transcodedContentType,
       replayGain: replayGain
     }
   },
