@@ -174,7 +174,7 @@
 
                 <!-- overflow menu MUST NOT be clipped -->
                 <OverflowMenu direction="up">
-                  <div class="px-3 py-1 on-top">
+                  <div class="d-flex justify-content-center px-3 py-1 on-top">
                     <Slider
                       v-model="playerStore.volume"
                       orientation="vertical"
@@ -188,7 +188,7 @@
                     />
                   </div>
 
-                  <div class="px-3 py-1 on-top">
+                  <div class="d-flex justify-content-center px-3 py-1 on-top">
                     <b-button
                       v-longpress-tooltip
                       title="Repeat"
@@ -201,7 +201,7 @@
                     </b-button>
                   </div>
 
-                  <div class="d-md-none px-3 py-1 on-top">
+                  <div class="d-flex justify-content-center d-md-none px-3 py-1 on-top">
                     <b-button
                       v-longpress-tooltip
                       variant="transparent"
@@ -213,7 +213,7 @@
                     </b-button>
                   </div>
 
-                  <div v-if="track && track.replayGain" class="d-md-none px-3 py-1 on-top">
+                  <div v-if="track && track.replayGain" class="d-flex justify-content-center d-md-none px-3 py-1 on-top">
                     <b-button
                       v-longpress-tooltip
                       title="ReplayGain"
@@ -227,7 +227,7 @@
                       <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
                     </b-button>
                   </div>
-                  <div class="d-md-none px-3 py-1 on-top">
+                  <div class="d-flex justify-content-center d-md-none px-3 py-1 on-top">
                     <b-button
                       v-longpress-tooltip
                       variant="transparent"
@@ -239,9 +239,17 @@
                   </div>
 
                   <hr class="dropdown-divider">
-                  <TrackMenuItem icon="info" class="on-top" @click="openInfo">
-                    Track info
-                  </TrackMenuItem>
+                  <div class="d-flex justify-content-center px-3 py-1 on-top">
+                    <b-button
+                      v-longpress-tooltip
+                      title="Track Info"
+                      variant="transparent"
+                      class="m-0 px-2 py-0"
+                      @click="openInfo"
+                    >
+                      <Icon icon="info" />
+                    </b-button>
+                  </div>
                 </OverflowMenu>
 
               </div>
@@ -286,7 +294,6 @@
   import { formatDuration } from '@/shared/utils'
   import { useRouter, useRoute } from 'vue-router'
   import TrackInfoDialog from '@/player/TrackInfoDialog.vue'
-  import TrackMenuItem from '@/shared/components/TrackMenuItem.vue'
 
   export default defineComponent({
     name: 'Player',
@@ -294,7 +301,6 @@
       IconReplayGain: IconReplayGain,
       Slider: Slider,
       TrackInfoDialog: TrackInfoDialog,
-      TrackMenuItem: TrackMenuItem,
     },
     setup: function () {
       var router = useRouter()
