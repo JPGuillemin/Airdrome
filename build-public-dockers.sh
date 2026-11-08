@@ -3,6 +3,35 @@
 source VERSION
 export BASE_PATH="/"
 
+# ---------------------------------------------------------------------------
+# Buildx cleanup
+# ---------------------------------------------------------------------------
+# Multi-platform builds leave a buildkit builder/container behind. Stop and
+# remove it even when the build fails, so the host stays clean.
+cleanup_buildx() {
+  echo "Cleaning up buildx..."
+
+  docker buildx prune -af >/dev/null 2>&1 || true
+
+  local builder
+  builder="$(docker buildx inspect 2>/dev/null | awk '/^Name:/ {print $2; exit}')"
+
+  if [ -n "$builder" ] && [ "$builder" != "default" ]; then
+    docker buildx stop "$builder" >/dev/null 2>&1 || true
+    docker buildx rm --force "$builder" >/dev/null 2>&1 || true
+  fi
+
+  local containers
+  containers="$(docker ps -aq --filter 'name=buildx_buildkit_' 2>/dev/null)"
+
+  if [ -n "$containers" ]; then
+    docker stop $containers >/dev/null 2>&1 || true
+    docker rm -f $containers >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup_buildx EXIT
+
 rm -rf dist docker
 
 docker run --privileged --rm tonistiigi/binfmt --install all
@@ -39,5 +68,3 @@ mv dist${BASE_PATH}.well-known dist/
 # Build the docker image
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
 docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION --push . || exit "error docker buildx"
-docker buildx prune -af
-docker buildx rm "$(docker buildx inspect | awk '/^Name:/ {print $2; exit}')"

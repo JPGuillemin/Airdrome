@@ -121,6 +121,23 @@
       <div v-if="loadingAlbum" class="text-muted small mt-2">
         Loading album details…
       </div>
+
+      <div v-if="listenBrainzUrl || youTubeMusicUrl" class="d-flex flex-wrap gap-3 mt-3">
+        <ExternalLink
+          v-if="listenBrainzUrl"
+          :href="listenBrainzUrl"
+          class="track-info-link"
+        >
+          ListenBrainz
+        </ExternalLink>
+        <ExternalLink
+          v-if="youTubeMusicUrl"
+          :href="youTubeMusicUrl"
+          class="track-info-link"
+        >
+          YouTube Music
+        </ExternalLink>
+      </div>
     </div>
   </div>
 </template>
@@ -128,6 +145,11 @@
 <script>
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { formatDuration } from '@/shared/utils'
+  import ExternalLink from '@/shared/components/ExternalLink.vue'
+  import {
+    getAlbumListenBrainzUrl,
+    getArtistListenBrainzUrl,
+  } from '@/shared/musicbrainz'
 
   export default defineComponent({
     props: {
@@ -139,10 +161,15 @@
 
     emits: ['close'],
 
+    components: {
+      ExternalLink: ExternalLink,
+    },
+
     setup: function (props) {
       var api = inject('$api')
       var album = ref(null)
       var loadingAlbum = ref(false)
+      var listenBrainzUrl = ref('')
       var albumToken = 0
 
       var artistNames = computed(function () {
@@ -265,6 +292,28 @@
         return label
       })
 
+      var youTubeMusicUrl = computed(function () {
+        if (!props.track) {
+          return ''
+        }
+
+        var query = []
+
+        if (artistNames.value) {
+          query.push(artistNames.value)
+        }
+
+        if (props.track.title) {
+          query.push(props.track.title)
+        }
+
+        if (!query.length) {
+          return ''
+        }
+
+        return 'https://music.youtube.com/search?q=' + encodeURIComponent(query.join(' '))
+      })
+
       var replayGainLabel = computed(function () {
         if (!props.track || !props.track.replayGain) {
           return ''
@@ -277,8 +326,9 @@
       async function loadAlbum() {
         var current = props.track
 
-        if (!props.visible || !current || !current.albumId) {
+        if (!props.visible || !current) {
           album.value = null
+          listenBrainzUrl.value = ''
           loadingAlbum.value = false
           return
         }
@@ -286,12 +336,52 @@
         var token = albumToken + 1
         albumToken = token
         loadingAlbum.value = true
+        listenBrainzUrl.value = ''
 
         try {
+          if (!current.albumId) {
+            var artist = current.artists && current.artists.length
+              ? current.artists[0].name
+              : ''
+
+            if (artist) {
+              var artistUrl = await getArtistListenBrainzUrl(artist)
+
+              if (token === albumToken && artistUrl.indexOf('/artist/') !== -1) {
+                listenBrainzUrl.value = artistUrl
+              }
+            }
+
+            return
+          }
+
           var result = await api.getAlbumDetails(current.albumId)
 
+          if (token !== albumToken) {
+            return
+          }
+
+          album.value = result
+
+          var listenBrainz = result.musicBrainzUrl || ''
+
+          if (!listenBrainz) {
+            var artistName = current.artists && current.artists.length
+              ? current.artists[0].name
+              : ''
+
+            try {
+              listenBrainz = await getAlbumListenBrainzUrl(artistName, result.name)
+            } catch (error) {
+              listenBrainz = ''
+            }
+          }
+
           if (token === albumToken) {
-            album.value = result
+            // Ignore the generic fallback URL returned when no match is found.
+            listenBrainzUrl.value = listenBrainz && listenBrainz.indexOf('/album/') !== -1
+              ? listenBrainz
+              : ''
           }
         } catch (error) {
           if (token === albumToken) {
@@ -329,6 +419,8 @@
         fileDetails: fileDetails,
         streamLabel: streamLabel,
         replayGainLabel: replayGainLabel,
+        listenBrainzUrl: listenBrainzUrl,
+        youTubeMusicUrl: youTubeMusicUrl,
       }
     },
   })
@@ -384,5 +476,15 @@
   dd {
     margin-bottom: 0.25rem;
     word-break: break-word;
+  }
+
+  .track-info-link {
+    color: var(--bs-primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .track-info-link:hover {
+    text-decoration: underline;
   }
 </style>
