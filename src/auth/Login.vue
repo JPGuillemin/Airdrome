@@ -27,7 +27,7 @@
                      class="form-control" :class="{'is-invalid': hasError}">
             </div>
             <div v-if="error != null" class="alert alert-danger">
-              Could not log in. ({{ error.message }})
+              Could not log in. ({{ errorMessage }})
             </div>
             <button class="btn btn-primary w-100" title="Log in" :disabled="busy">
               <span v-show="busy" class="spinner-border spinner-border-sm" /> Log in
@@ -67,6 +67,17 @@
         return error.value !== null
       })
 
+      var errorMessage = computed(function () {
+        if (!error.value) {
+          return ''
+        }
+
+        var message = error.value.message || String(error.value)
+
+        // Never show credentials that a fetch error may embed in the URL.
+        return message.replace(/([?&](?:p|t|s)=)[^&\s)]+/g, '$1***')
+      })
+
       onMounted(async function () {
         var success = await auth.autoLogin()
 
@@ -95,6 +106,24 @@
         if (serverValue.indexOf('http://') !== 0 && serverValue.indexOf('https://') !== 0) {
           // Try HTTPS first, but we'll fallback to HTTP if it fails
           serverValue = 'https://' + serverValue
+        }
+
+        var parsedUrl
+
+        try {
+          parsedUrl = new URL(serverValue)
+        } catch (urlError) {
+          error.value = new Error('Invalid server URL')
+          busy.value = false
+          return
+        }
+
+        if (location.protocol === 'https:' && parsedUrl.protocol === 'http:') {
+          error.value = new Error(
+            'This page is served over HTTPS. Use an HTTPS server URL.'
+          )
+          busy.value = false
+          return
         }
 
         try {
@@ -131,6 +160,7 @@
         error: error,
         displayForm: displayForm,
         hasError: hasError,
+        errorMessage: errorMessage,
         config: config,
         login: login,
       }
