@@ -4,7 +4,7 @@
 // authentication guard. Written in an explicit, ES5-friendly style: var,
 // function expressions and string concatenation.
 
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { nextTick } from 'vue'
 
 /**
@@ -89,7 +89,7 @@ export function appRouter() {
  */
 export function setupRouter(auth) {
   var router = createRouter({
-    history: createWebHistory(APP_BASE),
+    history: createWebHashHistory(APP_BASE),
     linkExactActiveClass: 'active',
     routes: [
       {

@@ -63,9 +63,6 @@ jobs:
         env:
           BASE_PATH: /Airdrome/
 
-      - name: Add SPA fallback for GitHub Pages
-        run: cp dist/index.html dist/404.html
-
       - run: ls -R dist
 
       - uses: actions/upload-pages-artifact@v3
