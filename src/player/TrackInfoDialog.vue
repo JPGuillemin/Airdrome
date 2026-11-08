@@ -137,6 +137,13 @@
         >
           YouTube Music
         </ExternalLink>
+        <ExternalLink
+          v-if="youTubeUrl"
+          :href="youTubeUrl"
+          class="track-info-link"
+        >
+          YouTube
+        </ExternalLink>
       </div>
     </div>
   </div>
@@ -314,6 +321,28 @@
         return 'https://music.youtube.com/search?q=' + encodeURIComponent(query.join(' '))
       })
 
+      var youTubeUrl = computed(function () {
+        if (!props.track) {
+          return ''
+        }
+
+        var query = []
+
+        if (artistNames.value) {
+          query.push(artistNames.value)
+        }
+
+        if (props.track.title) {
+          query.push(props.track.title)
+        }
+
+        if (!query.length) {
+          return ''
+        }
+
+        return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query.join(' '))
+      })
+
       var replayGainLabel = computed(function () {
         if (!props.track || !props.track.replayGain) {
           return ''
@@ -421,6 +450,7 @@
         replayGainLabel: replayGainLabel,
         listenBrainzUrl: listenBrainzUrl,
         youTubeMusicUrl: youTubeMusicUrl,
+        youTubeUrl: youTubeUrl,
       }
     },
   })
