@@ -1,27 +1,24 @@
 <template>
-  <a :href="href" @click.prevent="openLink" v-bind="$attrs">
+  <a
+    :href="href"
+    target="_blank"
+    rel="noopener noreferrer"
+    v-bind="$attrs"
+  >
     <slot />
   </a>
 </template>
+
 <script>
   import { defineComponent } from 'vue'
 
   export default defineComponent({
     name: 'ExternalLink',
     props: {
-      /** Target URL, opened in a new tab. */
+      /** Target URL, opened by the platform. */
       href: {
         type: String,
         required: true
-      }
-    },
-    setup: function (props) {
-      async function openLink() {
-        window.open(props.href, '_blank', 'noopener,noreferrer')
-      }
-
-      return {
-        openLink: openLink
       }
     }
   })
