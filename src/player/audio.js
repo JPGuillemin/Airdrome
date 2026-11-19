@@ -91,6 +91,7 @@ export function AudioController() {
   this.onerror = function() {}
   this.onplaying = function() {}
   this.onwaiting = function() {}
+  this.onseeked = function() {}
 }
 
 // ---------------------------------------------------------------------------
@@ -476,6 +477,10 @@ AudioController.prototype.loadTrack = async function(options) {
   audio.ontimeupdate = function() {
     self.ontimeupdate(audio.currentTime)
   }
+
+  audio.addEventListener('seeked', function() {
+    self.onseeked(audio.currentTime)
+  })
 
   audio.addEventListener('loadedmetadata', function() {
     var duration = audio.duration

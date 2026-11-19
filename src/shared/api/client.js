@@ -180,8 +180,13 @@ export function API(auth) {
         body: toQueryString(params) + '&' + self.auth.urlParams
       })
     } else {
+      // `_` makes every URL unique so no HTTP cache or CDN can answer with a
+      // stale response. Navidrome marks GET API replies as publicly cacheable,
+      // which lets reverse proxies keep them for an hour otherwise.
+      var getParams = Object.assign({}, params, { _: Date.now() })
+
       request = new Request(
-        self.auth.server + '/' + path + '?' + toQueryString(params) + '&' + self.auth.urlParams,
+        self.auth.server + '/' + path + '?' + toQueryString(getParams) + '&' + self.auth.urlParams,
         { method: 'GET', headers: { Accept: 'application/json' } }
       )
     }

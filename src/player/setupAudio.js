@@ -83,6 +83,218 @@ export async function setupAudio(playerStore, mainStore) {
   var playTime = 0
   var pauseTime = 0
 
+  // -------------------------------------------------------------------------
+  // Playback reporting
+  //
+  // Modern servers (Navidrome, OpenSubsonic `playbackReport`) want a session
+  // lifecycle instead of a single scrobble call: starting/playing/paused while
+  // the track plays, then stopped. The server counts the play when it receives
+  // `stopped` past the half-way point. This is the same flow the Navidrome web
+  // UI and recent clients use.
+  //
+  // Servers without the extension keep the legacy 50%-then-scrobble path.
+  // -------------------------------------------------------------------------
+
+  var REPORT_INTERVAL_MS = 60000
+
+  var usePlaybackReport = playerStore.api.supportsPlaybackReport()
+  var reportTrackId = null
+  var reportPositionMs = 0
+  var reportDurationMs = 0
+  var heartbeatTimer = undefined
+
+  /**
+   * Current playback position in milliseconds.
+   *
+   * @returns {number}
+   */
+  function currentPositionMs() {
+    var seconds = playerStore.currentTime || 0
+
+    if (!isFinite(seconds) || seconds < 0) {
+      return 0
+    }
+
+    return Math.round(seconds * 1000)
+  }
+
+  /**
+   * Position the server requires before it counts a play: half the track,
+   * capped at four minutes (same rule as Navidrome).
+   *
+   * @param {number} durationMs
+   * @returns {number}
+   */
+  function playThresholdMs(durationMs) {
+    if (!durationMs || durationMs <= 0) {
+      return 0
+    }
+
+    return Math.min(Math.round(durationMs / 2), 240000)
+  }
+
+  /**
+   * @param {string} trackId
+   * @param {number} positionMs
+   * @param {'starting'|'playing'|'paused'|'stopped'} state
+   * @param {Object} [options]
+   * @returns {Promise<void>}
+   */
+  function sendPlaybackReport(trackId, positionMs, state, options) {
+    return playerStore.api.reportPlayback(trackId, positionMs, state, options)
+      .catch(function(error) {
+        console.warn('[Playback] report failed (' + state + ')', error)
+      })
+  }
+
+  function startHeartbeat() {
+    stopHeartbeat()
+
+    heartbeatTimer = window.setInterval(function() {
+      if (!reportTrackId || !playerStore.isPlaying) {
+        return
+      }
+
+      reportPositionMs = currentPositionMs()
+      sendPlaybackReport(reportTrackId, reportPositionMs, 'playing')
+    }, REPORT_INTERVAL_MS)
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      window.clearInterval(heartbeatTimer)
+      heartbeatTimer = undefined
+    }
+  }
+
+  /**
+   * Close the current session with `stopped`, which is what makes the server
+   * record the play.
+   *
+   * @param {number} positionMs
+   * @returns {void}
+   */
+  function closePlaybackReport(positionMs) {
+    if (!reportTrackId) {
+      return
+    }
+
+    var trackId = reportTrackId
+    var durationMs = reportDurationMs
+
+    reportTrackId = null
+    reportDurationMs = 0
+    stopHeartbeat()
+
+    sendPlaybackReport(trackId, positionMs, 'stopped')
+
+    if (positionMs >= playThresholdMs(durationMs)) {
+      // The play was reported, so views showing server-side stats can refresh
+      // even when the queue has already moved to the next track.
+      playerStore.scrobbleCount += 1
+
+      // Only mark the current track as scrobbled; a skip closes the previous
+      // session after the queue moved on.
+      if (playerStore.track && playerStore.track.id === trackId) {
+        playerStore.scrobbled = true
+      }
+    }
+  }
+
+  /**
+   * Begin reporting the current track, or resume it when it is already the
+   * reported one.
+   *
+   * @returns {void}
+   */
+  function startPlaybackReport() {
+    var track = playerStore.track
+
+    if (!track) {
+      return
+    }
+
+    if (reportTrackId === track.id) {
+      reportPositionMs = currentPositionMs()
+      sendPlaybackReport(track.id, reportPositionMs, 'playing')
+      return
+    }
+
+    // A different track was still open (manual skip while playing): close it
+    // with its last known position before starting the new session.
+    if (reportTrackId) {
+      closePlaybackReport(reportPositionMs)
+    }
+
+    reportTrackId = track.id
+    reportPositionMs = currentPositionMs()
+    reportDurationMs = Math.round((track.duration || 0) * 1000)
+
+    sendPlaybackReport(track.id, reportPositionMs, 'starting').then(function() {
+      if (reportTrackId === track.id) {
+        sendPlaybackReport(track.id, currentPositionMs(), 'playing')
+      }
+    })
+
+    startHeartbeat()
+  }
+
+  /**
+   * @returns {void}
+   */
+  function pausePlaybackReport() {
+    if (!reportTrackId) {
+      return
+    }
+
+    var positionMs = currentPositionMs()
+
+    // Browsers fire `pause` right before `ended`. Skip it: `onended` closes
+    // the session with `stopped`, which is the report that matters.
+    if (reportDurationMs && positionMs >= reportDurationMs - 250) {
+      return
+    }
+
+    reportPositionMs = positionMs
+    sendPlaybackReport(reportTrackId, reportPositionMs, 'paused')
+  }
+
+  /**
+   * @param {boolean} atEnd Use the track duration instead of the element clock.
+   * @returns {void}
+   */
+  function stopPlaybackReport(atEnd) {
+    if (!reportTrackId) {
+      return
+    }
+
+    var positionMs = currentPositionMs()
+
+    if (atEnd && reportDurationMs) {
+      positionMs = reportDurationMs
+    }
+
+    closePlaybackReport(positionMs)
+  }
+
+  /**
+   * @param {number} time Position in seconds.
+   * @returns {void}
+   */
+  function seekPlaybackReport(time) {
+    if (!reportTrackId) {
+      return
+    }
+
+    reportPositionMs = Math.round(time * 1000)
+
+    sendPlaybackReport(
+      reportTrackId,
+      reportPositionMs,
+      playerStore.isPlaying ? 'playing' : 'paused'
+    )
+  }
+
   playerStore.setMediaSessionState('none')
 
   audio.onplay = function() {
@@ -92,6 +304,10 @@ export async function setupAudio(playerStore, mainStore) {
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
+
+    if (usePlaybackReport) {
+      startPlaybackReport()
+    }
   }
 
   audio.onpause = function() {
@@ -100,6 +316,10 @@ export async function setupAudio(playerStore, mainStore) {
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
+
+    if (usePlaybackReport) {
+      pausePlaybackReport()
+    }
   }
 
   audio.onwaiting = function() {
@@ -120,6 +340,10 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   audio.onended = function() {
+    if (usePlaybackReport) {
+      stopPlaybackReport(true)
+    }
+
     if (playerStore.hasNext || playerStore.repeat) {
       return playerStore.next(false)
     }
@@ -429,12 +653,48 @@ export async function setupAudio(playerStore, mainStore) {
 
   var saveTime = 0
 
+  // Id of the track whose scrobble request is currently in flight. Used to
+  // avoid firing a new request on every timeupdate tick while the first one
+  // is still pending.
+  var scrobbleInFlight = null
+
   async function scrobbleTrack(trackId) {
-    try {
-      await playerStore.api.scrobble(trackId)
-    } catch (error) {
-      console.warn('[Scrobble] failed', error)
+    if (scrobbleInFlight === trackId) {
+      return
     }
+
+    scrobbleInFlight = trackId
+
+    // A scrobble is fire-and-forget, so a transient network error would
+    // otherwise lose the play forever. Retry a couple of times before giving
+    // up on this track.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        await playerStore.api.scrobble(trackId)
+
+        if (playerStore.track && playerStore.track.id === trackId) {
+          playerStore.scrobbled = true
+        }
+
+        playerStore.scrobbleCount += 1
+
+        console.info('[Scrobble] ok', trackId)
+        scrobbleInFlight = null
+        return
+      } catch (error) {
+        console.warn('[Scrobble] attempt ' + (attempt + 1) + ' failed', error)
+
+        if (attempt < 2) {
+          await sleep(2000)
+        }
+      }
+    }
+
+    if (playerStore.track && playerStore.track.id === trackId) {
+      playerStore.scrobbled = true
+    }
+
+    scrobbleInFlight = null
   }
 
   audio.ontimeupdate = function(time) {
@@ -443,6 +703,10 @@ export async function setupAudio(playerStore, mainStore) {
     }
 
     playerStore.currentTime = time
+
+    if (usePlaybackReport && reportTrackId) {
+      reportPositionMs = Math.round(time * 1000)
+    }
 
     var track = playerStore.track
     var isPlaying = playerStore.isPlaying
@@ -472,9 +736,21 @@ export async function setupAudio(playerStore, mainStore) {
       progress = time / duration
     }
 
-    if (!playerStore.scrobbled && progress > 0.5 && track && isPlaying) {
-      playerStore.scrobbled = true
+    // Legacy servers only accept a one-shot scrobble call.
+    if (
+      !usePlaybackReport &&
+      !playerStore.scrobbled &&
+      progress > 0.5 &&
+      track &&
+      isPlaying
+    ) {
       scrobbleTrack(track.id)
+    }
+  }
+
+  audio.onseeked = function(time) {
+    if (usePlaybackReport) {
+      seekPlaybackReport(time)
     }
   }
 
@@ -495,6 +771,21 @@ export async function setupAudio(playerStore, mainStore) {
       event.returnValue = ''
       return ''
     }
+  })
+
+  // Closing the tab is the last chance to report the play: use a keepalive
+  // request so the server still receives `stopped` while the page unloads.
+  window.addEventListener('pagehide', function() {
+    if (!usePlaybackReport || !reportTrackId) {
+      return
+    }
+
+    sendPlaybackReport(reportTrackId, currentPositionMs(), 'stopped', {
+      keepalive: true
+    })
+
+    reportTrackId = null
+    stopHeartbeat()
   })
 
   // -------------------------------------------------------------------------

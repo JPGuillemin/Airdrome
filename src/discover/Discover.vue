@@ -402,17 +402,18 @@
         }
       )
 
-      // The player scrobbles once the current track passes 50 %
-      // (player.scrobbled flips to true, and back to false on the next track).
-      // That is the moment the server's "recently played" list actually changes.
+      // `scrobbleCount` is bumped every time a play has been reported to the
+      // server (half-way point for legacy servers, on `stopped` for
+      // playbackReport servers). That is the moment the server's "recently
+      // played" list actually changes.
       watch(
         function () {
-          return player.scrobbled
+          return player.scrobbleCount
         },
-        function (scrobbled) {
-          console.info('[Discover] scrobbled =', scrobbled)
+        function (count, previous) {
+          console.info('[Discover] scrobbleCount =', count)
 
-          if (scrobbled) {
+          if (count !== previous) {
             schedulePlayedRefresh()
           }
         }

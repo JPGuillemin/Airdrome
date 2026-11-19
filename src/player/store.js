@@ -112,6 +112,13 @@ export var usePlayerStore = defineStore('player', {
       /** True once the current track has been scrobbled. */
       scrobbled: false,
 
+      /**
+       * Incremented every time a play has been reported to the server.
+       * Views that show server-side stats (Discover) watch it, because the
+       * play is now counted when the track ends, not mid-track.
+       */
+      scrobbleCount: 0,
+
       /** True while skipping next/back. */
       inTransition: false,
 

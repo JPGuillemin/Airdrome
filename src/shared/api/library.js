@@ -5,6 +5,7 @@
 // async/await instead of promise chains.
 
 import { orderBy } from 'lodash-es'
+import { toQueryString } from '@/shared/utils'
 import { OfflineError } from './client'
 
 export var libraryMethods = {
@@ -612,6 +613,73 @@ export var libraryMethods = {
   scrobble: async function(id) {
     try {
       await this.fetch('rest/scrobble', { id: id, submission: true })
+    } catch (err) {
+      if (err instanceof OfflineError) {
+        return
+      }
+
+      throw err
+    }
+  },
+
+  /**
+   * True when the server advertises the OpenSubsonic `playbackReport`
+   * extension. Modern clients (and the Navidrome web UI) use it instead of the
+   * legacy `scrobble` call: the server counts the play itself when the session
+   * is closed with `stopped`.
+   *
+   * @returns {boolean}
+   */
+  supportsPlaybackReport: function() {
+    var extensions = this.auth.serverInfo && this.auth.serverInfo.extensions
+
+    return !!(extensions && extensions.indexOf('playbackReport') !== -1)
+  },
+
+  /**
+   * Report a playback state for a track.
+   *
+   * @param {string} mediaId
+   * @param {number} positionMs
+   * @param {'starting'|'playing'|'paused'|'stopped'} state
+   * @param {Object} [options]
+   * @param {boolean} [options.keepalive] Keep the request alive during unload.
+   * @returns {Promise<void>}
+   */
+  reportPlayback: async function(mediaId, positionMs, state, options) {
+    var settings = options || {}
+    var params = {
+      mediaId: mediaId,
+      mediaType: 'song',
+      positionMs: Math.max(0, Math.round(positionMs || 0)),
+      state: state
+    }
+
+    if (settings.keepalive) {
+      // `fetch(..., { keepalive: true })` lets the request outlive the page.
+      // Build the URL by hand because the shared fetch helper has no keepalive
+      // option and this path must never throw during unload.
+      var query = toQueryString(
+        Object.assign({ v: '1.16.1', f: 'json', c: this.clientName }, params)
+      )
+      var url = this.auth.server + '/rest/reportPlayback?' + query +
+        '&' + this.auth.urlParams
+
+      try {
+        await window.fetch(url, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          keepalive: true
+        })
+      } catch (err) {
+        // The page is going away; there is nothing left to do.
+      }
+
+      return
+    }
+
+    try {
+      await this.fetch('rest/reportPlayback', params)
     } catch (err) {
       if (err instanceof OfflineError) {
         return
