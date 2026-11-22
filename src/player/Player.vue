@@ -58,14 +58,9 @@
                   v-if="track.albumId"
                   ref="coverEl"
                   style="cursor: pointer"
-                  @click.stop="onCoverClick"
+                  @click.stop="onAlbumClick"
                   @mouseenter="showPreview"
                   @mouseleave="hidePreview"
-                  @touchstart.passive="onTouchStart"
-                  @touchmove.passive="onTouchMove"
-                  @touchend="onTouchEnd"
-                  @touchcancel="onTouchCancel"
-                  @contextmenu="onContextMenu"
                 >
                   <img
                     v-if="track.image"
@@ -410,90 +405,6 @@
         previewVisible.value = false
       }
 
-      // Long press (touch devices)
-      var LONG_PRESS_DELAY = 500
-      var MOVE_TOLERANCE = 10
-      var longPressTimer = null
-      var longPressFired = false
-      var touchActive = false
-      var touchOrigin = { x: 0, y: 0 }
-
-      function clearLongPressTimer() {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer)
-          longPressTimer = null
-        }
-      }
-
-      function onTouchStart(event) {
-        var touch = event.touches[0]
-
-        if (!touch) {
-          return
-        }
-
-        touchActive = true
-        longPressFired = false
-        touchOrigin = { x: touch.clientX, y: touch.clientY }
-        clearLongPressTimer()
-
-        longPressTimer = window.setTimeout(function () {
-          longPressTimer = null
-          longPressFired = true
-          openPreview()
-        }, LONG_PRESS_DELAY)
-      }
-
-      function onTouchMove(event) {
-        if (!longPressTimer) {
-          return
-        }
-
-        var touch = event.touches[0]
-
-        if (!touch) {
-          return
-        }
-
-        var dx = touch.clientX - touchOrigin.x
-        var dy = touch.clientY - touchOrigin.y
-
-        if (Math.sqrt(dx * dx + dy * dy) > MOVE_TOLERANCE) {
-          clearLongPressTimer()
-        }
-      }
-
-      function onTouchEnd(event) {
-        touchActive = false
-        clearLongPressTimer()
-
-        if (longPressFired) {
-          event.preventDefault()
-          hidePreview()
-        }
-      }
-
-      function onTouchCancel() {
-        touchActive = false
-        clearLongPressTimer()
-        hidePreview()
-      }
-
-      function onContextMenu(event) {
-        if (touchActive || longPressFired) {
-          event.preventDefault()
-        }
-      }
-
-      function onCoverClick() {
-        if (longPressFired) {
-          longPressFired = false
-          return
-        }
-
-        onAlbumClick()
-      }
-
       var isFavourite = computed(function () {
         return !!track.value && favouriteStore.get('track', track.value.id)
       })
@@ -692,7 +603,7 @@
         }
 
         return !!target.closest(
-          'button, a, input, textarea, select, .player-cover, .playback-slider, .volume-slider, .overflow-menu-wrap, .slider-click-zone, .btn-close'
+          'button, a, input, textarea, select, .playback-slider, .volume-slider, .overflow-menu-wrap, .slider-click-zone, .btn-close'
         )
       }
 
@@ -708,6 +619,7 @@
           return
         }
 
+        hidePreview()
         infoVisible.value = true
       }
 
@@ -815,7 +727,6 @@
         }
 
         clearPreviewTimer()
-        clearLongPressTimer()
         clearInfoPress()
       })
 
@@ -848,12 +759,6 @@
         previewStyle: previewStyle,
         showPreview: showPreview,
         hidePreview: hidePreview,
-        onTouchStart: onTouchStart,
-        onTouchMove: onTouchMove,
-        onTouchEnd: onTouchEnd,
-        onTouchCancel: onTouchCancel,
-        onContextMenu: onContextMenu,
-        onCoverClick: onCoverClick,
         focusSlider: focusSlider,
         blurSlider: blurSlider,
         onAlbumClick: onAlbumClick,
