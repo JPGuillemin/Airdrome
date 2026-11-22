@@ -199,17 +199,6 @@ export async function setupAudio(playerStore, mainStore) {
   var resumeDeadlineTimer = undefined
   var resumeInFlight = false
 
-  var stalled = false
-  var lastPosition = 0
-  var lastProgressAt = 0
-  var verificationCount = 0
-  var playVerifyTimer = undefined
-  var stallWatchTimer = undefined
-
-  var PLAY_VERIFY_MS = 3000
-  var STALL_CHECK_MS = 2000
-  var STALL_TIMEOUT_MS = 10000
-
   /**
    * Stop the deadline that releases the freeze lock.
    *
@@ -247,208 +236,38 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   /**
-   * Reset progress tracking after a real start or pause.
-   *
-   * @returns {void}
-   */
-  function resetProgressTracking() {
-    var element = audio.getAudioElement()
-
-    stalled = false
-    lastPosition = element.currentTime
-    lastProgressAt = Date.now()
-  }
-
-  /**
-   * Stop the one-shot verification scheduled after a play event.
-   *
-   * @returns {void}
-   */
-  function stopPlayVerification() {
-    if (playVerifyTimer) {
-      window.clearTimeout(playVerifyTimer)
-      playVerifyTimer = undefined
-    }
-  }
-
-  /**
-   * Mark playback as stalled and show the paused state.
-   *
-   * @returns {void}
-   */
-  function markStalled() {
-    if (stalled && !playerStore.isPlaying) {
-      return
-    }
-
-    stalled = true
-    playerStore.isPlaying = false
-    playerStore.resumePending = true
-    playerStore.devicePaused = false
-    acquireKeepAlive()
-    startResumeDeadline()
-    playerStore.setMediaSessionPosition()
-    playerStore.setMediaSessionState('paused')
-    onPlaybackStopped()
-    console.info('[resume] playback stalled')
-  }
-
-  /**
-   * The browser said "playing" but the position did not move. Try one real
-   * pause/play restart. This is triggered by the browser's own play event,
-   * not by a timer while a call may still be active.
-   *
-   * @returns {void}
-   */
-  function schedulePlayVerification() {
-    if (verificationCount >= 1) {
-      return
-    }
-
-    stopPlayVerification()
-    verificationCount += 1
-    var startPosition = audio.getAudioElement().currentTime
-
-    playVerifyTimer = window.setTimeout(function() {
-      playVerifyTimer = undefined
-
-      if (playerStore.userPaused || playerStore.inTransition) {
-        return
-      }
-
-      // markStalled() already took care of the UI. Only verify a state where
-      // the browser still claims to be playing.
-      if (!playerStore.isPlaying) {
-        return
-      }
-
-      if (audio.getAudioContext().state !== 'running') {
-        console.info('[resume] context suspended during verification')
-        markStalled()
-        return
-      }
-
-      var element = audio.getAudioElement()
-
-      if (element.ended || element.readyState < 3 ||
-        Math.abs(element.currentTime - startPosition) > 0.1) {
-        return
-      }
-
-      console.info('[resume] play verification failed')
-      stalled = true
-      tryResume('play-verify')
-    }, PLAY_VERIFY_MS)
-  }
-
-  /**
    * Resume playback after a system pause, if the user still wants it.
    *
-   * Called from foreground wake-ups, a verified stalled state, or when the
-   * AudioContext itself returns to running (a safe audio-focus signal).
+   * Only called from foreground/user-driven wake-ups. Background resume is
+   * handled by the browser's audio-focus manager, which will not start
+   * playback while a phone call owns audio focus.
    *
    * @param {string} reason
    * @returns {Promise<void>}
    */
   async function tryResume(reason) {
-    if (resumeInFlight || playerStore.userPaused || playerStore.inTransition) {
-      return
-    }
-
-    if (playerStore.isPlaying && !stalled) {
+    if (resumeInFlight || playerStore.isPlaying || playerStore.userPaused ||
+      playerStore.inTransition) {
       return
     }
 
     resumeInFlight = true
 
     try {
-      var element = audio.getAudioElement()
-
-      // "Playing" but not advancing: a plain play() is a no-op. Force a real
-      // restart of the media element.
-      if (!element.paused && stalled) {
-        console.info('[resume] restarting stalled element')
-        element.pause()
-        await sleep(100)
-      }
-
-      // The pause above may have triggered a session takeover.
-      if (playerStore.userPaused || playerStore.inTransition) {
-        return
-      }
-
       console.info('[resume] attempt:', reason)
-      var start = audio.getAudioElement().currentTime
       await playerStore.play()
-      await sleep(1000)
+      await sleep(500)
 
-      var current = audio.getAudioElement()
-
-      if (current.ended) {
-        return
+      if (audio.getAudioElement().paused) {
+        console.info('[resume] still paused:', reason)
+      } else {
+        console.info('[resume] ok:', reason)
       }
-
-      if (current.readyState < 3) {
-        console.info('[resume] still loading:', reason)
-        return
-      }
-
-      if (audio.getAudioContext().state !== 'running') {
-        console.info('[resume] context still suspended:', reason)
-        markStalled()
-        return
-      }
-
-      if (current.paused || Math.abs(current.currentTime - start) < 0.05) {
-        console.info('[resume] still stalled:', reason)
-        markStalled()
-        return
-      }
-
-      stalled = false
-      lastPosition = current.currentTime
-      lastProgressAt = Date.now()
-      console.info('[resume] ok:', reason)
     } catch (error) {
       console.info('[resume] failed:', reason, error && error.name)
     } finally {
       resumeInFlight = false
     }
-  }
-
-  /**
-   * Watch the media element position directly, so background timeupdate
-   * throttling cannot hide a real stall.
-   *
-   * @returns {void}
-   */
-  function startStallWatch() {
-    if (stallWatchTimer) {
-      return
-    }
-
-    resetProgressTracking()
-
-    stallWatchTimer = window.setInterval(function() {
-      if (!playerStore.isPlaying || playerStore.userPaused || playerStore.inTransition) {
-        return
-      }
-
-      var element = audio.getAudioElement()
-      var position = element.currentTime
-
-      if (Math.abs(position - lastPosition) > 0.1) {
-        lastPosition = position
-        lastProgressAt = Date.now()
-        stalled = false
-        verificationCount = 0
-        return
-      }
-
-      if (Date.now() - lastProgressAt > STALL_TIMEOUT_MS) {
-        markStalled()
-      }
-    }, STALL_CHECK_MS)
   }
 
   /**
@@ -474,31 +293,8 @@ export async function setupAudio(playerStore, mainStore) {
    */
   function onForeground(reason) {
     resumeAudioContext()
-
-    if (playerStore.userPaused || playerStore.inTransition) {
-      return
-    }
-
-    var element = audio.getAudioElement()
-
-    if (playerStore.isPlaying && element.paused) {
-      stalled = true
-      tryResume(reason)
-      return
-    }
-
-    if (playerStore.isPlaying && !stalled) {
-      // The UI says playing. Verify that the position actually advances; a
-      // stalled pipeline can still report isPlaying after an interruption.
-      verificationCount = 0
-      schedulePlayVerification()
-      return
-    }
-
     tryResume(reason)
   }
-
-  startStallWatch()
 
   playerStore.setMediaSessionState('none')
 
@@ -510,8 +306,6 @@ export async function setupAudio(playerStore, mainStore) {
     stopResumeDeadline()
     acquireKeepAlive()
     resumeAudioContext()
-    resetProgressTracking()
-    schedulePlayVerification()
     claimSession()
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -524,9 +318,6 @@ export async function setupAudio(playerStore, mainStore) {
 
   audio.onpause = function() {
     playerStore.isPlaying = false
-    stopPlayVerification()
-    resetProgressTracking()
-    verificationCount = 0
     onPlaybackStopped()
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -569,8 +360,6 @@ export async function setupAudio(playerStore, mainStore) {
     stopResumeDeadline()
     acquireKeepAlive()
     resumeAudioContext()
-    resetProgressTracking()
-    schedulePlayVerification()
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -578,10 +367,6 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   audio.onended = function() {
-    stopPlayVerification()
-    resetProgressTracking()
-    verificationCount = 0
-
     if (usePlaybackReport) {
       endSession(reportedDurationMs || lastPositionMs)
     }
@@ -601,9 +386,6 @@ export async function setupAudio(playerStore, mainStore) {
   audio.onerror = function(error) {
     console.warn('[Audio] Fatal error', error)
 
-    stopPlayVerification()
-    resetProgressTracking()
-    verificationCount = 0
     playerStore.resumePending = false
     playerStore.devicePaused = false
     stopResumeDeadline()
@@ -840,26 +622,6 @@ export async function setupAudio(playerStore, mainStore) {
     onForeground('page-resume')
   })
 
-  var audioContext = audio.getAudioContext()
-
-  audioContext.addEventListener('statechange', function() {
-    // A suspended context returning to running is a real audio-focus signal.
-    // It cannot happen while a call still owns the audio output.
-    if (audioContext.state !== 'running') {
-      return
-    }
-
-    var element = audio.getAudioElement()
-
-    if (playerStore.isPlaying && element.paused && !playerStore.userPaused) {
-      stalled = true
-    }
-
-    if (stalled || playerStore.resumePending) {
-      tryResume('context-running')
-    }
-  })
-
   // -------------------------------------------------------------------------
   // Microphone permission (exposes device labels)
   // -------------------------------------------------------------------------
@@ -988,31 +750,6 @@ export async function setupAudio(playerStore, mainStore) {
     }
 
     playerStore.currentTime = time
-
-    if (Math.abs(time - lastPosition) > 0.01) {
-      lastPosition = time
-      lastProgressAt = Date.now()
-      stalled = false
-      verificationCount = 0
-
-      // The pipeline recovered without a play event (e.g. the browser
-      // unfroze it). Bring the UI/media session back in sync.
-      if (!playerStore.isPlaying && !playerStore.userPaused &&
-        !audio.getAudioElement().paused &&
-        audio.getAudioContext().state === 'running') {
-        playerStore.isPlaying = true
-        playerStore.resumePending = false
-        playerStore.devicePaused = false
-        stopResumeDeadline()
-        acquireKeepAlive()
-        claimSession()
-        playerStore.setMediaSessionState('playing')
-
-        if (usePlaybackReport) {
-          startSession()
-        }
-      }
-    }
 
     if (usePlaybackReport) {
       lastPositionMs = Math.round(time * 1000)
