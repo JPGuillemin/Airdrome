@@ -11,6 +11,13 @@
           :key="item.id"
           :to="{ name: 'genre', params: { id: item.id } }"
           class="genre-link text-decoration-none"
+          @pointerdown="onGenrePointerDown(item, $event)"
+          @pointermove="onGenrePointerMove"
+          @pointerup="onGenrePointerUp"
+          @pointerleave="onGenrePointerUp"
+          @pointercancel="onGenrePointerUp"
+          @contextmenu.prevent
+          @click.capture="onGenreClick"
         >
           {{ item.name }}
         </router-link>
@@ -439,6 +446,8 @@
         if (refreshTimer) {
           clearTimeout(refreshTimer)
         }
+
+        cancelGenrePress()
       })
       // -------------------------------------------------------------------------------
 
@@ -481,6 +490,70 @@
       )
 
       var radio = useRadioStore()
+
+      // Long press / long click on a top-row genre starts its radio, while a
+      // normal click still navigates to the genre page.
+      var GENRE_LONG_PRESS_MS = 500
+      var GENRE_MOVE_TOLERANCE = 10
+      var genrePressTimer = null
+      var genreLongPressFired = false
+      var genrePressStart = { x: 0, y: 0 }
+
+      function cancelGenrePress() {
+        if (genrePressTimer) {
+          clearTimeout(genrePressTimer)
+          genrePressTimer = null
+        }
+      }
+
+      function onGenrePointerDown(item, event) {
+        genreLongPressFired = false
+        cancelGenrePress()
+
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+          return
+        }
+
+        genrePressStart = { x: event.clientX, y: event.clientY }
+
+        genrePressTimer = window.setTimeout(function () {
+          genrePressTimer = null
+          genreLongPressFired = true
+
+          if (navigator.vibrate) {
+            navigator.vibrate(30)
+          }
+
+          radio.shuffleGenre(String(item.id))
+        }, GENRE_LONG_PRESS_MS)
+      }
+
+      function onGenrePointerMove(event) {
+        if (!genrePressTimer) {
+          return
+        }
+
+        if (
+          Math.abs(event.clientX - genrePressStart.x) > GENRE_MOVE_TOLERANCE ||
+          Math.abs(event.clientY - genrePressStart.y) > GENRE_MOVE_TOLERANCE
+        ) {
+          cancelGenrePress()
+        }
+      }
+
+      function onGenrePointerUp() {
+        cancelGenrePress()
+      }
+
+      function onGenreClick(event) {
+        if (!genreLongPressFired) {
+          return
+        }
+
+        genreLongPressFired = false
+        event.preventDefault()
+        event.stopPropagation()
+      }
 
       function radioRecentlyPlayed() {
         return radio.shuffleRecentlyPlayed()
@@ -543,6 +616,10 @@
         empty: empty,
         fetchData: fetchData,
         onFavouriteAdded: onFavouriteAdded,
+        onGenrePointerDown: onGenrePointerDown,
+        onGenrePointerMove: onGenrePointerMove,
+        onGenrePointerUp: onGenrePointerUp,
+        onGenreClick: onGenreClick,
         radioRecentlyPlayed: radioRecentlyPlayed,
         radioMostPlayed: radioMostPlayed,
         radioFavouriteAlbums: radioFavouriteAlbums,
@@ -554,3 +631,11 @@
     },
   })
 </script>
+
+<style scoped>
+  .genre-link {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+</style>
