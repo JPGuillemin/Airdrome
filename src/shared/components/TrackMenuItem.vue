@@ -76,6 +76,10 @@
 </script>
 
 <style scoped>
+  li {
+    list-style: none;
+  }
+
   .dropdown-item-danger:not(:disabled) {
     color: var(--bs-danger);
   }

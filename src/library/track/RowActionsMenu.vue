@@ -3,16 +3,19 @@
   <Teleport to="body">
     <div v-if="visible" class="row-actions-modal-wrapper">
       <div class="modal-overlay" @click="close" />
-      <div class="modal-dialog p-3">
+      <div class="modal-dialog">
         <div class="modal-content" @click="onClickInside">
-          <div class="modal-header mb-2">
+          <div class="track-menu-header">
+            <div
+              class="track-menu-backdrop"
+              :style="{ '--backgroundImage': backgroundImage }"
+            />
             <h5 class="modal-title text-truncate fs-6">
               {{ title || track.title || 'Track Options' }}
             </h5>
-            <button type="button" class="btn-close" aria-label="Close" title="Close" @click="close" />
           </div>
 
-          <div class="modal-body py-1">
+          <div class="modal-body p-3">
             <!-- Track actions (disabled for albums / artists, which provide their own items through the slot) -->
             <template v-if="defaultActions">
               <TrackMenuItem v-if="!track.isUnavailable" icon="plus" class="on-top" @click="setNextInQueue()">
@@ -83,6 +86,7 @@
 
 <script>
   import { defineComponent, ref, computed, inject } from 'vue'
+  import fallbackImage from '@/shared/assets/fallback.svg'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
@@ -111,6 +115,16 @@
 
       var visible = ref(false)
       var showPlaylistSelect = ref(false)
+
+      var backgroundImage = computed(function () {
+        var image = fallbackImage
+
+        if (props.track && props.track.image) {
+          image = props.track.image
+        }
+
+        return "url('" + image + "')"
+      })
 
       var isFavourite = computed(function () {
         return !!favouriteStore.tracks[props.track.id]
@@ -184,6 +198,7 @@
 
       return {
         visible: visible,
+        backgroundImage: backgroundImage,
         favouriteStore: favouriteStore,
         playlistStore: playlistStore,
         playerStore: playerStore,
@@ -238,6 +253,33 @@
   .playlist-dialog-box {
     z-index: 10002;
     max-width: 320px;
+  }
+
+  .track-menu-header {
+    position: relative;
+    overflow: hidden;
+    padding: 1rem;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .track-menu-backdrop {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: calc(100% + 30px);
+    height: calc(100% + 30px);
+    z-index: 0;
+    opacity: 0.92;
+    filter: blur(5px);
+    background-image: linear-gradient(to bottom, transparent, var(--theme-elevation-1)), var(--backgroundImage);
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+  }
+
+  .track-menu-header > *:not(.track-menu-backdrop) {
+    position: relative;
+    z-index: 1;
   }
 
   .modal-header, .modal-footer {

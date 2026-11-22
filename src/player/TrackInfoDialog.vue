@@ -8,19 +8,6 @@
           :style="{ '--backgroundImage': backgroundImage }"
         />
 
-        <div class="track-info-bar d-flex align-items-center justify-content-between mb-3">
-          <h5 class="mb-0">
-            Track info
-          </h5>
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Close"
-            title="Close"
-            @click="$emit('close')"
-          />
-        </div>
-
         <div class="track-info-title-row d-flex gap-3">
           <img
             v-if="track.image"
@@ -66,44 +53,62 @@
         </div>
       </div>
 
-      <div v-if="album" class="track-info-actions d-flex flex-wrap align-items-center">
-        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Play" @click="playNow">
-          <Icon icon="recycle" />
-        </b-button>
-        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Shuffle" @click="shuffleNow">
-          <Icon icon="random" />
-        </b-button>
-        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Radio" @click="RadioNow">
-          <Icon icon="radio" />
-        </b-button>
-        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Album" @click="toggleFavourite">
-          <Icon :icon="favouriteIcon" />
-        </b-button>
-        <ExternalLink
-          v-if="listenBrainzUrl"
-          :href="listenBrainzUrl"
-          class="btn btn-link header-buttons"
-          title="MusicBrainz"
-        >
-          <IconMusicBrainz />
-        </ExternalLink>
-        <OverflowMenu direction="up" variant="transparent" class="header-buttons" :z-index="10001">
-          <TrackMenuItem icon="plus" class="on-top" @click="setNextInQueue">
-            Next
-          </TrackMenuItem>
-          <TrackMenuItem icon="plus" class="on-top" @click="addToQueue">
-            Queue
-          </TrackMenuItem>
-          <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist">
-            Playlist
-          </TrackMenuItem>
-          <TrackMenuItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
-            Cache
-          </TrackMenuItem>
-          <TrackMenuItem v-if="cached" icon="trash" class="on-top" @click="clearAlbumCache">
-            Cache
-          </TrackMenuItem>
-        </OverflowMenu>
+      <div v-if="albumId" class="track-info-actions">
+        <div class="d-flex flex-wrap align-items-center" :class="{ invisible: !album }">
+          <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Play" @click="playNow">
+            <Icon icon="recycle" />
+          </b-button>
+          <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Shuffle" @click="shuffleNow">
+            <Icon icon="random" />
+          </b-button>
+          <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Radio" @click="RadioNow">
+            <Icon icon="radio" />
+          </b-button>
+          <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Album" @click="toggleFavourite">
+            <Icon :icon="favouriteIcon" />
+          </b-button>
+          <ExternalLink
+            v-if="listenBrainzUrl"
+            :href="listenBrainzUrl"
+            class="btn btn-link header-buttons"
+            title="MusicBrainz"
+          >
+            <IconMusicBrainz />
+          </ExternalLink>
+          <ExternalLink
+            v-if="youTubeUrl"
+            :href="youTubeUrl"
+            class="btn btn-link header-buttons"
+            title="YouTube"
+          >
+            <IconYouTube />
+          </ExternalLink>
+          <ExternalLink
+            v-if="youTubeMusicUrl"
+            :href="youTubeMusicUrl"
+            class="btn btn-link header-buttons"
+            title="YouTube Music"
+          >
+            <IconYouTubeMusic />
+          </ExternalLink>
+          <OverflowMenu direction="up" variant="transparent" class="header-buttons" :z-index="10001">
+            <TrackMenuItem icon="plus" class="on-top" @click="setNextInQueue">
+              Next
+            </TrackMenuItem>
+            <TrackMenuItem icon="plus" class="on-top" @click="addToQueue">
+              Queue
+            </TrackMenuItem>
+            <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist">
+              Playlist
+            </TrackMenuItem>
+            <TrackMenuItem v-if="!cached" icon="download" class="on-top" @click="cacheTrack">
+              Cache
+            </TrackMenuItem>
+            <TrackMenuItem v-if="cached" icon="trash" class="on-top" @click="clearTrackCache">
+              Cache
+            </TrackMenuItem>
+          </OverflowMenu>
+        </div>
       </div>
 
       <div class="track-info-body p-3">
@@ -176,33 +181,6 @@
           </template>
         </dl>
 
-        <div v-if="loadingAlbum" class="text-muted small mt-2">
-          Loading album details…
-        </div>
-
-        <div v-if="listenBrainzUrl || youTubeMusicUrl" class="d-flex flex-wrap gap-3 mt-3">
-          <ExternalLink
-            v-if="listenBrainzUrl"
-            :href="listenBrainzUrl"
-            class="track-info-link"
-          >
-            ListenBrainz
-          </ExternalLink>
-          <ExternalLink
-            v-if="youTubeMusicUrl"
-            :href="youTubeMusicUrl"
-            class="track-info-link"
-          >
-            YouTube Music
-          </ExternalLink>
-          <ExternalLink
-            v-if="youTubeUrl"
-            :href="youTubeUrl"
-            class="track-info-link"
-          >
-            YouTube
-          </ExternalLink>
-        </div>
       </div>
     </div>
 
@@ -225,6 +203,8 @@
   import { formatDuration } from '@/shared/utils'
   import ExternalLink from '@/shared/components/ExternalLink.vue'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
+  import IconYouTube from '@/shared/components/IconYouTube.vue'
+  import IconYouTubeMusic from '@/shared/components/IconYouTubeMusic.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
   import fallbackImage from '@/shared/assets/fallback.svg'
   import { useFavouriteStore } from '@/library/favourite/store'
@@ -251,6 +231,8 @@
     components: {
       ExternalLink: ExternalLink,
       IconMusicBrainz: IconMusicBrainz,
+      IconYouTube: IconYouTube,
+      IconYouTubeMusic: IconYouTubeMusic,
       EditPlaylistModal: EditPlaylistModal,
     },
 
@@ -267,8 +249,29 @@
       var loadingAlbum = ref(false)
       var listenBrainzUrl = ref('')
       var albumToken = 0
-      var cached = ref(false)
       var showPlaylistModal = ref(false)
+
+      var trackUrl = computed(function () {
+        return props.track && props.track.url ? props.track.url : ''
+      })
+
+      var cached = computed(function () {
+        if (!trackUrl.value) {
+          return false
+        }
+
+        return cacheStore.cacheStatus.get(trackUrl.value) === true
+      })
+
+      watch(
+        trackUrl,
+        function (url) {
+          if (url && !cacheStore.cacheStatus.has(url)) {
+            cacheStore.refreshStatus(url)
+          }
+        },
+        { immediate: true }
+      )
 
       var backgroundImage = computed(function () {
         var image = fallbackImage
@@ -486,7 +489,6 @@
 
         if (!props.visible || !current) {
           album.value = null
-          cached.value = false
           showPlaylistModal.value = false
           listenBrainzUrl.value = ''
           loadingAlbum.value = false
@@ -496,7 +498,6 @@
         var token = albumToken + 1
         albumToken = token
         album.value = null
-        cached.value = false
         showPlaylistModal.value = false
         loadingAlbum.value = true
         listenBrainzUrl.value = ''
@@ -525,18 +526,6 @@
           }
 
           album.value = result
-
-          try {
-            var isCached = await cacheStore.isCached(result)
-
-            if (token === albumToken) {
-              cached.value = isCached
-            }
-          } catch (cacheError) {
-            if (token === albumToken) {
-              cached.value = false
-            }
-          }
 
           var listenBrainz = result.musicBrainzUrl || ''
 
@@ -613,26 +602,22 @@
       }
 
       function setNextInQueue() {
-        var tracks = albumTracks()
-
-        if (tracks.length) {
-          return playerStore.setNextInQueue(tracks)
+        if (props.track) {
+          return playerStore.setNextInQueue([props.track])
         }
       }
 
       function addToQueue() {
-        var tracks = albumTracks()
-
-        if (tracks.length) {
-          return playerStore.addToQueue(tracks)
+        if (props.track) {
+          return playerStore.addToQueue([props.track])
         }
       }
 
       var playlistDraft = computed(function () {
         var name = ''
 
-        if (album.value && album.value.name) {
-          name = album.value.name
+        if (props.track && props.track.title) {
+          name = props.track.title
         }
 
         return {
@@ -642,19 +627,8 @@
         }
       })
 
-      function albumTrackIds() {
-        var ids = []
-        var tracks = albumTracks()
-
-        for (var i = 0; i < tracks.length; i++) {
-          ids.push(tracks[i].id)
-        }
-
-        return ids
-      }
-
       async function addToPlaylist() {
-        if (!albumTracks().length) {
+        if (!props.track) {
           return
         }
 
@@ -678,7 +652,7 @@
       }
 
       async function addToExistingPlaylist(playlistId) {
-        if (!albumTracks().length) {
+        if (!props.track) {
           return
         }
 
@@ -686,7 +660,7 @@
         loader.showLoading()
 
         try {
-          await playlistStore.addUniqueTracks(playlistId, albumTrackIds())
+          await playlistStore.addUniqueTracks(playlistId, [props.track.id])
         } catch (error) {
           console.error(error)
         } finally {
@@ -695,7 +669,7 @@
       }
 
       async function createPlaylist(name) {
-        if (!albumTracks().length) {
+        if (!props.track) {
           return
         }
 
@@ -703,7 +677,7 @@
         loader.showLoading()
 
         try {
-          await playlistStore.addToPlaylistByName(name, albumTrackIds())
+          await playlistStore.addToPlaylistByName(name, [props.track.id])
         } catch (error) {
           console.error(error)
         } finally {
@@ -711,22 +685,16 @@
         }
       }
 
-      async function cacheAlbum() {
-        if (!album.value) {
-          return
+      function cacheTrack() {
+        if (props.track && props.track.url) {
+          cacheStore.cacheTrack(props.track.url)
         }
-
-        await cacheStore.cacheAlbum(album.value)
-        cached.value = true
       }
 
-      async function clearAlbumCache() {
-        if (!album.value) {
-          return
+      async function clearTrackCache() {
+        if (props.track && props.track.url) {
+          await cacheStore.deleteTrack(props.track.url)
         }
-
-        await cacheStore.clearAlbumCache(album.value)
-        cached.value = false
       }
 
       watch(
@@ -772,8 +740,8 @@
         addToPlaylist: addToPlaylist,
         addToExistingPlaylist: addToExistingPlaylist,
         createPlaylist: createPlaylist,
-        cacheAlbum: cacheAlbum,
-        clearAlbumCache: clearAlbumCache,
+        cacheTrack: cacheTrack,
+        clearTrackCache: clearTrackCache,
       }
     },
   })
@@ -792,9 +760,11 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
     width: min(28rem, 92vw);
     max-height: 85vh;
-    overflow-y: auto;
+    overflow: hidden;
     background: var(--theme-elevation-1);
     border: 1px solid var(--theme-border);
     border-radius: var(--theme-radius-md);
@@ -804,6 +774,7 @@
 
   .track-info-header {
     position: relative;
+    flex: 0 0 auto;
     overflow: hidden;
     padding: 1rem;
     border-radius: var(--theme-radius-md) var(--theme-radius-md) 0 0;
@@ -830,8 +801,16 @@
   }
 
   .track-info-actions {
+    flex: 0 0 auto;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--theme-border);
+  }
+
+  .track-info-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   .track-info-actions .header-buttons {
@@ -863,6 +842,12 @@
     font-weight: 600;
   }
 
+  .track-info-title-row .text-muted {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .track-info-banner-link {
     color: inherit;
     text-decoration: none;
@@ -887,13 +872,4 @@
     word-break: break-word;
   }
 
-  .track-info-link {
-    color: var(--bs-primary);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .track-info-link:hover {
-    text-decoration: underline;
-  }
 </style>
