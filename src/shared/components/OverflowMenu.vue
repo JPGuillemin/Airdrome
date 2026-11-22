@@ -8,7 +8,13 @@
     certains enfants (comme <tr>, qui n'accepte que <td>/<th>).
   -->
   <Teleport v-if="external" to="body">
-    <div v-if="isOpen" class="overflow-menu-backdrop" @click.stop="close" @contextmenu.prevent.stop="close" />
+    <div
+      v-if="isOpen"
+      class="overflow-menu-backdrop"
+      :style="{ zIndex: zIndex - 1 }"
+      @click.stop="close"
+      @contextmenu.prevent.stop="close"
+    />
     <ul
       v-if="isOpen"
       ref="menuRef"
@@ -34,7 +40,13 @@
 
     <Teleport to="body">
       <!-- backdrop: closes menu on outside click -->
-      <div v-if="isOpen" class="overflow-menu-backdrop" @click.stop="close" @contextmenu.prevent.stop="close" />
+      <div
+        v-if="isOpen"
+        class="overflow-menu-backdrop"
+        :style="{ zIndex: zIndex - 1 }"
+        @click.stop="close"
+        @contextmenu.prevent.stop="close"
+      />
 
       <!-- menu: fixed-positioned, always above everything -->
       <ul
@@ -64,6 +76,8 @@
       variant:   { type: String,  default: 'link' },
       /** Preferred vertical direction: 'up' or 'down'. */
       direction: { type: String,  default: 'up'   },
+      /** Base z-index for the teleported backdrop and menu. */
+      zIndex:    { type: Number,  default: 2000   },
       // Quand true, cette instance ne rend aucun bouton déclencheur —
       // elle est ouverte programmatiquement via openAt() par un parent
       // (ex: clic droit / long-press sur une ligne).
@@ -127,7 +141,8 @@
           position: 'fixed',
           top:      top + 'px',
           left:     left + 'px',
-          zIndex:   '2000',
+          zIndex:   String(props.zIndex),
+          '--overflow-menu-z-index': String(props.zIndex),
         }
       }
 
@@ -246,7 +261,7 @@
 
   /* Menu: always on top — z-index set inline too, this is belt-and-suspenders */
   .overflow-menu-list {
-    z-index: 2000 !important;
+    z-index: var(--overflow-menu-z-index, 2000) !important;
     min-width: auto !important;
     width: max-content;
     display: flex;

@@ -1,151 +1,222 @@
 <template>
   <div>
     <div v-if="visible" class="track-info-overlay" @click="$emit('close')" />
-    <div v-if="visible && track" class="track-info-dialog p-3">
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="mb-0">
-          Track info
-        </h5>
-        <button
-          type="button"
-          class="btn-close"
-          aria-label="Close"
-          title="Close"
-          @click="$emit('close')"
+    <div v-if="visible && track" class="track-info-dialog">
+      <div class="track-info-header">
+        <div
+          class="track-info-backdrop"
+          :style="{ '--backgroundImage': backgroundImage }"
         />
-      </div>
 
-      <div class="d-flex gap-3 mb-3">
-        <img
-          v-if="track.image"
-          :src="track.image"
-          class="track-info-cover"
-          alt=""
-        >
-        <div style="min-width: 0">
-          <div class="track-info-title">
-            {{ track.title }}
-          </div>
-          <div class="text-muted small">
-            {{ artistNames || '—' }}
-          </div>
-          <div class="text-muted small">
-            {{ albumName || '—' }}
+        <div class="track-info-bar d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0">
+            Track info
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            title="Close"
+            @click="$emit('close')"
+          />
+        </div>
+
+        <div class="track-info-title-row d-flex gap-3">
+          <img
+            v-if="track.image"
+            :src="track.image"
+            class="track-info-cover"
+            alt=""
+          >
+          <div style="min-width: 0">
+            <div class="track-info-title">
+              {{ track.title }}
+            </div>
+            <div class="text-muted small">
+              <template v-if="artistLinks.length">
+                <span v-for="(artist, index) in artistLinks" :key="artist.id">
+                  <span v-if="index > 0">, </span>
+                  <router-link
+                    :to="{ name: 'artist', params: { id: artist.id } }"
+                    class="track-info-banner-link"
+                    @click="$emit('close')"
+                  >
+                    {{ artist.name }}
+                  </router-link>
+                </span>
+              </template>
+              <template v-else>
+                —
+              </template>
+            </div>
+            <div class="text-muted small">
+              <router-link
+                v-if="albumId"
+                :to="{ name: 'album', params: { id: albumId } }"
+                class="track-info-banner-link"
+                @click="$emit('close')"
+              >
+                {{ albumName || '—' }}
+              </router-link>
+              <template v-else>
+                {{ albumName || '—' }}
+              </template>
+            </div>
           </div>
         </div>
       </div>
 
-      <dl class="row mb-0 small can-select">
-        <dt class="col-5">
-          Album
-        </dt>
-        <dd class="col-7">
-          {{ albumName || '—' }}
-        </dd>
-
-        <dt class="col-5">
-          Artist
-        </dt>
-        <dd class="col-7">
-          {{ artistNames || '—' }}
-        </dd>
-
-        <dt class="col-5">
-          Year
-        </dt>
-        <dd class="col-7">
-          {{ year || '—' }}
-        </dd>
-
-        <dt class="col-5">
-          Genre
-        </dt>
-        <dd class="col-7">
-          {{ genres || '—' }}
-        </dd>
-
-        <dt class="col-5">
-          Track
-        </dt>
-        <dd class="col-7">
-          {{ trackNumber }}
-        </dd>
-
-        <dt class="col-5">
-          Duration
-        </dt>
-        <dd class="col-7">
-          {{ duration }}
-        </dd>
-
-        <dt class="col-5">
-          File codec
-        </dt>
-        <dd class="col-7">
-          {{ fileCodec }}
-        </dd>
-
-        <dt class="col-5">
-          File bitrate
-        </dt>
-        <dd class="col-7">
-          {{ fileBitrate }}
-        </dd>
-
-        <template v-if="fileDetails">
-          <dt class="col-5">
-            Audio
-          </dt>
-          <dd class="col-7">
-            {{ fileDetails }}
-          </dd>
-        </template>
-
-        <dt class="col-5">
-          Stream
-        </dt>
-        <dd class="col-7">
-          {{ streamLabel }}
-        </dd>
-
-        <template v-if="replayGainLabel">
-          <dt class="col-5">
-            ReplayGain
-          </dt>
-          <dd class="col-7">
-            {{ replayGainLabel }}
-          </dd>
-        </template>
-      </dl>
-
-      <div v-if="loadingAlbum" class="text-muted small mt-2">
-        Loading album details…
-      </div>
-
-      <div v-if="listenBrainzUrl || youTubeMusicUrl" class="d-flex flex-wrap gap-3 mt-3">
+      <div v-if="album" class="track-info-actions d-flex flex-wrap align-items-center">
+        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Play" @click="playNow">
+          <Icon icon="recycle" />
+        </b-button>
+        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Shuffle" @click="shuffleNow">
+          <Icon icon="random" />
+        </b-button>
+        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Album Radio" @click="RadioNow">
+          <Icon icon="radio" />
+        </b-button>
+        <b-button v-longpress-tooltip variant="transparent" class="header-buttons" title="Like Album" @click="toggleFavourite">
+          <Icon :icon="favouriteIcon" />
+        </b-button>
         <ExternalLink
           v-if="listenBrainzUrl"
           :href="listenBrainzUrl"
-          class="track-info-link"
+          class="btn btn-link header-buttons"
+          title="MusicBrainz"
         >
-          ListenBrainz
+          <IconMusicBrainz />
         </ExternalLink>
-        <ExternalLink
-          v-if="youTubeMusicUrl"
-          :href="youTubeMusicUrl"
-          class="track-info-link"
-        >
-          YouTube Music
-        </ExternalLink>
-        <ExternalLink
-          v-if="youTubeUrl"
-          :href="youTubeUrl"
-          class="track-info-link"
-        >
-          YouTube
-        </ExternalLink>
+        <OverflowMenu direction="up" variant="transparent" class="header-buttons" :z-index="10001">
+          <TrackMenuItem icon="plus" class="on-top" @click="setNextInQueue">
+            Next
+          </TrackMenuItem>
+          <TrackMenuItem icon="plus" class="on-top" @click="addToQueue">
+            Queue
+          </TrackMenuItem>
+          <TrackMenuItem icon="plus" class="on-top" @click="addToPlaylist">
+            Playlist
+          </TrackMenuItem>
+          <TrackMenuItem v-if="!cached" icon="download" class="on-top" @click="cacheAlbum">
+            Cache
+          </TrackMenuItem>
+          <TrackMenuItem v-if="cached" icon="trash" class="on-top" @click="clearAlbumCache">
+            Cache
+          </TrackMenuItem>
+        </OverflowMenu>
+      </div>
+
+      <div class="track-info-body p-3">
+        <dl class="row mb-0 small can-select">
+          <dt class="col-5">
+            Year
+          </dt>
+          <dd class="col-7">
+            {{ year || '—' }}
+          </dd>
+
+          <dt class="col-5">
+            Genre
+          </dt>
+          <dd class="col-7">
+            {{ genres || '—' }}
+          </dd>
+
+          <dt class="col-5">
+            Track
+          </dt>
+          <dd class="col-7">
+            {{ trackNumber }}
+          </dd>
+
+          <dt class="col-5">
+            Duration
+          </dt>
+          <dd class="col-7">
+            {{ duration }}
+          </dd>
+
+          <dt class="col-5">
+            File codec
+          </dt>
+          <dd class="col-7">
+            {{ fileCodec }}
+          </dd>
+
+          <dt class="col-5">
+            File bitrate
+          </dt>
+          <dd class="col-7">
+            {{ fileBitrate }}
+          </dd>
+
+          <template v-if="fileDetails">
+            <dt class="col-5">
+              Audio
+            </dt>
+            <dd class="col-7">
+              {{ fileDetails }}
+            </dd>
+          </template>
+
+          <dt class="col-5">
+            Stream
+          </dt>
+          <dd class="col-7">
+            {{ streamLabel }}
+          </dd>
+
+          <template v-if="replayGainLabel">
+            <dt class="col-5">
+              ReplayGain
+            </dt>
+            <dd class="col-7">
+              {{ replayGainLabel }}
+            </dd>
+          </template>
+        </dl>
+
+        <div v-if="loadingAlbum" class="text-muted small mt-2">
+          Loading album details…
+        </div>
+
+        <div v-if="listenBrainzUrl || youTubeMusicUrl" class="d-flex flex-wrap gap-3 mt-3">
+          <ExternalLink
+            v-if="listenBrainzUrl"
+            :href="listenBrainzUrl"
+            class="track-info-link"
+          >
+            ListenBrainz
+          </ExternalLink>
+          <ExternalLink
+            v-if="youTubeMusicUrl"
+            :href="youTubeMusicUrl"
+            class="track-info-link"
+          >
+            YouTube Music
+          </ExternalLink>
+          <ExternalLink
+            v-if="youTubeUrl"
+            :href="youTubeUrl"
+            class="track-info-link"
+          >
+            YouTube
+          </ExternalLink>
+        </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="showPlaylistModal" class="track-info-playlist-layer">
+        <EditPlaylistModal
+          :playlist="playlistDraft"
+          mode="add"
+          @add-to-playlist="addToExistingPlaylist"
+          @create-playlist="createPlaylist"
+          @close="showPlaylistModal = false"
+        />
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -153,6 +224,15 @@
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { formatDuration } from '@/shared/utils'
   import ExternalLink from '@/shared/components/ExternalLink.vue'
+  import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
+  import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
+  import fallbackImage from '@/shared/assets/fallback.svg'
+  import { useFavouriteStore } from '@/library/favourite/store'
+  import { usePlaylistStore } from '@/library/playlist/store'
+  import { usePlayerStore } from '@/player/store'
+  import { useCacheStore } from '@/shared/cache'
+  import { useLoader } from '@/shared/loader'
+  import { useRadioStore } from '@/player/radio'
   import {
     getAlbumListenBrainzUrl,
     getArtistListenBrainzUrl,
@@ -170,23 +250,72 @@
 
     components: {
       ExternalLink: ExternalLink,
+      IconMusicBrainz: IconMusicBrainz,
+      EditPlaylistModal: EditPlaylistModal,
     },
 
     setup: function (props) {
       var api = inject('$api')
+      var favouriteStore = useFavouriteStore()
+      var playlistStore = usePlaylistStore()
+      var playerStore = usePlayerStore()
+      var cacheStore = useCacheStore()
+      var loader = useLoader()
+      var radioStore = useRadioStore()
+
       var album = ref(null)
       var loadingAlbum = ref(false)
       var listenBrainzUrl = ref('')
       var albumToken = 0
+      var cached = ref(false)
+      var showPlaylistModal = ref(false)
 
-      var artistNames = computed(function () {
-        if (!props.track || !props.track.artists) {
-          return ''
+      var backgroundImage = computed(function () {
+        var image = fallbackImage
+
+        if (props.track && props.track.image) {
+          image = props.track.image
         }
 
-        return props.track.artists.map(function (artist) {
+        return "url('" + image + "')"
+      })
+
+      var isFavourite = computed(function () {
+        return !!album.value && favouriteStore.get('album', album.value.id)
+      })
+
+      var favouriteIcon = computed(function () {
+        if (isFavourite.value) {
+          return 'heart-fill'
+        }
+
+        return 'heart'
+      })
+
+      var artistLinks = computed(function () {
+        if (props.track && props.track.artists && props.track.artists.length) {
+          return props.track.artists
+        }
+
+        if (album.value && album.value.artists && album.value.artists.length) {
+          return album.value.artists
+        }
+
+        return []
+      })
+
+      var artistNames = computed(function () {
+        return artistLinks.value.map(function (artist) {
           return artist.name
         }).join(', ')
+      })
+
+      var albumId = computed(function () {
+        if (props.track && props.track.albumId) {
+          return props.track.albumId
+        }
+
+        return album.value ? album.value.id : null
       })
 
       var albumName = computed(function () {
@@ -357,6 +486,8 @@
 
         if (!props.visible || !current) {
           album.value = null
+          cached.value = false
+          showPlaylistModal.value = false
           listenBrainzUrl.value = ''
           loadingAlbum.value = false
           return
@@ -364,6 +495,9 @@
 
         var token = albumToken + 1
         albumToken = token
+        album.value = null
+        cached.value = false
+        showPlaylistModal.value = false
         loadingAlbum.value = true
         listenBrainzUrl.value = ''
 
@@ -391,6 +525,18 @@
           }
 
           album.value = result
+
+          try {
+            var isCached = await cacheStore.isCached(result)
+
+            if (token === albumToken) {
+              cached.value = isCached
+            }
+          } catch (cacheError) {
+            if (token === albumToken) {
+              cached.value = false
+            }
+          }
 
           var listenBrainz = result.musicBrainzUrl || ''
 
@@ -424,6 +570,165 @@
         }
       }
 
+      function albumTracks() {
+        if (!album.value || !album.value.tracks) {
+          return []
+        }
+
+        return album.value.tracks
+      }
+
+      function playNow() {
+        var tracks = albumTracks()
+
+        if (tracks.length) {
+          return playerStore.playNow(tracks)
+        }
+      }
+
+      function shuffleNow() {
+        var tracks = albumTracks()
+
+        if (tracks.length) {
+          return radioStore.shuffleAlbum(tracks)
+        }
+      }
+
+      function RadioNow() {
+        var tracks = albumTracks()
+
+        if (!tracks.length || !album.value.artists || !album.value.artists.length) {
+          return
+        }
+
+        return radioStore.radioAlbum(tracks, album.value.artists)
+      }
+
+      function toggleFavourite() {
+        if (!album.value) {
+          return
+        }
+
+        return favouriteStore.toggle('album', album.value.id)
+      }
+
+      function setNextInQueue() {
+        var tracks = albumTracks()
+
+        if (tracks.length) {
+          return playerStore.setNextInQueue(tracks)
+        }
+      }
+
+      function addToQueue() {
+        var tracks = albumTracks()
+
+        if (tracks.length) {
+          return playerStore.addToQueue(tracks)
+        }
+      }
+
+      var playlistDraft = computed(function () {
+        var name = ''
+
+        if (album.value && album.value.name) {
+          name = album.value.name
+        }
+
+        return {
+          name: name,
+          comment: '',
+          isPublic: false,
+        }
+      })
+
+      function albumTrackIds() {
+        var ids = []
+        var tracks = albumTracks()
+
+        for (var i = 0; i < tracks.length; i++) {
+          ids.push(tracks[i].id)
+        }
+
+        return ids
+      }
+
+      async function addToPlaylist() {
+        if (!albumTracks().length) {
+          return
+        }
+
+        if (playlistStore.playlists !== null) {
+          showPlaylistModal.value = true
+          return
+        }
+
+        loader.showLoading()
+
+        try {
+          await playlistStore.load()
+        } catch (error) {
+          console.error(error)
+          return
+        } finally {
+          loader.hideLoading()
+        }
+
+        showPlaylistModal.value = true
+      }
+
+      async function addToExistingPlaylist(playlistId) {
+        if (!albumTracks().length) {
+          return
+        }
+
+        showPlaylistModal.value = false
+        loader.showLoading()
+
+        try {
+          await playlistStore.addUniqueTracks(playlistId, albumTrackIds())
+        } catch (error) {
+          console.error(error)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
+      async function createPlaylist(name) {
+        if (!albumTracks().length) {
+          return
+        }
+
+        showPlaylistModal.value = false
+        loader.showLoading()
+
+        try {
+          await playlistStore.addToPlaylistByName(name, albumTrackIds())
+        } catch (error) {
+          console.error(error)
+        } finally {
+          loader.hideLoading()
+        }
+      }
+
+      async function cacheAlbum() {
+        if (!album.value) {
+          return
+        }
+
+        await cacheStore.cacheAlbum(album.value)
+        cached.value = true
+      }
+
+      async function clearAlbumCache() {
+        if (!album.value) {
+          return
+        }
+
+        await cacheStore.clearAlbumCache(album.value)
+        cached.value = false
+      }
+
       watch(
         function () {
           return [props.visible, props.track ? props.track.id : null]
@@ -436,8 +741,15 @@
 
       return {
         album: album,
+        cached: cached,
         loadingAlbum: loadingAlbum,
+        showPlaylistModal: showPlaylistModal,
+        playlistDraft: playlistDraft,
+        backgroundImage: backgroundImage,
+        favouriteIcon: favouriteIcon,
+        artistLinks: artistLinks,
         artistNames: artistNames,
+        albumId: albumId,
         albumName: albumName,
         year: year,
         genres: genres,
@@ -451,6 +763,17 @@
         listenBrainzUrl: listenBrainzUrl,
         youTubeMusicUrl: youTubeMusicUrl,
         youTubeUrl: youTubeUrl,
+        playNow: playNow,
+        shuffleNow: shuffleNow,
+        RadioNow: RadioNow,
+        toggleFavourite: toggleFavourite,
+        setNextInQueue: setNextInQueue,
+        addToQueue: addToQueue,
+        addToPlaylist: addToPlaylist,
+        addToExistingPlaylist: addToExistingPlaylist,
+        createPlaylist: createPlaylist,
+        cacheAlbum: cacheAlbum,
+        clearAlbumCache: clearAlbumCache,
       }
     },
   })
@@ -479,6 +802,52 @@
     z-index: 9999;
   }
 
+  .track-info-header {
+    position: relative;
+    overflow: hidden;
+    padding: 1rem;
+    border-radius: var(--theme-radius-md) var(--theme-radius-md) 0 0;
+  }
+
+  .track-info-backdrop {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: calc(100% + 30px);
+    height: calc(100% + 30px);
+    z-index: 0;
+    opacity: 0.92;
+    filter: blur(5px);
+    background-image: linear-gradient(to bottom, transparent, var(--theme-elevation-1)), var(--backgroundImage);
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+  }
+
+  .track-info-header > *:not(.track-info-backdrop) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .track-info-actions {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--theme-border);
+  }
+
+  .track-info-actions .header-buttons {
+    margin-inline-end: 0.5rem;
+  }
+
+  .track-info-actions .header-buttons:last-child {
+    margin-inline-end: 0;
+  }
+
+  .track-info-playlist-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+  }
+
   .track-info-cover {
     width: 72px;
     height: 72px;
@@ -492,6 +861,16 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
+  }
+
+  .track-info-banner-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .track-info-banner-link:hover {
+    color: var(--bs-primary);
   }
 
   dl {
