@@ -137,6 +137,13 @@ export var usePlayerStore = defineStore('player', {
        */
       resumePending: false,
 
+      /**
+       * True when the current system pause was caused by an output device
+       * disappearing, not by a phone call / audio-focus loss. Device changes
+       * may resume playback in the first case, but must not in the second.
+       */
+      devicePaused: false,
+
       /** Timestamp (ms) of the last takeover by another device. */
       takeoverAt: 0
     }
@@ -363,6 +370,7 @@ export var usePlayerStore = defineStore('player', {
     pause: async function() {
       this.userPaused = true
       this.resumePending = false
+      this.devicePaused = false
       releaseKeepAlive()
       await audio.pause()
     },
@@ -374,6 +382,7 @@ export var usePlayerStore = defineStore('player', {
      */
     cancelResume: function() {
       this.resumePending = false
+      this.devicePaused = false
       releaseKeepAlive()
     },
 
@@ -383,6 +392,7 @@ export var usePlayerStore = defineStore('player', {
      * playback can resume when the device comes back.
      */
     interrupt: async function() {
+      this.devicePaused = true
       await audio.pause()
     },
 
@@ -390,6 +400,7 @@ export var usePlayerStore = defineStore('player', {
     stop: async function() {
       this.userPaused = true
       this.resumePending = false
+      this.devicePaused = false
       releaseKeepAlive()
 
       await audio.stop()
@@ -515,6 +526,7 @@ export var usePlayerStore = defineStore('player', {
      */
     resetQueue: async function() {
       this.resumePending = false
+      this.devicePaused = false
       releaseKeepAlive()
 
       if (!this.queue.length || !this.track || !this.track.url) {
