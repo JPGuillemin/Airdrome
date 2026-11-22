@@ -175,7 +175,24 @@
       var radioStore = useRadioStore()
 
       var album = ref(null)
-      var cached = ref(false)
+
+      // Derived from the shared cache status map so the menu item switches
+      // between Cache and Clear cache as tracks are added or removed.
+      var cached = computed(function () {
+        var tracks = album.value && album.value.tracks ? album.value.tracks : []
+
+        if (!tracks.length) {
+          return false
+        }
+
+        for (var i = 0; i < tracks.length; i++) {
+          if (!tracks[i].url || cacheStore.cacheStatus.get(tracks[i].url) !== true) {
+            return false
+          }
+        }
+
+        return true
+      })
 
       var isFavourite = computed(function () {
         return favouriteStore.get('album', props.id)
@@ -202,7 +219,8 @@
         try {
           var result = await api.getAlbumDetails(props.id)
           album.value = result
-          cached.value = await cacheStore.isCached(result)
+          // Prime the shared cache-status map used by the computed above.
+          await cacheStore.isCached(result)
 
           if (result.musicBrainzUrl) {
             listenBrainzUrl.value = result.musicBrainzUrl
@@ -364,7 +382,6 @@
       async function cacheAlbum() {
         if (album.value) {
           await cacheStore.cacheAlbum(album.value)
-          cached.value = true
         }
       }
 
@@ -374,7 +391,6 @@
         }
 
         await cacheStore.clearAlbumCache(album.value)
-        cached.value = false
 
         var query = copyObject(route.query)
         query.t = Date.now().toString()
