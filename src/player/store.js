@@ -18,6 +18,7 @@ import {
   ReplayGainMode
 } from '@/player/audio'
 import { saveSession } from './session'
+import { releaseKeepAlive } from './keepAlive'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -128,6 +129,13 @@ export var usePlayerStore = defineStore('player', {
        * OS-level interruption if the user had intentionally paused.
        */
       userPaused: true,
+
+      /**
+       * True after an OS-level pause (phone call, audio-focus loss) while the
+       * user still wants playback. Cleared by a real play, a user pause or a
+       * takeover.
+       */
+      resumePending: false,
 
       /** Timestamp (ms) of the last takeover by another device. */
       takeoverAt: 0
@@ -346,16 +354,27 @@ export var usePlayerStore = defineStore('player', {
       }
     },
 
-    /** Resume playback. */
+    /** Resume playback. The audio controller resumes the context itself. */
     play: async function() {
-      await audio.resume()
       await audio.play()
     },
 
     /** Pause playback. */
     pause: async function() {
       this.userPaused = true
+      this.resumePending = false
+      releaseKeepAlive()
       await audio.pause()
+    },
+
+    /**
+     * Clear a pending system-pause resume and release the freeze lock.
+     *
+     * @returns {void}
+     */
+    cancelResume: function() {
+      this.resumePending = false
+      releaseKeepAlive()
     },
 
     /**
@@ -370,6 +389,8 @@ export var usePlayerStore = defineStore('player', {
     /** Stop playback and clear the pipeline. */
     stop: async function() {
       this.userPaused = true
+      this.resumePending = false
+      releaseKeepAlive()
 
       await audio.stop()
       this.setMediaSessionPosition(this.duration, 0)
@@ -493,6 +514,9 @@ export var usePlayerStore = defineStore('player', {
      * @returns {Promise<void>}
      */
     resetQueue: async function() {
+      this.resumePending = false
+      releaseKeepAlive()
+
       if (!this.queue.length || !this.track || !this.track.url) {
         this.setQueueIndex(-1)
         return

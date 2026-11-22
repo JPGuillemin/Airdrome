@@ -8,6 +8,7 @@ import { throttle } from 'lodash-es'
 import { sleep } from '@/shared/utils'
 import { audio, storedReplayGainMode } from './audio'
 import { claimSession, onPlaybackStopped, onUnload } from './session'
+import { acquireKeepAlive, releaseKeepAlive } from './keepAlive'
 
 var mediaSession = navigator.mediaSession
 var isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
@@ -183,11 +184,144 @@ export async function setupAudio(playerStore, mainStore) {
     }, REPORT_INTERVAL_MS)
   }
 
+  // -------------------------------------------------------------------------
+  // Resume intent and freeze keep-alive
+  //
+  // A phone call pauses the media element. On a hidden page Chromium freezes
+  // the tab after a few minutes, so the audio-focus gain is never handled and
+  // playback stays paused until the page becomes visible again. Holding a Web
+  // Lock is an explicit "cannot freeze" reason in Chromium's page freezing
+  // policy, which keeps the page able to resume when the call ends.
+  // -------------------------------------------------------------------------
+
+  var RESUME_RETRY_MS = 30000
+  var RESUME_MAX_MS = 2 * 60 * 60 * 1000
+
+  var resumeTimer = undefined
+  var resumeDeadline = 0
+  var resumeInFlight = false
+
+  /**
+   * Stop the background resume retry timer.
+   *
+   * @returns {void}
+   */
+  function stopResumeRetry() {
+    if (resumeTimer) {
+      window.clearInterval(resumeTimer)
+      resumeTimer = undefined
+    }
+  }
+
+  /**
+   * Start a bounded retry loop while a system pause is pending.
+   *
+   * @returns {void}
+   */
+  function startResumeRetry() {
+    if (resumeTimer) {
+      return
+    }
+
+    resumeDeadline = Date.now() + RESUME_MAX_MS
+
+    resumeTimer = window.setInterval(function() {
+      if (!playerStore.resumePending || playerStore.userPaused || playerStore.isPlaying) {
+        stopResumeRetry()
+        return
+      }
+
+      if (Date.now() > resumeDeadline) {
+        console.info('[resume] giving up')
+        playerStore.cancelResume()
+        stopResumeRetry()
+        return
+      }
+
+      tryResume('retry')
+    }, RESUME_RETRY_MS)
+  }
+
+  /**
+   * Resume playback after a system pause, if the user still wants it.
+   *
+   * @param {string} reason
+   * @returns {Promise<void>}
+   */
+  async function tryResume(reason) {
+    if (resumeInFlight || playerStore.isPlaying || playerStore.userPaused ||
+      playerStore.inTransition) {
+      return
+    }
+
+    // Foreground events may resume after a stall too. Background events only
+    // make sense when a system pause left a resume intent behind.
+    var foreground = reason === 'visible' || reason === 'focus' ||
+      reason === 'pageshow' || reason === 'page-resume'
+
+    if (!foreground && !playerStore.resumePending) {
+      return
+    }
+
+    resumeInFlight = true
+
+    try {
+      console.info('[resume] attempt:', reason)
+      await playerStore.play()
+      await sleep(500)
+
+      if (audio.getAudioElement().paused) {
+        console.info('[resume] still paused:', reason)
+      } else {
+        console.info('[resume] ok:', reason)
+      }
+    } catch (error) {
+      console.info('[resume] failed:', reason, error && error.name)
+
+      // Keep the retry loop (and therefore the freeze lock) alive: a hidden
+      // page may refuse play() until a gesture, but the browser's own
+      // audio-focus resume or the notification play button can still work.
+      // The retry deadline releases the lock if nothing happens.
+    } finally {
+      resumeInFlight = false
+    }
+  }
+
+  /**
+   * Resume the Web Audio context after the element started playing.
+   *
+   * @returns {void}
+   */
+  function resumeAudioContext() {
+    var context = audio.getAudioContext()
+
+    if (context.state !== 'running') {
+      context.resume().catch(function(error) {
+        console.info('[ctx] resume failed', error)
+      })
+    }
+  }
+
+  /**
+   * Foreground wake-up: make sure the context is running, then resume.
+   *
+   * @param {string} reason
+   * @returns {void}
+   */
+  function onForeground(reason) {
+    resumeAudioContext()
+    tryResume(reason)
+  }
+
   playerStore.setMediaSessionState('none')
 
   audio.onplay = function() {
     playerStore.isPlaying = true
     playerStore.userPaused = false
+    playerStore.resumePending = false
+    stopResumeRetry()
+    acquireKeepAlive()
+    resumeAudioContext()
     claimSession()
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -208,6 +342,21 @@ export async function setupAudio(playerStore, mainStore) {
     if (usePlaybackReport) {
       sendReport('paused', lastPositionMs)
     }
+
+    var element = audio.getAudioElement()
+
+    if (playerStore.userPaused || playerStore.inTransition || element.ended) {
+      playerStore.resumePending = false
+      stopResumeRetry()
+      releaseKeepAlive()
+      return
+    }
+
+    // System pause (phone call, audio-focus loss, output removal): remember
+    // that playback should come back and keep the page out of the freeze set.
+    playerStore.resumePending = true
+    acquireKeepAlive()
+    startResumeRetry()
   }
 
   audio.onwaiting = function() {
@@ -216,11 +365,23 @@ export async function setupAudio(playerStore, mainStore) {
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('paused')
     playerStore.updateMediaSession('Loading ...', '', '')
+
+    // A phone call can also surface as a hidden-page stall instead of a
+    // clean pause. Keep the resume intent and the page alive in that case.
+    if (document.visibilityState === 'hidden' && !playerStore.userPaused) {
+      playerStore.resumePending = true
+      acquireKeepAlive()
+      startResumeRetry()
+    }
   }
 
   audio.onplaying = function() {
     playerStore.isPlaying = true
     playerStore.userPaused = false
+    playerStore.resumePending = false
+    stopResumeRetry()
+    acquireKeepAlive()
+    resumeAudioContext()
     playTime = Date.now()
     playerStore.setMediaSessionPosition()
     playerStore.setMediaSessionState('playing')
@@ -236,11 +397,19 @@ export async function setupAudio(playerStore, mainStore) {
       return playerStore.next(false)
     }
 
+    playerStore.resumePending = false
+    stopResumeRetry()
+    releaseKeepAlive()
+
     return playerStore.processQueueEnd()
   }
 
   audio.onerror = function(error) {
     console.warn('[Audio] Fatal error', error)
+
+    playerStore.resumePending = false
+    stopResumeRetry()
+    releaseKeepAlive()
 
     var reportedError = error
 
@@ -260,13 +429,11 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   document.addEventListener('visibilitychange', function() {
-    if (playerStore.isPlaying) {
+    if (document.visibilityState !== 'visible' || playerStore.userPaused) {
       return
     }
 
-    if (document.visibilityState === 'visible' && !playerStore.userPaused) {
-      playerStore.play()
-    }
+    onForeground('visible')
   })
 
   // -------------------------------------------------------------------------
@@ -446,6 +613,44 @@ export async function setupAudio(playerStore, mainStore) {
 
   window.addEventListener('focus', checkDevices)
   window.addEventListener('pagehide', stopDevicePoll)
+
+  // -------------------------------------------------------------------------
+  // Background resume triggers
+  //
+  // With the Web Lock held the page is not frozen, so these events can still
+  // fire while the browser is in the background. Any of them may be the first
+  // sign that the phone call ended and audio focus came back.
+  // -------------------------------------------------------------------------
+
+  window.addEventListener('focus', function() {
+    onForeground('focus')
+  })
+
+  window.addEventListener('pageshow', function() {
+    onForeground('pageshow')
+  })
+
+  document.addEventListener('resume', function() {
+    onForeground('page-resume')
+  })
+
+  window.addEventListener('online', function() {
+    tryResume('online')
+  })
+
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', function() {
+      tryResume('devicechange')
+    })
+  }
+
+  var audioContext = audio.getAudioContext()
+
+  audioContext.addEventListener('statechange', function() {
+    if (audioContext.state === 'running') {
+      tryResume('context-running')
+    }
+  })
 
   // -------------------------------------------------------------------------
   // Microphone permission (exposes device labels)

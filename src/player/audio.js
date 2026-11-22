@@ -330,14 +330,23 @@ AudioController.prototype.play = async function() {
   var context = this.getAudioContext()
 
   if (context.state !== 'running') {
-    try {
-      await context.resume()
-    } catch (error) {
-      // The context may refuse to resume until the next user gesture.
-    }
+    // A suspended context can keep resume() pending until the page is visible
+    // again. Never let that block the media element itself: the element can
+    // start while the context is suspended, and audio becomes audible as soon
+    // as the context resumes.
+    context.resume().catch(function(error) {
+      console.info('[ctx] resume failed', error)
+    })
   }
 
   await this.getActivePipeline().audio.play()
+
+  if (context.state !== 'running') {
+    context.resume().catch(function(error) {
+      console.info('[ctx] resume failed', error)
+    })
+  }
+
   await this.fadeIn(this.fadeTime / 2)
   console.info('audio.play()', context.state)
 }
