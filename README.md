@@ -87,18 +87,36 @@ For a permanent address, create a named Cloudflare Tunnel and attach it to your 
 
 ## OpenSubsonic endpoints
 
-- getAlbumList2
-- getArtistInfo2
+- createPlaylist
+- deletePlaylist
+- download
+- getAlbum
 - getAlbumInfo2
-- getStarred2
-- search3
-- getSongsByGenre
-- getRandomSongs
-- getPlayQueue
-- savePlayQueue
-- getScanStatus
-- startScan
+- getAlbumList2
+- getArtist
+- getArtistInfo2
+- getArtists
+- getCoverArt
+- getGenres
 - getOpenSubsonicExtensions
+- getPlaylist
+- getPlaylists
+- getPlayQueue
+- getRandomSongs
+- getScanStatus
+- getSongsByGenre
+- getStarred2
+- getTopSongs
+- ping
+- reportPlayback
+- savePlayQueue
+- scrobble
+- search3
+- star
+- startScan
+- stream
+- unstar
+- updatePlaylist
 
 ## Contributors
 
