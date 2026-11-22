@@ -22,7 +22,7 @@
         <template #text>
           <strong>{{ item.albumCount }}</strong> albums
         </template>
-        <template v-if="tileSize > 79" #actions>
+        <template v-if="showActions" #actions>
           <TileActionButton icon="random" label="Artist Shuffle" @click.stop="shuffleNow(item.id)" />
           <TileActionButton
             :icon="favouriteIcon(item.id)"
@@ -81,11 +81,8 @@
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
 
-  // Same breakpoint as Tiles.vue. On mobile, a long press already reveals the
-  // overlay action buttons, so the RowActionsMenu is disabled there.
-  function isMobile() {
-    return window.matchMedia('(max-width: 768px)').matches
-  }
+  // Embedded quick-action buttons need enough room to remain usable.
+  var MIN_ACTION_TILE_SIZE = 120
 
   export default defineComponent({
     components: {
@@ -102,17 +99,17 @@
       tileSize: { type: Number, default: 140 },
     },
 
-    setup: function () {
+    setup: function (props) {
       var favouriteStore = useFavouriteStore()
       var playlistStore = usePlaylistStore()
       var playerStore = usePlayerStore()
       var radioStore = useRadioStore()
       var loader = useLoader()
       var api = inject('$api')
-      var rowMenu = useRowMenu({
-        enabled: function () {
-          return !isMobile()
-        }
+      var rowMenu = useRowMenu()
+
+      var showActions = computed(function () {
+        return props.tileSize >= MIN_ACTION_TILE_SIZE
       })
 
       async function toggleFavourite(id) {
@@ -259,6 +256,7 @@
         favouriteStore: favouriteStore,
         radioStore: radioStore,
         rowMenu: rowMenu,
+        showActions: showActions,
         toggleFavourite: toggleFavourite,
         isFavourite: isFavourite,
         favouriteIcon: favouriteIcon,

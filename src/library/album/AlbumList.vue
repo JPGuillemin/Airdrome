@@ -40,7 +40,7 @@
           </span>
         </template>
         <!-- Hover Actions -->
-        <template v-if="tileSize > 79" #actions>
+        <template v-if="showActions" #actions>
           <TileActionButton icon="play" label="Play" @click.stop="playNow(item.id)" />
           <TileActionButton
             :icon="favouriteIcon(item.id)"
@@ -113,11 +113,8 @@
   import RowActionsMenu from '@/library/track/RowActionsMenu.vue'
   import EditPlaylistModal from '@/library/playlist/EditPlaylistModal.vue'
 
-  // Same breakpoint as Tiles.vue. On mobile, a long press already reveals the
-  // overlay action buttons, so the RowActionsMenu is disabled there.
-  function isMobile() {
-    return window.matchMedia('(max-width: 768px)').matches
-  }
+  // Embedded quick-action buttons need enough room to remain usable.
+  var MIN_ACTION_TILE_SIZE = 120
 
   export default defineComponent({
     components: { RowActionsMenu: RowActionsMenu, EditPlaylistModal: EditPlaylistModal },
@@ -145,9 +142,6 @@
       var loader = useLoader()
       var api = inject('$api')
       var rowMenu = useRowMenu({
-        enabled: function () {
-          return !isMobile()
-        },
         onOpen: function (key) {
           refreshCached(String(key))
         }
@@ -157,6 +151,10 @@
         return (props.items || []).filter(function (item) {
           return !!item && !!item.id
         })
+      })
+
+      var showActions = computed(function () {
+        return props.tileSize >= MIN_ACTION_TILE_SIZE
       })
 
       function getAlbum(id) {
@@ -386,6 +384,7 @@
         api: api,
         rowMenu: rowMenu,
         validItems: validItems,
+        showActions: showActions,
         playNow: playNow,
         shuffleNow: shuffleNow,
         radioNow: radioNow,
