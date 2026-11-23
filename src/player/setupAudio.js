@@ -259,15 +259,21 @@ export async function setupAudio(playerStore, mainStore) {
     }
   }
 
-  document.addEventListener('visibilitychange', function() {
+  // -------------------------------------------------------------------------
+  // Visibiity change
+  //
+
+  var onVisibilityChange = throttle(async function() {
     if (playerStore.isPlaying) {
       return
     }
-
     if (document.visibilityState === 'visible' && !playerStore.userPaused) {
       playerStore.play()
     }
-  })
+  }, 500, { leading: false, trailing: true })
+
+
+  document.addEventListener('visibilitychange', onVisibilityChange)
 
   // -------------------------------------------------------------------------
   // Output devices (Bluetooth, headphones...)
@@ -400,52 +406,51 @@ export async function setupAudio(playerStore, mainStore) {
   }, 500, { leading: false, trailing: true })
 
   // -------------------------------------------------------------------------
-  // Device polling fallback
+  // Event poling
   // -------------------------------------------------------------------------
   // Chrome does not reliably fire `devicechange` for audio-output changes
-  // (notably Bluetooth disconnects). Polling while playing covers that gap.
+  // (notably Bluetooth disconnects). Polling covers that gap.
 
-  var devicePollTimer = null
+  var eventPollTimer = null
 
-  function checkDevices() {
-    if (!knownOutputs) {
-      return
-    }
-
-    if (document.visibilityState !== 'visible') {
-      return
-    }
+  function checkEvents() {
 
     if (playerStore.userPaused) {
+      return
+    }
+
+    onVisibilityChange()
+
+    if (!knownOutputs) {
       return
     }
 
     onDeviceChange()
   }
 
-  function startDevicePoll() {
-    if (devicePollTimer) {
+  function startEventPoll() {
+    if (eventPollTimer) {
       return
     }
 
-    devicePollTimer = setInterval(checkDevices, 2000)
+    eventPollTimer = setInterval(checkEvents, 2000)
   }
 
-  function stopDevicePoll() {
-    if (devicePollTimer) {
-      clearInterval(devicePollTimer)
-      devicePollTimer = null
+  function stopEventPoll() {
+    if (eventPollTimer) {
+      clearInterval(eventPollTimer)
+      eventPollTimer = null
     }
   }
 
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
-      checkDevices()
+      checkEvents()
     }
   })
 
-  window.addEventListener('focus', checkDevices)
-  window.addEventListener('pagehide', stopDevicePoll)
+  window.addEventListener('focus', checkEvents)
+  window.addEventListener('pagehide', stopEventPoll)
 
   // -------------------------------------------------------------------------
   // Microphone permission (exposes device labels)
@@ -720,7 +725,7 @@ export async function setupAudio(playerStore, mainStore) {
       navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
     }
 
-    startDevicePoll()
+    startEventPoll()
 
     try {
       await ensureMicAccess()
