@@ -14,10 +14,11 @@ Test the latest version here : [AIRDROME NIGHTLY](https://jpguillemin.github.io/
 - Native Gapless playback
 - 2 modes Replay Gain support
 - Full mediaSession integration
+- Native Android playback with Media3 ExoPlayer, lock-screen / notification controls, audio focus and Bluetooth/headset routing
 - Persistent queue, repeat, shuffle
 - 4 color themes
 - Responsive UI for Android, and WEB browser (standard page or PWA)
-- Persistant cache and download for offline listening
+- Persistent native cache and download for offline listening
 - View, create, and edit playlists
 - Full text search with sorted results by artists, albums, tracks
 - Favourites tagging
@@ -62,6 +63,75 @@ $ docker run -d \
   local/airdrome:latest
 
 ```
+
+## Android build (Capacitor)
+
+The Android app is a Capacitor shell around the same web bundle. Playback is
+handled by a native Media3 ExoPlayer plugin, with a native MediaSession for the
+lock screen, notification, headset buttons, audio focus and Bluetooth/headset
+routing. Offline audio and cover art use the Capacitor Filesystem plugin.
+
+Requirements: Node.js 22+, JDK 21 and the Android SDK.
+
+```bash
+# Debug APK
+npm run android:debug
+
+# Release APK (falls back to the debug signing key when no keystore exists)
+./build-apk.sh
+
+# Open the native project in Android Studio
+npm run cap:open
+```
+
+Build artifacts are written to `artifacts/airdrome-<version>.apk` (and `.aab`
+when `BUILD_AAB=1`). They are kept out of `dist/` because `dist/` is copied
+into the Android web assets by Capacitor.
+
+`build.sh` and `build-apk.sh` set `JAVA_HOME`, `PATH`, `ANDROID_HOME` and
+`ANDROID_SDK_ROOT` to local defaults, and load signing values from
+`.android-signing.env` when it exists. Copy the example once:
+
+```bash
+cp .android-signing.env.example .android-signing.env
+# then edit the passwords in .android-signing.env
+```
+
+Release signing is optional. To sign with your own key, place
+`android/app/airdrome-release.keystore` and fill in `STORE_PASSWORD`,
+`KEY_PASSWORD` and `KEY_ALIAS` in `.android-signing.env` (or export them in
+your shell). Without a keystore the release build falls back to the debug
+signing key.
+
+Create the keystore with the JDK’s `keytool`:
+
+```bash
+keytool -genkeypair -v \
+  -keystore android/app/airdrome-release.keystore \
+  -alias airdrome \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass 'your-store-password' \
+  -keypass 'your-store-password' \
+  -dname "CN=Airdrome, O=Airdrome, C=FR"
+```
+
+The `dist/` folder produced by `npm run build` is still the complete PWA; the
+Capacitor build only adds the native wrapper and plugins on top of it.
+
+### Native plugins
+
+| Feature | Implementation |
+| --- | --- |
+| Audio playback / gapless / preload | custom Media3 ExoPlayer plugin (`android/.../ExoPlayerPlugin.java`) |
+| Lock screen, notification, media keys | custom MediaSession plugin (`android/.../MediaSessionPlugin.java`) |
+| Audio focus, headset / Bluetooth routing | custom MediaSession plugin |
+| Offline audio and cover art | `@capacitor/filesystem` |
+| Downloads | `@capacitor/filesystem` + `@capacitor/share` fallback |
+| Connectivity | `@capacitor/network` |
+| External links | `@capacitor/browser` |
+| Android back button / app lifecycle | `@capacitor/app` |
+| Haptics | `@capacitor/haptics` |
+| Status bar / splash | `@capacitor/status-bar`, `@capacitor/splash-screen` |
 
 ## Connect Airdrome to Navidrome
 

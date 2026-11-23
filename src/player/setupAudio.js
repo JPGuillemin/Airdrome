@@ -5,8 +5,10 @@
 
 import { watch } from 'vue'
 import { throttle } from 'lodash-es'
+import { App as CapacitorApp } from '@capacitor/app'
 import { sleep } from '@/shared/utils'
-import { audio, storedReplayGainMode } from './audio'
+import { audio, storedReplayGainMode, isAndroid } from './engine'
+import { nativeMediaSession } from './nativeMediaSession'
 import { claimSession, onPlaybackStopped, onUnload } from './session'
 
 var mediaSession = navigator.mediaSession
@@ -75,6 +77,20 @@ export async function setupAudio(playerStore, mainStore) {
       audio.setNextUrl(url)
     }
   )
+
+  // Native only: keep ExoPlayer's queue window in sync so it can start the
+  // next track by itself while the WebView is frozen.
+  if (isAndroid) {
+    watch(
+      function() {
+        return playerStore.windowKey
+      },
+      function() {
+        playerStore.syncWindow()
+      },
+      { immediate: true }
+    )
+  }
 
   // -------------------------------------------------------------------------
   // Playback event handlers
@@ -259,6 +275,15 @@ export async function setupAudio(playerStore, mainStore) {
     }
   }
 
+  if (isAndroid) {
+    // Native advanced to the next track while JS was asleep (or from the lock
+    // screen / headset). Follow it without reloading: ExoPlayer is already
+    // playing the new track.
+    audio.ontrackchanged = function(index) {
+      playerStore.followNative(index)
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Visibiity change
   //
@@ -273,8 +298,17 @@ export async function setupAudio(playerStore, mainStore) {
   }, 500, { leading: false, trailing: true })
 
 
-  document.addEventListener('visibilitychange', onVisibilityChange)
+  // -------------------------------------------------------------------------
+  // Web-only device handling
+  // -------------------------------------------------------------------------
 
+  /**
+   * Bluetooth / headset routing and the devicechange polling fallback.
+   * Native Android uses the MediaSession plugin for this instead.
+   *
+   * @returns {Promise<void>}
+   */
+  async function setupWebDevices() {
   // -------------------------------------------------------------------------
   // Output devices (Bluetooth, headphones...)
   // -------------------------------------------------------------------------
@@ -544,6 +578,36 @@ export async function setupAudio(playerStore, mainStore) {
     })
   }
 
+  var deviceIds = null
+
+  try {
+    deviceIds = await getDeviceIds()
+  } catch (error) {
+    console.warn('[devices] initialization failed', error)
+  }
+
+  if (deviceIds) {
+    knownOutputs = deviceIds
+
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
+    }
+
+    startEventPoll()
+
+    try {
+      await ensureMicAccess()
+    } catch (error) {
+      console.warn('[devices] microphone setup failed', error)
+    }
+  }
+  }
+
+  if (!isAndroid) {
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    await setupWebDevices()
+  }
+
   var saveTime = 0
 
   // Track whose legacy scrobble is in flight, so timeupdate ticks do not
@@ -602,7 +666,9 @@ export async function setupAudio(playerStore, mainStore) {
     var duration = playerStore.duration
     var remaining = duration - time
 
-    if (remaining < 0.15 && playerStore.hasNext) {
+    // ExoPlayer advances the queue natively; only the Web Audio path needs
+    // this last-second safety net.
+    if (!isAndroid && remaining < 0.15 && playerStore.hasNext) {
       playerStore.next(false)
       return
     }
@@ -638,6 +704,97 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   // -------------------------------------------------------------------------
+  // Native state re-sync
+  // -------------------------------------------------------------------------
+
+  /**
+   * Pull the native player state back into the store after the WebView was
+   * suspended. ExoPlayer may have advanced to another track in the meantime.
+   *
+   * @returns {Promise<void>}
+   */
+  async function syncFromNative() {
+    if (!isAndroid || typeof audio.getStatus !== 'function') {
+      return
+    }
+
+    try {
+      var status = await audio.getStatus()
+
+      if (!status || !status.loaded) {
+        return
+      }
+
+      var index = -1
+
+      for (var i = 0; i < playerStore.queue.length; i++) {
+        if (playerStore.queue[i].url === status.key) {
+          index = i
+          break
+        }
+      }
+
+      if (index >= 0 && index !== playerStore.queueIndex) {
+        playerStore.followNative(index)
+      }
+
+      playerStore.currentTime = status.position || 0
+
+      if (status.duration > 0) {
+        playerStore.duration = status.duration
+      }
+
+      playerStore.isPlaying = !!status.playing
+
+      if (status.playing) {
+        playerStore.userPaused = false
+      }
+
+      playerStore.setMediaSessionPosition()
+      playerStore.setMediaSessionState(status.playing ? 'playing' : 'paused')
+      playerStore.updateMediaSession()
+    } catch (error) {
+      console.warn('[Native] state sync failed', error)
+    }
+  }
+
+  /**
+   * Persist queue position / playback report before the WebView is frozen.
+   *
+   * @returns {Promise<void>}
+   */
+  async function flushBackgroundState() {
+    try {
+      await playerStore.saveQueue()
+
+      if (usePlaybackReport && playerStore.isPlaying) {
+        await sendReport('playing', lastPositionMs)
+      }
+    } catch (error) {
+      console.warn('[Native] background save failed', error)
+    }
+  }
+
+  if (isAndroid) {
+    CapacitorApp.addListener('appStateChange', async function(state) {
+      if (state.isActive) {
+        await syncFromNative()
+
+        if (usePlaybackReport && playerStore.isPlaying) {
+          sendReport('playing', lastPositionMs)
+        }
+
+        return
+      }
+
+      // Run immediately: the WebView may be frozen right after this callback.
+      await flushBackgroundState()
+    }).catch(function(error) {
+      console.warn('[Native] app state listener failed', error)
+    })
+  }
+
+  // -------------------------------------------------------------------------
   // Page lifecycle
   // -------------------------------------------------------------------------
 
@@ -654,7 +811,9 @@ export async function setupAudio(playerStore, mainStore) {
   // Closing the tab is the last chance to report the play: use a keepalive
   // request so the server still receives `stopped` while the page unloads.
   window.addEventListener('pagehide', function() {
-    if (usePlaybackReport) {
+    // On Android the native player keeps playing after the WebView is
+    // suspended; ending the reported session here would be wrong.
+    if (!isAndroid && usePlaybackReport) {
       endSession(lastPositionMs, { keepalive: true })
     }
   })
@@ -670,7 +829,7 @@ export async function setupAudio(playerStore, mainStore) {
   // MediaSession action handlers
   // -------------------------------------------------------------------------
 
-  if (mediaSession) {
+  if (mediaSession && !isAndroid) {
     mediaSession.setActionHandler('play', function() {
       playerStore.play()
     })
@@ -707,32 +866,48 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   // -------------------------------------------------------------------------
-  // Async initialisation
+  // Native Android MediaSession action events (custom Capacitor plugin)
   // -------------------------------------------------------------------------
 
-  var deviceIds = null
-
-  try {
-    deviceIds = await getDeviceIds()
-  } catch (error) {
-    console.warn('[devices] initialization failed', error)
+  if (isAndroid) {
+    nativeMediaSession.addListener('play', function() {
+      playerStore.play()
+    })
+    nativeMediaSession.addListener('pause', function() {
+      playerStore.pause()
+    })
+    nativeMediaSession.addListener('next', function() {
+      playerStore.next(true)
+    })
+    nativeMediaSession.addListener('previous', function() {
+      playerStore.back()
+    })
+    nativeMediaSession.addListener('stop', function() {
+      playerStore.pause()
+    })
+    nativeMediaSession.addListener('seek', function(data) {
+      var position = Math.min(Number(data && data.position) || 0, playerStore.duration)
+      playerStore.seek(position)
+    })
+    nativeMediaSession.addListener('seekto', function(data) {
+      var position = Math.min(Number(data && data.position) || 0, playerStore.duration)
+      playerStore.seek(position)
+    })
+    nativeMediaSession.addListener('seekforward', function(data) {
+      var offset = Number(data && data.offset) || 10
+      var position = Math.min(playerStore.currentTime + offset, playerStore.duration)
+      playerStore.seek(position)
+    })
+    nativeMediaSession.addListener('seekbackward', function(data) {
+      var offset = Number(data && data.offset) || 10
+      var position = Math.max(playerStore.currentTime - offset, 0)
+      playerStore.seek(position)
+    })
   }
 
-  if (deviceIds) {
-    knownOutputs = deviceIds
-
-    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-      navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
-    }
-
-    startEventPoll()
-
-    try {
-      await ensureMicAccess()
-    } catch (error) {
-      console.warn('[devices] microphone setup failed', error)
-    }
-  }
+  // -------------------------------------------------------------------------
+  // Initialise the current track (paused) after restoring the queue
+  // -------------------------------------------------------------------------
 
   if (playerStore.track) {
     await playerStore.loadTrack({ paused: true })

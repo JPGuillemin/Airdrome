@@ -4,7 +4,7 @@
     <div class="d-flex align-items-center gap-2 overflow-hidden">
       <img
         v-if="showImage && track.image"
-        :src="track.image"
+        :src="resolveImage(track.image)"
         loading="lazy"
         :alt="track.album"
         class="rounded flex-shrink-0"
@@ -20,8 +20,12 @@
 
 <script>
   import { defineComponent } from 'vue'
+  import { resolveImage } from '@/shared/images'
 
   export default defineComponent({
+    setup: function () {
+      return { resolveImage: resolveImage }
+    },
     props: {
       /** Track whose title is displayed. */
       track: { type: Object, required: true },

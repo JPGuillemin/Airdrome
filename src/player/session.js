@@ -13,6 +13,7 @@
 // another device takes over.
 
 import { sleep } from '@/shared/utils'
+import { isOnline } from '@/shared/network'
 import { usePlayerStore } from './store'
 
 var POLL_MS = 5000
@@ -244,7 +245,7 @@ async function writeQueue() {
  * @returns {boolean}
  */
 function canWrite(player) {
-  return !!navigator.onLine &&
+  return isOnline() &&
     !!player.queue &&
     player.queue.length > 0 &&
     !!player.track
@@ -266,7 +267,7 @@ function schedulePoll() {
     var player = usePlayerStore()
 
     try {
-      if (ownsQueue && player.isPlaying && navigator.onLine) {
+      if (ownsQueue && player.isPlaying && isOnline()) {
         await ensureOwnership(player)
       }
     } catch (error) {

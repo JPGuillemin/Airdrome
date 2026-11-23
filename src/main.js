@@ -6,6 +6,8 @@
 // async/await.
 
 import { createApp, markRaw, watch } from 'vue'
+import { StatusBar, Style } from '@capacitor/status-bar'
+import { SplashScreen } from '@capacitor/splash-screen'
 import AppComponent from '@/app/App.vue'
 import { components } from '@/shared/components'
 import { setupRouter } from '@/shared/router'
@@ -26,6 +28,8 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import wheelScroll from '@/shared/wheelscroll'
 import { longPressTooltip } from '@/shared/tooltips'
 import { applyTheme } from '@/shared/theme'
+import { initNetwork } from '@/shared/network'
+import { isAndroid } from '@/shared/platform'
 
 import '@/shared/debugLog'
 
@@ -144,7 +148,10 @@ function registerComponents(app) {
  * @returns {void}
  */
 function setupServiceWorker() {
-  if (!('serviceWorker' in navigator)) {
+  // The native shell serves the app from the local Capacitor WebView; a
+  // service worker would only add a second, stale copy of the shell.
+  // In dev the worker is not built (VitePWA devOptions disabled), so skip it.
+  if (isAndroid || import.meta.env.DEV || !('serviceWorker' in navigator)) {
     return
   }
 
@@ -167,6 +174,8 @@ function setupServiceWorker() {
  * @returns {Promise<void>}
  */
 async function bootstrapApp() {
+  await initNetwork()
+
   setupTheme()
 
   var context = createApplication()
@@ -199,6 +208,21 @@ async function bootstrapApp() {
   }
 
   setupServiceWorker()
+
+  if (isAndroid) {
+    try {
+      await StatusBar.setStyle({ style: Style.Dark })
+      await StatusBar.setBackgroundColor({ color: '#09090b' })
+    } catch (error) {
+      console.warn('Status bar setup failed', error)
+    }
+
+    try {
+      await SplashScreen.hide()
+    } catch (error) {
+      console.warn('Splash screen hide failed', error)
+    }
+  }
 }
 
 document.addEventListener('contextmenu', function(event) {

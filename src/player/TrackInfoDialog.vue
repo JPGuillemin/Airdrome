@@ -11,7 +11,7 @@
         <div class="track-info-title-row d-flex gap-3">
           <img
             v-if="track.image"
-            :src="track.image"
+            :src="resolveImage(track.image)"
             class="track-info-cover"
             alt=""
           >
@@ -202,6 +202,7 @@
   import { defineComponent, ref, computed, watch, inject } from 'vue'
   import { formatDuration } from '@/shared/utils'
   import ExternalLink from '@/shared/components/ExternalLink.vue'
+  import { resolveImage } from '@/shared/images'
   import IconMusicBrainz from '@/shared/components/IconMusicBrainz.vue'
   import IconYouTube from '@/shared/components/IconYouTube.vue'
   import IconYouTubeMusic from '@/shared/components/IconYouTubeMusic.vue'
@@ -277,7 +278,7 @@
         var image = fallbackImage
 
         if (props.track && props.track.image) {
-          image = props.track.image
+          image = resolveImage(props.track.image)
         }
 
         return "url('" + image + "')"
@@ -714,6 +715,7 @@
         showPlaylistModal: showPlaylistModal,
         playlistDraft: playlistDraft,
         backgroundImage: backgroundImage,
+        resolveImage: resolveImage,
         favouriteIcon: favouriteIcon,
         artistLinks: artistLinks,
         artistNames: artistNames,

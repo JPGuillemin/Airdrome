@@ -10,7 +10,7 @@
     />
     <div class="header">
       <img
-        :src="image || fallbackImage"
+        :src="resolveImage(image) || fallbackImage"
         :title="hover"
         class="cover-image cursor-pointer"
         @click="$emit('click')"
@@ -25,6 +25,7 @@
 <script>
   import { defineComponent, computed } from 'vue'
   import fallbackImage from '@/shared/assets/fallback.svg'
+  import { resolveImage } from '@/shared/images'
 
   export default defineComponent({
     props: {
@@ -38,7 +39,7 @@
     emits: ['click'],
     setup: function (props) {
       var backgroundImage = computed(function () {
-        var image = props.image
+        var image = resolveImage(props.image)
 
         if (!image) {
           image = fallbackImage
@@ -49,7 +50,8 @@
 
       return {
         fallbackImage: fallbackImage,
-        backgroundImage: backgroundImage
+        backgroundImage: backgroundImage,
+        resolveImage: resolveImage
       }
     }
   })

@@ -7,6 +7,7 @@
 
 import { inject } from 'vue'
 import { toQueryString } from '@/shared/utils'
+import { isOnline } from '@/shared/network'
 
 var apiSymbol = Symbol('')
 
@@ -226,7 +227,7 @@ export function API(auth) {
 
       return subsonicResponse
     } catch (err) {
-      if (err instanceof TypeError && !navigator.onLine) {
+      if (err instanceof TypeError && !isOnline()) {
         console.info('[Offline mode] API request skipped:', path)
         throw new OfflineError()
       }

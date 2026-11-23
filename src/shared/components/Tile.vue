@@ -6,11 +6,11 @@
       :class="{ 'tile-img--circle': circle }"
     >
       <router-link v-if="to" :to="to">
-        <img v-if="image" :src="image" loading="lazy" alt="Album cover">
+        <img v-if="image" :src="resolveImage(image)" loading="lazy" alt="Album cover">
         <img v-else :src="fallback" alt="Fallback cover">
       </router-link>
       <template v-else>
-        <img v-if="image" :src="image" loading="lazy" alt="Album cover">
+        <img v-if="image" :src="resolveImage(image)" loading="lazy" alt="Album cover">
         <img v-else :src="fallback" alt="Fallback cover">
       </template>
 
@@ -42,6 +42,7 @@
 <script>
   import { defineComponent } from 'vue'
   import fallback from '@/shared/assets/fallback.svg'
+  import { resolveImage } from '@/shared/images'
 
   export default defineComponent({
     props: {
@@ -59,7 +60,7 @@
       titleOnly: { type: Boolean, default: false },
     },
     setup: function () {
-      return { fallback: fallback }
+      return { fallback: fallback, resolveImage: resolveImage }
     },
   })
 </script>

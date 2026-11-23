@@ -10,15 +10,15 @@ const APP_BASE = new URL(self.registration.scope).pathname
 const SHELL_CACHE = `shell-cache-${__BUILD_VERSION__}`
 const RUNTIME_CACHE = 'runtime-cache-v1'
 const IMAGE_CACHE   = 'images-cache-v1'
-// Owned by src/shared/cache.ts (explicit offline audio / image stores).
+// Owned by src/shared/cache.js (explicit offline audio / image stores).
 const AUDIO_CACHE   = 'audio-cache-v1'
 const OFFLINE_IMAGE_CACHE = 'images-offline-v1'
 
-// Audio is deliberately NOT cached here. The app (src/shared/cache.ts) owns
+// Audio is deliberately NOT cached here. The app (src/shared/cache.js) owns
 // audio persistence explicitly — Filesystem on native, Cache API on web —
 // with its own LRU/size accounting. If the SW also opportunistically cached
 // every /rest/stream response, both systems would write to the same bytes
-// without knowing about each other: cache.ts's size accounting would silently
+// without knowing about each other: cache.js's size accounting would silently
 // undercount real disk usage, and tracks the user never asked to keep offline
 // would show up as "cached" in the UI. One owner for audio persistence.
 

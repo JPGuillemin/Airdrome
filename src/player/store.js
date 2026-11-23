@@ -15,8 +15,10 @@ import {
 import {
   audio,
   storedReplayGainMode,
-  ReplayGainMode
-} from '@/player/audio'
+  ReplayGainMode,
+  isAndroid
+} from '@/player/engine'
+import { nativeMediaSession } from '@/player/nativeMediaSession'
 import { saveSession } from './session'
 
 // ---------------------------------------------------------------------------
@@ -159,6 +161,23 @@ export var usePlayerStore = defineStore('player', {
       }
 
       return this.queue[(this.queueIndex + 1) % this.queue.length]
+    },
+
+    /**
+     * Changes when the previous / current / next tracks (what the native
+     * player needs, see syncWindow) or the ReplayGain mode change.
+     */
+    windowKey: function() {
+      var queue = this.queue || []
+      var values = [this.queueIndex, this.repeat, this.replayGainMode]
+      var offsets = [-1, 0, 1, 2]
+
+      for (var i = 0; i < offsets.length; i++) {
+        var track = queue[this.queueIndex + offsets[i]]
+        values.push(track ? track.id : '')
+      }
+
+      return values.join('|')
     },
 
     /** Shorthand for the current track ID. */
@@ -343,6 +362,77 @@ export var usePlayerStore = defineStore('player', {
       } catch (error) {
         this.inTransition = false
         throw error
+      }
+    },
+
+    /**
+     * Native already switched to another track by itself: follow it without
+     * reloading anything.
+     *
+     * @param {number} index
+     * @returns {void}
+     */
+    followNative: function(index) {
+      this.setQueueIndex(index)
+      // Persist the new position promptly: the WebView may be frozen again
+      // before the next 10-second autosave tick.
+      this.saveQueue()
+    },
+
+    /**
+     * Describe the queue around the current track to the native player so it
+     * can start the next track while the WebView is suspended. JS remains the
+     * owner of the queue; at the edge of the window native emits 'ended' and
+     * JS decides what happens next (radio extension, repeat, end of queue).
+     *
+     * @returns {Promise<void>}
+     */
+    syncWindow: async function() {
+      if (!isAndroid || !this.queue || !this.queue.length || this.queueIndex < 0) {
+        return
+      }
+
+      var queue = this.queue
+      var count = queue.length
+      var offsets = [-1, 0, 1, 2]
+      var indexes = []
+      var seen = new Set()
+
+      for (var i = 0; i < offsets.length; i++) {
+        var index = this.queueIndex + offsets[i]
+
+        if (this.repeat) {
+          index = (index + count) % count
+        }
+
+        if (index >= 0 && index < count && !seen.has(index)) {
+          seen.add(index)
+          indexes.push(index)
+        }
+      }
+
+      var tracks = []
+
+      for (var j = 0; j < indexes.length; j++) {
+        var position = indexes[j]
+        var track = queue[position]
+
+        tracks.push({
+          index: position,
+          url: track.url,
+          title: track.title || '',
+          artist: formatArtists(track.artists || []),
+          album: track.album || '',
+          artworkUrl: track.image || null,
+          duration: track.duration || 0,
+          replayGain: track.replayGain
+        })
+      }
+
+      try {
+        await audio.setWindow(tracks, this.queueIndex)
+      } catch (error) {
+        console.warn('[Player] setWindow failed', error)
       }
     },
 
@@ -539,10 +629,6 @@ export var usePlayerStore = defineStore('player', {
      * @returns {void}
      */
     setMediaSessionPosition: function(duration, position) {
-      if (!navigator.mediaSession) {
-        return
-      }
-
       var total = this.duration
       var current = this.currentTime
 
@@ -565,6 +651,21 @@ export var usePlayerStore = defineStore('player', {
       }
 
       current = Math.min(current, total)
+
+      if (isAndroid) {
+        nativeMediaSession.setPlaybackState({
+          state: this.isPlaying ? 'playing' : 'paused',
+          position: current,
+          speed: mediaSessionProgressRate
+        }).catch(function(error) {
+          console.warn('[MediaSession] native position failed', error)
+        })
+        return
+      }
+
+      if (!navigator.mediaSession) {
+        return
+      }
 
       try {
         navigator.mediaSession.setPositionState({
@@ -592,6 +693,17 @@ export var usePlayerStore = defineStore('player', {
         } else {
           value = 'paused'
         }
+      }
+
+      if (isAndroid) {
+        nativeMediaSession.setPlaybackState({
+          state: value,
+          position: this.currentTime,
+          speed: mediaSessionProgressRate
+        }).catch(function(error) {
+          console.warn('[MediaSession] native state failed', error)
+        })
+        return
       }
 
       if (navigator.mediaSession) {
@@ -822,6 +934,19 @@ export var usePlayerStore = defineStore('player', {
       }
 
       var trackImage = track.image || null
+
+      if (isAndroid) {
+        nativeMediaSession.setMetadata({
+          title: title,
+          artist: artist,
+          album: album,
+          artworkUrl: trackImage,
+          duration: this.duration || track.duration || 0
+        }).catch(function(error) {
+          console.warn('[MediaSession] native metadata failed', error)
+        })
+        return
+      }
 
       if (!mediaSession) {
         return

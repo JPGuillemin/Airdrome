@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
-# Synchronize the Airdrome working tree with the build/commit server.
+# Synchronize the public Airdrome working tree with the build/commit server.
+#
+# "Public" means every working-tree file that is safe to publish, including
+# dist/, docker/, public/, stats.html, txt and .archive/. Local tooling,
+# generated native copies and signing material are excluded.
 #
 # Usage:
 #   ./sync.sh pull
@@ -25,29 +29,43 @@ RSYNC_OPTS=(
   --human-readable
   --itemize-changes
 
-  # Local tooling / generated output.
-  --exclude='/.git/'
-  --exclude='/node_modules/'
-  --exclude='/dist/'
-  --exclude='/android-twa/'
-  --exclude='/.gradle/'
-  --exclude='/build/'
-  --exclude='/docker/'
-  --exclude='/stats.html'
-  --exclude='/txt'
-  --exclude='/.archive/'
+  # Keep the remote's own repository metadata. Public working-tree files
+  # (including dist/, docker/, stats.html, txt and .archive/) are synced.
+  --exclude='.git/'
 
-  # Local secrets and environment.
-  --exclude='/.env*'
+  # Local tooling and generated build caches.
+  --exclude='node_modules/'
+  --exclude='.gradle/'
+  --exclude='build/'
+  --exclude='.cache/'
+  --exclude='.vite/'
+
+  # Generated native copies: recreated by `npx cap sync`.
+  --exclude='android/capacitor-cordova-android-plugins/'
+  --exclude='android/app/src/main/assets/public/'
+  --exclude='android/app/src/main/assets/capacitor.config.json'
+  --exclude='android/app/src/main/assets/capacitor.plugins.json'
+
+  # Local-only native output.
+  --exclude='android-twa/'
+  --exclude='artifacts/'
+
+  # Local secrets and signing material.
+  --exclude='.android-signing.env'
+  --exclude='.env*'
+  --exclude='local.properties'
   --exclude='*.apk'
   --exclude='*.aab'
+  --exclude='*.idsig'
   --exclude='*.keystore'
   --exclude='*.jks'
+  --exclude='*.p12'
+  --exclude='*.pem'
 
   # Editor / OS noise.
   --exclude='.DS_Store'
-  --exclude='/.idea/'
-  --exclude='/.vscode/'
+  --exclude='.idea/'
+  --exclude='.vscode/'
   --exclude='*.log'
   --exclude='*.tmp'
   --exclude='*.swp'

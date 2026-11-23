@@ -1,4 +1,28 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# ---------------------------------------------------------------------------
+# Android toolchain + signing environment
+# ---------------------------------------------------------------------------
+# These defaults match the local build machine. Override them from your shell
+# if your JDK / Android SDK live elsewhere.
+export JAVA_HOME="${JAVA_HOME:-/tmp/opencode/jdk21}"
+export PATH="$JAVA_HOME/bin:$PATH"
+export ANDROID_HOME="${ANDROID_HOME:-/home/hyperion/.bubblewrap/android_sdk}"
+export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+
+# Keep signing passwords out of git. Copy .android-signing.env.example to
+# .android-signing.env (gitignored) and fill it in, or export the variables
+# in your shell before running the build.
+if [ -f "$SCRIPT_DIR/.android-signing.env" ]; then
+  . "$SCRIPT_DIR/.android-signing.env"
+fi
+
+export STORE_PASSWORD="${STORE_PASSWORD:-}"
+export KEY_PASSWORD="${KEY_PASSWORD:-}"
+export KEY_ALIAS="${KEY_ALIAS:-airdrome}"
+
 source VERSION
 export BASE_PATH="/"
 echo "Building $VERSION ..."
@@ -6,7 +30,11 @@ echo "Building $VERSION ..."
 rm -rf dist docker
 
 # Build the project
-yarn build || exit 1
+if command -v yarn >/dev/null 2>&1 && [ -f yarn.lock ]; then
+  yarn build || exit 1
+else
+  npm run build || exit 1
+fi
 
 # Rewrite BASE_PATH in static files
 (

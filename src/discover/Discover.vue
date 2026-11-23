@@ -191,6 +191,7 @@
   import { useRadioStore } from '@/player/radio'
   import { usePlayerStore } from '@/player/store'
   import { longPressTooltip } from '@/shared/tooltips'
+  import { lightHaptic } from '@/shared/haptics'
   import { useFavouriteStore } from '@/library/favourite/store'
 
   // Short delay after a scrobble so the server has time to register it
@@ -520,9 +521,7 @@
           genrePressTimer = null
           genreLongPressFired = true
 
-          if (navigator.vibrate) {
-            navigator.vibrate(30)
-          }
+          lightHaptic(30)
 
           radio.shuffleGenre(String(item.id))
         }, GENRE_LONG_PRESS_MS)

@@ -19,6 +19,7 @@
   import * as d3 from 'd3'
   import seedrandom from 'seedrandom'
   import { useRadioStore } from '@/player/radio'
+  import { lightHaptic } from '@/shared/haptics'
 
   export default defineComponent({
     name: 'GenreCloud',
@@ -215,9 +216,7 @@
                 pressTimer = null
                 longPressTriggered = true
 
-                if (navigator.vibrate) {
-                  navigator.vibrate(30)
-                }
+                lightHaptic(30)
 
                 await radio.shuffleGenre(String(d.id))
               }, LONG_PRESS_MS)

@@ -228,6 +228,10 @@
 
       onMounted(function () {
         updateCacheSize()
+
+        cacheStore.getImageCachedCount().then(function (count) {
+          cacheStore.imageCachedCount = count
+        })
         window.addEventListener('audioCached', updateCacheSize)
         window.addEventListener('audioCacheDeleted', updateCacheSize)
         window.addEventListener('audioCacheClearedAll', updateCacheSize)

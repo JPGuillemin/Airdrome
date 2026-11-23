@@ -90,6 +90,8 @@
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlaylistStore } from '@/library/playlist/store'
   import { usePlayerStore } from '@/player/store'
+  import { downloadTrack } from '@/shared/download'
+  import { resolveImage } from '@/shared/images'
 
   export default defineComponent({
     props: {
@@ -120,7 +122,7 @@
         var image = fallbackImage
 
         if (props.track && props.track.image) {
-          image = props.track.image
+          image = resolveImage(props.track.image)
         }
 
         return "url('" + image + "')"
@@ -148,7 +150,7 @@
           return
         }
 
-        window.location.href = $api.getDownloadUrl(props.track.id)
+        downloadTrack($api, props.track)
         close()
       }
 

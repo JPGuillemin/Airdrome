@@ -64,7 +64,7 @@
                 >
                   <img
                     v-if="track.image"
-                    :src="track.image"
+                    :src="resolveImage(track.image)"
                     class="player-cover"
                   >
                   <img
@@ -268,7 +268,7 @@
       <Transition name="cover-preview">
         <img
           v-if="previewVisible && track && track.image"
-          :src="track.image"
+          :src="resolveImage(track.image)"
           :style="previewStyle"
           class="cover-preview"
           alt=""
@@ -280,7 +280,8 @@
 
 <script>
   import { defineComponent, watch, ref, computed, onBeforeUnmount } from 'vue'
-  import { ReplayGainMode } from './audio'
+  import { ReplayGainMode } from './engine'
+  import { resolveImage } from '@/shared/images'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
@@ -773,6 +774,7 @@
         toggleReplayGain: toggleReplayGain,
         toggleRepeat: toggleRepeat,
         toggleFavourite: toggleFavourite,
+        resolveImage: resolveImage,
       }
     },
   })
