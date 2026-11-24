@@ -1,7 +1,6 @@
 package com.jpguillemin.airdrome;
 
 import android.content.Context;
-import android.media.audiofx.LoudnessEnhancer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -13,7 +12,9 @@ import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.audio.DefaultAudioSink;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 
@@ -60,7 +61,9 @@ import java.util.List;
  *
  * Final output level = volume * gain(ReplayGain) * fade
  *  - up to 1.0 : ExoPlayer.setVolume()
- *  - above 1.0 : LoudnessEnhancer (needed because of the +6 dB ReplayGain preamp)
+ *  - above 1.0 : GainAudioProcessor (PCM boost; player volume alone cannot
+ *                exceed 1.0 and LoudnessEnhancer is not reliable on every
+ *                device)
  */
 @CapacitorPlugin(name = "ExoPlayer")
 public class ExoPlayerPlugin extends Plugin {
@@ -75,7 +78,7 @@ public class ExoPlayerPlugin extends Plugin {
     final ExoPlayer player;
     final String key;
     String url; // playable URI this player was built with (file:// or remote)
-    LoudnessEnhancer enhancer;
+    GainAudioProcessor gainProcessor; // applies the ReplayGain boost above 1.0
     Player.Listener listener;
 
     Slot(ExoPlayer player, String key) {
@@ -248,7 +251,6 @@ public class ExoPlayerPlugin extends Plugin {
         fade = 1f; // a new "pipeline" always starts fully open (as in audio.ts)
 
         attach(next);
-        createEnhancer(next, next.player.getAudioSessionId());
         applyLevels();
         releaseSlot(old);
 
@@ -869,7 +871,24 @@ public class ExoPlayerPlugin extends Plugin {
     DefaultExtractorsFactory extractors = new DefaultExtractorsFactory()
       .setConstantBitrateSeekingEnabled(true)
       .setConstantBitrateSeekingAlwaysEnabled(true);
-    ExoPlayer p = new ExoPlayer.Builder(ctx, new DefaultMediaSourceFactory(ctx, extractors))
+    final GainAudioProcessor gainProcessor = new GainAudioProcessor();
+    // ExoPlayer clamps its volume to 1.0, so the ReplayGain boost of quiet
+    // tracks is applied to the decoded PCM by this processor (see
+    // GainAudioProcessor). Attenuation stays on the player volume.
+    DefaultRenderersFactory renderers = new DefaultRenderersFactory(ctx) {
+      @Override
+      protected DefaultAudioSink buildAudioSink(Context context, boolean enableFloatOutput,
+                                                boolean enableAudioTrackPlaybackParams) {
+        return new DefaultAudioSink.Builder(context)
+          .setAudioProcessorChain(
+            new DefaultAudioSink.DefaultAudioProcessorChain(gainProcessor))
+          .setEnableFloatOutput(enableFloatOutput)
+          .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+          .build();
+      }
+    };
+    ExoPlayer p = new ExoPlayer.Builder(ctx, renderers,
+      new DefaultMediaSourceFactory(ctx, extractors))
       .setAudioAttributes(
         new AudioAttributes.Builder()
           .setUsage(C.USAGE_MEDIA)
@@ -885,6 +904,7 @@ public class ExoPlayerPlugin extends Plugin {
     p.prepare();
     Slot slot = new Slot(p, key);
     slot.url = url;
+    slot.gainProcessor = gainProcessor;
     return slot;
   }
 
@@ -931,7 +951,6 @@ public class ExoPlayerPlugin extends Plugin {
     if (s == null) return;
     try {
       if (s.listener != null) s.player.removeListener(s.listener);
-      if (s.enhancer != null) s.enhancer.release();
       s.player.release();
     } catch (Exception ignored) {
     }
@@ -1032,43 +1051,20 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("message", error.getErrorCodeName());
         notifyListeners("error", o);
       }
-
-      @Override
-      public void onAudioSessionIdChanged(int audioSessionId) {
-        createEnhancer(s, audioSessionId);
-        if (s == active) applyLevels();
-      }
     };
     s.player.addListener(s.listener);
   }
 
   // ── Levels & fades ────────────────────────────────────────────────────────
 
-  private void createEnhancer(Slot s, int sessionId) {
-    try {
-      if (s.enhancer != null) s.enhancer.release();
-      s.enhancer = null;
-      if (sessionId == C.AUDIO_SESSION_ID_UNSET) return;
-      LoudnessEnhancer e = new LoudnessEnhancer(sessionId);
-      e.setTargetGain(0);
-      e.setEnabled(true);
-      s.enhancer = e;
-    } catch (Exception ignored) {
-      s.enhancer = null; // device without the effect: gain is then clamped to 1.0
-    }
-  }
-
   private void applyLevels() {
     Slot s = active;
     if (s == null) return;
     float total = volume * gain * fade * duck;
     s.player.setVolume(Math.min(1f, Math.max(0f, total)));
-    if (s.enhancer != null) {
-      try {
-        int mB = total > 1f ? (int) Math.round(2000.0 * Math.log10(total)) : 0; // 100 mB per dB
-        s.enhancer.setTargetGain(mB);
-      } catch (Exception ignored) {
-      }
+    if (s.gainProcessor != null) {
+      // Only the part above 1.0: the player volume already covers the rest.
+      s.gainProcessor.setBoost(Math.max(1f, total));
     }
   }
 

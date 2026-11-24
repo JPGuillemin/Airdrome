@@ -161,7 +161,7 @@
     },
     setup: function () {
       var store = useMainStore()
-      var audioEngine = isAndroid ? 'ExoPlayer (native)' : 'Web Audio'
+      var audioEngine = isAndroid ? 'ExoPlayer' : 'Web Audio'
       var auth = useAuth()
       var cacheStore = useCacheStore()
       var playerStore = usePlayerStore()

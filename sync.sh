@@ -3,8 +3,8 @@
 # Synchronize the public Airdrome working tree with the build/commit server.
 #
 # "Public" means every working-tree file that is safe to publish, including
-# dist/, docker/, public/, stats.html, txt and .archive/. Local tooling,
-# generated native copies and signing material are excluded.
+# dist/, public/, stats.html, txt and .archive/. Local tooling, generated
+# native copies, deployment files and signing material are excluded.
 #
 # Usage:
 #   ./sync.sh pull
@@ -49,6 +49,7 @@ RSYNC_OPTS=(
   # Local-only native output.
   --exclude='android-twa/'
   --exclude='artifacts/'
+  --exclude='docker/'
   --exclude='dist-old-root-owned/'
   --exclude='*-root-owned*/'
   --exclude='root-owned-leftovers/'
