@@ -78,6 +78,9 @@
             <div class="on-top px-3 py-2 text-muted small">
               Cache size: {{ cacheSize }} MB
             </div>
+            <div class="on-top px-3 py-2 text-muted small">
+              Audio engine: {{ audioEngine }}
+            </div>
             <TrackMenuItem class="on-top small" @click="rescan">
               Scan Server<Icon icon="refresh" class="me-1" />
             </TrackMenuItem>
@@ -98,6 +101,20 @@
                 class="cache-toggle ms-3"
                 :class="{ active: imageCacheEnabled }"
                 @click.stop="toggleImageCache"
+              >
+                <div class="cache-toggle-knob" />
+              </div>
+            </div>
+            <div
+              class="on-top px-3 py-2 d-flex align-items-center justify-content-between"
+              title="Pause when another device takes the play queue"
+              @click.stop
+            >
+              <span class="small">Single session</span>
+              <div
+                class="cache-toggle ms-3"
+                :class="{ active: singleSession }"
+                @click.stop="toggleSingleSession"
               >
                 <div class="cache-toggle-knob" />
               </div>
@@ -135,6 +152,7 @@
   import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
   import { pushReload } from '@/shared/reload'
   import { applyTheme } from '@/shared/theme'
+  import { isAndroid } from '@/shared/platform'
   export default defineComponent({
     components: {
       About: About,
@@ -143,6 +161,7 @@
     },
     setup: function () {
       var store = useMainStore()
+      var audioEngine = isAndroid ? 'ExoPlayer (native)' : 'Web Audio'
       var auth = useAuth()
       var cacheStore = useCacheStore()
       var playerStore = usePlayerStore()
@@ -445,6 +464,14 @@
         }
       }
 
+      var singleSession = computed(function () {
+        return playerStore.singleSession
+      })
+
+      function toggleSingleSession() {
+        playerStore.setSingleSession(!playerStore.singleSession)
+      }
+
       /**
        * Log out after user confirmation.
        *
@@ -479,6 +506,7 @@
         streamQuality: streamQuality,
         setStreamQuality: setStreamQuality,
         cacheSize: cacheSize,
+        audioEngine: audioEngine,
         updateCacheSize: updateCacheSize,
         isScanning: isScanning,
         isPlaying: isPlaying,
@@ -493,6 +521,8 @@
         imageCacheTotal: imageCacheTotal,
         imageCacheEnabled: imageCacheEnabled,
         toggleImageCache: toggleImageCache,
+        singleSession: singleSession,
+        toggleSingleSession: toggleSingleSession,
       }
     },
   })

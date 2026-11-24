@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.media.AudioDeviceCallback;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 
 import androidx.core.content.ContextCompat;
 
@@ -25,6 +26,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "MediaSession")
 public class MediaSessionPlugin extends Plugin {
 
+  private static final String TAG = "AirdromeMediaSession";
+
   private MediaSessionManager manager;
   private AudioManager audioManager;
   private AudioManager.OnAudioFocusChangeListener focusListener;
@@ -35,6 +38,7 @@ public class MediaSessionPlugin extends Plugin {
   @Override
   public void load() {
     super.load();
+    Log.i(TAG, "MediaSession plugin loaded");
 
     manager = MediaSessionManager.get(getContext());
     audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
@@ -296,7 +300,9 @@ public class MediaSessionPlugin extends Plugin {
       // Highest priority: Bluetooth
       if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
           type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-          type == AudioDeviceInfo.TYPE_BLE_HEADSET) {
+          type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+          type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+          type == AudioDeviceInfo.TYPE_HEARING_AID) {
         route = "bluetooth";
         break; // Found bluetooth, no need to check further
       }
@@ -304,7 +310,9 @@ public class MediaSessionPlugin extends Plugin {
       // Medium priority: Wired
       if (type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
           type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-          type == AudioDeviceInfo.TYPE_USB_HEADSET) {
+          type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+          type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+          type == AudioDeviceInfo.TYPE_USB_ACCESSORY) {
         route = "wired";
         // Don't break - keep checking for bluetooth
       }

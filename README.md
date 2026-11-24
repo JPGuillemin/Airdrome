@@ -76,6 +76,10 @@ keeps gapless playback for offline/cached music without opening a second remote
 stream, which breaks servers that limit concurrent streams per user. Remote
 tracks are loaded when the current one ends.
 
+Airdrome's single-session mode pauses playback when another client writes the
+same Navidrome play queue. If you intentionally use several clients with the
+same account, turn off **Single session** in the top-right menu.
+
 Requirements: Node.js 22+, JDK 21 and the Android SDK.
 
 ```bash

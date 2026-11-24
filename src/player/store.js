@@ -19,7 +19,7 @@ import {
   isAndroid
 } from '@/player/engine'
 import { nativeMediaSession } from '@/player/nativeMediaSession'
-import { saveSession } from './session'
+import { saveSession, releaseSession } from './session'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -35,6 +35,12 @@ localStorage.removeItem('queueIndex')
 
 /** Browser MediaSession API (undefined on unsupported browsers). */
 var mediaSession = navigator.mediaSession
+
+/**
+ * How many upcoming tracks are described to the native player. A larger
+ * window lets background playback continue when the WebView is suspended.
+ */
+var NATIVE_WINDOW_AHEAD = 10
 
 /**
  * In-flight radio extension (if any). Shared so that two near-simultaneous
@@ -105,6 +111,12 @@ export var usePlayerStore = defineStore('player', {
       /** Whether the queue was shuffled when loaded. */
       shuffle: localStorage.getItem('player.shuffle') === 'true',
 
+      /**
+       * When enabled, this device pauses if another device writes the server
+       * play queue. Disable it to allow multiple devices to play concurrently.
+       */
+      singleSession: localStorage.getItem('player.singleSession') !== 'false',
+
       /** Master volume (0-1). */
       volume: 1.0,
 
@@ -170,7 +182,11 @@ export var usePlayerStore = defineStore('player', {
     windowKey: function() {
       var queue = this.queue || []
       var values = [this.queueIndex, this.repeat, this.replayGainMode]
-      var offsets = [-1, 0, 1, 2]
+      var offsets = [-1]
+
+      for (var k = 0; k <= NATIVE_WINDOW_AHEAD; k++) {
+        offsets.push(k)
+      }
 
       for (var i = 0; i < offsets.length; i++) {
         var track = queue[this.queueIndex + offsets[i]]
@@ -400,9 +416,13 @@ export var usePlayerStore = defineStore('player', {
 
       var queue = this.queue
       var count = queue.length
-      var offsets = [-1, 0, 1, 2]
+      var offsets = [-1]
       var indexes = []
       var seen = new Set()
+
+      for (var k = 0; k <= NATIVE_WINDOW_AHEAD; k++) {
+        offsets.push(k)
+      }
 
       for (var i = 0; i < offsets.length; i++) {
         var index = this.queueIndex + offsets[i]
@@ -846,6 +866,21 @@ export var usePlayerStore = defineStore('player', {
     /** Toggle shuffle mode. */
     toggleShuffle: function() {
       this.setShuffle(!this.shuffle)
+    },
+
+    /**
+     * Enable/disable single-session takeover detection.
+     *
+     * @param {boolean} enabled
+     * @returns {void}
+     */
+    setSingleSession: function(enabled) {
+      this.singleSession = enabled
+      localStorage.setItem('player.singleSession', String(enabled))
+
+      if (!enabled) {
+        releaseSession()
+      }
     },
 
     /**

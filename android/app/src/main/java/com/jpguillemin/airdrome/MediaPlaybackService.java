@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.core.app.NotificationManagerCompat;
 import androidx.media.session.MediaButtonReceiver;
@@ -16,6 +17,7 @@ public class MediaPlaybackService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.i("Airdrome", "MediaPlaybackService onCreate");
         manager = MediaSessionManager.get(this);
         manager.attachService(this);
     }

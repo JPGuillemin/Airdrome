@@ -5,6 +5,8 @@
 // Written in an explicit, ES5-friendly style: var, function expressions and
 // async/await.
 
+import '@/shared/debugLog'
+
 import { createApp, markRaw, watch } from 'vue'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { SplashScreen } from '@capacitor/splash-screen'
@@ -30,8 +32,6 @@ import { longPressTooltip } from '@/shared/tooltips'
 import { applyTheme } from '@/shared/theme'
 import { initNetwork } from '@/shared/network'
 import { isAndroid } from '@/shared/platform'
-
-import '@/shared/debugLog'
 
 var auth = createAuth()
 
@@ -145,13 +145,47 @@ function registerComponents(app) {
 /**
  * Register the service worker and listen for update notifications.
  *
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function setupServiceWorker() {
+async function setupServiceWorker() {
   // The native shell serves the app from the local Capacitor WebView; a
-  // service worker would only add a second, stale copy of the shell.
+  // service worker would only add a second, stale copy of the shell. Remove
+  // any worker/cache left by an older build so the APK always runs its own
+  // bundled JS (and therefore the native ExoPlayer engine).
+  if (isAndroid) {
+    if (!('serviceWorker' in navigator)) {
+      return
+    }
+
+    try {
+      var registrations = await navigator.serviceWorker.getRegistrations()
+
+      await Promise.all(registrations.map(function(registration) {
+        return registration.unregister()
+      }))
+
+      if (window.caches) {
+        var cacheKeys = await caches.keys()
+
+        await Promise.all(cacheKeys.map(function(key) {
+          return caches.delete(key)
+        }))
+      }
+
+      if (navigator.serviceWorker.controller &&
+          !sessionStorage.getItem('native-sw-cleared')) {
+        sessionStorage.setItem('native-sw-cleared', '1')
+        window.location.reload()
+      }
+    } catch (error) {
+      console.warn('Native service worker cleanup failed', error)
+    }
+
+    return
+  }
+
   // In dev the worker is not built (VitePWA devOptions disabled), so skip it.
-  if (isAndroid || import.meta.env.DEV || !('serviceWorker' in navigator)) {
+  if (import.meta.env.DEV || !('serviceWorker' in navigator)) {
     return
   }
 
@@ -207,7 +241,20 @@ async function bootstrapApp() {
     console.error('App mount failed', error)
   }
 
-  setupServiceWorker()
+  void setupServiceWorker()
+
+  // Safety net for a native bridge injected slightly after the JS bundle:
+  // reload once so engine selection can pick ExoPlayer instead of Web Audio.
+  if (!isAndroid && typeof window !== 'undefined' &&
+      (window.androidBridge ||
+       (window.Capacitor &&
+        typeof window.Capacitor.isNativePlatform === 'function' &&
+        window.Capacitor.isNativePlatform())) &&
+      !sessionStorage.getItem('native-engine-reload')) {
+    sessionStorage.setItem('native-engine-reload', '1')
+    window.location.reload()
+    return
+  }
 
   if (isAndroid) {
     try {

@@ -18,6 +18,10 @@ import { usePlayerStore } from './store'
 
 var POLL_MS = 5000
 
+// A queue written by another client a long time ago is stale; do not pause
+// playback because of it. Only a recent foreign write means a real takeover.
+var TAKEOVER_STALE_MS = 10 * 60 * 1000
+
 // The first request after a resume can fail (background WebView, stale connection).
 var CLAIM_BACKOFF_MS = [0, 400, 1200, 2500, 5000]
 
@@ -85,7 +89,11 @@ async function claimWithRetry() {
 
     if (await writeQueue()) {
       ownsQueue = true
-      schedulePoll()
+
+      if (usePlayerStore().singleSession) {
+        schedulePoll()
+      }
+
       return
     }
   }
@@ -172,6 +180,11 @@ export async function saveSession(options) {
  * @returns {Promise<boolean>}
  */
 async function ensureOwnership(player) {
+  if (!player.singleSession) {
+    ownsQueue = true
+    return true
+  }
+
   // A claim write may still be in flight; the server can still name the
   // previous device until it completes, so wait before judging ownership.
   if (claimPromise) {
@@ -194,8 +207,51 @@ async function ensureOwnership(player) {
     return true
   }
 
+  var changedAt = parseQueueChanged(queue.changed)
+
+  if (changedAt > 0 && Date.now() - changedAt > TAKEOVER_STALE_MS) {
+    // The server still names an older client, but its write is stale. Claim
+    // the queue again instead of pausing on an old session.
+    console.info('[session] ignoring stale queue from ' + queue.changedBy)
+    ownsQueue = true
+
+    if (player.isPlaying) {
+      schedulePoll()
+    }
+
+    await writeQueue()
+    return true
+  }
+
+  console.info('[session] foreign queue write by ' + queue.changedBy +
+    (changedAt ? ' at ' + new Date(changedAt).toISOString() : ''))
+
   handleTakeover(player, queue.changedBy)
   return false
+}
+
+/**
+ * Parse the server-side queue `changed` timestamp.
+ *
+ * @param {string|number|undefined} value
+ * @returns {number} Milliseconds, or 0 when unavailable.
+ */
+function parseQueueChanged(value) {
+  if (value == null || value === '') {
+    return 0
+  }
+
+  if (typeof value === 'number') {
+    return isFinite(value) ? value : 0
+  }
+
+  if (/^\d+$/.test(value)) {
+    var numeric = Number(value)
+    return numeric < 1e12 ? numeric * 1000 : numeric
+  }
+
+  var parsed = Date.parse(value)
+  return isFinite(parsed) ? parsed : 0
 }
 
 /**
@@ -206,7 +262,7 @@ async function ensureOwnership(player) {
  * @returns {void}
  */
 function handleTakeover(player, changedBy) {
-  console.info('[session] taken over by ' + changedBy)
+  console.info('[session] taken over by ' + changedBy + ' -> pausing')
   // Release first: nothing must write back and start a ping-pong.
   releaseSession()
   player.takeoverAt = Date.now()
@@ -267,14 +323,14 @@ function schedulePoll() {
     var player = usePlayerStore()
 
     try {
-      if (ownsQueue && player.isPlaying && isOnline()) {
+      if (ownsQueue && player.isPlaying && player.singleSession && isOnline()) {
         await ensureOwnership(player)
       }
     } catch (error) {
       // Offline or transient error: retry on the next tick.
     }
 
-    if (ownsQueue) {
+    if (ownsQueue && player.singleSession) {
       schedulePoll()
     }
   }, POLL_MS)

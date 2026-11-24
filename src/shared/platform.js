@@ -5,11 +5,17 @@
 
 import { Capacitor } from '@capacitor/core'
 
+// `window.androidBridge` is injected by the native shell. Checking it as well
+// makes platform detection resilient if the bridge arrives slightly after the
+// JS bundle starts evaluating.
+var androidBridge = typeof window !== 'undefined' && !!window.androidBridge
+
 /** True inside any Capacitor native shell (Android/iOS). */
-export var isNative = Capacitor.isNativePlatform()
+export var isNative = Capacitor.isNativePlatform() || androidBridge
 
 /** True inside the Android Capacitor shell. */
-export var isAndroid = isNative && Capacitor.getPlatform() === 'android'
+export var isAndroid = isNative &&
+  (Capacitor.getPlatform() === 'android' || androidBridge)
 
 /** True in a normal browser or installed PWA. */
 export var isWeb = !isNative

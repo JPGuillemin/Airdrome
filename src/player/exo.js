@@ -181,6 +181,10 @@ export function ExoController() {
     self.handleTime(event)
   }).catch(warn)
 
+  Exo.addListener('debug', function(event) {
+    console.info('[Exo] ' + event.message)
+  }).catch(warn)
+
   Exo.addListener('duration', function(event) {
     if (isFinite(event.duration) && event.duration > 0) {
       self._duration = event.duration
@@ -286,7 +290,9 @@ ExoController.prototype.setNextUrl = async function(url) {
 }
 
 /**
- * Preload `nextUrl` into the native buffer player.
+ * Preload `nextUrl`: download it to the offline cache when it is not there
+ * yet (like the Web engine's second <audio> element does), then hand the
+ * local file to the native buffer player.
  *
  * @returns {Promise<void>}
  */
@@ -304,14 +310,20 @@ ExoController.prototype.preloadNext = async function() {
     return
   }
 
+  // Mark in-flight immediately so concurrent calls for the same URL stop.
+  this.preloadedFor = url
+
   if (!isLocalUri(cachedUrl)) {
-    // Do not open a second remote stream for preloading: many Subsonic
-    // servers allow only one stream per user. The track will be cached when
-    // it actually starts playing.
+    // Not in the offline cache yet: pre-download it in the background while
+    // the current track plays — the same extra connection the Web engine
+    // opens with its preload <audio> element. The store's queue keeps this
+    // to one download at a time. When the file lands, the audioCached
+    // listener re-pushes the native window with the local file:// URI and
+    // ExoPlayer pre-builds the next track from disk, so the change starts
+    // instantly instead of cold from the network.
+    useCacheStore().cacheTrack(url).catch(warn)
     return
   }
-
-  this.preloadedFor = url
 
   try {
     await Exo.preload({ url: cachedUrl, key: url })
@@ -593,9 +605,12 @@ ExoController.prototype.loadTrack = async function(options) {
   this.preloadReady = false
   this.preloadedFor = undefined
 
-  // Do not queue a download for the track we are about to stream. It would
-  // open a second HTTP connection while ExoPlayer is already streaming it.
-  var playable = await cacheStore.peekCachedUrl(currentUrl, true)
+  // Cache the track being played, exactly like the Web engine does
+  // (getCachedUrl): it is queued before the next-track preload, so the
+  // currently playing track is written to disk (and marked cached) first.
+  // The cache queue downloads sequentially, so this stays one extra
+  // connection alongside playback, not one per track.
+  var playable = await cacheStore.getCachedUrl(currentUrl, true)
 
   if (token !== this.changeToken) {
     return
@@ -673,10 +688,19 @@ ExoController.prototype.setWindow = async function(tracks, current) {
   }
 
   var resolved = await Promise.all(tracks.map(async function(track) {
+    var url = track.url
+
+    try {
+      url = await cacheStore.peekCachedUrl(track.url, true)
+    } catch (error) {
+      // A cache lookup failure must not leave the native window empty.
+      warn(error)
+    }
+
     return {
       index: track.index,
       key: track.url,
-      url: await cacheStore.peekCachedUrl(track.url, true),
+      url: url,
       title: track.title,
       artist: track.artist,
       album: track.album,

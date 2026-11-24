@@ -50,7 +50,7 @@ RSYNC_OPTS=(
   --exclude='android-twa/'
   --exclude='artifacts/'
   --exclude='dist-old-root-owned/'
-  --exclude='*-root-owned/'
+  --exclude='*-root-owned*/'
   --exclude='root-owned-leftovers/'
 
   # Local secrets and signing material.

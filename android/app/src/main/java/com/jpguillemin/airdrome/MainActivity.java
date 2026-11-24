@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.util.Log;
 import android.webkit.WebView;
 
 import androidx.core.content.ContextCompat;
@@ -28,8 +29,10 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    Log.i("Airdrome", "MainActivity onCreate package=" + getPackageName());
     registerPlugin(MediaSessionPlugin.class);
     registerPlugin(ExoPlayerPlugin.class);
+    Log.i("Airdrome", "Custom Capacitor plugins registered");
 
     super.onCreate(savedInstanceState);
 

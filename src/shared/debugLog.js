@@ -7,7 +7,7 @@
 //    screen was off / the app was in background.
 //  - A small 🐞 button opens an overlay with Copy / Clear / Close.
 //
-// Usage: add  `import '@/shared/debugLog'`  as the FIRST import of main.ts.
+// Usage: add  `import '@/shared/debugLog'`  as the FIRST import of main.js.
 
 var FLAG = 'debug'
 var KEY = 'debugLog'
@@ -167,17 +167,34 @@ if (localStorage.getItem(FLAG) === '1') {
     }
 
     async function copyLog() {
+      var text = buf.join('\n')
+
       try {
-        await navigator.clipboard.writeText(buf.join('\n'))
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(text)
+          return
+        }
       } catch (error) {
-        // Clipboard permission can be denied; nothing else to do.
+        // Fall through to the textarea fallback.
       }
+
+      var textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.cssText = 'position:fixed;left:-9999px;top:0'
+      document.body.appendChild(textarea)
+      textarea.select()
+
+      try {
+        document.execCommand('copy')
+      } catch (error) {
+        // Nothing else to do; the log remains visible on screen.
+      }
+
+      textarea.remove()
     }
 
     mk('Copy', function() {
-      if (navigator.clipboard) {
-        copyLog()
-      }
+      copyLog()
     })
 
     mk('Clear', function() {

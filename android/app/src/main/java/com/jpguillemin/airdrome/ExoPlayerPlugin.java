@@ -91,6 +91,7 @@ public class ExoPlayerPlugin extends Plugin {
   private float gain = 1f;
   private float fade = 1f;
   private int fadeGen = 0; // bumped to cancel a running fade
+  private int routePauseGen = 0; // bumped to cancel a pending speaker-route pause
   private float duck = 1f;    // temporary attenuation while another app asks us to duck
   private int cmdGen = 0;  // bumped by load/play/pause/stop to cancel pending delayed pauses
   private int loadGen = 0; // bumped by load() to abandon superseded loads
@@ -100,6 +101,7 @@ public class ExoPlayerPlugin extends Plugin {
   private static final long PRELOAD_DELAY_MS = 1000; // local cache preloads only
   private static final long FOCUS_GUARD_MS = 2000; // ignore focus / route pauses right after a play
   private static final long JS_LOAD_GUARD_MS = 8000; // don't auto-advance while JS is replacing a track
+  private static final long ROUTE_PAUSE_DELAY_MS = 800; // ignore transient speaker-route blips
   private static final float DUCK_LEVEL = 0.2f;
 
   // Playback intent. "User" = lock screen / notification / in-app buttons.
@@ -358,12 +360,15 @@ public class ExoPlayerPlugin extends Plugin {
   /** The user wants playback: forget any pending automatic resume. */
   private void markPlayIntent() {
     userPaused = false;
+    routePauseGen++; // a user play cancels any pending route-change pause
     setResumeOnFocusGain(false);
   }
 
   /** The user wants silence: no automatic resume must override that. */
   private boolean userPause(long fadeMs) {
+    Log.d(TAG, "user pause");
     userPaused = true;
+    routePauseGen++;
     setResumeOnFocusGain(false);
     return pauseNow(fadeMs);
   }
@@ -379,6 +384,7 @@ public class ExoPlayerPlugin extends Plugin {
     Slot s = active;
     if (s == null) return;
     cmdGen++;
+    routePauseGen++;
     if (s.player.getPlaybackState() == Player.STATE_ENDED) s.player.seekTo(0);
     final boolean wasReady = s.player.getPlayWhenReady();
     s.player.setPlayWhenReady(true);
@@ -390,6 +396,7 @@ public class ExoPlayerPlugin extends Plugin {
   private boolean pauseNow(long fadeMs) {
     final Slot s = active;
     if (s == null || !s.player.getPlayWhenReady()) return false;
+    Log.d(TAG, "pauseNow fadeMs=" + fadeMs);
     final int gen = ++cmdGen;
     fadeTo(0f, fadeMs);
     main.postDelayed(() -> {
@@ -405,6 +412,7 @@ public class ExoPlayerPlugin extends Plugin {
       cmdGen++;
       loadGen++;
       fadeGen++;
+      routePauseGen++;
       jsLoadPending = false;
       userPaused = true;
       setResumeOnFocusGain(false);
@@ -457,6 +465,7 @@ public class ExoPlayerPlugin extends Plugin {
   public void load() {
     super.load();
     instance = this;
+    Log.i(TAG, "ExoPlayer plugin loaded");
   }
 
   /** Called by MediaSessionPlugin on the main thread. @return true if handled. */
@@ -482,10 +491,23 @@ public class ExoPlayerPlugin extends Plugin {
   private boolean transport(String action) {
     final Slot s = active;
     if (s == null) return false;
+    Log.d(TAG, "transport " + action);
     switch (action) {
       case "next": {
         Track n = peek(1);
-        if (n == null) return false;
+
+        if (n == null) {
+          n = nextInWindow();
+
+          if (n != null) {
+            Log.d(TAG, "transport next using window fallback");
+            startNative(n, cursor + 1);
+            return true;
+          }
+
+          return false;
+        }
+
         startNative(n, cursor + 1);
         return true;
       }
@@ -539,6 +561,9 @@ public class ExoPlayerPlugin extends Plugin {
   }
 
   private void focusChange(String type) {
+    Log.d(TAG, "focusChange " + type + " resumeOnGain=" + resumeOnFocusGain
+      + " userPaused=" + userPaused + " wants=" + wantsToPlay());
+
     switch (type) {
       case "gain":
         duck = 1f;
@@ -573,19 +598,32 @@ public class ExoPlayerPlugin extends Plugin {
   private void routeChange(String route, Runnable requestFocus) {
     final boolean changed = !route.equals(lastRoute);
     lastRoute = route;
+    Log.d(TAG, "routeChange " + route + " changed=" + changed
+      + " userPaused=" + userPaused + " wants=" + wantsToPlay());
+
     // Callbacks fire for every device event and at registration: only react to real changes
     if (!changed || userPaused || active == null) return;
 
     switch (route) {
       case "bluetooth":
       case "wired":
+        routePauseGen++; // cancel a pending speaker-route pause
         if (!wantsToPlay()) {
           if (requestFocus != null) requestFocus.run();
           playNow(150);
         }
         break;
       case "speaker": // headset unplugged / Bluetooth gone
-        if (wantsToPlay() && !recentlyStarted()) pauseNow(300);
+        if (wantsToPlay() && !recentlyStarted()) {
+          final int gen = ++routePauseGen;
+          main.postDelayed(() -> {
+            if (gen != routePauseGen || userPaused || !"speaker".equals(lastRoute)) return;
+            if (wantsToPlay()) {
+              Log.d(TAG, "route settled on speaker -> pause");
+              pauseNow(300);
+            }
+          }, ROUTE_PAUSE_DELAY_MS);
+        }
         break;
       default:
         break;
@@ -620,6 +658,8 @@ public class ExoPlayerPlugin extends Plugin {
     main.post(() -> {
       window = list;
       cursor = current >= 0 && current < list.size() ? current : -1;
+      Log.d(TAG, "setWindow size=" + list.size() + " current=" + current
+        + " cursor=" + cursor);
       // JS may describe the queue around a track that is no longer the active one
       // (native moved on while the WebView was frozen): re-locate the cursor.
       if (active != null && (cursor < 0 || !list.get(cursor).key.equals(active.key))) {
@@ -677,6 +717,7 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("duration", 0.0);
         o.put("key", "");
         o.put("url", "");
+        o.put("ended", false);
         call.resolve(o);
         return;
       }
@@ -690,6 +731,11 @@ public class ExoPlayerPlugin extends Plugin {
       o.put("key", s.key);
       o.put("url", s.url);
       o.put("buffering", s.player.getPlaybackState() == Player.STATE_BUFFERING);
+      o.put("ended", s.player.getPlaybackState() == Player.STATE_ENDED);
+      o.put("windowSize", window.size());
+      o.put("cursor", cursor);
+      o.put("pending", jsLoadPending);
+      o.put("hasNext", peek(1) != null);
       call.resolve(o);
     });
   }
@@ -712,6 +758,33 @@ public class ExoPlayerPlugin extends Plugin {
     if (!window.get(cursor).key.equals(active.key)) return null; // window is stale
     int i = cursor + delta;
     return i >= 0 && i < window.size() ? window.get(i) : null;
+  }
+
+  /** Index of the active track in the pushed window, or -1. */
+  private int activeWindowIndex() {
+    if (active == null) return -1;
+
+    for (int i = 0; i < window.size(); i++) {
+      if (window.get(i).key.equals(active.key)) return i;
+    }
+
+    return -1;
+  }
+
+  /**
+   * Next track in the window even if `cursor` is stale. This keeps native
+   * auto-advance working after a JS skip that happened while the WebView was
+   * suspended.
+   */
+  private Track nextInWindow() {
+    int index = activeWindowIndex();
+
+    if (index >= 0 && index + 1 < window.size()) {
+      cursor = index;
+      return window.get(index + 1);
+    }
+
+    return null;
   }
 
   /** Pre-build the next track's player a while after the current one started. */
@@ -747,6 +820,8 @@ public class ExoPlayerPlugin extends Plugin {
    * several quick skips in a row stay consistent.
    */
   private void startNative(final Track t, final int newCursor) {
+    Log.d(TAG, "startNative index=" + t.index + " key=" + redact(t.key)
+      + " cursor=" + newCursor);
     gain = t.gain;
     jsLoadPending = false;
     markPlayIntent();
@@ -761,6 +836,13 @@ public class ExoPlayerPlugin extends Plugin {
       o.put("duration", t.duration);
       notifyListeners("trackChanged", o); // before "play": JS must reset its position first
     }, null);
+  }
+
+  /** Send one line to the on-device debug console. */
+  private void debug(String message) {
+    JSObject o = new JSObject();
+    o.put("message", message);
+    notifyListeners("debug", o);
   }
 
   /** Mirror the player state into the media session (JS may be asleep). */
@@ -881,6 +963,7 @@ public class ExoPlayerPlugin extends Plugin {
           emitDuration(s);
           emitTime(s); // report the real position right after a seek/buffering
         } else if (state == Player.STATE_BUFFERING && s.player.getPlayWhenReady()) {
+          Log.d(TAG, "buffering (waiting)");
           emit("waiting");
         } else if (state == Player.STATE_ENDED) {
           // Next track of the window: started natively, JS only follows.
@@ -891,6 +974,13 @@ public class ExoPlayerPlugin extends Plugin {
           main.post(() -> {
             if (s != active) return;
 
+            Log.d(TAG, "STATE_ENDED window=" + window.size() + " cursor=" + cursor
+              + " active=" + redact(s.key) + " pending=" + jsLoadPending
+              + " next=" + (peek(1) != null));
+
+            debug("STATE_ENDED window=" + window.size() + " cursor=" + cursor
+              + " pending=" + jsLoadPending + " next=" + (peek(1) != null));
+
             // A JS load is in flight (user pressed next/previous, queue
             // changed, radio extension...). Let that load replace this
             // player; auto-advancing here would race it and restart or
@@ -898,14 +988,30 @@ public class ExoPlayerPlugin extends Plugin {
             // a load that died before it could clear the flag.
             if (jsLoadPending && SystemClock.uptimeMillis() - lastJsLoadAt < JS_LOAD_GUARD_MS) {
               Log.d(TAG, "auto-advance suppressed: JS load pending");
+              debug("auto-advance suppressed: JS load pending");
               return;
             }
 
             jsLoadPending = false;
 
             Track n = peek(1);
-            if (n != null) startNative(n, cursor + 1);
-            else emit("ended");
+
+            if (n == null) {
+              n = nextInWindow();
+
+              if (n != null) {
+                Log.d(TAG, "STATE_ENDED using window fallback");
+                debug("auto-advance via window fallback");
+              }
+            }
+
+            if (n != null) {
+              debug("auto-advance to index=" + n.index);
+              startNative(n, cursor + 1);
+            } else {
+              debug("window exhausted -> ended");
+              emit("ended");
+            }
           });
         }
       }
@@ -919,6 +1025,8 @@ public class ExoPlayerPlugin extends Plugin {
       @Override
       public void onPlayerError(PlaybackException error) {
         if (s != active) return;
+        Log.e(TAG, "player error on " + redact(s.url) + ": "
+          + error.getErrorCodeName(), error);
         JSObject o = new JSObject();
         o.put("code", error.errorCode);
         o.put("message", error.getErrorCodeName());

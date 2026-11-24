@@ -22,6 +22,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.media.session.MediaButtonReceiver;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -365,20 +366,28 @@ public class MediaSessionManager {
                 BufferedInputStream in =
                     new BufferedInputStream(rawStream)
             ) {
-                in.mark(1024 * 1024);
+                ByteArrayOutputStream bytes =
+                    new ByteArrayOutputStream();
+                byte[] chunk = new byte[8192];
+                int read;
+
+                while ((read = in.read(chunk)) > 0) {
+                    bytes.write(chunk, 0, read);
+                }
+
+                byte[] data = bytes.toByteArray();
 
                 BitmapFactory.Options bounds =
                     new BitmapFactory.Options();
 
                 bounds.inJustDecodeBounds = true;
 
-                BitmapFactory.decodeStream(
-                    in,
-                    null,
+                BitmapFactory.decodeByteArray(
+                    data,
+                    0,
+                    data.length,
                     bounds
                 );
-
-                in.reset();
 
                 BitmapFactory.Options opts =
                     new BitmapFactory.Options();
@@ -393,9 +402,10 @@ public class MediaSessionManager {
                     Bitmap.Config.RGB_565;
 
                 Bitmap decoded =
-                    BitmapFactory.decodeStream(
-                        in,
-                        null,
+                    BitmapFactory.decodeByteArray(
+                        data,
+                        0,
+                        data.length,
                         opts
                     );
 

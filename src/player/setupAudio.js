@@ -247,6 +247,7 @@ export async function setupAudio(playerStore, mainStore) {
   }
 
   audio.onwaiting = function() {
+    console.info('[Audio] waiting/buffering')
     playerStore.isPlaying = false
     pauseTime = Date.now()
     playerStore.setMediaSessionPosition()
@@ -345,298 +346,298 @@ export async function setupAudio(playerStore, mainStore) {
    * @returns {Promise<void>}
    */
   async function setupWebDevices() {
-  // -------------------------------------------------------------------------
-  // Output devices (Bluetooth, headphones...)
-  // -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Output devices (Bluetooth, headphones...)
+    // -------------------------------------------------------------------------
 
-  /**
-   * Snapshot current audio device IDs.
-   *
-   * @returns {Promise<Set<string>>}
-   */
-  async function getDeviceIds() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-      return new Set()
-    }
-
-    var devices = await navigator.mediaDevices.enumerateDevices()
-    var result = new Set()
-
-    for (var i = 0; i < devices.length; i++) {
-      var device = devices[i]
-
-      if (device.kind !== 'audiooutput' && device.kind !== 'audioinput') {
-        continue
+    /**
+     * Snapshot current audio device IDs.
+     *
+     * @returns {Promise<Set<string>>}
+     */
+    async function getDeviceIds() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        return new Set()
       }
 
-      var id = device.kind + ':' + device.deviceId + ':' + device.label
+      var devices = await navigator.mediaDevices.enumerateDevices()
+      var result = new Set()
 
-      // On desktop, ignore Chrome's synthetic default/communications/dummy
-      // sinks to avoid false removals. On Android, these virtual sinks are
-      // often the only signal for a Bluetooth route change, so keep them.
-      if (!isMobile) {
-        if (!device.deviceId) {
+      for (var i = 0; i < devices.length; i++) {
+        var device = devices[i]
+
+        if (device.kind !== 'audiooutput' && device.kind !== 'audioinput') {
           continue
         }
 
-        if (device.deviceId === 'default' || device.deviceId === 'communications') {
-          continue
+        var id = device.kind + ':' + device.deviceId + ':' + device.label
+
+        // On desktop, ignore Chrome's synthetic default/communications/dummy
+        // sinks to avoid false removals. On Android, these virtual sinks are
+        // often the only signal for a Bluetooth route change, so keep them.
+        if (!isMobile) {
+          if (!device.deviceId) {
+            continue
+          }
+
+          if (device.deviceId === 'default' || device.deviceId === 'communications') {
+            continue
+          }
+
+          if (id.indexOf(':default:') !== -1 || id.indexOf(':communications:') !== -1) {
+            continue
+          }
+
+          if (/^(default|communications|dummy)/i.test(device.label || '')) {
+            continue
+          }
         }
 
-        if (id.indexOf(':default:') !== -1 || id.indexOf(':communications:') !== -1) {
-          continue
-        }
-
-        if (/^(default|communications|dummy)/i.test(device.label || '')) {
-          continue
-        }
+        result.add(id)
       }
 
-      result.add(id)
+      return result
     }
 
-    return result
-  }
+    var knownOutputs = null
 
-  var knownOutputs = null
+    var deviceChangeToken = 0
 
-  var deviceChangeToken = 0
+    var onDeviceChange = throttle(async function() {
+      console.info('[devices] change')
 
-  var onDeviceChange = throttle(async function() {
-    console.info('[devices] change')
-
-    if (!knownOutputs || playerStore.userPaused) {
-      return
-    }
-
-    // Let Bluetooth stacks settle: a reconnect often reports the old endpoint
-    // as removed before the new one appears.
-    var token = deviceChangeToken + 1
-    deviceChangeToken = token
-    await sleep(400)
-
-    if (token !== deviceChangeToken || playerStore.userPaused) {
-      return
-    }
-
-    var before = knownOutputs
-    var current
-
-    try {
-      current = await getDeviceIds()
-    } catch (error) {
-      console.warn('[devices] enumeration failed', error)
-      return
-    }
-
-    if (token !== deviceChangeToken || playerStore.userPaused) {
-      knownOutputs = current
-      return
-    }
-
-    var added = false
-    var removed = false
-
-    current.forEach(function(id) {
-      if (!before.has(id)) {
-        added = true
-      }
-    })
-
-    before.forEach(function(id) {
-      if (!current.has(id)) {
-        removed = true
-      }
-    })
-
-    knownOutputs = current
-
-    // A simultaneous removal + addition is a switch/reconnect, not a real
-    // disconnect. Keep or restore playback instead of pausing.
-    if (removed && added) {
-      console.info('[devices] output switched -> keep playing')
-
-      if (!playerStore.isPlaying) {
-        await playerStore.play()
-      }
-
-      return
-    }
-
-    if (removed && Date.now() - playTime > 1000) {
-      console.info('[devices] output removed -> pause')
-      await playerStore.interrupt()
-      return
-    }
-
-    if (added) {
-      console.info('[devices] output added -> play')
-      await playerStore.play()
-    }
-  }, 500, { leading: false, trailing: true })
-
-  // -------------------------------------------------------------------------
-  // Event poling
-  // -------------------------------------------------------------------------
-  // Chrome does not reliably fire `devicechange` for audio-output changes
-  // (notably Bluetooth disconnects). Polling covers that gap.
-
-  var eventPollTimer = null
-
-  function checkEvents() {
-
-    if (playerStore.userPaused) {
-      return
-    }
-
-    onVisibilityChange()
-
-    if (!knownOutputs) {
-      return
-    }
-
-    onDeviceChange()
-  }
-
-  function startEventPoll() {
-    if (eventPollTimer) {
-      return
-    }
-
-    eventPollTimer = setInterval(checkEvents, 2000)
-  }
-
-  function stopEventPoll() {
-    if (eventPollTimer) {
-      clearInterval(eventPollTimer)
-      eventPollTimer = null
-    }
-  }
-
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
-      checkEvents()
-    }
-  })
-
-  window.addEventListener('focus', checkEvents)
-  window.addEventListener('pagehide', stopEventPoll)
-
-  // -------------------------------------------------------------------------
-  // Microphone permission (exposes device labels)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Request microphone permission, then release the stream.
-   *
-   * @returns {Promise<void>}
-   */
-  async function requestMicAccess() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return
-    }
-
-    try {
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      var tracks = stream.getTracks()
-
-      for (var i = 0; i < tracks.length; i++) {
-        tracks[i].stop()
-      }
-
-      var ids = await getDeviceIds()
-      knownOutputs = ids
-      console.info('[devices] mic permission granted')
-    } catch (error) {
-      console.warn('[devices] mic permission unavailable:', error)
-    }
-  }
-
-  /**
-   * Ask for microphone permission on the first user gesture.
-   *
-   * @returns {Promise<void>}
-   */
-  async function ensureMicAccess() {
-    var state = 'prompt'
-
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        var status = await navigator.permissions.query({ name: 'microphone' })
-        state = status.state
-      } catch (error) {
-        state = 'prompt'
-      }
-    }
-
-    if (state === 'granted') {
-      var ids = await getDeviceIds()
-      knownOutputs = ids
-      return
-    }
-
-    if (state === 'denied') {
-      return
-    }
-
-    function onGesture() {
-      window.removeEventListener('pointerdown', onGesture, true)
-      window.removeEventListener('keydown', onGesture, true)
-      requestMicAccess()
-    }
-
-    window.addEventListener('pointerdown', onGesture, true)
-    window.addEventListener('keydown', onGesture, true)
-  }
-
-  if (!isMobile) {
-    window.addEventListener('keydown', function(event) {
-      var target = event.target
-
-      if (target && (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      )) {
+      if (!knownOutputs || playerStore.userPaused) {
         return
       }
 
-      if (event.code === 'Space') {
-        event.preventDefault()
-        playerStore.playPause()
-      } else if (event.code === 'ArrowLeft') {
-        event.preventDefault()
-        playerStore.back()
-      } else if (event.code === 'ArrowRight') {
-        event.preventDefault()
-        playerStore.next(true)
+      // Let Bluetooth stacks settle: a reconnect often reports the old endpoint
+      // as removed before the new one appears.
+      var token = deviceChangeToken + 1
+      deviceChangeToken = token
+      await sleep(400)
+
+      if (token !== deviceChangeToken || playerStore.userPaused) {
+        return
+      }
+
+      var before = knownOutputs
+      var current
+
+      try {
+        current = await getDeviceIds()
+      } catch (error) {
+        console.warn('[devices] enumeration failed', error)
+        return
+      }
+
+      if (token !== deviceChangeToken || playerStore.userPaused) {
+        knownOutputs = current
+        return
+      }
+
+      var added = false
+      var removed = false
+
+      current.forEach(function(id) {
+        if (!before.has(id)) {
+          added = true
+        }
+      })
+
+      before.forEach(function(id) {
+        if (!current.has(id)) {
+          removed = true
+        }
+      })
+
+      knownOutputs = current
+
+      // A simultaneous removal + addition is a switch/reconnect, not a real
+      // disconnect. Keep or restore playback instead of pausing.
+      if (removed && added) {
+        console.info('[devices] output switched -> keep playing')
+
+        if (!playerStore.isPlaying) {
+          await playerStore.play()
+        }
+
+        return
+      }
+
+      if (removed && Date.now() - playTime > 1000) {
+        console.info('[devices] output removed -> pause')
+        await playerStore.interrupt()
+        return
+      }
+
+      if (added) {
+        console.info('[devices] output added -> play')
+        await playerStore.play()
+      }
+    }, 500, { leading: false, trailing: true })
+
+    // -------------------------------------------------------------------------
+    // Event poling
+    // -------------------------------------------------------------------------
+    // Chrome does not reliably fire `devicechange` for audio-output changes
+    // (notably Bluetooth disconnects). Polling covers that gap.
+
+    var eventPollTimer = null
+
+    function checkEvents() {
+
+      if (playerStore.userPaused) {
+        return
+      }
+
+      onVisibilityChange()
+
+      if (!knownOutputs) {
+        return
+      }
+
+      onDeviceChange()
+    }
+
+    function startEventPoll() {
+      if (eventPollTimer) {
+        return
+      }
+
+      eventPollTimer = setInterval(checkEvents, 2000)
+    }
+
+    function stopEventPoll() {
+      if (eventPollTimer) {
+        clearInterval(eventPollTimer)
+        eventPollTimer = null
+      }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        checkEvents()
       }
     })
-  }
 
-  var deviceIds = null
+    window.addEventListener('focus', checkEvents)
+    window.addEventListener('pagehide', stopEventPoll)
 
-  try {
-    deviceIds = await getDeviceIds()
-  } catch (error) {
-    console.warn('[devices] initialization failed', error)
-  }
+    // -------------------------------------------------------------------------
+    // Microphone permission (exposes device labels)
+    // -------------------------------------------------------------------------
 
-  if (deviceIds) {
-    knownOutputs = deviceIds
+    /**
+     * Request microphone permission, then release the stream.
+     *
+     * @returns {Promise<void>}
+     */
+    async function requestMicAccess() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return
+      }
 
-    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-      navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
+      try {
+        var stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        var tracks = stream.getTracks()
+
+        for (var i = 0; i < tracks.length; i++) {
+          tracks[i].stop()
+        }
+
+        var ids = await getDeviceIds()
+        knownOutputs = ids
+        console.info('[devices] mic permission granted')
+      } catch (error) {
+        console.warn('[devices] mic permission unavailable:', error)
+      }
     }
 
-    startEventPoll()
+    /**
+     * Ask for microphone permission on the first user gesture.
+     *
+     * @returns {Promise<void>}
+     */
+    async function ensureMicAccess() {
+      var state = 'prompt'
+
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          var status = await navigator.permissions.query({ name: 'microphone' })
+          state = status.state
+        } catch (error) {
+          state = 'prompt'
+        }
+      }
+
+      if (state === 'granted') {
+        var ids = await getDeviceIds()
+        knownOutputs = ids
+        return
+      }
+
+      if (state === 'denied') {
+        return
+      }
+
+      function onGesture() {
+        window.removeEventListener('pointerdown', onGesture, true)
+        window.removeEventListener('keydown', onGesture, true)
+        requestMicAccess()
+      }
+
+      window.addEventListener('pointerdown', onGesture, true)
+      window.addEventListener('keydown', onGesture, true)
+    }
+
+    if (!isMobile) {
+      window.addEventListener('keydown', function(event) {
+        var target = event.target
+
+        if (target && (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        )) {
+          return
+        }
+
+        if (event.code === 'Space') {
+          event.preventDefault()
+          playerStore.playPause()
+        } else if (event.code === 'ArrowLeft') {
+          event.preventDefault()
+          playerStore.back()
+        } else if (event.code === 'ArrowRight') {
+          event.preventDefault()
+          playerStore.next(true)
+        }
+      })
+    }
+
+    var deviceIds = null
 
     try {
-      await ensureMicAccess()
+      deviceIds = await getDeviceIds()
     } catch (error) {
-      console.warn('[devices] microphone setup failed', error)
+      console.warn('[devices] initialization failed', error)
     }
-  }
+
+    if (deviceIds) {
+      knownOutputs = deviceIds
+
+      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
+      }
+
+      startEventPoll()
+
+      try {
+        await ensureMicAccess()
+      } catch (error) {
+        console.warn('[devices] microphone setup failed', error)
+      }
+    }
   }
 
   if (!isAndroid) {
@@ -775,20 +776,33 @@ export async function setupAudio(playerStore, mainStore) {
       }
 
       playerStore.currentTime = status.position || 0
+      lastPositionMs = Math.round((status.position || 0) * 1000)
 
       if (status.duration > 0) {
         playerStore.duration = status.duration
       }
 
-      playerStore.isPlaying = !!status.playing
+      playerStore.isPlaying = !!status.playing && !status.ended
 
-      if (status.playing) {
+      if (status.playing && !status.ended) {
         playerStore.userPaused = false
       }
 
       playerStore.setMediaSessionPosition()
-      playerStore.setMediaSessionState(status.playing ? 'playing' : 'paused')
+      playerStore.setMediaSessionState(status.playing && !status.ended ? 'playing' : 'paused')
       playerStore.updateMediaSession()
+      console.info('[Native] status ' + JSON.stringify(status))
+
+      // The native player reached the end while the WebView was suspended.
+      // Continue the queue now that JS is awake, even if the 'ended' bridge
+      // event was lost.
+      if (status.ended) {
+        if (playerStore.hasNext || playerStore.repeat) {
+          await playerStore.next(false)
+        } else {
+          await playerStore.processQueueEnd()
+        }
+      }
     } catch (error) {
       console.warn('[Native] state sync failed', error)
     }
@@ -910,6 +924,7 @@ export async function setupAudio(playerStore, mainStore) {
       playerStore.play()
     })
     nativeMediaSession.addListener('pause', function() {
+      console.info('[MediaSession] native pause event')
       playerStore.pause()
     })
     nativeMediaSession.addListener('next', function() {
@@ -919,6 +934,7 @@ export async function setupAudio(playerStore, mainStore) {
       playerStore.back()
     })
     nativeMediaSession.addListener('stop', function() {
+      console.info('[MediaSession] native stop event')
       playerStore.pause()
     })
     nativeMediaSession.addListener('seek', function(data) {
@@ -938,6 +954,12 @@ export async function setupAudio(playerStore, mainStore) {
       var offset = Number(data && data.offset) || 10
       var position = Math.max(playerStore.currentTime - offset, 0)
       playerStore.seek(position)
+    })
+    nativeMediaSession.addListener('audioFocusChange', function(data) {
+      console.info('[MediaSession] focus ' + (data && data.type))
+    })
+    nativeMediaSession.addListener('audioRouteChange', function(data) {
+      console.info('[MediaSession] route ' + (data && data.route))
     })
   }
 
