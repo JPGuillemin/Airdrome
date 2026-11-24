@@ -90,6 +90,26 @@ export async function setupAudio(playerStore, mainStore) {
       },
       { immediate: true }
     )
+
+    // When a track finishes downloading, re-push the window so native uses
+    // the local file:// URI instead of the remote stream. The reverse happens
+    // when a cache entry is deleted.
+    var windowSyncTimer = null
+
+    function syncWindowSoon() {
+      if (windowSyncTimer) {
+        return
+      }
+
+      windowSyncTimer = window.setTimeout(function() {
+        windowSyncTimer = null
+        playerStore.syncWindow()
+      }, 300)
+    }
+
+    window.addEventListener('audioCached', syncWindowSoon)
+    window.addEventListener('audioCacheDeleted', syncWindowSoon)
+    window.addEventListener('audioCacheClearedAll', syncWindowSoon)
   }
 
   // -------------------------------------------------------------------------
@@ -255,6 +275,11 @@ export async function setupAudio(playerStore, mainStore) {
     return playerStore.processQueueEnd()
   }
 
+  // Circuit breaker: a broken server / stream limit must not turn into an
+  // endless skip loop through the whole queue.
+  var errorBurst = 0
+  var errorBurstAt = 0
+
   audio.onerror = function(error) {
     console.warn('[Audio] Fatal error', error)
 
@@ -265,6 +290,17 @@ export async function setupAudio(playerStore, mainStore) {
     }
 
     mainStore.setError(reportedError)
+
+    var now = Date.now()
+    errorBurst = now - errorBurstAt < 3000 ? errorBurst + 1 : 1
+    errorBurstAt = now
+
+    if (errorBurst >= 3) {
+      console.warn('[Audio] stopping after repeated failures')
+      playerStore.userPaused = true
+      playerStore.isPlaying = false
+      return
+    }
 
     if (playerStore.hasNext) {
       playerStore.next(true)

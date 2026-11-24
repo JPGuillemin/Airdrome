@@ -65,6 +65,8 @@ import java.util.List;
 @CapacitorPlugin(name = "ExoPlayer")
 public class ExoPlayerPlugin extends Plugin {
 
+  private static final String TAG = "AirdromeExo";
+
   private static final long TICK_MS = 250;
 
   private final Handler main = new Handler(Looper.getMainLooper());
@@ -92,9 +94,12 @@ public class ExoPlayerPlugin extends Plugin {
   private float duck = 1f;    // temporary attenuation while another app asks us to duck
   private int cmdGen = 0;  // bumped by load/play/pause/stop to cancel pending delayed pauses
   private int loadGen = 0; // bumped by load() to abandon superseded loads
+  private boolean jsLoadPending = false; // a JS-driven load has not finished swapping yet
+  private long lastJsLoadAt = 0; // safety timeout for a stuck JS load
 
-  private static final long PRELOAD_DELAY_MS = 10000;
+  private static final long PRELOAD_DELAY_MS = 1000; // local cache preloads only
   private static final long FOCUS_GUARD_MS = 2000; // ignore focus / route pauses right after a play
+  private static final long JS_LOAD_GUARD_MS = 8000; // don't auto-advance while JS is replacing a track
   private static final float DUCK_LEVEL = 0.2f;
 
   // Playback intent. "User" = lock screen / notification / in-app buttons.
@@ -176,6 +181,8 @@ public class ExoPlayerPlugin extends Plugin {
     final long startMs = (long) (call.getDouble("startPosition", 0.0) * 1000.0);
 
     main.post(() -> {
+      jsLoadPending = true;
+      lastJsLoadAt = SystemClock.uptimeMillis();
       if (vol != null) volume = vol;
       if (g != null) gain = g;
       if (!paused) markPlayIntent();
@@ -203,11 +210,38 @@ public class ExoPlayerPlugin extends Plugin {
           if (call != null) call.resolve();
           return;
         }
-        Slot next = takeBuffer(key, url);
-        if (next == null) next = build(url, key);
-
         Slot old = active;
+        Slot next = takeBuffer(key, url);
+
+        Log.d(TAG, "swapTo key=" + redact(key) + " local=" + isLocalUri(url)
+          + " buffered=" + (next != null));
+
+        if (next == null) {
+          // Subsonic servers commonly allow only one stream per user. Release
+          // the old player before opening the next remote stream; for local
+          // cached files there is no such constraint.
+          if (old != null && !isLocalUri(url)) {
+            Log.d(TAG, "releasing old stream before opening next remote stream");
+            active = null;
+            releaseSlot(old);
+            old = null;
+          }
+
+          next = build(url, key);
+        }
+
         active = next;
+
+        // Keep the native window cursor aligned with the newly active track,
+        // including JS-driven loads. This is what lets the next end-of-track
+        // auto-advance work immediately after a skip.
+        for (int i = 0; i < window.size(); i++) {
+          if (window.get(i).key.equals(key)) {
+            cursor = i;
+            break;
+          }
+        }
+
         fadeGen++;
         fade = 1f; // a new "pipeline" always starts fully open (as in audio.ts)
 
@@ -223,12 +257,28 @@ public class ExoPlayerPlugin extends Plugin {
         if (!paused) {
           next.player.setPlayWhenReady(true);
           // audio.ts awaited a short fadeIn after play(); keep the same timing
-          if (call != null) main.postDelayed(call::resolve, 150);
+          if (call != null) {
+            main.postDelayed(() -> {
+              if (gen == loadGen) jsLoadPending = false;
+              call.resolve();
+            }, 150);
+          }
         } else if (call != null) {
+          if (gen == loadGen) jsLoadPending = false;
           call.resolve();
         }
       } catch (Exception e) {
-        if (call != null) call.reject("load failed: " + e);
+        if (gen == loadGen) jsLoadPending = false;
+        Log.e(TAG, "load/swap failed for " + redact(key), e);
+
+        if (call != null) {
+          call.reject("load failed: " + e);
+        } else {
+          JSObject o = new JSObject();
+          o.put("code", -1);
+          o.put("message", "load failed: " + e.getMessage());
+          notifyListeners("error", o);
+        }
       }
     };
 
@@ -241,6 +291,19 @@ public class ExoPlayerPlugin extends Plugin {
     }
   }
 
+  /**
+   * Called by JS as soon as a track load starts, before cache resolution.
+   * Prevents native auto-advance from racing a slow JS load.
+   */
+  @PluginMethod
+  public void beginLoad(final PluginCall call) {
+    main.post(() -> {
+      jsLoadPending = true;
+      lastJsLoadAt = SystemClock.uptimeMillis();
+      call.resolve();
+    });
+  }
+
   @PluginMethod
   public void preload(final PluginCall call) {
     final String url = call.getString("url");
@@ -251,6 +314,17 @@ public class ExoPlayerPlugin extends Plugin {
     final String key = call.getString("key", url);
 
     main.post(() -> {
+      // Never open a second remote stream just for preloading: many Subsonic
+      // servers limit concurrent streams per user. Only cached local files
+      // are safe to prepare ahead of time.
+      if (!isLocalUri(url)) {
+        Log.d(TAG, "preload skipped for remote stream: " + redact(url));
+        releaseSlot(buffer);
+        buffer = null;
+        call.resolve();
+        return;
+      }
+
       if (buffer != null && key.equals(buffer.key) && url.equals(buffer.url) && buffer.player.getPlayerError() == null) {
         call.resolve();
         return;
@@ -331,6 +405,7 @@ public class ExoPlayerPlugin extends Plugin {
       cmdGen++;
       loadGen++;
       fadeGen++;
+      jsLoadPending = false;
       userPaused = true;
       setResumeOnFocusGain(false);
       duck = 1f;
@@ -646,6 +721,17 @@ public class ExoPlayerPlugin extends Plugin {
       if (gen != loadGen) return;
       Track n = peek(1);
       if (n == null) return;
+
+      // Remote preloading opens a second HTTP stream and breaks servers with a
+      // one-stream-per-user limit. Local cache files are safe to preload.
+      if (!isLocalUri(n.url)) {
+        if (buffer != null && !n.key.equals(buffer.key)) {
+          releaseSlot(buffer);
+          buffer = null;
+        }
+        return;
+      }
+
       if (buffer != null && n.key.equals(buffer.key) && n.url.equals(buffer.url)
           && buffer.player.getPlayerError() == null) return;
       releaseSlot(buffer);
@@ -662,6 +748,7 @@ public class ExoPlayerPlugin extends Plugin {
    */
   private void startNative(final Track t, final int newCursor) {
     gain = t.gain;
+    jsLoadPending = false;
     markPlayIntent();
     swapTo(t.url, t.key, false, 0, 0, () -> {
       cursor = newCursor;
@@ -719,9 +806,19 @@ public class ExoPlayerPlugin extends Plugin {
     return slot;
   }
 
+  private static boolean isLocalUri(String url) {
+    return url != null && (url.startsWith("file:") || url.startsWith("content:"));
+  }
+
+  /** Strip credentials/query strings before writing a URL to logcat. */
+  private static String redact(String url) {
+    if (url == null) return "null";
+    int query = url.indexOf('?');
+    return query >= 0 ? url.substring(0, query) : url;
+  }
+
   /**
-   * Returns the preloaded slot if it matches `key` AND was built from the same
-   * URI; drops it otherwise. A buffer preloaded from the remote URL is discarded
+   * Returns the preloaded slot if it matches `key`; drops it otherwise. A buffer preloaded from the remote URL is discarded
    * once the track has been cached: the local file is instant to open and, unlike
    * a (possibly transcoded) HTTP stream, reliably seekable.
    */
@@ -729,7 +826,21 @@ public class ExoPlayerPlugin extends Plugin {
     Slot b = buffer;
     buffer = null;
     if (b == null) return null;
-    if (key.equals(b.key) && url.equals(b.url) && b.player.getPlayerError() == null) return b;
+
+    if (!key.equals(b.key) || b.player.getPlayerError() != null) {
+      Log.d(TAG, "discarding preloaded buffer for key=" + redact(key));
+      releaseSlot(b);
+      return null;
+    }
+
+    // A cached local buffer is always preferable to a remote stream: it is
+    // seekable, works offline and does not count against the server's
+    // concurrent-stream limit. Use it even if the window still has the old
+    // remote URL. A remote buffer is only discarded when a local URI is
+    // explicitly requested.
+    if (isLocalUri(b.url) || !isLocalUri(url)) return b;
+
+    Log.d(TAG, "discarding remote buffer because local URI is available");
     releaseSlot(b);
     return null;
   }
@@ -779,6 +890,19 @@ public class ExoPlayerPlugin extends Plugin {
           // pause itself if no next track gets loaded.
           main.post(() -> {
             if (s != active) return;
+
+            // A JS load is in flight (user pressed next/previous, queue
+            // changed, radio extension...). Let that load replace this
+            // player; auto-advancing here would race it and restart or
+            // skip the wrong track. The timestamp is only a safety net for
+            // a load that died before it could clear the flag.
+            if (jsLoadPending && SystemClock.uptimeMillis() - lastJsLoadAt < JS_LOAD_GUARD_MS) {
+              Log.d(TAG, "auto-advance suppressed: JS load pending");
+              return;
+            }
+
+            jsLoadPending = false;
+
             Track n = peek(1);
             if (n != null) startNative(n, cursor + 1);
             else emit("ended");

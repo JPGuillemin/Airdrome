@@ -286,6 +286,12 @@ export var usePlayerStore = defineStore('player', {
       }
 
       await audio.loadTrack(loadOptions)
+
+      if (isAndroid) {
+        // The window was pushed before the load, while the old track was still
+        // active. Re-push it now so native's cursor points at the new track.
+        this.syncWindow()
+      }
     },
 
     /**

@@ -27,6 +27,37 @@ function warn(error) {
   console.warn('[Exo]', error)
 }
 
+/**
+ * True for a native file URI that ExoPlayer can open directly.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isLocalUri(url) {
+  return !!url && (url.indexOf('file:') === 0 || url.indexOf('content:') === 0)
+}
+
+/**
+ * Decide whether a track that just stopped was listened to enough to cache it.
+ *
+ * @param {string} previousKey
+ * @param {string} currentKey
+ * @param {number} position
+ * @param {number} duration
+ * @returns {boolean}
+ */
+function shouldCachePrevious(previousKey, currentKey, position, duration) {
+  if (!previousKey || previousKey === currentKey) {
+    return false
+  }
+
+  if (position > 5) {
+    return true
+  }
+
+  return duration > 0 && position > duration * 0.5
+}
+
 // ---------------------------------------------------------------------------
 // ExoController
 // ---------------------------------------------------------------------------
@@ -125,6 +156,10 @@ export function ExoController() {
   }).catch(warn)
 
   Exo.addListener('trackChanged', function(event) {
+    var previousKey = self.currentKey
+    var previousPosition = self._position
+    var previousDuration = self._duration
+
     self.currentKey = event.key
     self.currentPlayable = event.url
     self.replayGain = self.windowGains.get(event.key) || null
@@ -134,6 +169,12 @@ export function ExoController() {
     self.pending = null
     self.stopPoll()
     self.ontrackchanged(event.index)
+
+    // Cache a track after leaving it, not while it is streaming: a second
+    // download during playback breaks servers with low concurrent-stream limits.
+    if (shouldCachePrevious(previousKey, event.key, previousPosition, previousDuration)) {
+      useCacheStore().cacheTrack(previousKey)
+    }
   }).catch(warn)
 
   Exo.addListener('time', function(event) {
@@ -257,16 +298,20 @@ ExoController.prototype.preloadNext = async function() {
   }
 
   var token = this.changeToken
-  this.preloadedFor = url
-
-  var cachedUrl = await useCacheStore().getCachedUrl(url, true)
+  var cachedUrl = await useCacheStore().peekCachedUrl(url, true)
 
   if (token !== this.changeToken || this.nextUrl !== url) {
-    if (this.preloadedFor === url) {
-      this.preloadedFor = undefined
-    }
     return
   }
+
+  if (!isLocalUri(cachedUrl)) {
+    // Do not open a second remote stream for preloading: many Subsonic
+    // servers allow only one stream per user. The track will be cached when
+    // it actually starts playing.
+    return
+  }
+
+  this.preloadedFor = url
 
   try {
     await Exo.preload({ url: cachedUrl, key: url })
@@ -393,7 +438,7 @@ ExoController.prototype.seek = async function(value) {
   this.pending = null
   this.stopPoll()
 
-  var remote = !!this.currentKey && this.currentPlayable.indexOf('file:') !== 0
+  var remote = !!this.currentKey && !isLocalUri(this.currentPlayable)
 
   if (remote) {
     var token = this.changeToken
@@ -451,7 +496,7 @@ ExoController.prototype.switchToLocal = async function(position) {
   var token = this.changeToken
   var local = await useCacheStore().getCachedUrl(this.currentKey, true)
 
-  if (token !== this.changeToken || local.indexOf('file:') !== 0) {
+  if (token !== this.changeToken || !isLocalUri(local)) {
     return false
   }
 
@@ -528,6 +573,13 @@ ExoController.prototype.loadTrack = async function(options) {
   var nextUrl = options.nextUrl
   var cacheStore = useCacheStore()
   var token = this.changeToken + 1
+  var previousKey = this.currentKey
+  var previousPosition = this._position
+  var previousDuration = this._duration
+
+  // Tell native a JS load is in flight before we resolve the cache URL. This
+  // stops ExoPlayer from auto-advancing the old track while we are loading.
+  Exo.beginLoad().catch(warn)
 
   this.changeToken = token
   this.replayGain = options.replayGain != null ? options.replayGain : null
@@ -541,7 +593,9 @@ ExoController.prototype.loadTrack = async function(options) {
   this.preloadReady = false
   this.preloadedFor = undefined
 
-  var playable = await cacheStore.getCachedUrl(currentUrl, true)
+  // Do not queue a download for the track we are about to stream. It would
+  // open a second HTTP connection while ExoPlayer is already streaming it.
+  var playable = await cacheStore.peekCachedUrl(currentUrl, true)
 
   if (token !== this.changeToken) {
     return
@@ -575,6 +629,12 @@ ExoController.prototype.loadTrack = async function(options) {
   }
 
   console.info('exo.load:', playable)
+
+  // The track we just left has been listened to: cache it now, while the new
+  // track is the only active playback stream.
+  if (shouldCachePrevious(previousKey, currentUrl, previousPosition, previousDuration)) {
+    cacheStore.cacheTrack(previousKey)
+  }
 
   setTimeout(async function() {
     if (token !== self.changeToken) {

@@ -49,6 +49,9 @@ RSYNC_OPTS=(
   # Local-only native output.
   --exclude='android-twa/'
   --exclude='artifacts/'
+  --exclude='dist-old-root-owned/'
+  --exclude='*-root-owned/'
+  --exclude='root-owned-leftovers/'
 
   # Local secrets and signing material.
   --exclude='.android-signing.env'

@@ -11,7 +11,7 @@ Test the latest version here : [AIRDROME NIGHTLY](https://jpguillemin.github.io/
 - Library browsing for albums, artist, genres, playlists, favourites
 - "Radio like" dynamic playlists for anything : Genre, Album, Artist, Recent albums, Favourites, Random
 - 3 "CD quality" OPUS transcoding modes
-- Native Gapless playback
+- Native gapless playback for cached/offline tracks
 - 2 modes Replay Gain support
 - Full mediaSession integration
 - Native Android playback with Media3 ExoPlayer, lock-screen / notification controls, audio focus and Bluetooth/headset routing
@@ -71,6 +71,11 @@ handled by a native Media3 ExoPlayer plugin, with a native MediaSession for the
 lock screen, notification, headset buttons, audio focus and Bluetooth/headset
 routing. Offline audio and cover art use the Capacitor Filesystem plugin.
 
+ExoPlayer preloads the next track only when it is already cached locally. This
+keeps gapless playback for offline/cached music without opening a second remote
+stream, which breaks servers that limit concurrent streams per user. Remote
+tracks are loaded when the current one ends.
+
 Requirements: Node.js 22+, JDK 21 and the Android SDK.
 
 ```bash
@@ -122,7 +127,7 @@ Capacitor build only adds the native wrapper and plugins on top of it.
 
 | Feature | Implementation |
 | --- | --- |
-| Audio playback / gapless / preload | custom Media3 ExoPlayer plugin (`android/.../ExoPlayerPlugin.java`) |
+| Audio playback / cached gapless / preload | custom Media3 ExoPlayer plugin (`android/.../ExoPlayerPlugin.java`) |
 | Lock screen, notification, media keys | custom MediaSession plugin (`android/.../MediaSessionPlugin.java`) |
 | Audio focus, headset / Bluetooth routing | custom MediaSession plugin |
 | Offline audio and cover art | `@capacitor/filesystem` |
