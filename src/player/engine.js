@@ -11,7 +11,7 @@ import { Capacitor } from '@capacitor/core'
 import { isAndroid } from '@/shared/platform'
 import { audio as webAudio } from '@/player/audio'
 import { ExoController } from '@/player/exo'
-import { ReplayGainMode, storedReplayGainMode } from '@/player/replayGain'
+import { ReplayGainMode, storedReplayGainMode } from '@/player/audioShared'
 
 /** Active audio engine for this platform. */
 export var audio = isAndroid ? new ExoController() : webAudio

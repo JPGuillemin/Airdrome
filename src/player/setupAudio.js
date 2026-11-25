@@ -2,21 +2,25 @@
 //
 // Wires the selected audio engine to the player store. Platform-specific
 // behaviour is delegated:
-//   - webPlayback.js     browser routing / visibility / keyboard
-//   - nativePlayback.js  ExoPlayer sync / app lifecycle / lock screen
-//   - playbackReporting.js OpenSubsonic play sessions
-//   - mediaSession.js    browser MediaSession action handlers
+//   - platformPlayback.js  browser devices / native sync / MediaSession
+//   - session.js           server queue ownership + playback reporting
 //
 // This file only contains what both platforms share.
 
 import { watch } from 'vue'
 import { audio, storedReplayGainMode, isAndroid } from './engine'
-import { detectAudioCodec } from './audioCodec'
-import { createPlaybackReporter } from './playbackReporting'
-import { setupWebPlayback } from './webPlayback'
-import { setupNativePlayback } from './nativePlayback'
-import { setupWebMediaSession } from './mediaSession'
-import { claimSession, onPlaybackStopped, onUnload } from './session'
+import { detectAudioCodec } from './audioShared'
+import {
+  setupNativePlayback,
+  setupWebMediaSession,
+  setupWebPlayback
+} from './platformPlayback'
+import {
+  claimSession,
+  createPlaybackReporter,
+  onPlaybackStopped,
+  onUnload
+} from './session'
 
 /**
  * Wire the audio controller to the store.

@@ -22,7 +22,7 @@ import {
   setMediaSessionMetadata,
   setMediaSessionPosition,
   setMediaSessionState
-} from '@/player/mediaSession'
+} from '@/player/platformPlayback'
 import { saveSession, releaseSession } from './session'
 
 // ---------------------------------------------------------------------------

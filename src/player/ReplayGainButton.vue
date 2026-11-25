@@ -22,7 +22,7 @@
 
 <script>
   import { defineComponent } from 'vue'
-  import { ReplayGainMode } from '@/player/replayGain'
+  import { ReplayGainMode } from '@/player/audioShared'
   import Icon from '@/shared/components/Icon.vue'
   import IconReplayGain from '@/shared/components/IconReplayGain.vue'
 

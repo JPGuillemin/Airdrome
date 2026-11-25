@@ -19,7 +19,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { useCacheStore } from '@/shared/cache'
 import { nativeMediaSession } from '@/player/nativeMediaSession'
-import { ReplayGainMode, replayGainFactor } from '@/player/replayGain'
+import { ReplayGainMode, replayGainFactor } from '@/player/audioShared'
 
 var Exo = registerPlugin('ExoPlayer')
 

@@ -9,7 +9,7 @@ import { useCacheStore } from '@/shared/cache'
 import {
   ReplayGainMode,
   replayGainFactor
-} from '@/player/replayGain'
+} from '@/player/audioShared'
 
 /**
  * @typedef {Object} AudioPipeline
