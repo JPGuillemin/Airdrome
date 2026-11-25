@@ -6,31 +6,10 @@
 
 import { sleep } from '@/shared/utils'
 import { useCacheStore } from '@/shared/cache'
-
-// ---------------------------------------------------------------------------
-// ReplayGain
-// ---------------------------------------------------------------------------
-
-/**
- * ReplayGain modes.
- *
- * @readonly
- * @enum {number}
- */
-export var ReplayGainMode = {
-  None: 0,
-  Track: 1,
-  Album: 2,
-  _Length: 3
-}
-
-/**
- * @typedef {Object} ReplayGain
- * @property {number} trackGain
- * @property {number} trackPeak
- * @property {number} albumGain
- * @property {number} albumPeak
- */
+import {
+  ReplayGainMode,
+  replayGainFactor
+} from '@/player/replayGain'
 
 /**
  * @typedef {Object} AudioPipeline
@@ -99,15 +78,6 @@ export function AudioController() {
 // ---------------------------------------------------------------------------
 
 /**
- * Return the audio element of the active pipeline.
- *
- * @returns {HTMLAudioElement}
- */
-AudioController.prototype.getAudioElement = function() {
-  return this.getActivePipeline().audio
-}
-
-/**
  * Return the current playback position in seconds.
  *
  * @returns {number}
@@ -128,17 +98,6 @@ AudioController.prototype.duration = function() {
 // ---------------------------------------------------------------------------
 // Caching / buffering
 // ---------------------------------------------------------------------------
-
-/**
- * Ask the cache store to persist a track URL.
- *
- * @param {string} url
- * @returns {void}
- */
-AudioController.prototype.cacheTrack = function(url) {
-  var cacheStore = useCacheStore()
-  cacheStore.cacheTrack(url)
-}
 
 /**
  * Create and preload an audio element for a URL.
@@ -265,7 +224,8 @@ AudioController.prototype.setVolume = function(value) {
  */
 AudioController.prototype.setReplayGainMode = function(value) {
   this.replayGainMode = value
-  this.getActivePipeline().replayGainNode.gain.value = this.replayGainFactor()
+  this.getActivePipeline().replayGainNode.gain.value =
+    replayGainFactor(this.replayGainMode, this.replayGain)
 
   var normalizer = this.getActivePipeline().normalizerNode
 
@@ -438,7 +398,7 @@ AudioController.prototype.loadTrack = async function(options) {
   var nextPipeline = createPipeline(this.getAudioContext(), {
     audio: this.buffer,
     volume: volume,
-    replayGain: this.replayGainFactor()
+    replayGain: replayGainFactor(this.replayGainMode, this.replayGain)
   })
 
   // Abort if another loadTrack() started while we were awaiting the cache.
@@ -626,35 +586,6 @@ AudioController.prototype.fadeOut = function(duration) {
   return sleep(length * 1000)
 }
 
-/**
- * Calculate the linear gain for the current ReplayGain mode.
- *
- * @returns {number}
- */
-AudioController.prototype.replayGainFactor = function() {
-  if (this.replayGainMode === ReplayGainMode.None || !this.replayGain) {
-    return 1
-  }
-
-  var gain
-  var peak
-
-  if (this.replayGainMode === ReplayGainMode.Track) {
-    gain = this.replayGain.trackGain
-    peak = this.replayGain.trackPeak
-  } else {
-    gain = this.replayGain.albumGain
-    peak = this.replayGain.albumPeak
-  }
-
-  if (!isFinite(gain) || !isFinite(peak) || peak <= 0) {
-    return 1
-  }
-
-  var preAmp = 6
-  return Math.min(Math.pow(10, (gain + preAmp) / 20), 1 / peak)
-}
-
 // ---------------------------------------------------------------------------
 // Pipeline factory
 // ---------------------------------------------------------------------------
@@ -734,9 +665,3 @@ function createPipeline(context, options) {
 
 /** Singleton Web Audio controller. */
 export var audio = new AudioController()
-
-/** ReplayGain mode restored from localStorage, default None (0). */
-export var storedReplayGainMode = parseInt(
-  localStorage.getItem('player.replayGainMode') || '0',
-  10
-)

@@ -1,0 +1,1 @@
+import{n as e}from"./dist-Df2lF_67.js";var t=class extends e{async show(e){}async hide(e){}};export{t as SplashScreenWeb};

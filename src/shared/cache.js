@@ -44,11 +44,6 @@ var IMAGE_CONCURRENCY = 6
  */
 
 /**
- * @typedef {Object} CacheSession
- * @property {boolean} cancelled
- */
-
-/**
  * @typedef {import('@/shared/api').Album} Album
  */
 
@@ -60,7 +55,6 @@ var IMAGE_CONCURRENCY = 6
  * @property {Set<string>} queued
  * @property {boolean} processing
  * @property {boolean} initialized
- * @property {Map<string, CacheSession>} activeCaching
  * @property {Map<string, boolean>} cacheStatus
  * @property {boolean} isCachingImages
  * @property {number|null} imageCachedCount
@@ -213,6 +207,24 @@ async function putEntry(entry) {
 }
 
 /**
+ * Record a freshly cached file in the metadata store.
+ *
+ * @param {string} url
+ * @param {string} filename
+ * @param {number} size
+ * @returns {Promise<void>}
+ */
+async function recordEntry(url, filename, size) {
+  await putEntry({
+    url: url,
+    filename: filename,
+    size: size,
+    createdAt: Date.now(),
+    lastAccess: Date.now()
+  })
+}
+
+/**
  * Delete a single metadata entry.
  *
  * @param {string} url
@@ -337,6 +349,26 @@ function hashName(url, fallbackExt) {
   return md5(String(url)) + '.' + extension
 }
 
+/**
+ * Remove a native cache directory and recreate the cache layout.
+ *
+ * @param {string} path
+ * @returns {Promise<void>}
+ */
+async function clearNativeDir(path) {
+  try {
+    await Filesystem.rmdir({
+      path: path,
+      directory: Directory.Data,
+      recursive: true
+    })
+  } catch (error) {
+    // nothing to remove
+  }
+
+  await initNativeDir()
+}
+
 /** Create the native cache directories on first use. */
 async function initNativeDir() {
   if (!isAndroid) {
@@ -365,13 +397,13 @@ async function initNativeDir() {
 }
 
 /**
- * @param {string} filename
+ * @param {string} path
  * @returns {Promise<boolean>}
  */
-async function nativeExists(filename) {
+async function nativeFileExists(path) {
   try {
     var stat = await Filesystem.stat({
-      path: CACHE_DIR + '/' + filename,
+      path: path,
       directory: Directory.Data
     })
     return stat.size > 0
@@ -381,42 +413,14 @@ async function nativeExists(filename) {
 }
 
 /**
- * Download a track to the native filesystem and record its metadata.
+ * Download a file into Directory.Data and return its size (0 on failure).
  *
  * @param {string} url
- * @returns {Promise<number|null>} Bytes written, 0 when already cached,
- *   or null when the download failed.
+ * @param {string} path
+ * @returns {Promise<number>}
  */
-async function nativeWrite(url) {
+async function downloadToNative(url, path) {
   try {
-    var filename = hashName(url)
-    var path = CACHE_DIR + '/' + filename
-    var existingEntry = await getEntry(url)
-
-    if (existingEntry && existingEntry.filename === filename && await nativeExists(filename)) {
-      await touch(url)
-      return 0
-    }
-
-    // Orphan file from an interrupted run / lost metadata: adopt it.
-    if (await nativeExists(filename)) {
-      var existingStat = await Filesystem.stat({
-        path: path,
-        directory: Directory.Data
-      })
-
-      if (existingStat.size > 0) {
-        await putEntry({
-          url: url,
-          filename: filename,
-          size: existingStat.size,
-          createdAt: Date.now(),
-          lastAccess: Date.now()
-        })
-        return 0
-      }
-    }
-
     await Filesystem.downloadFile({
       url: url,
       path: path,
@@ -434,59 +438,114 @@ async function nativeWrite(url) {
         path: path,
         directory: Directory.Data
       }).catch(function() {})
+      return 0
+    }
+
+    return stat.size
+  } catch (error) {
+    return 0
+  }
+}
+
+/**
+ * Download a track to the native filesystem and record its metadata.
+ *
+ * @param {string} url
+ * @returns {Promise<number|null>} Bytes written, 0 when already cached,
+ *   or null when the download failed.
+ */
+async function nativeWrite(url) {
+  try {
+    var filename = hashName(url)
+    var path = CACHE_DIR + '/' + filename
+    var existingEntry = await getEntry(url)
+
+    if (existingEntry && existingEntry.filename === filename && await nativeFileExists(path)) {
+      await touch(url)
+      return 0
+    }
+
+    // Orphan file from an interrupted run / lost metadata: adopt it.
+    if (await nativeFileExists(path)) {
+      var existingStat = await Filesystem.stat({
+        path: path,
+        directory: Directory.Data
+      })
+
+      await recordEntry(url, filename, existingStat.size)
+      return 0
+    }
+
+    var size = await downloadToNative(url, path)
+
+    if (!size) {
       return null
     }
 
-    await putEntry({
-      url: url,
-      filename: filename,
-      size: stat.size,
-      createdAt: Date.now(),
-      lastAccess: Date.now()
-    })
+    await recordEntry(url, filename, size)
 
-    return stat.size
+    return size
   } catch (error) {
     return null
   }
 }
 
 /**
- * Return a playable URI for a cached track.
+ * Playable URL for a cached track, or null when it is not cached.
+ * Phantom metadata entries (bytes gone) are cleaned up on the way.
  *
  * @param {string} url
- * @param {boolean} [raw] True for the raw file:// URI (ExoPlayer), false for
- *   a WebView-loadable URL (HTMLAudioElement fallback).
- * @returns {Promise<string>}
+ * @param {boolean} [native] True for the raw file:// URI (ExoPlayer), false
+ *   for a WebView-loadable URL (HTMLAudioElement fallback).
+ * @returns {Promise<string|null>}
  */
-async function nativePlayable(url, raw) {
+async function cachedPlayable(url, native) {
   var entry = await getEntry(url)
 
-  if (!entry || !entry.filename) {
-    return url
+  if (!entry) {
+    return null
   }
 
-  if (!(await nativeExists(entry.filename))) {
+  if (isAndroid) {
+    if (!entry.filename ||
+        !(await nativeFileExists(CACHE_DIR + '/' + entry.filename))) {
+      await deleteEntry(url)
+      return null
+    }
+
+    await touch(url)
+
+    try {
+      var uri = await Filesystem.getUri({
+        path: CACHE_DIR + '/' + entry.filename,
+        directory: Directory.Data
+      })
+
+      return native ? uri.uri : Capacitor.convertFileSrc(uri.uri)
+    } catch (error) {
+      return null
+    }
+  }
+
+  var cache = await caches.open(CACHE_NAME)
+  var hit = await cache.match(url)
+
+  if (!hit) {
     await deleteEntry(url)
-    return url
+    return null
   }
 
   await touch(url)
 
-  try {
-    var uri = await Filesystem.getUri({
-      path: CACHE_DIR + '/' + entry.filename,
-      directory: Directory.Data
-    })
+  var existing = blobUrls.get(url)
 
-    if (raw) {
-      return uri.uri
-    }
-
-    return Capacitor.convertFileSrc(uri.uri)
-  } catch (error) {
-    return url
+  if (existing) {
+    return existing
   }
+
+  var objectUrl = URL.createObjectURL(await hit.blob())
+  blobUrls.set(url, objectUrl)
+  return objectUrl
 }
 
 /**
@@ -520,38 +579,9 @@ async function nativeWriteImage(url) {
   try {
     var filename = hashName(url, 'jpg')
     var path = IMAGE_CACHE_DIR + '/' + filename
-    var exists = false
 
-    try {
-      var stat = await Filesystem.stat({
-        path: path,
-        directory: Directory.Data
-      })
-      exists = stat.size > 0
-    } catch (error) {
-      exists = false
-    }
-
-    if (!exists) {
-      await Filesystem.downloadFile({
-        url: url,
-        path: path,
-        directory: Directory.Data,
-        recursive: true
-      })
-
-      var downloaded = await Filesystem.stat({
-        path: path,
-        directory: Directory.Data
-      })
-
-      if (!downloaded.size || downloaded.size <= 0) {
-        await Filesystem.deleteFile({
-          path: path,
-          directory: Directory.Data
-        }).catch(function() {})
-        return null
-      }
+    if (!(await nativeFileExists(path)) && !(await downloadToNative(url, path))) {
+      return null
     }
 
     var uri = await Filesystem.getUri({
@@ -614,13 +644,7 @@ async function webWrite(url) {
       var existingBlob = await existing.blob()
 
       if (existingBlob.size > 0) {
-        await putEntry({
-          url: url,
-          filename: '',
-          size: existingBlob.size,
-          createdAt: Date.now(),
-          lastAccess: Date.now()
-        })
+        await recordEntry(url, '', existingBlob.size)
         return 0
       }
 
@@ -639,47 +663,12 @@ async function webWrite(url) {
 
     await cache.put(url, clone)
 
-    await putEntry({
-      url: url,
-      filename: '',
-      size: blob.size,
-      createdAt: Date.now(),
-      lastAccess: Date.now()
-    })
+    await recordEntry(url, '', blob.size)
 
     return blob.size
   } catch (error) {
     return null
   }
-}
-
-/**
- * Return a URL the audio element can play. When the track is cached we hand
- * back a Blob URL backed by the cached response (so it works offline and can
- * be seeked without Range requests); otherwise the original network URL.
- *
- * @param {string} url
- * @returns {Promise<string>}
- */
-async function webPlayable(url) {
-  var cache = await caches.open(CACHE_NAME)
-  var hit = await cache.match(url)
-
-  if (!hit) {
-    return url
-  }
-
-  await touch(url)
-
-  var existing = blobUrls.get(url)
-
-  if (existing) {
-    return existing
-  }
-
-  var objectUrl = URL.createObjectURL(await hit.blob())
-  blobUrls.set(url, objectUrl)
-  return objectUrl
 }
 
 /**
@@ -689,7 +678,7 @@ async function webPlayable(url) {
  *
  * @param {string} url
  * @param {Cache} [cache]
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} True when something was actually removed.
  */
 async function removeCachedAudio(url, cache) {
   var entry = await getEntry(url)
@@ -702,7 +691,7 @@ async function removeCachedAudio(url, cache) {
       await nativeDelete(entry)
     }
 
-    return
+    return !!entry
   }
 
   var target = cache
@@ -711,7 +700,8 @@ async function removeCachedAudio(url, cache) {
     target = await caches.open(CACHE_NAME)
   }
 
-  await target.delete(url)
+  var deleted = await target.delete(url)
+  return !!entry || deleted
 }
 
 /* -------------------------------------------------------------------------- */
@@ -723,45 +713,47 @@ async function removeCachedAudio(url, cache) {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Return true when a track is both in the metadata store and the Cache API.
- * A phantom metadata entry is removed on the way out.
+ * True when the metadata entry still has bytes behind it.
+ *
+ * @param {MetaEntry|null} entry
+ * @param {Set<string>|null} [cachedUrls] Cache API keys, for bulk scans.
+ * @returns {Promise<boolean>}
+ */
+async function entryExists(entry, cachedUrls) {
+  if (!entry) {
+    return false
+  }
+
+  if (isAndroid) {
+    return !!entry.filename &&
+      nativeFileExists(CACHE_DIR + '/' + entry.filename)
+  }
+
+  if (cachedUrls) {
+    return cachedUrls.has(entry.url)
+  }
+
+  var cache = await caches.open(CACHE_NAME)
+  return !!(await cache.match(entry.url))
+}
+
+/**
+ * Return true when a track is both in the metadata store and on disk / in the
+ * Cache API. A phantom metadata entry is removed on the way out.
  *
  * @param {string} url
  * @returns {Promise<boolean>}
  */
 async function hasTrack(url) {
   var entry = await getEntry(url)
+  var exists = await entryExists(entry)
 
-  if (!entry) {
-    return false
-  }
-
-  if (isAndroid) {
-    if (!entry.filename) {
-      await deleteEntry(url)
-      return false
-    }
-
-    var exists = await nativeExists(entry.filename)
-
-    // Read-only status check: do not touch lastAccess here.
-    if (!exists) {
-      await deleteEntry(url)
-    }
-
-    return exists
-  }
-
-  var cache = await caches.open(CACHE_NAME)
-  var hit = await cache.match(url)
-
-  // Read-only status check: `touch` is only needed when a track is actually
-  // accessed for playback, not when the UI asks whether it is cached.
-  if (!hit) {
+  // Read-only status check: do not touch lastAccess here.
+  if (entry && !exists) {
     await deleteEntry(url)
   }
 
-  return !!hit
+  return exists
 }
 
 /* -------------------------------------------------------------------------- */
@@ -805,10 +797,6 @@ async function enforceLimit() {
     dispatch('audioCacheDeleted', entry.url)
   }
 
-  if (evicted.length) {
-    dispatch('audioCacheEvicted')
-  }
-
   return evicted
 }
 
@@ -831,9 +819,6 @@ export var useCacheStore = defineStore('albumCache', {
 
       /** True once `init()` has run. */
       initialized: false,
-
-      /** In-flight album caching sessions, keyed by album id or name. */
-      activeCaching: new Map(),
 
       /** Reactive per-track cache status, shared by all row components. */
       cacheStatus: new Map(),
@@ -862,10 +847,7 @@ export var useCacheStore = defineStore('albumCache', {
         return
       }
 
-      if (isAndroid) {
-        await initNativeDir()
-      }
-
+      await initNativeDir()
       this.initialized = true
     },
 
@@ -941,25 +923,15 @@ export var useCacheStore = defineStore('albumCache', {
     getCachedUrl: async function(url, native) {
       await this.init()
 
-      if (isAndroid) {
-        var cached = await hasTrack(url)
+      var playable = await cachedPlayable(url, native)
 
-        if (cached) {
-          return nativePlayable(url, native)
-        }
-
-        this.cacheTrack(url)
-        return url
+      if (playable != null) {
+        return playable
       }
-
-      var playable = await webPlayable(url)
 
       // Not cached: play from the network and persist in the background.
-      if (playable === url) {
-        this.cacheTrack(url)
-      }
-
-      return playable
+      this.cacheTrack(url)
+      return url
     },
 
     /**
@@ -972,19 +944,8 @@ export var useCacheStore = defineStore('albumCache', {
     peekCachedUrl: async function(url, native) {
       await this.init()
 
-      if (isAndroid) {
-        if (!(await hasTrack(url))) {
-          return url
-        }
-
-        return nativePlayable(url, native)
-      }
-
-      if (!(await hasTrack(url))) {
-        return url
-      }
-
-      return webPlayable(url)
+      var playable = await cachedPlayable(url, native)
+      return playable != null ? playable : url
     },
 
     /**
@@ -1077,40 +1038,28 @@ export var useCacheStore = defineStore('albumCache', {
             entryMap.set(entries[k].url, entries[k])
           }
 
-          if (isAndroid) {
-            for (var n = 0; n < wanted.length; n++) {
-              var nativeUrl = wanted[n]
-              var nativeEntry = entryMap.get(nativeUrl)
-              var nativeCached = !!nativeEntry && !!nativeEntry.filename &&
-                await nativeExists(nativeEntry.filename)
+          // One Cache API key scan for the whole batch on the web.
+          var cachedUrls = null
 
-              self.cacheStatus.set(nativeUrl, nativeCached)
+          if (!isAndroid) {
+            var cache = await caches.open(CACHE_NAME)
+            var cacheKeys = await cache.keys()
+            cachedUrls = new Set()
 
-              if (nativeEntry && !nativeCached) {
-                await deleteEntry(nativeUrl)
-              }
+            for (var m = 0; m < cacheKeys.length; m++) {
+              cachedUrls.add(cacheKeys[m].url)
             }
-
-            return
           }
 
-          var cache = await caches.open(CACHE_NAME)
-          var cacheKeys = await cache.keys()
-          var cachedUrls = new Set()
+          for (var n = 0; n < wanted.length; n++) {
+            var url = wanted[n]
+            var entry = entryMap.get(url)
+            var cached = await entryExists(entry, cachedUrls)
 
-          for (var m = 0; m < cacheKeys.length; m++) {
-            cachedUrls.add(cacheKeys[m].url)
-          }
-
-          for (var p = 0; p < wanted.length; p++) {
-            var url = wanted[p]
-            var inMetadata = entryMap.has(url)
-            var inCache = cachedUrls.has(url)
-
-            self.cacheStatus.set(url, inMetadata && inCache)
+            self.cacheStatus.set(url, cached)
 
             // Phantom metadata entry: the bytes are gone, clean it up.
-            if (inMetadata && !inCache) {
+            if (entry && !cached) {
               await deleteEntry(url)
             }
           }
@@ -1137,23 +1086,11 @@ export var useCacheStore = defineStore('albumCache', {
      * @returns {Promise<void>}
      */
     deleteTrack: async function(url) {
-      var entry = await getEntry(url)
-      var hadBlob = false
+      var removed = await removeCachedAudio(url)
 
-      if (isAndroid) {
-        if (entry) {
-          await nativeDelete(entry)
-        }
-      } else {
-        var cache = await caches.open(CACHE_NAME)
-        hadBlob = await cache.delete(url)
-      }
-
-      await deleteEntry(url)
-      revokeBlobUrl(url)
       this.cacheStatus.set(url, false)
 
-      if (entry || hadBlob) {
+      if (removed) {
         dispatch('audioCacheDeleted', url)
       }
     },
@@ -1165,17 +1102,7 @@ export var useCacheStore = defineStore('albumCache', {
      */
     clearAllAudioCache: async function() {
       if (isAndroid) {
-        try {
-          await Filesystem.rmdir({
-            path: CACHE_DIR,
-            directory: Directory.Data,
-            recursive: true
-          })
-        } catch (error) {
-          // nothing to remove
-        }
-
-        await initNativeDir()
+        await clearNativeDir(CACHE_DIR)
       } else {
         await caches.delete(CACHE_NAME)
       }
@@ -1233,27 +1160,14 @@ export var useCacheStore = defineStore('albumCache', {
         return
       }
 
-      var key = album.id || album.name
-      this.activeCaching.set(key, { cancelled: false })
+      for (var i = 0; i < album.tracks.length; i++) {
+        var track = album.tracks[i]
 
-      var session = this.activeCaching.get(key)
-
-      try {
-        for (var i = 0; i < album.tracks.length; i++) {
-          if (session.cancelled) {
-            return
-          }
-
-          var track = album.tracks[i]
-
-          if (track.url) {
-            this.cacheTrack(track.url)
-          }
-
-          await sleep(150)
+        if (track.url) {
+          this.cacheTrack(track.url)
         }
-      } finally {
-        this.activeCaching.delete(key)
+
+        await sleep(150)
       }
     },
 
@@ -1433,18 +1347,8 @@ export var useCacheStore = defineStore('albumCache', {
      */
     clearImageCache: async function() {
       if (isAndroid) {
-        try {
-          await Filesystem.rmdir({
-            path: IMAGE_CACHE_DIR,
-            directory: Directory.Data,
-            recursive: true
-          })
-        } catch (error) {
-          // nothing to remove
-        }
-
+        await clearNativeDir(IMAGE_CACHE_DIR)
         clearImageMap()
-        await initNativeDir()
       } else {
         await caches.delete(IMAGE_CACHE_NAME)
       }

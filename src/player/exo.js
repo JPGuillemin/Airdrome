@@ -19,7 +19,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { useCacheStore } from '@/shared/cache'
 import { nativeMediaSession } from '@/player/nativeMediaSession'
-import { ReplayGainMode } from '@/player/audio'
+import { ReplayGainMode, replayGainFactor } from '@/player/replayGain'
 
 var Exo = registerPlugin('ExoPlayer')
 
@@ -226,11 +226,6 @@ export function ExoController() {
 // ---------------------------------------------------------------------------
 
 /** There is no HTMLAudioElement in native mode. */
-ExoController.prototype.getAudioElement = function() {
-  return undefined
-}
-
-/** @returns {number} */
 ExoController.prototype.currentTime = function() {
   return this._position
 }
@@ -253,16 +248,6 @@ ExoController.prototype.getStatus = function() {
 // ---------------------------------------------------------------------------
 // Caching / buffering
 // ---------------------------------------------------------------------------
-
-/**
- * Ask the cache store to persist a track URL.
- *
- * @param {string} url
- * @returns {void}
- */
-ExoController.prototype.cacheTrack = function(url) {
-  useCacheStore().cacheTrack(url)
-}
 
 /**
  * Remember/preload the next track.
@@ -375,7 +360,7 @@ ExoController.prototype.setVolume = function(value) {
  */
 ExoController.prototype.setReplayGainMode = function(value) {
   this.replayGainMode = value
-  Exo.setLevels({ gain: this.replayGainFactor() }).catch(warn)
+  Exo.setLevels({ gain: replayGainFactor(this.replayGainMode, this.replayGain) }).catch(warn)
 }
 
 // ---------------------------------------------------------------------------
@@ -522,7 +507,7 @@ ExoController.prototype.switchToLocal = async function(position) {
       fade: false,
       fadeOutMs: 0,
       volume: this.volume,
-      gain: this.replayGainFactor(),
+      gain: replayGainFactor(this.replayGainMode, this.replayGain),
       startPosition: position
     })
   } catch (error) {
@@ -631,7 +616,7 @@ ExoController.prototype.loadTrack = async function(options) {
       fade: !!options.fade,
       fadeOutMs: Math.round(this.fadeTime * 1000),
       volume: this.volume,
-      gain: this.replayGainFactor()
+      gain: replayGainFactor(this.replayGainMode, this.replayGain)
     })
   } catch (error) {
     console.warn('[Exo] load failed', error)
@@ -706,7 +691,7 @@ ExoController.prototype.setWindow = async function(tracks, current) {
       album: track.album,
       artworkUrl: track.artworkUrl,
       duration: track.duration,
-      gain: self.gainFor(track.replayGain)
+      gain: replayGainFactor(self.replayGainMode, track.replayGain)
     }
   }))
 
@@ -778,39 +763,3 @@ ExoController.prototype.handleTime = function(event) {
 // ReplayGain
 // ---------------------------------------------------------------------------
 
-/**
- * Linear gain for the current ReplayGain mode.
- *
- * @returns {number}
- */
-ExoController.prototype.replayGainFactor = function() {
-  return this.gainFor(this.replayGain)
-}
-
-/**
- * @param {Object|null|undefined} replayGain
- * @returns {number}
- */
-ExoController.prototype.gainFor = function(replayGain) {
-  if (this.replayGainMode === ReplayGainMode.None || !replayGain) {
-    return 1
-  }
-
-  var gain
-  var peak
-
-  if (this.replayGainMode === ReplayGainMode.Track) {
-    gain = replayGain.trackGain
-    peak = replayGain.trackPeak
-  } else {
-    gain = replayGain.albumGain
-    peak = replayGain.albumPeak
-  }
-
-  if (!isFinite(gain) || !isFinite(peak) || peak <= 0) {
-    return 1
-  }
-
-  var preAmp = 6
-  return Math.min(Math.pow(10, (gain + preAmp) / 20), 1 / peak)
-}

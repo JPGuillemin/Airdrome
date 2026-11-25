@@ -7,11 +7,6 @@ declare module 'md5-es'
 declare module 'icecast-metadata-stats'
 
 import { API } from '@/shared/api'
-declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    $api: API
-  }
-}
 
 declare module 'pinia' {
   export interface PiniaCustomProperties {

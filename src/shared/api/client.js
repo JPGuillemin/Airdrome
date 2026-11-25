@@ -1,40 +1,21 @@
 // shared/api/client.js
 //
-// Core of the Subsonic API client: instance construction, the fetch wrapper,
-// connectivity helpers and the error types. Written in an explicit,
-// ES5-friendly style: constructor functions, prototype methods, function
-// expressions and async/await instead of promise chains.
+// Core of the Subsonic API client: instance construction, the fetch wrapper
+// and the error types. Written in an explicit, ES5-friendly style: constructor
+// functions, prototype methods, function expressions and async/await instead
+// of promise chains.
 
-import { inject } from 'vue'
 import { toQueryString } from '@/shared/utils'
 import { isOnline } from '@/shared/network'
 
-var apiSymbol = Symbol('')
-
 /**
- * Return the API instance provided by createApi().
- *
- * @returns {API}
- */
-export function useApi() {
-  return inject(apiSymbol)
-}
-
-/**
- * Create the API client and attach the Vue plugin install hook.
+ * Create the API client.
  *
  * @param {Object} auth
  * @returns {API}
  */
 export function createApi(auth) {
-  var instance = new API(auth)
-
-  return Object.assign(instance, {
-    install: function(app) {
-      app.config.globalProperties.$api = instance
-      app.provide(apiSymbol, instance)
-    }
-  })
+  return new API(auth)
 }
 
 // ---------------------------------------------------------------------------
@@ -146,9 +127,7 @@ export function API(auth) {
   // Simple in-memory cache for the full artist list. It's fetched by
   // getArtists() (artist library page) and reused by getArtistsByGenre()
   // (genre pages) so genre browsing doesn't re-fetch the whole library
-  // on every request. TTL keeps it from going stale for too long; call
-  // clearArtistsCache() after actions that could change it sooner
-  // (e.g. a library rescan, or an artist being favourited).
+  // on every request. The TTL keeps it from going stale for too long.
 
   /**
    * @type {{data: Artist[], expiresAt: number}|null}
@@ -259,42 +238,4 @@ Object.defineProperty(API.prototype, 'sessionClient', {
  */
 API.prototype.isOwnQueueWriter = function(changedBy) {
   return !changedBy || changedBy === this.sessionClient || changedBy === this.clientName
-}
-
-// ---------------------------------------------------------------------------
-// Connectivity
-// ---------------------------------------------------------------------------
-
-/**
- * @returns {Promise<boolean>}
- */
-API.prototype.isOnline = async function() {
-  try {
-    var response = await this.fetch('rest/ping.view', {})
-
-    if (!response) {
-      return false
-    }
-
-    return response.status === 'ok'
-  } catch (err) {
-    if (err instanceof OfflineError) {
-      return false
-    }
-
-    return false
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Artist cache
-// ---------------------------------------------------------------------------
-
-// Call after anything that could change the artist list sooner than the
-// TTL would naturally expire it (library rescan, artist favourited, etc.)
-/**
- * @returns {void}
- */
-API.prototype.clearArtistsCache = function() {
-  this.artistsCache = null
 }

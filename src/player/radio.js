@@ -5,8 +5,10 @@
 
 import { defineStore } from 'pinia'
 import { nextTick } from 'vue'
+import { sampleSize } from 'lodash-es'
 import { appRouter } from '@/shared/router'
 import { useLoader } from '@/shared/loader'
+import { shuffled } from '@/shared/utils'
 import { usePlayerStore } from '@/player/store'
 
 /** Number of tracks a radio queues (initial queue and extensions). */
@@ -29,23 +31,17 @@ var RADIO_SIZE = 50
 async function collectArtistTracks(iterator, max) {
   var tracks = []
 
-  async function step() {
+  while (tracks.length < max) {
     var item = await iterator.next()
 
     if (item.done) {
-      return tracks
+      break
     }
 
     tracks = tracks.concat(item.value)
-
-    if (tracks.length >= max) {
-      return tracks
-    }
-
-    return step()
   }
 
-  return step()
+  return tracks
 }
 
 /**
@@ -88,44 +84,6 @@ export var useRadioStore = defineStore('radio', {
       return acc.concat(next.slice(0, remaining))
     },
 
-    /**
-     * Return a shuffled copy of a track list.
-     *
-     * @param {Track[]} tracks
-     * @returns {Track[]}
-     */
-    shuffleTracks: function(tracks) {
-      var copy = tracks.slice()
-
-      for (var i = copy.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1))
-        var temporary = copy[i]
-        copy[i] = copy[j]
-        copy[j] = temporary
-      }
-
-      return copy
-    },
-
-    /**
-     * Pick up to `count` random items from an array.
-     *
-     * @param {Array} arr
-     * @param {number} count
-     * @returns {Array}
-     */
-    pickRandom: function(arr, count) {
-      var copy = arr.slice()
-      var result = []
-
-      while (result.length < count && copy.length) {
-        var index = Math.floor(Math.random() * copy.length)
-        result.push(copy.splice(index, 1)[0])
-      }
-
-      return result
-    },
-
     // -----------------------------------------------------------------------
     // Core
     // -----------------------------------------------------------------------
@@ -139,34 +97,23 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     playRandomOrTracks: async function(options) {
-      var loader = useLoader()
       var playerStore = usePlayerStore()
       var shouldRoute = false
 
-      loader.showLoading()
-
-      try {
-        var tracks
+      await withLoader(this, async function() {
+        var tracks = []
 
         if (options.params) {
           tracks = await this.api.getRandomTracks(options.params)
         } else if (options.tracks) {
           tracks = options.tracks
-        } else {
-          tracks = []
         }
 
         if (tracks && tracks.length) {
-          var randomized = this.shuffleTracks(tracks)
-          await playerStore.playNow(randomized)
+          await playerStore.playNow(shuffled(tracks))
           shouldRoute = true
         }
-      } catch (error) {
-        loader.hideLoading()
-        throw error
-      }
-
-      loader.hideLoading()
+      })
 
       if (shouldRoute) {
         nextTick(function() {
@@ -297,21 +244,15 @@ export var useRadioStore = defineStore('radio', {
       var self = this
       var tracks = []
 
-      async function next(index) {
-        if (index >= albums.length || tracks.length >= RADIO_SIZE) {
-          return tracks
-        }
-
-        var album = await self.api.getAlbumDetails(albums[index].id)
+      for (var i = 0; i < albums.length && tracks.length < RADIO_SIZE; i++) {
+        var album = await self.api.getAlbumDetails(albums[i].id)
 
         if (album.tracks && album.tracks.length) {
           tracks = self.takeUpToX(tracks, album.tracks)
         }
-
-        return next(index + 1)
       }
 
-      return next(0)
+      return tracks
     },
 
     /**
@@ -323,7 +264,7 @@ export var useRadioStore = defineStore('radio', {
     shuffleAlbumSort: async function(sort) {
       await withLoader(this, async function() {
         var albums = await this.api.getAlbums(sort, 50)
-        var picked = this.pickRandom(albums, 10)
+        var picked = sampleSize(albums, 10)
         var tracks = await this.tracksFromAlbums(picked)
 
         if (tracks.length) {
@@ -359,7 +300,7 @@ export var useRadioStore = defineStore('radio', {
     shuffleFavouriteAlbums: async function() {
       await withLoader(this, async function() {
         var favourites = await this.api.getFavourites()
-        var picked = this.pickRandom(favourites.albums, 10)
+        var picked = sampleSize(favourites.albums, 10)
         var tracks = []
 
         if (picked.length) {
@@ -376,25 +317,17 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     shuffleFavouriteArtists: async function() {
+      var self = this
+
       await withLoader(this, async function() {
-        var self = this
-        var favourites = await this.api.getFavourites()
-        var artists = this.pickRandom(favourites.artists, 10)
+        var favourites = await self.api.getFavourites()
+        var artists = sampleSize(favourites.artists, 10)
         var tracks = []
 
-        if (artists.length) {
-          async function next(index) {
-            if (index >= artists.length || tracks.length >= RADIO_SIZE) {
-              return tracks
-            }
-
-            var iterator = self.api.getTracksByArtist(artists[index].id)
-            var artistTracks = await collectArtistTracks(iterator, 20)
-            tracks = tracks.concat(artistTracks.slice(0, 20))
-            return next(index + 1)
-          }
-
-          tracks = await next(0)
+        for (var i = 0; i < artists.length && tracks.length < RADIO_SIZE; i++) {
+          var iterator = self.api.getTracksByArtist(artists[i].id)
+          var artistTracks = await collectArtistTracks(iterator, 20)
+          tracks = tracks.concat(artistTracks.slice(0, 20))
         }
 
         var capped = tracks.slice(0, RADIO_SIZE)
@@ -409,27 +342,20 @@ export var useRadioStore = defineStore('radio', {
      * @returns {Promise<void>}
      */
     shufflePlaylists: async function() {
+      var self = this
+
       await withLoader(this, async function() {
-        var self = this
-        var playlists = await this.api.getPlaylists()
+        var playlists = await self.api.getPlaylists()
         var selected = playlists.slice(0, 5)
         var tracks = []
 
-        async function next(index) {
-          if (index >= selected.length || tracks.length >= RADIO_SIZE) {
-            return tracks
-          }
-
-          var playlist = await self.api.getPlaylist(selected[index].id)
+        for (var i = 0; i < selected.length && tracks.length < RADIO_SIZE; i++) {
+          var playlist = await self.api.getPlaylist(selected[i].id)
 
           if (playlist.tracks && playlist.tracks.length) {
             tracks = self.takeUpToX(tracks, playlist.tracks)
           }
-
-          return next(index + 1)
         }
-
-        tracks = await next(0)
 
         if (tracks.length) {
           await self.playRandomOrTracks({ tracks: tracks })

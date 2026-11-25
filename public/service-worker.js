@@ -310,21 +310,3 @@ async function maybeTrimCache(cacheName, maxEntries) {
   }
 
 }
-
-/* -------------------------------------------------- */
-/* MESSAGES                                           */
-/* -------------------------------------------------- */
-
-self.addEventListener('message', event => {
-
-  const { action } = event.data || {}
-
-  if (action === 'CLEAR_RUNTIME_CACHE') {
-    event.waitUntil(caches.delete(RUNTIME_CACHE))
-  }
-
-  if (action === 'CLEAR_IMAGE_CACHE') {
-    event.waitUntil(caches.delete(IMAGE_CACHE))
-  }
-
-})

@@ -29,15 +29,6 @@ var ownsQueue = false
 var pollTimer = undefined
 var claimPromise = null
 
-/**
- * True when this device owns the server queue.
- *
- * @returns {boolean}
- */
-export function ownsSession() {
-  return ownsQueue
-}
-
 // ---------------------------------------------------------------------------
 // Lifecycle (called from audio events)
 // ---------------------------------------------------------------------------
@@ -73,6 +64,27 @@ export async function claimSession() {
 }
 
 /**
+ * Mark this device as the queue owner and start takeover detection.
+ *
+ * @param {Object} player
+ * @param {boolean} [onlyWhenPlaying] Skip polling while playback is paused.
+ * @returns {void}
+ */
+function markOwner(player, onlyWhenPlaying) {
+  ownsQueue = true
+
+  if (!player.singleSession) {
+    return
+  }
+
+  if (onlyWhenPlaying && !player.isPlaying) {
+    return
+  }
+
+  schedulePoll()
+}
+
+/**
  * Try to write the queue a few times with a short backoff.
  *
  * @returns {Promise<void>}
@@ -88,12 +100,7 @@ async function claimWithRetry() {
     }
 
     if (await writeQueue()) {
-      ownsQueue = true
-
-      if (usePlayerStore().singleSession) {
-        schedulePoll()
-      }
-
+      markOwner(usePlayerStore())
       return
     }
   }
@@ -198,12 +205,7 @@ async function ensureOwnership(player) {
   var queue = await player.api.getPlayQueue()
 
   if (player.api.isOwnQueueWriter(queue.changedBy)) {
-    ownsQueue = true
-
-    if (player.isPlaying) {
-      schedulePoll()
-    }
-
+    markOwner(player, true)
     return true
   }
 
@@ -213,12 +215,7 @@ async function ensureOwnership(player) {
     // The server still names an older client, but its write is stale. Claim
     // the queue again instead of pausing on an old session.
     console.info('[session] ignoring stale queue from ' + queue.changedBy)
-    ownsQueue = true
-
-    if (player.isPlaying) {
-      schedulePoll()
-    }
-
+    markOwner(player, true)
     await writeQueue()
     return true
   }

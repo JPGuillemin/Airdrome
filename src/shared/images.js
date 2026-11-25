@@ -2,11 +2,11 @@
 //
 // Cover-art URL resolver. On the web, cached images are handled by the Cache
 // API and URLs stay untouched. On Android, cover art is written to the native
-// filesystem and this reactive map swaps the remote URL for a WebView-loadable
+// filesystem and this map swaps the remote URL for a WebView-loadable
 // `_capacitor_file_` URL. Components call resolveImage() when rendering, so a
 // newly cached image updates automatically.
 
-import { reactive } from 'vue'
+import { useStorage } from '@vueuse/core'
 import { Capacitor } from '@capacitor/core'
 import { isNative } from '@/shared/platform'
 
@@ -16,43 +16,7 @@ var STORAGE_KEY = 'imageCacheMap'
  * Remote URL -> cached WebView URL. Persisted in localStorage so the mapping
  * survives an app restart (the Capacitor data directory path is stable).
  */
-var imageMap = reactive(readMap())
-
-var saveTimer = null
-
-function readMap() {
-  try {
-    var raw = localStorage.getItem(STORAGE_KEY)
-
-    if (raw) {
-      var parsed = JSON.parse(raw)
-
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed
-      }
-    }
-  } catch (error) {
-    // Corrupt entry: start from scratch.
-  }
-
-  return {}
-}
-
-function scheduleSave() {
-  if (saveTimer) {
-    return
-  }
-
-  saveTimer = window.setTimeout(function() {
-    saveTimer = null
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(imageMap))
-    } catch (error) {
-      // Storage full: the mapping is only an optimisation.
-    }
-  }, 400)
-}
+var imageMap = useStorage(STORAGE_KEY, {}, undefined, { writeDefaults: false })
 
 /**
  * Return the cached URL for an image when one exists, else the original.
@@ -65,7 +29,7 @@ export function resolveImage(url) {
     return url
   }
 
-  return imageMap[url] || url
+  return imageMap.value[url] || url
 }
 
 /**
@@ -80,38 +44,12 @@ export function rememberImage(url, cachedUrl) {
     return
   }
 
-  imageMap[url] = cachedUrl
-  scheduleSave()
-}
-
-/**
- * Forget one cached image.
- *
- * @param {string} url
- * @returns {void}
- */
-export function forgetImage(url) {
-  if (!url || !imageMap[url]) {
-    return
-  }
-
-  delete imageMap[url]
-  scheduleSave()
+  imageMap.value[url] = cachedUrl
 }
 
 /** Forget every cached image mapping. */
 export function clearImageMap() {
-  var keys = Object.keys(imageMap)
-
-  for (var i = 0; i < keys.length; i++) {
-    delete imageMap[keys[i]]
-  }
-
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch (error) {
-    // ignore
-  }
+  imageMap.value = {}
 }
 
 /**
@@ -120,7 +58,7 @@ export function clearImageMap() {
  * @returns {number}
  */
 export function imageMapSize() {
-  return Object.keys(imageMap).length
+  return Object.keys(imageMap.value).length
 }
 
 /**

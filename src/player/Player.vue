@@ -152,19 +152,12 @@
                     <Icon :icon="favouriteIcon" />
                   </b-button>
 
-                  <b-button
-                    v-longpress-tooltip
+                  <ReplayGainButton
                     v-if="track && track.replayGain"
                     title="R.Gain"
-                    variant="transparent"
-                    class="m-0"
-                    :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
-                    @click.stop="toggleReplayGain"
-                  >
-                    <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
-                    <Icon icon="music-note" color="var(--bs-primary)" v-else-if="replayGainMode === ReplayGainMode.Track" />
-                    <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
-                  </b-button>
+                    :mode="replayGainMode"
+                    @toggle="toggleReplayGain"
+                  />
                 </div>
 
                 <!-- overflow menu MUST NOT be clipped -->
@@ -209,18 +202,12 @@
                   </div>
 
                   <div v-if="track && track.replayGain" class="d-flex justify-content-center d-md-none px-3 py-1 on-top">
-                    <b-button
-                      v-longpress-tooltip
+                    <ReplayGainButton
                       title="ReplayGain"
-                      variant="transparent"
-                      class="m-0 px-2 py-0"
-                      :class="{ 'theme-primary': replayGainMode !== ReplayGainMode.None }"
-                      @click.stop="toggleReplayGain"
-                    >
-                      <IconReplayGain v-if="replayGainMode === ReplayGainMode.None" />
-                      <Icon icon="music-note" color="var(--bs-primary)" v-else-if="replayGainMode === ReplayGainMode.Track" />
-                      <Icon icon="music-notes-beamed" color="var(--bs-primary)" v-else />
-                    </b-button>
+                      :mode="replayGainMode"
+                      button-class="m-0 px-2 py-0"
+                      @toggle="toggleReplayGain"
+                    />
                   </div>
                   <div class="d-flex justify-content-center d-md-none px-3 py-1 on-top">
                     <b-button
@@ -280,21 +267,21 @@
 
 <script>
   import { defineComponent, watch, ref, computed, onBeforeUnmount } from 'vue'
-  import { ReplayGainMode } from './engine'
+  import { isTouchDevice } from '@/shared/platform'
   import { resolveImage } from '@/shared/images'
   import { useFavouriteStore } from '@/library/favourite/store'
   import { usePlayerStore } from '@/player/store'
-  import IconReplayGain from '@/shared/components/IconReplayGain.vue'
+  import ReplayGainButton from '@/player/ReplayGainButton.vue'
   import Slider from '@vueform/slider'
   import '@vueform/slider/themes/default.css'
-  import { formatDuration } from '@/shared/utils'
+  import { formatArtists, formatDuration } from '@/shared/utils'
   import { useRouter, useRoute } from 'vue-router'
   import TrackInfoDialog from '@/player/TrackInfoDialog.vue'
 
   export default defineComponent({
     name: 'Player',
     components: {
-      IconReplayGain: IconReplayGain,
+      ReplayGainButton: ReplayGainButton,
       Slider: Slider,
       TrackInfoDialog: TrackInfoDialog,
     },
@@ -344,7 +331,7 @@
         return playerStore.replayGainMode
       })
 
-      var isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
+      var isMobile = isTouchDevice
 
       // Album cover hover preview
       var coverEl = ref(null)
@@ -444,9 +431,7 @@
           album = track.value.album
 
           if (track.value.artists) {
-            artist = track.value.artists.map(function (item) {
-              return item.name
-            }).join(', ')
+            artist = formatArtists(track.value.artists)
           }
         }
 
@@ -732,7 +717,6 @@
       })
 
       return {
-        ReplayGainMode: ReplayGainMode,
         playerStore: playerStore,
         sliderValue: sliderValue,
         dragging: dragging,

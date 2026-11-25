@@ -22,6 +22,16 @@
 
 set -euo pipefail
 
+# Building as root leaves root-owned files in dist/ and the Android assets,
+# which then breaks every normal-user build. Allow it only explicitly (for a
+# disposable container, for example).
+if [ "$(id -u)" -eq 0 ] && [ "${ALLOW_ROOT_BUILD:-0}" != "1" ]; then
+  echo "Refusing to run as root: it would leave root-owned build files." >&2
+  echo "Run ./build-apk.sh as your normal user, or set ALLOW_ROOT_BUILD=1" >&2
+  echo "if this really is a disposable root-only environment." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -51,9 +61,10 @@ if [ -f "$SCRIPT_DIR/android/app/airdrome-release.keystore" ] &&
   exit 1
 fi
 
-if [ ! -x "$JAVA_HOME/bin/java" ]; then
-  echo "JAVA_HOME does not point to a JDK: $JAVA_HOME" >&2
-  echo "Set JAVA_HOME to a JDK 21 installation." >&2
+if [ ! -x "$JAVA_HOME/bin/java" ] || ! "$JAVA_HOME/bin/java" -version >/dev/null 2>&1; then
+  echo "JAVA_HOME does not point to a working JDK: $JAVA_HOME" >&2
+  echo "Set JAVA_HOME to a complete JDK 21 installation." >&2
+  echo "A common cause is a partially extracted archive (missing lib/libjli.so)." >&2
   exit 1
 fi
 
@@ -72,6 +83,21 @@ VERSION_CODE="${VERSION_CODE:-1}"
 echo "Airdrome Capacitor Android build"
 echo "  version: $VERSION ($VERSION_CODE)"
 echo "  app:     $APP_NAME"
+
+# ---------------------------------------------------------------------------
+# 0. Refuse to build on top of root-owned leftovers
+# ---------------------------------------------------------------------------
+
+ROOT_OWNED="$(find dist android/app/src/main/assets \
+  android/capacitor-cordova-android-plugins android/app/build \
+  -user root -print -quit 2>/dev/null || true)"
+
+if [ -n "$ROOT_OWNED" ]; then
+  echo "Root-owned build files found (for example: $ROOT_OWNED)." >&2
+  echo "Fix them once, then rerun this script as your normal user:" >&2
+  echo "  sudo chown -R $(id -un):$(id -gn) dist android/app/src/main/assets android/capacitor-cordova-android-plugins android/app/build" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # 1. Build the PWA bundle (also the Capacitor webDir)
@@ -107,6 +133,10 @@ echo "==> Syncing Capacitor Android project"
 # subsequent build.
 rm -f dist/*.apk dist/*.aab
 rm -f android/app/src/main/assets/public/*.apk android/app/src/main/assets/public/*.aab
+
+# Stale quarantined asset folders would otherwise be packaged into the APK.
+rm -rf android/app/src/main/assets/public-old*
+rm -rf android/app/src/main/assets/.public-root-owned*
 
 npx cap sync android
 

@@ -6,7 +6,6 @@
 
 import {
   API,
-  useApi,
   createApi,
   OfflineError,
   UnsupportedOperationError,
@@ -152,7 +151,6 @@ Object.assign(
 
 export {
   API,
-  useApi,
   createApi,
   OfflineError,
   UnsupportedOperationError,

@@ -5,7 +5,7 @@
 // async/await instead of promise chains.
 
 import { orderBy } from 'lodash-es'
-import { toQueryString } from '@/shared/utils'
+import { shuffled, toQueryString } from '@/shared/utils'
 import { OfflineError } from './client'
 
 export var libraryMethods = {
@@ -76,15 +76,7 @@ export var libraryMethods = {
       return albums
     }
 
-    // Fisher-Yates shuffle (in-place)
-    for (var i = albums.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1))
-      var temporary = albums[i]
-      albums[i] = albums[j]
-      albums[j] = temporary
-    }
-
-    return albums
+    return shuffled(albums)
   },
 
   /**

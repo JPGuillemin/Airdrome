@@ -1,5 +1,7 @@
 // tooltips.js
 
+import { isTouchDevice } from '@/shared/platform'
+
 /**
  * Long-press (mobile) / press (desktop) tooltip directive.
  *
@@ -67,10 +69,8 @@ export var longPressTooltip = {
 
       var tipRect = tip.getBoundingClientRect()
 
-      var isMobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
-
       // MOBILE: place tooltip BELOW the element so it won't sit under finger
-      if (isMobile) {
+      if (isTouchDevice) {
         tip.style.top = (rect.bottom + 14) + 'px'
       } else {
         // DESKTOP: above element
@@ -89,12 +89,12 @@ export var longPressTooltip = {
       }
 
       // If mobile bottom placement overflows, move above instead
-      if (isMobile && finalRect.bottom > window.innerHeight - 8) {
+      if (isTouchDevice && finalRect.bottom > window.innerHeight - 8) {
         tip.style.top = (rect.top - finalRect.height - 12) + 'px'
       }
 
       // If desktop top placement overflows, move below instead
-      if (!isMobile && finalRect.top < 8) {
+      if (!isTouchDevice && finalRect.top < 8) {
         tip.style.top = (rect.bottom + 14) + 'px'
       }
 

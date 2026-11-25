@@ -18,7 +18,11 @@ import {
   ReplayGainMode,
   isAndroid
 } from '@/player/engine'
-import { nativeMediaSession } from '@/player/nativeMediaSession'
+import {
+  setMediaSessionMetadata,
+  setMediaSessionPosition,
+  setMediaSessionState
+} from '@/player/mediaSession'
 import { saveSession, releaseSession } from './session'
 
 // ---------------------------------------------------------------------------
@@ -33,9 +37,6 @@ localStorage.removeItem('queueIndex')
 // Module-level singletons
 // ---------------------------------------------------------------------------
 
-/** Browser MediaSession API (undefined on unsupported browsers). */
-var mediaSession = navigator.mediaSession
-
 /**
  * How many upcoming tracks are described to the native player. A larger
  * window lets background playback continue when the WebView is suspended.
@@ -48,8 +49,21 @@ var NATIVE_WINDOW_AHEAD = 10
  */
 var extending = null
 
-// MediaSession requires a non-zero playback rate; 1 = normal speed.
-var mediaSessionProgressRate = 1
+/**
+ * Queue offsets described to the native player: the previous track and the
+ * next NATIVE_WINDOW_AHEAD tracks.
+ *
+ * @returns {number[]}
+ */
+function windowOffsets() {
+  var offsets = [-1]
+
+  for (var i = 0; i <= NATIVE_WINDOW_AHEAD; i++) {
+    offsets.push(i)
+  }
+
+  return offsets
+}
 
 /**
  * @typedef {import('@/shared/api').Track} Track
@@ -78,6 +92,31 @@ async function extendRadioQueue(track) {
 
   extending = null
   return result
+}
+
+/**
+ * Move to another queue index and load it, with the transition guard and the
+ * post-load MediaSession refresh shared by next() and back().
+ *
+ * @param {Object} store
+ * @param {number} index
+ * @param {boolean} fade
+ * @returns {Promise<void>}
+ */
+async function changeTrack(store, index, fade) {
+  store.inTransition = true
+  store.setQueueIndex(index)
+
+  try {
+    await store.loadTrack({ fade: fade })
+    store.inTransition = false
+    await sleep(200)
+    store.setMediaSessionPosition()
+    store.setMediaSessionState()
+  } catch (error) {
+    store.inTransition = false
+    throw error
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -182,11 +221,7 @@ export var usePlayerStore = defineStore('player', {
     windowKey: function() {
       var queue = this.queue || []
       var values = [this.queueIndex, this.repeat, this.replayGainMode]
-      var offsets = [-1]
-
-      for (var k = 0; k <= NATIVE_WINDOW_AHEAD; k++) {
-        offsets.push(k)
-      }
+      var offsets = windowOffsets()
 
       for (var i = 0; i < offsets.length; i++) {
         var track = queue[this.queueIndex + offsets[i]]
@@ -203,15 +238,6 @@ export var usePlayerStore = defineStore('player', {
       }
 
       return null
-    },
-
-    /** Current playback position clamped to [0, duration]. */
-    progress: function() {
-      if (this.duration > 0) {
-        return Math.min(this.currentTime, this.duration)
-      }
-
-      return 0
     },
 
     /** True when there is at least one more track after the current one. */
@@ -416,13 +442,9 @@ export var usePlayerStore = defineStore('player', {
 
       var queue = this.queue
       var count = queue.length
-      var offsets = [-1]
+      var offsets = windowOffsets()
       var indexes = []
       var seen = new Set()
-
-      for (var k = 0; k <= NATIVE_WINDOW_AHEAD; k++) {
-        offsets.push(k)
-      }
 
       for (var i = 0; i < offsets.length; i++) {
         var index = this.queueIndex + offsets[i]
@@ -509,23 +531,8 @@ export var usePlayerStore = defineStore('player', {
      * @returns {Promise<void>}
      */
     next: async function(fade) {
-      var useFade = fade !== false
-
       if (this.hasNext || this.repeat) {
-        this.inTransition = true
-        this.setQueueIndex(this.queueIndex + 1)
-
-        try {
-          await this.loadTrack({ fade: useFade })
-          this.inTransition = false
-          await sleep(200)
-          this.setMediaSessionPosition()
-          this.setMediaSessionState()
-        } catch (error) {
-          this.inTransition = false
-          throw error
-        }
-
+        await changeTrack(this, this.queueIndex + 1, fade !== false)
         return
       }
 
@@ -542,19 +549,7 @@ export var usePlayerStore = defineStore('player', {
         return this.seek(0)
       }
 
-      this.inTransition = true
-      this.setQueueIndex(this.queueIndex - 1)
-
-      try {
-        await this.loadTrack({ fade: true })
-        this.inTransition = false
-        await sleep(200)
-        this.setMediaSessionPosition()
-        this.setMediaSessionState()
-      } catch (error) {
-        this.inTransition = false
-        throw error
-      }
+      await changeTrack(this, this.queueIndex - 1, true)
     },
 
     /**
@@ -655,53 +650,10 @@ export var usePlayerStore = defineStore('player', {
      * @returns {void}
      */
     setMediaSessionPosition: function(duration, position) {
-      var total = this.duration
-      var current = this.currentTime
+      var total = duration != null ? duration : this.duration
+      var current = position != null ? position : this.currentTime
 
-      if (duration != null) {
-        total = duration
-      }
-
-      if (position != null) {
-        current = position
-      }
-
-      // The spec requires a finite, strictly positive duration and a
-      // position within [0, duration].
-      if (!isFinite(total) || total <= 0) {
-        return
-      }
-
-      if (!isFinite(current) || current < 0) {
-        current = 0
-      }
-
-      current = Math.min(current, total)
-
-      if (isAndroid) {
-        nativeMediaSession.setPlaybackState({
-          state: this.isPlaying ? 'playing' : 'paused',
-          position: current,
-          speed: mediaSessionProgressRate
-        }).catch(function(error) {
-          console.warn('[MediaSession] native position failed', error)
-        })
-        return
-      }
-
-      if (!navigator.mediaSession) {
-        return
-      }
-
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: total,
-          playbackRate: mediaSessionProgressRate,
-          position: current
-        })
-      } catch (error) {
-        console.warn('[MediaSession] setPositionState failed', error)
-      }
+      setMediaSessionPosition(total, current, this.isPlaying)
     },
 
     /**
@@ -711,30 +663,9 @@ export var usePlayerStore = defineStore('player', {
      * @returns {void}
      */
     setMediaSessionState: function(state) {
-      var value = state
+      var value = state || (this.isPlaying ? 'playing' : 'paused')
 
-      if (!value) {
-        if (this.isPlaying) {
-          value = 'playing'
-        } else {
-          value = 'paused'
-        }
-      }
-
-      if (isAndroid) {
-        nativeMediaSession.setPlaybackState({
-          state: value,
-          position: this.currentTime,
-          speed: mediaSessionProgressRate
-        }).catch(function(error) {
-          console.warn('[MediaSession] native state failed', error)
-        })
-        return
-      }
-
-      if (navigator.mediaSession) {
-        navigator.mediaSession.playbackState = value
-      }
+      setMediaSessionState(value, this.currentTime)
     },
 
     /**
@@ -754,17 +685,7 @@ export var usePlayerStore = defineStore('player', {
         return
       }
 
-      var list = tracks
-
-      if (this.shuffle) {
-        list = shuffled(tracks)
-      }
-
-      if (this.queue) {
-        this.queue.push.apply(this.queue, list)
-      }
-
-      this.saveQueue()
+      this.appendTracks(this.shuffle ? shuffled(tracks) : tracks)
     },
 
     /**
@@ -884,7 +805,7 @@ export var usePlayerStore = defineStore('player', {
     },
 
     /**
-     * Set master volume and persist it.
+     * Set master volume.
      *
      * @param {number} volume
      * @returns {void}
@@ -892,7 +813,6 @@ export var usePlayerStore = defineStore('player', {
     setVolume: function(volume) {
       audio.setVolume(volume)
       this.volume = volume
-      localStorage.setItem('player.volume', String(volume))
     },
 
     /**
@@ -974,43 +894,12 @@ export var usePlayerStore = defineStore('player', {
         album = track.album
       }
 
-      var trackImage = track.image || null
-
-      if (isAndroid) {
-        nativeMediaSession.setMetadata({
-          title: title,
-          artist: artist,
-          album: album,
-          artworkUrl: trackImage,
-          duration: this.duration || track.duration || 0
-        }).catch(function(error) {
-          console.warn('[MediaSession] native metadata failed', error)
-        })
-        return
-      }
-
-      if (!mediaSession) {
-        return
-      }
-
-      var artwork = []
-
-      if (trackImage) {
-        artwork.push(
-          { src: trackImage, sizes: '96x96', type: 'image/png' },
-          { src: trackImage, sizes: '128x128', type: 'image/png' },
-          { src: trackImage, sizes: '192x192', type: 'image/png' },
-          { src: trackImage, sizes: '256x256', type: 'image/png' },
-          { src: trackImage, sizes: '384x384', type: 'image/png' },
-          { src: trackImage, sizes: '512x512', type: 'image/png' }
-        )
-      }
-
-      navigator.mediaSession.metadata = new MediaMetadata({
+      setMediaSessionMetadata({
         title: title,
         artist: artist,
         album: album,
-        artwork: artwork
+        artworkUrl: track.image || null,
+        duration: this.duration || track.duration || 0
       })
     },
 

@@ -10,8 +10,9 @@ export var queueMethods = {
    * @returns {Promise<PlayQueue>}
    */
   getPlayQueue: async function() {
-    // `_` makes every URL unique so no HTTP cache or service worker can serve a stale queue
-    var response = await this.fetch('rest/getPlayQueue', { _: Date.now() })
+    // fetch() already appends a unique `_` parameter, so no HTTP cache or
+    // service worker can answer with a stale queue.
+    var response = await this.fetch('rest/getPlayQueue', {})
     var playQueue = response.playQueue
     var entries = []
 

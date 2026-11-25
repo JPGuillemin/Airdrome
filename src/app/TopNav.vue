@@ -294,7 +294,7 @@
             scanning = await api.getScanStatus()
 
             if (imageCacheEnabled.value) {
-              runImageCache()
+              cacheAllImages()
             }
           } while (scanning)
 
@@ -430,15 +430,6 @@
       var imageCacheEnabled = ref(localStorage.getItem('imageCacheEnabled') === 'true')
 
       /**
-       * Run the image cache pass.
-       *
-       * @returns {Promise<void>}
-       */
-      async function runImageCache() {
-        await cacheAllImages()
-      }
-
-      /**
        * Delay the initial image cache pass so startup stays responsive.
        *
        * @returns {Promise<void>}
@@ -458,7 +449,7 @@
         localStorage.setItem('imageCacheEnabled', String(imageCacheEnabled.value))
 
         if (imageCacheEnabled.value) {
-          runImageCache()
+          cacheAllImages()
         } else {
           await cacheStore.clearImageCache()
         }

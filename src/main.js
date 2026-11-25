@@ -8,8 +8,6 @@
 import '@/shared/debugLog'
 
 import { createApp, markRaw, watch } from 'vue'
-import { StatusBar, Style } from '@capacitor/status-bar'
-import { SplashScreen } from '@capacitor/splash-screen'
 import AppComponent from '@/app/App.vue'
 import { components } from '@/shared/components'
 import { setupRouter } from '@/shared/router'
@@ -32,6 +30,12 @@ import { longPressTooltip } from '@/shared/tooltips'
 import { applyTheme } from '@/shared/theme'
 import { initNetwork } from '@/shared/network'
 import { isAndroid } from '@/shared/platform'
+import {
+  setupNativeShell,
+  cleanupNativeServiceWorker,
+  setupAndroidBackButton,
+  reloadIfBridgeArrivedLate
+} from '@/shared/nativeShell'
 
 var auth = createAuth()
 
@@ -123,7 +127,6 @@ function watchLogin(mainStore, playerStore, pinia) {
  * @returns {void}
  */
 function registerTheme(app) {
-  app.config.globalProperties.$themeColors = THEME_COLORS
   app.provide('themeColors', THEME_COLORS)
 }
 
@@ -143,44 +146,13 @@ function registerComponents(app) {
 }
 
 /**
- * Register the service worker and listen for update notifications.
+ * Register the service worker (web) or remove any stale one (native shell).
  *
  * @returns {Promise<void>}
  */
 async function setupServiceWorker() {
-  // The native shell serves the app from the local Capacitor WebView; a
-  // service worker would only add a second, stale copy of the shell. Remove
-  // any worker/cache left by an older build so the APK always runs its own
-  // bundled JS (and therefore the native ExoPlayer engine).
   if (isAndroid) {
-    if (!('serviceWorker' in navigator)) {
-      return
-    }
-
-    try {
-      var registrations = await navigator.serviceWorker.getRegistrations()
-
-      await Promise.all(registrations.map(function(registration) {
-        return registration.unregister()
-      }))
-
-      if (window.caches) {
-        var cacheKeys = await caches.keys()
-
-        await Promise.all(cacheKeys.map(function(key) {
-          return caches.delete(key)
-        }))
-      }
-
-      if (navigator.serviceWorker.controller &&
-          !sessionStorage.getItem('native-sw-cleared')) {
-        sessionStorage.setItem('native-sw-cleared', '1')
-        window.location.reload()
-      }
-    } catch (error) {
-      console.warn('Native service worker cleanup failed', error)
-    }
-
+    await cleanupNativeServiceWorker()
     return
   }
 
@@ -191,14 +163,6 @@ async function setupServiceWorker() {
 
   navigator.serviceWorker.register(APP_BASE + 'service-worker.js', {
     scope: APP_BASE
-  })
-
-  navigator.serviceWorker.addEventListener('message', function(event) {
-    var data = event.data
-
-    if (data && data.type === 'UPDATE_READY') {
-      console.info('New version available')
-    }
   })
 }
 
@@ -224,11 +188,8 @@ async function bootstrapApp() {
 
   app.use(router)
   app.use(auth)
-  app.use(context.api)
   app.provide('$api', context.api)
   app.use(createBootstrap())
-
-  app.config.globalProperties.$auth = auth
 
   registerTheme(app)
   app.directive('wheel-scroll', wheelScroll)
@@ -242,34 +203,15 @@ async function bootstrapApp() {
   }
 
   void setupServiceWorker()
+  setupAndroidBackButton(router)
 
-  // Safety net for a native bridge injected slightly after the JS bundle:
-  // reload once so engine selection can pick ExoPlayer instead of Web Audio.
-  if (!isAndroid && typeof window !== 'undefined' &&
-      (window.androidBridge ||
-       (window.Capacitor &&
-        typeof window.Capacitor.isNativePlatform === 'function' &&
-        window.Capacitor.isNativePlatform())) &&
-      !sessionStorage.getItem('native-engine-reload')) {
-    sessionStorage.setItem('native-engine-reload', '1')
-    window.location.reload()
+  // A native bridge injected after startup means Web Audio was selected;
+  // reload once so the engine can switch to ExoPlayer.
+  if (reloadIfBridgeArrivedLate()) {
     return
   }
 
-  if (isAndroid) {
-    try {
-      await StatusBar.setStyle({ style: Style.Dark })
-      await StatusBar.setBackgroundColor({ color: '#09090b' })
-    } catch (error) {
-      console.warn('Status bar setup failed', error)
-    }
-
-    try {
-      await SplashScreen.hide()
-    } catch (error) {
-      console.warn('Splash screen hide failed', error)
-    }
-  }
+  await setupNativeShell()
 }
 
 document.addEventListener('contextmenu', function(event) {

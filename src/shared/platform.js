@@ -19,3 +19,11 @@ export var isAndroid = isNative &&
 
 /** True in a normal browser or installed PWA. */
 export var isWeb = !isNative
+
+/**
+ * True on phones/tablets (coarse pointer + touch). Used to pick hover vs
+ * long-press interactions without repeating the media query everywhere.
+ */
+export var isTouchDevice = typeof matchMedia === 'function' &&
+  matchMedia('(pointer: coarse)').matches &&
+  navigator.maxTouchPoints > 0
