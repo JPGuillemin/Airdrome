@@ -1,11 +1,19 @@
 .DS_Store
 node_modules
 /dist
+/dist-old-*
+/public-old*
+/dist-old-root-owned
+*-root-owned*/
+/root-owned-leftovers/
+/artifacts
 *.apk
+*.aab
 
 # local env files
 .env.local
 .env.*.local
+.android-signing.env
 
 # Log files
 npm-debug.log*
