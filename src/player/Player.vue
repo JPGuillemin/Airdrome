@@ -28,6 +28,10 @@
             @mouseenter="focusSlider"
             @mouseleave="blurSlider"
             @click="onSliderClick($event)"
+            @touchstart.passive="onSliderTouchStart"
+            @touchmove.passive="onSliderTouchMove"
+            @touchend="onSliderTouchEnd"
+            @touchcancel="onSliderTouchEnd"
           >
             <Slider
               ref="progressSlider"
@@ -303,6 +307,11 @@
       var INFO_LONG_PRESS_MS = 500
       var INFO_MOVE_TOLERANCE = 8
 
+      var sliderPressTimer = null
+      var sliderPressStart = { x: 0, y: 0 }
+      var sliderLongPressFired = false
+      var sliderLongPressUntil = 0
+
       watch(
         function () {
           return playerStore.currentTime
@@ -533,7 +542,78 @@
         dragging.value = false
       }
 
+      function clearSliderPress() {
+        if (sliderPressTimer) {
+          clearTimeout(sliderPressTimer)
+          sliderPressTimer = null
+        }
+      }
+
+      function resetSliderPress() {
+        sliderLongPressFired = false
+        sliderLongPressUntil = 0
+      }
+
+      function sliderPressSuppressed() {
+        return sliderLongPressFired || Date.now() < sliderLongPressUntil
+      }
+
+      function onSliderTouchStart(event) {
+        resetSliderPress()
+        clearSliderPress()
+
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
+        sliderPressStart = { x: touch.clientX, y: touch.clientY }
+
+        sliderPressTimer = window.setTimeout(function () {
+          sliderPressTimer = null
+          sliderLongPressFired = true
+          showProgressTooltip()
+        }, INFO_LONG_PRESS_MS)
+      }
+
+      function onSliderTouchMove(event) {
+        if (!sliderPressTimer) {
+          return
+        }
+
+        var touch = event.touches[0]
+
+        if (!touch) {
+          return
+        }
+
+        if (
+          Math.abs(touch.clientX - sliderPressStart.x) > INFO_MOVE_TOLERANCE ||
+          Math.abs(touch.clientY - sliderPressStart.y) > INFO_MOVE_TOLERANCE
+        ) {
+          clearSliderPress()
+          resetSliderPress()
+        }
+      }
+
+      function onSliderTouchEnd() {
+        clearSliderPress()
+
+        // Suppress the click/change that follows a long press so it only
+        // shows the tooltip and does not seek.
+        if (sliderLongPressFired) {
+          sliderLongPressFired = false
+          sliderLongPressUntil = Date.now() + 800
+        }
+      }
+
       function onSliderUpdate(value) {
+        if (sliderPressSuppressed()) {
+          dragging.value = false
+          return
+        }
+
         playerStore.seek(value)
         dragging.value = false
       }
@@ -543,6 +623,13 @@
       }
 
       function onSliderClick(event) {
+        if (sliderPressSuppressed()) {
+          resetSliderPress()
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+
         var sliderElement = null
 
         if (progressSlider.value) {
@@ -589,7 +676,7 @@
         }
 
         return !!target.closest(
-          'button, a, input, textarea, select, .playback-slider, .volume-slider, .overflow-menu-wrap, .slider-click-zone, .btn-close'
+          'button, input, textarea, select, .playback-slider, .volume-slider, .overflow-menu-wrap, .slider-click-zone, .btn-close'
         )
       }
 
@@ -714,6 +801,7 @@
 
         clearPreviewTimer()
         clearInfoPress()
+        clearSliderPress()
       })
 
       return {
@@ -749,6 +837,9 @@
         onAlbumClick: onAlbumClick,
         onSliderDragStart: onSliderDragStart,
         onSliderDragEnd: onSliderDragEnd,
+        onSliderTouchStart: onSliderTouchStart,
+        onSliderTouchMove: onSliderTouchMove,
+        onSliderTouchEnd: onSliderTouchEnd,
         onSliderUpdate: onSliderUpdate,
         onSliderClick: onSliderClick,
         formatter: formatter,
@@ -910,6 +1001,10 @@
     border: 1px solid var(--theme-border);
     box-shadow: var(--theme-shadow-2);
     overflow: hidden;
+    /* Long-press opens track info instead of selecting text. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   /* Progress slider

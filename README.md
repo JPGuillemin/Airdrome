@@ -48,6 +48,8 @@ $ ./build.sh
 ```
 
 Bundle can be found in the `dist` folder. This script never needs root.
+`./sync.sh` deliberately does not copy `dist/`; each host builds it with
+`./build.sh`.
 
 ## Build and run the local Docker container
 
