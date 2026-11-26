@@ -15,7 +15,7 @@ import { useMainStore } from '@/shared/store'
 import { createApi } from '@/shared/api'
 import { createAuth } from '@/auth/service'
 import { usePlayerStore } from './player/store'
-import { setupAudio } from './player/setupAudio'
+import { setupPlayerLifecycle } from './player/lifecycle'
 import { createPinia } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
@@ -104,7 +104,7 @@ function watchLogin(mainStore, playerStore, pinia) {
       audioInitialized = true
 
       try {
-        await setupAudio(playerStore, mainStore)
+        await setupPlayerLifecycle(playerStore, mainStore)
         await Promise.all([
           useFavouriteStore(pinia).load(),
           usePlaylistStore(pinia).load(),

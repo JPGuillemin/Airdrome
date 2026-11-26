@@ -14,16 +14,14 @@ import {
 } from '@/shared/utils'
 import {
   audio,
+  platform,
   storedReplayGainMode,
   ReplayGainMode,
-  isAndroid
-} from '@/player/engine'
-import {
   setMediaSessionMetadata,
   setMediaSessionPosition,
   setMediaSessionState
-} from '@/player/platformPlayback'
-import { saveSession, releaseSession } from './session'
+} from '@/player/engine'
+import { saveSession, releaseSession } from './lifecycle'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -329,11 +327,9 @@ export var usePlayerStore = defineStore('player', {
 
       await audio.loadTrack(loadOptions)
 
-      if (isAndroid) {
-        // The window was pushed before the load, while the old track was still
-        // active. Re-push it now so native's cursor points at the new track.
-        this.syncWindow()
-      }
+      // Native needs its queue window re-pushed after a load; the engine
+      // decides whether that is required.
+      platform.afterLoad(this)
     },
 
     /**
@@ -436,7 +432,7 @@ export var usePlayerStore = defineStore('player', {
      * @returns {Promise<void>}
      */
     syncWindow: async function() {
-      if (!isAndroid || !this.queue || !this.queue.length || this.queueIndex < 0) {
+      if (!this.queue || !this.queue.length || this.queueIndex < 0) {
         return
       }
 

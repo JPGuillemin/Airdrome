@@ -1,0 +1,1 @@
+import{T as e}from"./index-BL6rsD--.js";var t=class extends e{constructor(){super(),this._lastWindow=null}async open(e){this._lastWindow=window.open(e.url,e.windowName||`_blank`)}async close(){return new Promise((e,t)=>{this._lastWindow==null?t(`No active window to close!`):(this._lastWindow.close(),this._lastWindow=null,e())})}};new t;export{t as BrowserWeb};

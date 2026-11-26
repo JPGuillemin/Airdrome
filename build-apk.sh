@@ -107,12 +107,7 @@ if [ "${SKIP_PWA_BUILD:-0}" != "1" ]; then
   echo "==> Building web bundle"
   export BASE_PATH="/"
   export VERSION
-
-  if command -v yarn >/dev/null 2>&1 && [ -f yarn.lock ]; then
-    yarn build
-  else
-    npm run build
-  fi
+  ./build.sh
 else
   echo "==> Skipping web build"
 fi

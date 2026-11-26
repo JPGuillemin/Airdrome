@@ -2,7 +2,7 @@
 //
 // Native Android audio engine backed by Media3 ExoPlayer (see
 // ExoPlayerPlugin.java). It exposes the same public surface as
-// AudioController in audio.js, so store.js/setupAudio.js do not need
+// AudioController in audio.js, so store.js/lifecycle.js do not need
 // platform-specific branches for normal playback.
 //
 // Kept features from the Web Audio engine:
@@ -105,7 +105,7 @@ export function ExoController() {
   /** ReplayGain data of the tracks last pushed with setWindow(), by key. */
   this.windowGains = new Map()
 
-  // Callbacks assigned by setupAudio().
+  // Callbacks assigned by lifecycle.js.
   this.ontimeupdate = function() {}
   this.ondurationchange = function() {}
   this.onpause = function() {}

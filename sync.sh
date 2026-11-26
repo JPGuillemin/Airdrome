@@ -3,8 +3,9 @@
 # Synchronize the public Airdrome working tree with the build/commit server.
 #
 # "Public" means every working-tree file that is safe to publish, including
-# dist/, public/, stats.html, txt and .archive/. Local tooling, generated
-# native copies, deployment files and signing material are excluded.
+# public/, stats.html, txt and .archive/. Generated output (dist/), local
+# tooling, native copies, deployment files and signing material are excluded.
+# Each host builds dist/ with ./build.sh.
 #
 # Usage:
 #   ./sync.sh pull
@@ -35,7 +36,7 @@ RSYNC_OPTS=(
   --no-group
 
   # Keep the remote's own repository metadata. Public working-tree files
-  # (including dist/, docker/, stats.html, txt and .archive/) are synced.
+  # (including docker/, stats.html, txt and .archive/) are synced.
   --exclude='.git/'
 
   # Local tooling and generated build caches.
@@ -44,6 +45,9 @@ RSYNC_OPTS=(
   --exclude='build/'
   --exclude='.cache/'
   --exclude='.vite/'
+
+  # Generated web bundle: rebuilt on each host with ./build.sh.
+  --exclude='dist/'
 
   # Generated native copies: recreated by `npx cap sync`.
   --exclude='android/capacitor-cordova-android-plugins/'
@@ -102,17 +106,6 @@ case "${1:-}" in
     rsync "${PULL_OPTS[@]}" "$REMOTE:$REMOTE_DIR/" "$LOCAL_DIR/"
     ;;
   push)
-    # A previous root-owned build on the remote leaves dist/ unwritable for
-    # the normal user. rsync cannot delete those files, but the parent
-    # directory is writable, so rename the whole tree out of the way and let
-    # rsync create a fresh dist/ owned by the remote user.
-    echo "==> Preparing remote destination"
-    ssh "$REMOTE" "cd '$REMOTE_DIR' 2>/dev/null || exit 0; \
-      if [ -d dist ] && [ -n \"\$(find dist ! -writable -print -quit 2>/dev/null)\" ]; then \
-        mv dist \"dist-old-\$(date +%s)\"; \
-        echo 'Quarantined unwritable remote dist/'; \
-      fi"
-
     echo "==> Pushing $LOCAL_DIR/ -> $REMOTE:$REMOTE_DIR/"
     rsync "${RSYNC_OPTS[@]}" --delete "$LOCAL_DIR/" "$REMOTE:$REMOTE_DIR/"
     ;;

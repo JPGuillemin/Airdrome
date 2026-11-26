@@ -41,16 +41,30 @@ $ docker run -d \
 
 ```
 
-## Build your own Docker image
+## Build the web bundle
 
 ```
-$ yarn install
-$ yarn build
+$ ./build.sh
 ```
 
-Bundle can be found in the `dist` folder.
+Bundle can be found in the `dist` folder. This script never needs root.
 
-Build docker image:
+## Build and run the local Docker container
+
+```
+$ ./build.sh
+$ ./build-local-docker.sh
+```
+
+The first command builds the web bundle as your normal user (`build.sh` refuses
+to run as root). The second builds the `local/airdrome:latest` image and runs
+it on port 4321. It requires Docker access (root or the `docker` group) and can
+be run as root. The Docker build context is generated from `docker.template/`.
+
+To build and push the multi-arch public images, run `./build.sh` first, then
+`./build-public-dockers.sh` (requires Docker buildx).
+
+Manual equivalent:
 
 ```
 $ docker build -f docker/Dockerfile -t local/airdrome .
@@ -97,8 +111,8 @@ Build artifacts are written to `artifacts/airdrome-<version>.apk` (and `.aab`
 when `BUILD_AAB=1`). They are kept out of `dist/` because `dist/` is copied
 into the Android web assets by Capacitor.
 
-`build.sh` and `build-apk.sh` set `JAVA_HOME`, `PATH`, `ANDROID_HOME` and
-`ANDROID_SDK_ROOT` to local defaults, and load signing values from
+`build-apk.sh` sets `JAVA_HOME`, `PATH`, `ANDROID_HOME` and
+`ANDROID_SDK_ROOT` to local defaults, and loads signing values from
 `.android-signing.env` when it exists. Copy the example once:
 
 ```bash

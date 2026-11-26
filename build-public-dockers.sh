@@ -1,7 +1,35 @@
 #!/bin/bash
+#
+# Build and push the multi-arch public Docker images.
+#
+# Run ./build.sh first as your normal user to create dist/. This script only
+# needs Docker/buildx access (root or the docker group); it never runs the web
+# build itself, so it is safe to run as root.
+#
+# Usage:
+#   ./build.sh
+#   ./build-public-dockers.sh
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 source VERSION
-export BASE_PATH="/"
+
+BASE_PATH="${BASE_PATH:-/}"
+
+case "$BASE_PATH" in
+  /*) ;;
+  *) BASE_PATH="/$BASE_PATH" ;;
+esac
+
+case "$BASE_PATH" in
+  */) ;;
+  *) BASE_PATH="$BASE_PATH/" ;;
+esac
+
+export BASE_PATH
 
 # ---------------------------------------------------------------------------
 # Buildx cleanup
@@ -14,7 +42,7 @@ cleanup_buildx() {
   docker buildx prune -af >/dev/null 2>&1 || true
 
   local builder
-  builder="$(docker buildx inspect 2>/dev/null | awk '/^Name:/ {print $2; exit}')"
+  builder="$(docker buildx inspect 2>/dev/null | awk '/^Name:/ {print $2; exit}' || true)"
 
   if [ -n "$builder" ] && [ "$builder" != "default" ]; then
     docker buildx stop "$builder" >/dev/null 2>&1 || true
@@ -22,7 +50,7 @@ cleanup_buildx() {
   fi
 
   local containers
-  containers="$(docker ps -aq --filter 'name=buildx_buildkit_' 2>/dev/null)"
+  containers="$(docker ps -aq --filter 'name=buildx_buildkit_' 2>/dev/null || true)"
 
   if [ -n "$containers" ]; then
     docker stop $containers >/dev/null 2>&1 || true
@@ -32,39 +60,39 @@ cleanup_buildx() {
 
 trap cleanup_buildx EXIT
 
-rm -rf dist docker
+# The web bundle must have been built as a normal user first.
+if [ ! -f "dist${BASE_PATH}index.html" ]; then
+  echo "dist${BASE_PATH}index.html not found. Run ./build.sh as your normal user first." >&2
+  exit 1
+fi
+
+# Prepare the Docker build context from the template.
+rm -rf docker
+cp -rf docker.template docker
+(
+  cd docker
+  sed -i "s|/env.js|${BASE_PATH}env.js|g" docker-entrypoint.sh
+  sed -i "s|/env.js|${BASE_PATH}env.js|g" nginx.conf
+  sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
+)
+
+# When run as root, keep the generated context owned by the project user so a
+# later normal-user build can still replace it.
+if [ "$(id -u)" -eq 0 ]; then
+  chown -R --reference="$SCRIPT_DIR" docker
+fi
 
 docker run --privileged --rm tonistiigi/binfmt --install all
 
-# Build the project
-yarn build || exit 1
+echo "==> Building and pushing multi-arch images"
+docker buildx build \
+  -f docker/Dockerfile \
+  --platform linux/amd64,linux/arm64 \
+  -t h7p3ri0n/airdrome:latest \
+  --push .
 
-# Rewrite BASE_PATH in static files
-(
-rmdir .tmp${BASE_PATH} || exit "error cleaning .tmp${BASE_PATH}"
-mkdir .tmp${BASE_PATH}
-mv dist/* .tmp${BASE_PATH}
-mkdir dist${BASE_PATH}
-mv .tmp${BASE_PATH}/* dist${BASE_PATH}
-rmdir .tmp${BASE_PATH} || exit "error cleaning .tmp${BASE_PATH}"
-cd dist${BASE_PATH}
-
-# sed -i "s|\([\"\']\)/|\1$BASE_PATH|g" index.html
-sed -i "s|\([\"\']\)/|\1$BASE_PATH|g" manifest.webmanifest
-sed -i "s|const APP_BASE.*|const APP_BASE = \'$BASE_PATH\'|g" service-worker.js
-echo "/*    ${BASE_PATH}index.html   200" > _redirects
-)
-
-cp -rf docker.template docker
-(
-cd docker
-sed -i "s|/env.js|${BASE_PATH}env.js|g" docker-entrypoint.sh
-sed -i "s|/env.js|${BASE_PATH}env.js|g" nginx.conf
-sed -i "s|/index.html|${BASE_PATH}index.html|g" nginx.conf
-)
-
-mv dist${BASE_PATH}.well-known dist/
-
-# Build the docker image
-docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:latest --push . || exit "error docker buildx"
-docker buildx build -f docker/Dockerfile --platform linux/amd64,linux/arm64 -t h7p3ri0n/airdrome:$VERSION --push . || exit "error docker buildx"
+docker buildx build \
+  -f docker/Dockerfile \
+  --platform linux/amd64,linux/arm64 \
+  -t "h7p3ri0n/airdrome:$VERSION" \
+  --push .
