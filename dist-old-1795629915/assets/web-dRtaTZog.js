@@ -1,1 +1,0 @@
-import{n as e}from"./dist-Df2lF_67.js";var t=class extends e{async show(e){if(typeof document<`u`){let t=2e3;e.duration&&(t=e.duration===`long`?3500:2e3);let n=document.createElement(`pwa-toast`);n.duration=t,n.message=e.text,document.body.appendChild(n)}}};export{t as ToastWeb};
