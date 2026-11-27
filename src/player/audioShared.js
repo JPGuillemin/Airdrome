@@ -52,9 +52,12 @@ export function replayGainFactor(mode, replayGain) {
     return 1
   }
 
-  // +6 dB preamp, then clamp so the peak can never clip.
+  // +6 dB preamp so quiet tracks get a real boost. Deliberately no 1/peak
+  // clamp: it made ReplayGain inaudible on tracks whose peak sits at full
+  // scale (old, heavily limited masters). Peaks are limited by the engines
+  // instead (Web Audio compressor / native PCM limiter).
   var preAmp = 6
-  return Math.min(Math.pow(10, (gain + preAmp) / 20), 1 / peak)
+  return Math.pow(10, (gain + preAmp) / 20)
 }
 
 /** ReplayGain mode restored from localStorage, default None (0). */

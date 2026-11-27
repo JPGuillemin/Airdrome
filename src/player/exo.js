@@ -123,20 +123,30 @@ export function ExoController() {
 
   Exo.addListener('play', function() {
     self.playing = true
+    if (self.pending && !self.pending.since) self.pending.since = Date.now()
     self.onplay()
   }).catch(warn)
 
   Exo.addListener('pause', function() {
+    if (self.pending && self.pending.since) {
+      self.pending.played += Date.now() - self.pending.since
+      self.pending.since = 0
+    }
     self.playing = false
     self.onpause()
   }).catch(warn)
 
   Exo.addListener('playing', function() {
     self.playing = true
+    if (self.pending && !self.pending.since) self.pending.since = Date.now()
     self.onplaying()
   }).catch(warn)
 
   Exo.addListener('waiting', function() {
+    if (self.pending && self.pending.since) {
+      self.pending.played += Date.now() - self.pending.since
+      self.pending.since = 0
+    }
     self.playing = false
     self.onwaiting()
   }).catch(warn)
@@ -449,8 +459,16 @@ ExoController.prototype.seek = async function(value) {
     }
 
     // Remote stream not cached yet: remember the seek and apply it when the
-    // cache store finishes downloading the track.
-    this.pending = { key: this.currentKey, position: value, at: Date.now() }
+    // cache store finishes downloading the track. Only actual playing time is
+    // counted, so a pause (phone call, Bluetooth disconnect...) or a delayed
+    // play never moves the switch-to-local position forward.
+    this.pending = {
+      key: this.currentKey,
+      position: value,
+      played: 0,
+      since: this.playing ? Date.now() : 0,
+      at: Date.now()
+    }
     useCacheStore().cacheTrack(this.currentKey)
 
     var self = this
@@ -481,6 +499,28 @@ ExoController.prototype.stopPoll = function() {
   }
 
   this.pollTimer = null
+}
+
+/**
+ * Playback position while a seek is being resolved on a remote stream.
+ * Counts only actual playing time, never paused or pre-play time.
+ *
+ * @returns {number}
+ */
+ExoController.prototype.pendingPosition = function() {
+  var pending = this.pending
+
+  if (!pending) {
+    return 0
+  }
+
+  var played = pending.played
+
+  if (pending.since) {
+    played += Date.now() - pending.since
+  }
+
+  return pending.position + played / 1000
 }
 
 /**
@@ -530,14 +570,10 @@ ExoController.prototype.onCached = async function(url) {
     return
   }
 
+  var position = this.pendingPosition()
+
   this.pending = null
   this.stopPoll()
-
-  var position = pending.position
-
-  if (this.playing) {
-    position += (Date.now() - pending.at) / 1000
-  }
 
   this.seekTarget = position
   this.seekAt = Date.now()
@@ -725,14 +761,13 @@ ExoController.prototype.handleTime = function(event) {
   var duration = event.duration
 
   if (this.pending && this.pending.key === this.currentKey) {
-    var pending = this.pending
-    var elapsed = this.playing ? (Date.now() - pending.at) / 1000 : 0
+    var estimate = this.pendingPosition()
 
-    if (Math.abs(position - (pending.position + elapsed)) < 1.5) {
+    if (Math.abs(position - estimate) < 1.5) {
       this.pending = null
       this.seekTarget = null
-    } else if (Date.now() - pending.at < 60000) {
-      this.ontimeupdate(pending.position + elapsed)
+    } else if (Date.now() - this.pending.at < 60000) {
+      this.ontimeupdate(estimate)
       return
     } else {
       this.pending = null

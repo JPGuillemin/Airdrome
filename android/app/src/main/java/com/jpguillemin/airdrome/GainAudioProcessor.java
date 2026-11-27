@@ -77,8 +77,7 @@ final class GainAudioProcessor extends BaseAudioProcessor {
       FloatBuffer target = outputBuffer.asFloatBuffer();
 
       while (source.hasRemaining()) {
-        float sample = source.get() * gain;
-        target.put(Math.max(-1f, Math.min(1f, sample)));
+        target.put(limit(source.get() * gain));
       }
 
       inputBuffer.position(inputBuffer.position() + remaining);
@@ -88,8 +87,8 @@ final class GainAudioProcessor extends BaseAudioProcessor {
       ShortBuffer target = outputBuffer.asShortBuffer();
 
       while (source.hasRemaining()) {
-        int sample = Math.round(source.get() * gain);
-        target.put((short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, sample)));
+        float sample = limit(source.get() * gain / 32768f) * 32767f;
+        target.put((short) Math.round(sample));
       }
 
       inputBuffer.position(inputBuffer.position() + remaining);
@@ -97,5 +96,24 @@ final class GainAudioProcessor extends BaseAudioProcessor {
     }
 
     outputBuffer.flip();
+  }
+
+  /**
+   * Soft limiter matching the Web Audio compressor: 2:1 above -3 dBFS,
+   * hard-capped at full scale. Prevents clipping without cancelling the
+   * ReplayGain boost.
+   *
+   * @param sample input sample in [-1, 1] (may exceed after gain)
+   * @return limited sample in [-1, 1]
+   */
+  private static float limit(float sample) {
+    float sign = sample < 0 ? -1f : 1f;
+    float value = Math.abs(sample);
+
+    if (value > 0.707f) {
+      value = 0.707f + (value - 0.707f) / 2f;
+    }
+
+    return sign * Math.min(value, 1f);
   }
 }
