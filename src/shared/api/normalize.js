@@ -4,6 +4,7 @@
 // var, function expressions and explicit property access.
 
 import { startCase, uniqBy } from 'lodash-es'
+import { streamQuality } from '@/shared/streamQuality'
 
 export var normalizeMethods = {
   /**
@@ -47,7 +48,7 @@ export var normalizeMethods = {
       album: item.album,
       albumId: item.albumId,
       artists: artists,
-      url: this.getStreamUrl(item.id),
+      url: this.getStreamUrl(item.id, streamQuality.value),
       image: image,
       suffix: item.suffix,
       contentType: item.contentType,

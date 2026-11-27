@@ -153,6 +153,7 @@
   import { pushReload } from '@/shared/reload'
   import { applyTheme } from '@/shared/theme'
   import { isAndroid } from '@/shared/platform'
+  import { streamQuality, setStreamQuality } from '@/shared/streamQuality'
   export default defineComponent({
     components: {
       About: About,
@@ -218,19 +219,6 @@
       function setTheme(color) {
         currentColor.value = color
         applyTheme(color)
-      }
-
-      var streamQuality = ref(Number(localStorage.getItem('streamQuality')) || 128)
-
-      /**
-       * Set the preferred stream bitrate and persist it.
-       *
-       * @param {number} value
-       * @returns {void}
-       */
-      function setStreamQuality(value) {
-        streamQuality.value = value
-        localStorage.setItem('streamQuality', String(value))
       }
 
       /** Audio cache size in megabytes. */

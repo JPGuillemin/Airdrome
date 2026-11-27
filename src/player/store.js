@@ -22,6 +22,8 @@ import {
   setMediaSessionState
 } from '@/player/engine'
 import { saveSession, releaseSession } from './lifecycle'
+import { streamQuality } from '@/shared/streamQuality'
+import { isAndroid } from '@/shared/platform'
 
 // ---------------------------------------------------------------------------
 // Clean up keys that are no longer used
@@ -477,6 +479,32 @@ export var usePlayerStore = defineStore('player', {
         await audio.setWindow(tracks, this.queueIndex)
       } catch (error) {
         console.warn('[Player] setWindow failed', error)
+      }
+    },
+
+    /**
+     * Rebuild the queue's stream URLs for the current bitrate. The track that
+     * is already loaded keeps its URL (it is the native player's active key);
+     * the next tracks switch immediately, including native auto-advance.
+     *
+     * @returns {void}
+     */
+    applyStreamQuality: function() {
+      var quality = streamQuality.value
+      var current = this.queueIndex
+
+      for (var i = 0; i < this.queue.length; i++) {
+        var track = this.queue[i]
+
+        if (i === current || !track.id || track.isStream) {
+          continue
+        }
+
+        track.url = this.api.getStreamUrl(track.id, quality)
+      }
+
+      if (isAndroid) {
+        this.syncWindow()
       }
     },
 

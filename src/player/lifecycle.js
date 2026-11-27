@@ -20,6 +20,7 @@ import { isTouchDevice } from '@/shared/platform'
 import { audio, platform, storedReplayGainMode } from './engine'
 import { detectAudioCodec } from './audioShared'
 import { nativeMediaSession } from './nativeMediaSession'
+import { streamQuality } from '@/shared/streamQuality'
 
 /**
  * Wire the audio engine, platform hooks and server session to the store.
@@ -56,6 +57,12 @@ export async function setupPlayerLifecycle(playerStore, mainStore) {
       audio.setNextUrl(url)
     }
   )
+
+  // A new stream bitrate applies immediately to the next tracks: their queue
+  // URLs are rebuilt and the native window is re-pushed.
+  watch(streamQuality, function() {
+    playerStore.applyStreamQuality()
+  })
 
   var reporter = createPlaybackReporter(playerStore)
 
@@ -286,10 +293,6 @@ export async function setupPlayerLifecycle(playerStore, mainStore) {
 
 var POLL_MS = 5000
 
-// A queue written by another client a long time ago is stale; do not pause
-// playback because of it. Only a recent foreign write means a real takeover.
-var TAKEOVER_STALE_MS = 10 * 60 * 1000
-
 // The first request after a resume can fail (background WebView, stale connection).
 var CLAIM_BACKOFF_MS = [0, 400, 1200, 2500, 5000]
 
@@ -492,46 +495,15 @@ async function ensureOwnership(player) {
     return true
   }
 
-  var changedAt = parseQueueChanged(queue.changed)
-
-  if (changedAt > 0 && Date.now() - changedAt > TAKEOVER_STALE_MS) {
-    // The server still names an older client, but its write is stale. Claim
-    // the queue again instead of pausing on an old session.
-    console.info('[session] ignoring stale queue from ' + queue.changedBy)
-    markOwner(player, true)
-    await writeQueue()
-    return true
+  // Another device wrote the queue. While idle, just do not write (a later
+  // play claims the session); while active, it is a real takeover: pause.
+  if (!ownsQueue) {
+    return false
   }
 
-  console.info('[session] foreign queue write by ' + queue.changedBy +
-    (changedAt ? ' at ' + new Date(changedAt).toISOString() : ''))
-
+  console.info('[session] taken over by ' + queue.changedBy)
   handleTakeover(player, queue.changedBy)
   return false
-}
-
-/**
- * Parse the server-side queue `changed` timestamp.
- *
- * @param {string|number|undefined} value
- * @returns {number} Milliseconds, or 0 when unavailable.
- */
-function parseQueueChanged(value) {
-  if (value == null || value === '') {
-    return 0
-  }
-
-  if (typeof value === 'number') {
-    return isFinite(value) ? value : 0
-  }
-
-  if (/^\d+$/.test(value)) {
-    var numeric = Number(value)
-    return numeric < 1e12 ? numeric * 1000 : numeric
-  }
-
-  var parsed = Date.parse(value)
-  return isFinite(parsed) ? parsed : 0
 }
 
 /**

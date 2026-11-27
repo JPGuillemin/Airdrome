@@ -41,29 +41,29 @@ export var urlMethods = {
 
   /**
    * @param {string} id
+   * @param {number} [bitRate] Preferred bitrate in kbps (1000 = original).
    * @returns {string}
    */
-  getStreamUrl: function(id) {
+  getStreamUrl: function(id, bitRate) {
     var server = this.auth.server
     var urlParams = this.auth.urlParams
-    var storedQuality = Number(localStorage.getItem('streamQuality'))
-    var bitRate = 128
+    var quality = Number(bitRate)
     var audioCodec = localStorage.getItem('audioCodec') || 'mp3'
 
-    if (Number.isFinite(storedQuality) && storedQuality > 0) {
-      bitRate = storedQuality
+    if (!Number.isFinite(quality) || quality <= 0) {
+      quality = 128
     }
 
-    if (bitRate === 1000) {
+    if (quality === 1000) {
       audioCodec = 'raw'
-      bitRate = 0
+      quality = 0
     }
 
     return server + '/rest/stream' +
       '?id=' + id +
       '&v=1.16.1' +
       '&' + urlParams +
-      '&maxBitRate=' + bitRate +
+      '&maxBitRate=' + quality +
       '&format=' + audioCodec +
       '&c=' + this.clientName
   }
