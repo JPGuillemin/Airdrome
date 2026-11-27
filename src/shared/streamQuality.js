@@ -9,7 +9,7 @@ import { ref } from 'vue'
 var STORAGE_KEY = 'streamQuality'
 
 /** Selected bitrate in kbps (1000 = original/raw). */
-export var streamQuality = ref(Number(localStorage.getItem(STORAGE_KEY)) || 128)
+export var streamQuality = ref(Number(localStorage.getItem(STORAGE_KEY)) || 150)
 
 /**
  * Change the preferred stream bitrate.
