@@ -55,9 +55,9 @@
                 <button
                   v-longpress-tooltip
                   v-for="option in [
-                    { icon: 'low', value: 100 },
-                    { icon: 'medium', value: 150 },
-                    { icon: 'high', value: 200 }
+                    { icon: 'low', value: 96 },
+                    { icon: 'medium', value: 132 },
+                    { icon: 'high', value: 192 }
                   ]"
                   :key="option.value"
                   class="btn btn-sm"
