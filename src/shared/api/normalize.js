@@ -6,6 +6,35 @@
 import { startCase, uniqBy } from 'lodash-es'
 import { streamQuality } from '@/shared/streamQuality'
 
+/**
+ * True when an artist is credited as an album artist on an album.
+ *
+ * @param {Object} album Raw Subsonic album object.
+ * @param {string} artistId
+ * @param {string} [artistName] Fallback for servers without artist ids.
+ * @returns {boolean}
+ */
+export function isAlbumArtist(album, artistId, artistName) {
+  var albumArtists = album.artists && album.artists.length
+    ? album.artists
+    : [{ id: album.artistId, name: album.artist }]
+
+  for (var i = 0; i < albumArtists.length; i++) {
+    var albumArtist = albumArtists[i]
+
+    if (albumArtist.id != null && String(albumArtist.id) === String(artistId)) {
+      return true
+    }
+
+    if ((albumArtist.id == null || albumArtist.id === '') &&
+        artistName && albumArtist.name === artistName) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export var normalizeMethods = {
   /**
    * @param {Object} item
@@ -180,6 +209,21 @@ export var normalizeMethods = {
       return getAlbumTime(b) - getAlbumTime(a)
     })
 
+    // Navidrome can return albums where the artist only participates as a
+    // track artist (ND_SUBSONIC_ARTISTPARTICIPATIONS). Split them out so the
+    // page can show them as contributions, and keep the track count to the
+    // artist's own albums.
+    var ownRaw = []
+    var contributionRaw = []
+
+    for (var k = 0; k < sortedAlbums.length; k++) {
+      if (isAlbumArtist(sortedAlbums[k], item.id, item.name)) {
+        ownRaw.push(sortedAlbums[k])
+      } else {
+        contributionRaw.push(sortedAlbums[k])
+      }
+    }
+
     var musicBrainzUrl = undefined
 
     if (item.musicBrainzId) {
@@ -194,7 +238,7 @@ export var normalizeMethods = {
       image = item.artistImageUrl
     }
 
-    var trackCount = rawAlbums.reduce(function(acc, album) {
+    var trackCount = ownRaw.reduce(function(acc, album) {
       return acc + (album.songCount || 0)
     }, 0)
 
@@ -209,6 +253,8 @@ export var normalizeMethods = {
       lastFmUrl: item.lastFmUrl,
       musicBrainzUrl: musicBrainzUrl,
       albums: sortedAlbums.map(this.normalizeAlbum, this),
+      ownAlbums: ownRaw.map(this.normalizeAlbum, this),
+      contributionAlbums: contributionRaw.map(this.normalizeAlbum, this),
       similarArtist: (item.similarArtist || []).map(this.normalizeArtist, this),
       topTracks: (item.topSongs || []).slice(0, 5).map(this.normalizeTrack, this),
       image: image

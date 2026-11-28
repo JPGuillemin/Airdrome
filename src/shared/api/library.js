@@ -7,6 +7,7 @@
 import { orderBy } from 'lodash-es'
 import { shuffled, toQueryString } from '@/shared/utils'
 import { OfflineError } from './client'
+import { isAlbumArtist } from './normalize'
 
 export var libraryMethods = {
   // -------------------------------------------------------------------------
@@ -209,7 +210,7 @@ export var libraryMethods = {
     }
 
     var artist = await this.getArtistDetails(id)
-    var albums = artist.albums || []
+    var albums = artist.ownAlbums || artist.albums || []
 
     if (!albums.length) {
       return []
@@ -305,7 +306,9 @@ export var libraryMethods = {
     var self = this
     var artistResponse = await this.fetch('rest/getArtist', { id: id })
     var artist = artistResponse.artist
-    var albumList = artist.album || []
+    var albumList = (artist.album || []).filter(function(album) {
+      return isAlbumArtist(album, id, artist.name)
+    })
     var ordered = orderBy(albumList, function(x) {
       return x.year || 0
     }, 'desc')

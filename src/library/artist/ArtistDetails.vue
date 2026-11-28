@@ -70,14 +70,23 @@
           :no-artist="true"
         />
       </template>
-      <template v-if="artist.albums.length > 0">
+      <template v-if="artist.ownAlbums.length > 0">
         <div class="d-inline-flex align-items-center">
           <Icon icon="albums" class="title-color me-2" />
           <span class="section-title">
             Albums
           </span>
         </div>
-        <AlbumList :items="artist.albums" tile-size="90" :with-artist="false" :with-date="true" :allow-h-scroll="true" />
+        <AlbumList :items="artist.ownAlbums" tile-size="90" :with-artist="false" :with-date="true" :allow-h-scroll="true" />
+      </template>
+      <template v-if="artist.contributionAlbums.length > 0">
+        <div class="d-inline-flex align-items-center">
+          <Icon icon="albums" class="title-color me-2" />
+          <span class="section-title">
+            Contributions
+          </span>
+        </div>
+        <AlbumList :items="artist.contributionAlbums" tile-size="90" :with-artist="true" :with-date="true" :allow-h-scroll="true" />
       </template>
       <template v-if="artist.similarArtist.length > 0">
         <div class="d-inline-flex align-items-center">
